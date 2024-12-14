@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<title>Editar Registro</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="form-container">
+    <h1>Editar Vestido</h1>
+    <a href="{{ url_for('index') }}" class="cancel-link">Sair sem Finalizar</a>
+    <form method="POST" enctype="multipart/form-data">
+        <label>Data de Retirada:</label><br>
+        <input type="date" name="rental_date" value="{{ dress.rental_date }}" required><br><br>
+
+        <label>Data de Devolução:</label><br>
+        <input type="date" name="return_date" value="{{ dress.return_date }}" required><br><br>
+
+        <label>Comentários:</label><br>
+        <textarea name="comments" rows="3" cols="30">{{ dress.comments }}</textarea><br><br>
+
+        <label>Foto Atual:</label><br>
+        {% if dress.image_url and dress.image_url != "" %}
+            <img src="{{ dress.image_url }}" alt="Imagem do vestido" style="max-width:100px;">
+            {% else %}
+            <img src="{{ url_for('static', filename='dress-placeholder.png') }}" alt="Sem Imagem" style="max-width:100px;">
+            {% endif %}
+        <label>Trocar a Foto:</label><br>
+        <input type="file" name="image_file" accept="image/*;capture=camera"><br><br>
+
+        <button type="submit">Salvar</button>
+    </form>
+</div>
+</body>
+</html>

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<title>Vestidos Devolvidos</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<h1>Vestidos Devolvidos</h1>
+<a href="{{ url_for('index') }}">Ver Alugados</a> | 
+<a href="{{ url_for('add') }}">Inserir Novo Registro</a>
+
+<table>
+    <tr>
+        <th>Imagem</th>
+        <th>Data de Retirada</th>
+        <th>Data de Devolução</th>
+        <th>Comentários</th>
+        <th>Ações</th>
+    </tr>
+    {% for dress in dresses %}
+    <tr>
+        <td>
+            {% if dress.image_url and dress.image_url != "" %}
+            <img src="{{ dress.image_url }}" alt="Imagem do vestido" style="max-width:100px;">
+            {% else %}
+            <img src="{{ url_for('static', filename='dress-placeholder.png') }}" alt="Sem Imagem" style="max-width:100px;">
+            {% endif %}
+        </td>
+        <td>{{ dress.rental_date }}</td>
+        <td>{{ dress.return_date }}</td>
+        <td>{{ dress.comments }}</td>
+        <td>
+            <form method="POST" action="{{ url_for('delete', dress_id=dress.dress_id) }}" 
+                  onsubmit="return confirm('Tem certeza que deseja deletar este registro?');" style="display:inline;">
+                <button type="submit" style="background-color:red;color:white;">Deletar</button>
+            </form>
+            <a href="{{ url_for('edit', dress_id=dress.dress_id) }}">Editar</a>
+            <form method="POST" action="{{ url_for('mark_rented', dress_id=dress.dress_id) }}" style="display:inline;">
+                <button type="submit" style="background-color:orange;color:white;">Marcar como Não Devolvido</button>
+            </form>
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+</body>
+</html>
