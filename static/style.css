@@ -145,15 +145,24 @@ button {
     border-radius: 4px;
 }
 
-/* Botão fechar (X) */
 .modal-close {
     position: absolute;
     top: 20px;
     right: 35px;
     color: #fff;
-    font-size: 40px;
+    font-size: 50px; /* Aumenta o tamanho da fonte */
     font-weight: bold;
     cursor: pointer;
+    background: rgba(0,0,0,0.5); /* Fundo semitransparente escuro */
+    padding: 10px 15px; /* Espaçamento interno para parecer um botão */
+    border-radius: 50%; /* Deixa arredondado */
+    border: 2px solid #fff; /* Linha branca ao redor, destacando ainda mais */
+}
+
+.modal-close:hover {
+    background: rgba(255,255,255,0.7); /* Ao passar o mouse, inverter cores */
+    color: #000;
+    border-color: #000;
 }
 
 /* Ajustar modal em telas menores */
