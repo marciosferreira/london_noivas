@@ -92,12 +92,15 @@ def add():
         return_date = request.form.get('return_date')
         comments = request.form.get('comments')
         image_file = request.files.get('image_file')
+        client_name = request.form.get('client_name')
+
 
         image_url = upload_image_to_s3(image_file)
 
         # Inserir registro no DynamoDB
         item = {
             'dress_id': str(uuid.uuid4()),
+            'client_name': client_name,
             'rental_date': rental_date,
             'return_date': return_date,
             'comments': comments,
@@ -122,6 +125,7 @@ def edit(dress_id):
 
     if request.method == 'POST':
         rental_date = request.form.get('rental_date')
+        client_name = request.form.get('client_name')
         return_date = request.form.get('return_date')
         comments = request.form.get('comments')
         image_file = request.files.get('image_file')
@@ -134,12 +138,13 @@ def edit(dress_id):
         # Atualizar item no DynamoDB
         table.update_item(
             Key={'dress_id': dress_id},
-            UpdateExpression="set rental_date = :r, return_date = :rt, comments = :c, image_url = :i",
+            UpdateExpression="set rental_date = :r, return_date = :rt, comments = :c, image_url = :i, client_name = :cn",
             ExpressionAttributeValues={
                 ':r': rental_date,
                 ':rt': return_date,
                 ':c': comments,
-                ':i': new_image_url
+                ':i': new_image_url,
+                ':cn': client_name
             }
         )
         # Redirecionar de acordo com o status atual

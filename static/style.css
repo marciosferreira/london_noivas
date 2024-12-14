@@ -1,22 +1,24 @@
+/* Estilos base */
 body {
     font-family: Arial, sans-serif;
-    margin: 20px;
+    margin: 10px;
+    font-size: 16px;
 }
 
 h1 {
-    font-size: 24px;
+    font-size: 1.8em;
     margin-bottom: 20px;
 }
 
-.form-container {
-    max-width: 400px;
+.form-container, .login-container {
+    max-width: 100%;
     margin: 0 auto;
 }
 
 .cancel-link {
     display: inline-block;
     margin-bottom: 20px;
-    padding: 8px 12px;
+    padding: 10px 14px;
     background: #aaa;
     color: white;
     text-decoration: none;
@@ -36,7 +38,8 @@ table {
 
 table, th, td {
     border: 1px solid #ddd;
-    padding: 8px;
+    padding: 10px;
+    font-size: 16px;
 }
 
 th {
@@ -50,18 +53,18 @@ tr:hover {
 a {
     display: inline-block;
     margin-bottom: 10px;
-    padding: 8px 12px;
+    padding: 10px 14px;
     background: #4CAF50;
     color: white;
     text-decoration: none;
     border-radius: 4px;
     margin-right: 10px;
+    font-size: 16px;
 }
 
 .login-container {
-    max-width: 300px;
-    margin: 0 auto;
-    margin-top: 100px;
+    max-width: 100%;
+    margin-top: 40px;
     padding: 20px;
     border: 1px solid #ddd;
     border-radius: 4px;
@@ -70,15 +73,89 @@ a {
 
 .login-container input {
     width: 100%;
-    margin-bottom: 10px;
-    padding: 8px;
+    margin-bottom: 15px;
+    padding: 10px;
     border-radius: 4px;
     border: 1px solid #ddd;
+    font-size: 16px;
 }
 
 button {
-    padding: 8px 12px;
+    padding: 10px 14px;
     margin: 5px;
     border: none;
     border-radius: 4px;
+    font-size: 16px;
+}
+
+/* Ajustes para telas menores */
+@media (max-width: 600px) {
+    body {
+        margin: 10px;
+        font-size: 18px;
+    }
+
+    h1 {
+        font-size: 1.6em;
+    }
+
+    table, th, td {
+        font-size: 16px;
+        padding: 8px;
+    }
+
+    a, button, .cancel-link {
+        font-size: 16px;
+        padding: 10px;
+    }
+
+    .form-container, .login-container {
+        max-width: 95%;
+        margin: 0 auto;
+    }
+}
+
+/* Modal Container */
+.modal {
+    display: none; 
+    position: fixed; 
+    z-index: 9999; 
+    padding-top: 60px; 
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto; 
+    background-color: rgba(0,0,0,0.8); /* Fundo semitransparente */
+}
+
+/* Conteúdo da imagem no modal */
+.modal-content {
+    margin: auto;
+    display: block;
+    max-width: 90%;
+    max-height: 80vh;
+    border-radius: 4px;
+}
+
+/* Botão fechar (X) */
+.modal-close {
+    position: absolute;
+    top: 20px;
+    right: 35px;
+    color: #fff;
+    font-size: 40px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+/* Ajustar modal em telas menores */
+@media (max-width: 600px) {
+    .modal-content {
+        max-width: 95%;
+    }
+    .modal-close {
+        right: 20px;
+        font-size: 30px;
+    }
 }

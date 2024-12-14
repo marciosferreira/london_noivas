@@ -10,6 +10,11 @@
     <h1>Editar Vestido</h1>
     <a href="{{ url_for('index') }}" class="cancel-link">Sair sem Finalizar</a>
     <form method="POST" enctype="multipart/form-data">
+        
+        <label>Nome do Cliente:</label><br>
+        <input type="text" name="client_name" value="{{ dress.client_name }}" required><br><br>
+
+        
         <label>Data de Retirada:</label><br>
         <input type="date" name="rental_date" value="{{ dress.rental_date }}" required><br><br>
 
