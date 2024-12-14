@@ -10,15 +10,15 @@ h1 {
     margin-bottom: 20px;
 }
 
-/* Ajuste adicional: adicionar um pouco de padding interno nos contêineres de formulário
-   para que os campos não fiquem tão colados às bordas da tela em dispositivos móveis. */
+/* Containers de formulário */
 .form-container, .login-container {
     max-width: 100%;
     margin: 0 auto;
-    padding: 20px; /* Adicionado padding para espaços internos */
-    box-sizing: border-box; /* Garante que padding não estoure a largura */
+    padding: 20px; /* Espaçamento interno para conforto */
+    box-sizing: border-box; /* Garante que padding não aumente a largura */
 }
 
+/* Link de cancelamento */
 .cancel-link {
     display: inline-block;
     margin-bottom: 20px;
@@ -34,6 +34,7 @@ h1 {
     background: #888;
 }
 
+/* Tabelas e textos */
 table {
     border-collapse: collapse;
     width: 100%;
@@ -54,6 +55,7 @@ tr:hover {
     background-color: #f9f9f9;
 }
 
+/* Links gerais */
 a {
     display: inline-block;
     margin-bottom: 10px;
@@ -66,7 +68,7 @@ a {
     font-size: 16px;
 }
 
-/* Ajuste adicional para o contêiner de login: já tem padding, mas garantimos box-sizing */
+/* Contêiner de login */
 .login-container {
     max-width: 100%;
     margin-top: 40px;
@@ -86,6 +88,7 @@ a {
     font-size: 16px;
 }
 
+/* Botões */
 button {
     padding: 10px 14px;
     margin: 5px;
@@ -94,32 +97,20 @@ button {
     font-size: 16px;
 }
 
-/* Ajustes para telas menores */
-@media (max-width: 600px) {
-    body {
-        margin: 10px;
-        font-size: 18px; /* Aumenta a fonte em dispositivos menores */
-    }
+/* Botão de Logout */
+.logout-link {
+    display: inline-block;
+    margin-bottom: 10px;
+    padding: 10px 14px;
+    background: #f44336; /* Vermelho para destacar */
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+    font-size: 16px;
+}
 
-    h1 {
-        font-size: 1.6em;
-    }
-
-    table, th, td {
-        font-size: 16px;
-        padding: 8px;
-    }
-
-    a, button, .cancel-link {
-        font-size: 16px;
-        padding: 10px;
-    }
-
-    .form-container, .login-container {
-        max-width: 95%;
-        margin: 0 auto;
-        padding: 20px; /* Mantém um bom padding em mobile */
-    }
+.logout-link:hover {
+    background: #d32f2f;
 }
 
 /* Modal Container */
@@ -145,6 +136,7 @@ button {
     border-radius: 4px;
 }
 
+/* Botão fechar (X) */
 .modal-close {
     position: absolute;
     top: 20px;
@@ -160,18 +152,103 @@ button {
 }
 
 .modal-close:hover {
-    background: rgba(255,255,255,0.7); /* Ao passar o mouse, inverter cores */
+    background: rgba(255,255,255,0.7); /* Ao passar o mouse, inverte cores */
     color: #000;
     border-color: #000;
 }
 
-/* Ajustar modal em telas menores */
+/* Ajustes para telas menores */
 @media (max-width: 600px) {
+    body {
+        margin: 10px;
+        font-size: 18px; /* Aumenta a fonte em dispositivos menores */
+    }
+
+    h1 {
+        font-size: 1.6em;
+    }
+
+    table, th, td {
+        font-size: 16px;
+        padding: 8px;
+    }
+
+    a, button, .cancel-link, .logout-link {
+        font-size: 16px;
+        padding: 10px;
+    }
+
+    .form-container, .login-container {
+        max-width: 95%;
+        margin: 0 auto;
+        padding: 20px; /* Mantém um bom padding em mobile */
+    }
+
+    /* Inputs e textarea no formulário */
+    .form-container input,
+    .form-container textarea {
+        width: 100%;
+        padding: 12px; /* Aumenta o padding para facilitar a interação */
+        font-size: 18px; /* Aumenta a fonte para melhor legibilidade */
+    }
+
+    /* Botões no formulário */
+    .form-container button {
+        width: 100%; /* Faz com que os botões ocupem toda a largura disponível */
+        padding: 14px; /* Mais espaçamento para melhor toque em mobile */
+        font-size: 18px; /* Fonte maior para melhor legibilidade */
+    }
+
+    /* Modal Ajustes para Mobile */
+    .modal-close {
+        font-size: 40px; /* Aumenta o tamanho da fonte */
+        padding: 12px 16px; /* Mais espaçamento */
+    }
+
     .modal-content {
         max-width: 95%;
     }
-    .modal-close {
-        right: 20px;
-        font-size: 30px;
-    }
+}
+
+
+/* Estilo para linhas retiradas */
+.retirado {
+    background-color: #ADD8E6; /* Azul claro */
+}
+
+/* Opcional: Destaque adicional para linhas atrasadas */
+.overdue {
+    background-color: #FFCCCC; /* Vermelho claro */
+}
+
+.flashes {
+    list-style-type: none;
+    padding: 0;
+    margin: 0 0 20px 0;
+}
+
+.flashes .flash {
+    padding: 10px 20px;
+    border-radius: 4px;
+    margin-bottom: 10px;
+}
+
+.flashes .flash.success {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.flashes .flash.error {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.flashes .flash.warning {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.flashes .flash.info {
+    background-color: #d1ecf1;
+    color: #0c5460;
 }

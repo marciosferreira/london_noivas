@@ -1,84 +1,110 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-<meta charset="UTF-8">
-<title>Vestidos Alugados</title>
-<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <title>Vestidos Alugados</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body>
-<h1>Vestidos Alugados (Não Devolvidos)</h1>
-<a href="{{ url_for('returned') }}">Ver Devolvidos</a> | 
-<a href="{{ url_for('add') }}">Inserir Novo Registro</a>
 
-<table>
-    <tr>
-        <th>Imagem</th>
-        <th>Cliente</th>
-        <th>Data de Retirada</th>
-        <th>Data de Devolução</th>
-        <th>Comentários</th>
-        <th>Ações</th>
-    </tr>
-    {% for dress in dresses %}
-    <tr>
-        <td>
-            {% if dress.image_url and dress.image_url != "" %}
-                <img src="{{ dress.image_url }}" alt="Imagem do vestido" style="max-width:100px;cursor:pointer;" class="dress-thumbnail">
-            {% else %}
-                <img src="{{ url_for('static', filename='dress-placeholder.png') }}" alt="Sem Imagem" style="max-width:100px;">
-            {% endif %}
-        </td>
-        <td>{{ dress.client_name }}</td>
-        <td>{{ dress.rental_date }}</td>
-        <td>{{ dress.return_date }}</td>
-        <td>{{ dress.comments }}</td>
-        <td>
-            <form method="POST" action="{{ url_for('delete', dress_id=dress.dress_id) }}" 
-                  onsubmit="return confirm('Tem certeza que deseja deletar este registro?');" style="display:inline;">
-                <button type="submit" style="background-color:red;color:white;">Deletar</button>
-            </form>
-            <a href="{{ url_for('edit', dress_id=dress.dress_id) }}">Editar</a>
-            <form method="POST" action="{{ url_for('mark_returned', dress_id=dress.dress_id) }}" style="display:inline;">
-                <button type="submit" style="background-color:green;color:white;">Marcar como Devolvido</button>
-            </form>
-        </td>
-    </tr>
-    {% endfor %}
-</table>
+     <!-- Exibir mensagens flash -->
+     {% with messages = get_flashed_messages(with_categories=true) %}
+     {% if messages %}
+       <ul class="flashes">
+         {% for category, message in messages %}
+           <li class="flash {{ category }}">{{ message }}</li>
+         {% endfor %}
+       </ul>
+     {% endif %}
+   {% endwith %}
 
-<!-- Modal para Exibição da Imagem Maior -->
-<div id="imageModal" class="modal">
-  <span class="modal-close">&times;</span>
-  <img class="modal-content" id="modalImg">
-</div>
 
-<script>
-// Selecionar todos os elementos de imagem com a classe .dress-thumbnail
-const thumbnails = document.querySelectorAll('.dress-thumbnail');
-const modal = document.getElementById('imageModal');
-const modalImg = document.getElementById('modalImg');
-const modalClose = document.querySelector('.modal-close');
 
-// Ao clicar numa miniatura, abre o modal
-thumbnails.forEach(img => {
-    img.addEventListener('click', () => {
-        modal.style.display = 'block';
-        modalImg.src = img.src;
+    <h1>Vestidos Alugados ou reservados</h1>
+    <!-- Botões no topo -->
+    <a href="{{ url_for('logout') }}" class="logout-link">Logout</a> | 
+    <a href="{{ url_for('returned') }}">Ver Devolvidos</a> | 
+    <a href="{{ url_for('add') }}">Inserir Novo Registro</a>
+
+    <table>
+        <tr>
+            <th>Imagem</th>
+            <th>Cliente</th>
+            <th>telefone</th>
+            <th>Data de Retirada</th>
+            <th>Retirado</th>
+            <th>Data de Devolução</th>            
+            <th>Comentários</th>
+            <th>Ações</th>
+        </tr>
+        {% for dress in dresses %}
+        <tr class="{% if dress.retirado %}retirado{% endif %} {% if dress.overdue %}overdue{% endif %}">
+            <td>
+                {% if dress.image_url and dress.image_url != "" %}
+                    <img src="{{ dress.image_url }}" alt="Imagem do vestido" style="max-width:100px;cursor:pointer;" class="dress-thumbnail">
+                {% else %}
+                    <img src="{{ url_for('static', filename='dress-placeholder.png') }}" alt="Sem Imagem" style="max-width:100px;">
+                {% endif %}
+            </td>
+            <td>{{ dress.client_name }}</td>
+            <td>{{ dress.client_tel }}</td>
+            <td>{{ dress.rental_date_formatted }}</td>
+            <td>
+                {% if dress.retirado %}
+                    Sim
+                {% else %}
+                    Não
+                {% endif %}
+            </td>
+            <td>{{ dress.return_date_formatted }}</td>            
+            <td>{{ dress.comments }}</td>
+            <td>
+                <form method="POST" action="{{ url_for('delete', dress_id=dress.dress_id) }}" 
+                      onsubmit="return confirm('Tem certeza que deseja deletar este registro?');" style="display:inline;">
+                    <button type="submit" style="background-color:red;color:white;">Deletar</button>
+                </form>
+                <a href="{{ url_for('edit', dress_id=dress.dress_id) }}">Editar</a>
+                <form method="POST" action="{{ url_for('mark_returned', dress_id=dress.dress_id) }}" style="display:inline;">
+                    <button type="submit" style="background-color:green;color:white;">Marcar como Devolvido</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <!-- Modal para Exibição da Imagem Maior -->
+    <div id="imageModal" class="modal">
+      <span class="modal-close">&times;</span>
+      <img class="modal-content" id="modalImg">
+    </div>
+
+    <script>
+    // Selecionar todos os elementos de imagem com a classe .dress-thumbnail
+    const thumbnails = document.querySelectorAll('.dress-thumbnail');
+    const modal = document.getElementById('imageModal');
+    const modalImg = document.getElementById('modalImg');
+    const modalClose = document.querySelector('.modal-close');
+
+    // Ao clicar numa miniatura, abre o modal
+    thumbnails.forEach(img => {
+        img.addEventListener('click', () => {
+            modal.style.display = 'block';
+            modalImg.src = img.src;
+        });
     });
-});
 
-// Ao clicar no X, fecha o modal
-modalClose.addEventListener('click', () => {
-    modal.style.display = 'none';
-});
-
-// Ao clicar fora da imagem, também fecha o modal
-modal.addEventListener('click', (e) => {
-    if (e.target === modal) {
+    // Ao clicar no X, fecha o modal
+    modalClose.addEventListener('click', () => {
         modal.style.display = 'none';
-    }
-});
-</script>
+    });
+
+    // Ao clicar fora da imagem, fecha o modal
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.style.display = 'none';
+        }
+    });
+    </script>
 </body>
 </html>

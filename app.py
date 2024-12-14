@@ -1,11 +1,19 @@
 import os
 import uuid
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, url_for, session, flash
 import boto3
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
-app.secret_key = os.environ.get('SECRET_KEY', '123456')
+
+# Defina uma chave secreta forte e fixa
+app.secret_key = os.environ.get('SECRET_KEY', 'chave-secreta-estatica-e-forte-london')
+
+# Garantir que o cookie de sessão seja válido para todo o domínio
+app.config['SESSION_COOKIE_DOMAIN'] = 'http://127.0.0.1:5000/'
+app.config['SESSION_COOKIE_PATH'] = '/'
+#app.config['SESSION_COOKIE_SECURE'] = True  # se estiver usando HTTPS
+app.config['SESSION_COOKIE_SAMESITE'] = 'None'
 
 # Configurações AWS
 aws_region='us-east-1'
@@ -44,7 +52,7 @@ def upload_image_to_s3(image_file, prefix="images"):
         return image_url
     return ""
 
-@app.route('/', methods=['GET', 'POST'])
+@app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         user = request.form.get('username')
@@ -58,11 +66,11 @@ def login():
 
 from datetime import datetime
 
-@app.route('/index')
+@app.route('/')
 def index():
     if not session.get('logged_in'):
         return redirect(url_for('login'))
-    
+
     # Obter todos os registros "rented"
     response = table.scan(
         FilterExpression="attribute_not_exists(#status) OR #status = :status_rented",
@@ -75,31 +83,98 @@ def index():
     today = datetime.now().date()
 
     for dress in items:
+        # Processar return_date
         return_date_str = dress.get('return_date')
-        # Assumindo que a data é armazenada como 'YYYY-MM-DD' no DynamoDB
-        # Se o formato for diferente, ajuste o strptime conforme necessário
         if return_date_str:
-            return_date = datetime.strptime(return_date_str, '%Y-%m-%d').date()
-            # Se a data de devolução já passou
-            dress['overdue'] = return_date < today
+            try:
+                return_date = datetime.strptime(return_date_str, '%Y-%m-%d').date()
+                dress['overdue'] = return_date < today
+                dress['return_date_formatted'] = return_date.strftime('%d-%m-%Y')
+            except ValueError:
+                dress['overdue'] = False
+                dress['return_date_formatted'] = 'Data Inválida'
         else:
-            # Se não há data de devolução, considerar não atrasado (ou defina conforme lógica)
             dress['overdue'] = False
+            dress['return_date_formatted'] = 'N/A'
 
-    return render_template('index.html', dresses=items)
+        # Processar rental_date
+        rental_date_str = dress.get('rental_date')
+        if rental_date_str:
+            try:
+                rental_date = datetime.strptime(rental_date_str, '%Y-%m-%d').date()
+                dress['rental_date_formatted'] = rental_date.strftime('%d-%m-%Y')
+                dress['rental_date_obj'] = rental_date  # Para ordenação
+            except ValueError:
+                dress['rental_date_formatted'] = 'Data Inválida'
+                dress['rental_date_obj'] = today
+        else:
+            dress['rental_date_formatted'] = 'N/A'
+            dress['rental_date_obj'] = today
+
+        # Prioridade para ordenação
+        dress['priority'] = 0 if not dress.get('retirado', False) else 1
+
+    # Ordenar: primeiro não retirado, depois por data de retirada mais próxima
+    sorted_items = sorted(items, key=lambda x: (x.get('retirado', False), x['rental_date_obj']))
+
+    # (Opcional) Debugging: Imprimir os dados para verificar
+    # for dress in sorted_items:
+    #     print(f"ID: {dress['dress_id']}, Retirado: {dress['retirado']}, Rental Date: {dress.get('rental_date_formatted')}, Return Date: {dress.get('return_date_formatted')}")
+
+    return render_template('index.html', dresses=sorted_items)
+
+
+
 
 @app.route('/returned')
 def returned():
-    # Exibe vestidos devolvidos (status = "returned")
     if not session.get('logged_in'):
         return redirect(url_for('login'))
+
+    # Obter todos os registros "returned"
     response = table.scan(
         FilterExpression="#status = :status_returned",
         ExpressionAttributeNames={"#status": "status"},
         ExpressionAttributeValues={":status_returned": "returned"}
     )
     items = response.get('Items', [])
-    return render_template('returned.html', dresses=items)
+
+    # Data atual sem hora, para facilitar comparação
+    today = datetime.now().date()
+
+    for dress in items:
+        return_date_str = dress.get('return_date')
+        rental_date_str = dress.get('rental_date')
+        if return_date_str:
+            try:
+                return_date = datetime.strptime(return_date_str, '%Y-%m-%d').date()
+                dress['overdue'] = return_date < today
+                dress['return_date_formatted'] = return_date.strftime('%d-%m-%Y')
+            except ValueError:
+                dress['overdue'] = False
+                dress['return_date_formatted'] = 'Data Inválida'
+        else:
+            dress['overdue'] = False
+            dress['return_date_formatted'] = 'N/A'
+
+        # Processar rental_date
+        if rental_date_str:
+            try:
+                rental_date = datetime.strptime(rental_date_str, '%Y-%m-%d').date()
+                dress['rental_date_formatted'] = rental_date.strftime('%d-%m-%Y')
+            except ValueError:
+                dress['rental_date_formatted'] = 'Data Inválida'
+        else:
+            dress['rental_date_formatted'] = 'N/A'
+
+        # Prioridade para ordenação
+        dress['priority'] = 0 if not dress.get('retirado', False) else 1
+
+    # Ordenar conforme a necessidade (opcional)
+    sorted_items = sorted(items, key=lambda x: (x.get('retirado', False), x.get('rental_date_obj', today)))
+
+    return render_template('returned.html', dresses=sorted_items)
+
 
 @app.route('/add', methods=['GET', 'POST'])
 def add():
@@ -107,29 +182,51 @@ def add():
         return redirect(url_for('login'))
 
     if request.method == 'POST':
-        rental_date = request.form.get('rental_date')
-        return_date = request.form.get('return_date')
+        client_name = request.form.get('client_name')
+        client_tel = request.form.get('client_tel')
+        rental_date_str = request.form.get('rental_date')
+        return_date_str = request.form.get('return_date')
+        retirado = 'retirado' in request.form  # Verifica se o checkbox está marcado
         comments = request.form.get('comments')
         image_file = request.files.get('image_file')
-        client_name = request.form.get('client_name')
 
+        # Validar e converter as datas
+        try:
+            rental_date = datetime.strptime(rental_date_str, '%Y-%m-%d').date()
+            return_date = datetime.strptime(return_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            flash('Formato de data inválido. Use AAAA-MM-DD.', 'error')
+            return render_template('add.html')
 
-        image_url = upload_image_to_s3(image_file)
+        # Fazer upload da imagem, se houver
+        image_url = ""
+        if image_file and image_file.filename != "":
+            image_url = upload_image_to_s3(image_file)  # Implemente esta função conforme necessário
 
-        # Inserir registro no DynamoDB
-        item = {
-            'dress_id': str(uuid.uuid4()),
-            'client_name': client_name,
-            'rental_date': rental_date,
-            'return_date': return_date,
-            'comments': comments,
-            'image_url': image_url,
-            'status': 'rented'  # por padrão, recém inserido é alugado
-        }
-        table.put_item(Item=item)
+        # Gerar um ID único para o vestido (pode usar UUID)
+        dress_id = str(uuid.uuid4())
+
+        # Adicionar o novo vestido ao DynamoDB
+        table.put_item(
+            Item={
+                'dress_id': dress_id,
+                'client_name': client_name,
+                'client_tel': client_tel,
+                'rental_date': rental_date.strftime('%Y-%m-%d'),
+                'return_date': return_date.strftime('%Y-%m-%d'),
+                'retirado': retirado,
+                'comments': comments,
+                'image_url': image_url,
+                'status': 'rented'  # ou outro status conforme necessário
+            }
+        )
+
+        flash('Vestido adicionado com sucesso.', 'success')
         return redirect(url_for('index'))
 
     return render_template('add.html')
+
+
 
 @app.route('/edit/<dress_id>', methods=['GET', 'POST'])
 def edit(dress_id):
@@ -140,39 +237,76 @@ def edit(dress_id):
     response = table.get_item(Key={'dress_id': dress_id})
     item = response.get('Item')
     if not item:
-        return "Item não encontrado", 404
+        flash('Vestido não encontrado.', 'error')
+        return redirect(url_for('index'))
 
     if request.method == 'POST':
-        rental_date = request.form.get('rental_date')
+        rental_date_str = request.form.get('rental_date')
+        return_date_str = request.form.get('return_date')
         client_name = request.form.get('client_name')
-        return_date = request.form.get('return_date')
+        client_tel = request.form.get('client_tel')
+        retirado = 'retirado' in request.form  # Verifica presença do checkbox
         comments = request.form.get('comments')
         image_file = request.files.get('image_file')
 
+        # Validar e converter as datas
+        try:
+            rental_date = datetime.strptime(rental_date_str, '%Y-%m-%d').date()
+            return_date = datetime.strptime(return_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            flash('Formato de data inválido. Use AAAA-MM-DD.', 'error')
+            return render_template('edit.html', dress=dress)
+
+        # Fazer upload da imagem, se houver
         new_image_url = item.get('image_url', "")
         if image_file and image_file.filename != "":
-            # Se subiu nova imagem, atualiza
-            new_image_url = upload_image_to_s3(image_file)
+            new_image_url = upload_image_to_s3(image_file)  # Implemente esta função conforme necessário
 
         # Atualizar item no DynamoDB
         table.update_item(
             Key={'dress_id': dress_id},
-            UpdateExpression="set rental_date = :r, return_date = :rt, comments = :c, image_url = :i, client_name = :cn",
+            UpdateExpression="""
+                set rental_date = :r,
+                    return_date = :rt,
+                    comments = :c,
+                    image_url = :i,
+                    client_name = :cn,
+                    client_tel = :ct,
+                    retirado = :ret
+            """,
             ExpressionAttributeValues={
-                ':r': rental_date,
-                ':rt': return_date,
+                ':r': rental_date.strftime('%Y-%m-%d'),
+                ':rt': return_date.strftime('%Y-%m-%d'),
                 ':c': comments,
                 ':i': new_image_url,
-                ':cn': client_name
+                ':cn': client_name,
+                ':ct': client_tel,
+                ':ret': retirado
             }
         )
+
+        flash('Vestido atualizado com sucesso.', 'success')
         # Redirecionar de acordo com o status atual
         if item.get('status') == 'returned':
             return redirect(url_for('returned'))
         else:
             return redirect(url_for('index'))
 
-    return render_template('edit.html', dress=item)
+    # Preparar dados para o template
+    dress = {
+        'dress_id': item.get('dress_id'),
+        'client_name': item.get('client_name'),
+        'client_tel': item.get('client_tel'),
+        'rental_date': item.get('rental_date'),
+        'return_date': item.get('return_date'),
+        'comments': item.get('comments'),
+        'image_url': item.get('image_url'),
+        'retirado': item.get('retirado', False)
+    }
+
+    return render_template('edit.html', dress=dress)
+
+
 
 @app.route('/delete/<dress_id>', methods=['POST'])
 def delete(dress_id):
@@ -235,6 +369,12 @@ def mark_rented(dress_id):
         ExpressionAttributeValues={':s': 'rented'}
     )
     return redirect(url_for('returned'))
+
+# Rota de Logout
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

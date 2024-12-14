@@ -8,6 +8,19 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
+
+    <!-- Exibir mensagens flash -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <ul class="flashes">
+          {% for category, message in messages %}
+            <li class="flash {{ category }}">{{ message }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+
+    
 <div class="form-container">
     <h1>Editar Vestido</h1>
     <a href="{{ url_for('index') }}" class="cancel-link">Sair sem Finalizar</a>
@@ -16,9 +29,16 @@
         <label>Nome do Cliente:</label><br>
         <input type="text" name="client_name" value="{{ dress.client_name }}" required><br><br>
 
+        <label>Telefone do Cliente:</label><br>
+        <input type="text" name="client_tel" value="{{ dress.client_tel }}" required><br><br>
+
         
         <label>Data de Retirada:</label><br>
         <input type="date" name="rental_date" value="{{ dress.rental_date }}" required><br><br>
+
+        <label>Retirado:</label>
+        <input type="checkbox" name="retirado" value="True" {% if dress.retirado %}checked{% endif %}><br><br>
+
 
         <label>Data de Devolução:</label><br>
         <input type="date" name="return_date" value="{{ dress.return_date }}" required><br><br>
