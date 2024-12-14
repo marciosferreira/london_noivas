@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Vestidos Alugados</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style_main.css') }}">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
 
@@ -34,56 +34,61 @@
 </script>
 
 <h1 class="page-title">Página de Vestidos Alugados/Reservados</h1>
-    <!-- Botões no topo -->
-    <a href="{{ url_for('logout') }}" class="logout-link">Logout</a> | 
-    <a href="{{ url_for('returned') }}">Ver Devolvidos</a> | 
-    <a href="{{ url_for('add') }}">Inserir Novo Registro</a>
+    
+<!-- Botões no topo -->
+<!-- Botões no topo -->
+<a href="{{ url_for('logout') }}" class="btn-top btn-logout">Logout</a> | 
+<a href="{{ url_for('returned') }}" class="btn-top btn-returned">Ver Devolvidos</a> | 
+<a href="{{ url_for('add') }}" class="btn-top btn-add">Inserir Novo Registro</a>
 
-    <table>
-        <tr>
-            <th>Imagem</th>
-            <th>Cliente</th>
-            <th>telefone</th>
-            <th>Data de Retirada</th>
-            <th>Retirado</th>
-            <th>Data de Devolução</th>            
-            <th>Comentários</th>
-            <th>Ações</th>
-        </tr>
-        {% for dress in dresses %}
-        <tr class="{% if dress.retirado %}retirado{% endif %} {% if dress.overdue %}overdue{% endif %}">
-            <td>
-                {% if dress.image_url and dress.image_url != "" %}
-                    <img src="{{ dress.image_url }}" alt="Imagem do vestido" style="max-width:100px;cursor:pointer;" class="dress-thumbnail">
-                {% else %}
-                    <img src="{{ url_for('static', filename='dress-placeholder.png') }}" alt="Sem Imagem" style="max-width:100px;">
-                {% endif %}
-            </td>
-            <td>{{ dress.client_name }}</td>
-            <td>{{ dress.client_tel }}</td>
-            <td>{{ dress.rental_date_formatted }}</td>
-            <td>
-                {% if dress.retirado %}
-                    Sim
-                {% else %}
-                    Não
-                {% endif %}
-            </td>
-            <td>{{ dress.return_date_formatted }}</td>            
-            <td>{{ dress.comments }}</td>
-            <td>
-                <form method="POST" action="{{ url_for('delete', dress_id=dress.dress_id) }}" 
-                      onsubmit="return confirm('Tem certeza que deseja deletar este registro?');" style="display:inline;">
-                    <button type="submit" style="background-color:red;color:white;">Deletar</button>
-                </form>
-                <a href="{{ url_for('edit', dress_id=dress.dress_id) }}">Editar</a>
-                <form method="POST" action="{{ url_for('mark_returned', dress_id=dress.dress_id) }}" style="display:inline;">
-                    <button type="submit" style="background-color:green;color:white;">Marcar como Devolvido</button>
-                </form>
-            </td>
-        </tr>
-        {% endfor %}
-    </table>
+
+<table>
+    <tr>
+        <th>Imagem</th>
+        <th>Cliente</th>
+        <th>Telefone</th>
+        <th>Data de Retirada</th>
+        <th>Retirado</th>
+        <th>Data de Devolução</th>
+        <th>Comentários</th>
+        <th>Ações</th>
+    </tr>
+    {% for dress in dresses %}
+    <tr class="{{ 'retirado' if dress.retirado else '' }} {{ 'overdue' if dress.overdue else '' }}">
+
+        <td>
+            {% if dress.image_url and dress.image_url != "" %}
+                <img src="{{ dress.image_url }}" alt="Imagem do vestido" style="max-width:100px;cursor:pointer;" class="dress-thumbnail">
+            {% else %}
+                <img src="{{ url_for('static', filename='dress-placeholder.png') }}" alt="Sem Imagem" style="max-width:100px;">
+            {% endif %}
+        </td>
+        <td>{{ dress.client_name }}</td>
+        <td>{{ dress.client_tel }}</td>
+        <td>{{ dress.rental_date_formatted }}</td>
+        <td>
+            {% if dress.retirado %}
+                Sim
+            {% else %}
+                Não
+            {% endif %}
+        </td>
+        <td>{{ dress.return_date_formatted }}</td>
+        <td>{{ dress.comments }}</td>
+        <td>
+            <form method="POST" action="{{ url_for('delete', dress_id=dress.dress_id) }}" 
+                  onsubmit="return confirm('Tem certeza que deseja deletar este registro?');" style="display:inline;">
+                <button type="submit" class="btn-delete">Deletar</button>
+            </form>
+            <a href="{{ url_for('edit', dress_id=dress.dress_id) }}" class="btn-edit">Editar</a>
+            <form method="POST" action="{{ url_for('mark_returned', dress_id=dress.dress_id) }}" style="display:inline;">
+                <button type="submit" class="btn-return">Marcar como Devolvido</button>
+            </form>
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+
 
     <!-- Modal para Exibição da Imagem Maior -->
     <div id="imageModal" class="modal">

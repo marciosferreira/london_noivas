@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Vestidos Devolvidos</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style_returned.css') }}">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body class="returned-page">
@@ -21,9 +21,11 @@
     <h1 class="page-title">Vestidos Retornados</h1>
 
     <!-- Botões no topo -->
-    <a href="{{ url_for('logout') }}" class="logout-link">Logout</a> | 
-    <a href="{{ url_for('index') }}">Ver Alugados</a> | 
-    <a href="{{ url_for('add') }}">Inserir Novo Registro</a>
+ <!-- Botões no topo -->
+<a href="{{ url_for('logout') }}" class="btn-top btn-logout">Logout</a> | 
+<a href="{{ url_for('index') }}" class="btn-top btn-view-rented">Ver Alugados</a> | 
+<a href="{{ url_for('add') }}" class="btn-top btn-add">Inserir Novo Registro</a>
+
 
     <table>
         <tr>

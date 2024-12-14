@@ -1,0 +1,237 @@
+/* Estilo Geral */
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background: linear-gradient(to bottom, #d7f8d9, #e6f9e6); /* Fundo em degradê de verde claro */
+    color: #333; /* Texto cinza escuro */
+    min-height: 100vh;
+}
+
+/* Título da página */
+h1.page-title {
+    text-align: center;
+    font-size: 28px;
+    color: #28a745; /* Verde escuro */
+    margin: 20px 0;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2); /* Efeito de sombra no texto */
+}
+
+/* Botões do topo */
+.btn-top {
+    display: inline-block;
+    text-decoration: none; /* Remove sublinhado */
+    padding: 10px 15px; /* Espaçamento interno */
+    font-size: 14px; /* Tamanho da fonte */
+    border-radius: 5px; /* Bordas arredondadas */
+    margin: 5px; /* Espaçamento entre os botões */
+    color: white; /* Texto branco */
+    transition: background-color 0.3s ease, transform 0.2s ease; /* Suaviza hover */
+    cursor: pointer; /* Mostra a mãozinha ao passar o mouse */
+}
+
+/* Botão Logout (vermelho) */
+.btn-logout {
+    background-color: red;
+}
+
+.btn-logout:hover {
+    background-color: darkred;
+    transform: scale(1.05); /* Leve aumento ao passar o mouse */
+}
+
+/* Botão Ver Alugados (azul) */
+.btn-view-rented {
+    background-color: #007bff; /* Azul */
+}
+
+.btn-view-rented:hover {
+    background-color: #0056b3; /* Azul escuro */
+    transform: scale(1.05);
+}
+
+/* Botão Inserir Novo Registro (tomate) */
+.btn-add {
+    background-color: #ff6347; /* Tomate */
+}
+
+.btn-add:hover {
+    background-color: #ff4500; /* Tomate escuro */
+    transform: scale(1.05);
+}
+
+/* Tabela */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    font-size: 14px;
+    background: white; /* Fundo branco */
+    border-radius: 10px;
+    overflow: hidden; /* Esconde bordas arredondadas */
+}
+
+table th, table td {
+    border: 1px solid #ddd;
+    padding: 10px;
+    text-align: center;
+}
+
+table th {
+    background-color: #e9f8e6; /* Verde claro */
+    color: #555;
+}
+
+table tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+table tr:hover {
+    background-color: #e3fcec; /* Verde muito claro ao passar o mouse */
+}
+
+/* Miniatura de imagens */
+.dress-thumbnail {
+    max-width: 80px;
+    cursor: pointer;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Sombra para destacar */
+}
+
+/* Botões na tabela */
+button {
+    border: none;
+    border-radius: 5px;
+    padding: 10px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    margin: 5px;
+}
+
+/* Botão Deletar */
+button[style*="background-color:red"] {
+    background-color: red;
+    color: white;
+}
+
+button[style*="background-color:red"]:hover {
+    background-color: darkred;
+    transform: scale(1.05); /* Leve aumento ao passar o mouse */
+}
+
+/* Botão Editar */
+a[href*="edit"] {
+    background-color: #007bff; /* Azul */
+    color: white;
+    text-decoration: none;
+    padding: 10px 15px;
+    font-size: 14px;
+    border-radius: 5px;
+    display: inline-block;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+a[href*="edit"]:hover {
+    background-color: #0056b3; /* Azul escuro */
+    transform: scale(1.05);
+}
+
+/* Botão Marcar como Não Devolvido */
+button[style*="background-color:orange"] {
+    background-color: #ff7f50; /* Coral */
+    color: white;
+}
+
+button[style*="background-color:orange"]:hover {
+    background-color: #ff6347; /* Tomate escuro */
+    transform: scale(1.05);
+}
+
+/* Modal */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.8); /* Fundo preto transparente */
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    max-width: 90%;
+    max-height: 80vh;
+    border-radius: 10px;
+    display: block;
+    margin: auto;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5); /* Sombra mais forte */
+}
+
+.modal-close {
+    position: absolute;
+    top: 10px;
+    right: 20px;
+    font-size: 30px;
+    color: white;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+/* Mensagens Flash */
+.flashes {
+    list-style-type: none;
+    padding: 0;
+    margin: 10px auto;
+    max-width: 400px;
+    text-align: center;
+}
+
+.flash {
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 10px;
+    color: white;
+    font-size: 14px;
+}
+
+.flash.success {
+    background-color: #28a745; /* Verde */
+}
+
+.flash.error {
+    background-color: #dc3545; /* Vermelho */
+}
+
+.flash.warning {
+    background-color: #ffc107; /* Amarelo */
+}
+
+.flash.info {
+    background-color: #17a2b8; /* Azul */
+}
+
+/* Responsividade */
+@media (max-width: 600px) {
+    h1.page-title {
+        font-size: 20px;
+    }
+
+    table {
+        font-size: 12px;
+    }
+
+    .btn-top {
+        font-size: 12px;
+        padding: 8px 10px;
+    }
+
+    button {
+        font-size: 12px;
+        padding: 8px 10px;
+    }
+}
