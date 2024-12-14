@@ -6,7 +6,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
-<body>
+<body class="returned-page">
     <!-- Exibir mensagens flash -->
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
@@ -18,7 +18,8 @@
       {% endif %}
     {% endwith %}
 
-    <h1>Vestidos Devolvidos</h1>
+    <h1 class="page-title">Vestidos Retornados</h1>
+
     <!-- Botões no topo -->
     <a href="{{ url_for('logout') }}" class="logout-link">Logout</a> | 
     <a href="{{ url_for('index') }}">Ver Alugados</a> | 

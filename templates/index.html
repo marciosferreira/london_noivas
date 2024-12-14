@@ -8,7 +8,7 @@
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
 
 </head>
-<body>
+<body class="pink-page">
 
      <!-- Exibir mensagens flash -->
      {% with messages = get_flashed_messages(with_categories=true) %}
@@ -33,7 +33,7 @@
     }
 </script>
 
-    <h1>Vestidos Alugados ou reservados</h1>
+<h1 class="page-title">Página de Vestidos Alugados/Reservados</h1>
     <!-- Botões no topo -->
     <a href="{{ url_for('logout') }}" class="logout-link">Logout</a> | 
     <a href="{{ url_for('returned') }}">Ver Devolvidos</a> | 

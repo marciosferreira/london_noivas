@@ -1,6 +1,7 @@
 import os
 import uuid
 from flask import Flask, render_template, request, redirect, url_for, session, flash
+from urllib.parse import urlparse
 import boto3
 from werkzeug.utils import secure_filename
 
@@ -308,40 +309,43 @@ def edit(dress_id):
 
 
 
+
 @app.route('/delete/<dress_id>', methods=['POST'])
 def delete(dress_id):
     if not session.get('logged_in'):
         return redirect(url_for('login'))
-
-    # Obter o item antes de deletar
-    response = table.get_item(Key={'dress_id': dress_id})
-    item = response.get('Item')
-    if item:
-        image_url = item.get('image_url')
-        
-        # Se existe image_url, tentar deletar o objeto no S3
-        if image_url and image_url.strip():
-            # A URL deve ser algo como https://bucket.s3.amazonaws.com/images/... 
-            # Extraia a parte depois do nome do bucket
-            # Ex: https://london-noivas-imagens.s3.amazonaws.com/images/abc123.png
-            # Chave do objeto: images/abc123.png
-            from urllib.parse import urlparse
-            parsed_url = urlparse(image_url)
-            # path do objeto é parsed_url.path, mas costuma começar com '/'
-            # Ex: /images/abc123.png
-            object_key = parsed_url.path.lstrip('/')
+    
+    try:
+        # Obter o item antes de deletar
+        response = table.get_item(Key={'dress_id': dress_id})
+        item = response.get('Item')
+        if item:
+            image_url = item.get('image_url')
             
-            # Deletar objeto do S3
-            s3.delete_object(Bucket=s3_bucket_name, Key=object_key)
+            # Se existe image_url, tentar deletar o objeto no S3
+            if image_url and image_url.strip():
+                parsed_url = urlparse(image_url)
+                object_key = parsed_url.path.lstrip('/')  # Extrair a chave do objeto no S3
+                # Deletar o objeto do S3
+                s3.delete_object(Bucket=s3_bucket_name, Key=object_key)
+            
+            # Apagar registro no DynamoDB
+            table.delete_item(Key={'dress_id': dress_id})
+            flash('Vestido deletado com sucesso!', 'success')  # Mensagem de sucesso
+        else:
+            flash('Vestido não encontrado.', 'error')  # Mensagem de erro para vestido inexistente
 
-        # Apagar registro no DynamoDB
-        table.delete_item(Key={'dress_id': dress_id})
+    except Exception as e:
+        # Registrar ou tratar o erro aqui, se necessário
+        flash(f'Ocorreu um erro ao tentar deletar o vestido: {str(e)}', 'error')  # Mensagem de erro
+    
     # Redirecionar para a página anterior (index ou returned)
     prev = request.referrer
     if "/returned" in prev:
         return redirect(url_for('returned'))
     else:
         return redirect(url_for('index'))
+
 
 
 @app.route('/mark_returned/<dress_id>', methods=['POST'])

@@ -252,3 +252,86 @@ button {
     background-color: #d1ecf1;
     color: #0c5460;
 }
+
+
+
+/* Estilo do título na página de vestidos retornados */
+.page-title {
+    font-size: 24px;
+    font-weight: bold;
+    text-align: center;
+    color: #0056b3; /* Azul escuro para destacar */
+    margin-bottom: 20px;
+}
+
+/* Background azul clarinho para a página de vestidos retornados */
+.returned-page {
+    background-color: #eaf4fc; /* Azul claro */
+    min-height: 100vh; /* Garante que cubra toda a altura da tela */
+    margin: 0;
+    padding: 20px;
+    font-family: Arial, sans-serif; /* Para manter a consistência do estilo */
+}
+
+/* Fundo rosa claro */
+.pink-page {
+    background-color: #fff1e4; /* Rosa claro */
+    min-height: 100vh; /* Garante que o fundo cubra toda a tela */
+    margin: 0;
+    padding: 20px;
+    font-family: Arial, sans-serif; /* Fonte consistente */
+}
+
+/* Título com rosa mais forte */
+.page-title {
+    font-size: 24px;
+    font-weight: bold;
+    text-align: center;
+    color: #1f0483; /* Rosa escuro */
+    margin-bottom: 20px;
+}
+
+
+
+
+/* Garante que todos os botões e links tenham cursor de mãozinha */
+button, a {
+    cursor: pointer;
+}
+
+/* Estilo para o botão Deletar */
+.btn-delete {
+    background-color: red;
+    color: white;
+    border: none;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+.btn-delete:hover {
+    background-color: darkred;
+}
+
+/* Estilo para o botão Marcar como Devolvido */
+.btn-return {
+    background-color: green;
+    color: white;
+    border: none;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+.btn-return:hover {
+    background-color: darkgreen;
+}
+
+/* Estilo para o link Editar */
+.btn-edit {
+    color: blue;
+    text-decoration: none;
+    font-size: 14px;
+}
+
+.btn-edit:hover {
+    text-decoration: underline;
+}
