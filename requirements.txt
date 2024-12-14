@@ -1,4 +1,4 @@
 boto3
-pip install Werkzeug==3.0.4
-pip install Flask==3.0.3
+Werkzeug==3.0.4
+Flask==3.0.3
 
