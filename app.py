@@ -56,17 +56,36 @@ def login():
             return render_template('login.html', error="Usuário ou senha incorretos")
     return render_template('login.html')
 
+from datetime import datetime
+
 @app.route('/index')
 def index():
-    # Exibe vestidos não devolvidos (status = "rented")
     if not session.get('logged_in'):
         return redirect(url_for('login'))
+    
+    # Obter todos os registros "rented"
     response = table.scan(
         FilterExpression="attribute_not_exists(#status) OR #status = :status_rented",
         ExpressionAttributeNames={"#status": "status"},
         ExpressionAttributeValues={":status_rented": "rented"}
     )
     items = response.get('Items', [])
+
+    # Data atual sem hora, para facilitar comparação
+    today = datetime.now().date()
+
+    for dress in items:
+        return_date_str = dress.get('return_date')
+        # Assumindo que a data é armazenada como 'YYYY-MM-DD' no DynamoDB
+        # Se o formato for diferente, ajuste o strptime conforme necessário
+        if return_date_str:
+            return_date = datetime.strptime(return_date_str, '%Y-%m-%d').date()
+            # Se a data de devolução já passou
+            dress['overdue'] = return_date < today
+        else:
+            # Se não há data de devolução, considerar não atrasado (ou defina conforme lógica)
+            dress['overdue'] = False
+
     return render_template('index.html', dresses=items)
 
 @app.route('/returned')

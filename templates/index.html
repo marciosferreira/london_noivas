@@ -1,8 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <meta charset="UTF-8">
 <title>Vestidos Alugados</title>
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
@@ -23,7 +21,7 @@
         <th>Ações</th>
     </tr>
     {% for dress in dresses %}
-    <tr>
+    <tr style="{% if dress.overdue %}background-color:red;{% endif %}">
         <td>
             {% if dress.image_url and dress.image_url != "" %}
                 <img src="{{ dress.image_url }}" alt="Imagem do vestido" style="max-width:100px;cursor:pointer;" class="dress-thumbnail">
@@ -48,39 +46,5 @@
     </tr>
     {% endfor %}
 </table>
-
-<!-- Modal para Exibição da Imagem Maior -->
-<div id="imageModal" class="modal">
-  <span class="modal-close">&times;</span>
-  <img class="modal-content" id="modalImg">
-</div>
-
-<script>
-// Selecionar todos os elementos de imagem com a classe .dress-thumbnail
-const thumbnails = document.querySelectorAll('.dress-thumbnail');
-const modal = document.getElementById('imageModal');
-const modalImg = document.getElementById('modalImg');
-const modalClose = document.querySelector('.modal-close');
-
-// Ao clicar numa miniatura, abre o modal
-thumbnails.forEach(img => {
-    img.addEventListener('click', () => {
-        modal.style.display = 'block';
-        modalImg.src = img.src;
-    });
-});
-
-// Ao clicar no X, fecha o modal
-modalClose.addEventListener('click', () => {
-    modal.style.display = 'none';
-});
-
-// Ao clicar fora da imagem, também fecha o modal
-modal.addEventListener('click', (e) => {
-    if (e.target === modal) {
-        modal.style.display = 'none';
-    }
-});
-</script>
 </body>
 </html>
