@@ -1,0 +1,333 @@
+/* Estilos globais */
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f8f8f8;
+}
+
+/* Links e botões globais */
+a, button {
+    font-size: 16px;
+    padding: 10px 14px;
+    border-radius: 4px;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+/* Botões genéricos */
+.btn {
+    width: 100%;
+    padding: 10px;
+    font-size: 16px;
+    color: #fff;
+    background-color: #4CAF50;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.btn:hover {
+    background-color: #45a049;
+}
+
+/* Tabelas */
+table {
+    border-collapse: collapse;
+    width: 100%;
+    margin-top: 20px;
+}
+
+table, th, td {
+    border: 1px solid #ddd;
+    padding: 10px;
+    font-size: 16px;
+}
+
+th {
+    background-color: #f2f2f2;
+}
+
+tr:hover {
+    background-color: #f9f9f9;
+}
+
+/* Estilos exclusivos da página de login */
+.login-page {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: #f8f8f8;
+}
+
+.login-container {
+    text-align: center;
+    width: 100%;
+    max-width: 400px;
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.login-header {
+    margin-bottom: 20px;
+}
+
+.login-header .login-logo {
+    width: 100px;
+    height: auto;
+    margin-bottom: 10px;
+}
+
+.login-header h1 {
+    margin: 0;
+    font-size: 24px;
+    color: #4CAF50;
+}
+
+.login-header p {
+    font-size: 16px;
+    color: #555;
+}
+
+.login-form h2 {
+    font-size: 20px;
+    color: #333;
+    margin-bottom: 20px;
+}
+
+.form-group {
+    margin-bottom: 15px;
+    text-align: left;
+}
+
+.form-group label {
+    display: block;
+    font-size: 14px;
+    color: #333;
+    margin-bottom: 5px;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 10px;
+    font-size: 14px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    box-sizing: border-box;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: #4CAF50;
+    box-shadow: 0 0 5px rgba(76, 175, 80, 0.5);
+}
+
+/* Ajustes para telas menores */
+@media (max-width: 600px) {
+    body {
+        margin: 10px;
+        font-size: 18px;
+    }
+
+    .login-container {
+        max-width: 95%;
+    }
+
+    .login-header h1 {
+        font-size: 20px;
+    }
+
+    .form-group input {
+        font-size: 16px;
+    }
+}
+
+/* Estilo para o botão Deletar (vermelho) */
+.btn-delete {
+    background-color: red;
+    color: white;
+    border: none;
+    padding: 10px 14px;
+    font-size: 14px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.btn-delete:hover {
+    background-color: darkred;
+}
+
+/* Estilo para o botão Editar (laranja) */
+.btn-edit {
+    background-color: #FFA500; /* Laranja */
+    color: white;
+    padding: 10px 14px;
+    font-size: 14px;
+    text-decoration: none;
+    border-radius: 5px;
+    cursor: pointer;
+    display: inline-block; /* Para alinhamento com os botões */
+}
+
+.btn-edit:hover {
+    background-color: #FF8C00; /* Laranja mais escuro */
+}
+
+/* Estilo para o botão Marcar como Devolvido (verde) */
+.btn-return {
+    background-color: green;
+    color: white;
+    border: none;
+    padding: 10px 14px;
+    font-size: 14px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.btn-return:hover {
+    background-color: darkgreen;
+}
+
+/* Título da página */
+.page-title {
+    font-size: 24px;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 20px;
+    color: #333;
+}
+
+/* Estilo para os links de navegação */
+.nav-links {
+    text-align: center; /* Centraliza os links */
+    margin-bottom: 20px;
+}
+
+.nav-link {
+    font-size: 16px;
+    color: #4CAF50; /* Verde para os links */
+    text-decoration: none;
+    margin: 0 10px; /* Espaçamento entre links */
+    padding: 10px 14px;
+    border: 1px solid #4CAF50;
+    border-radius: 5px;
+    display: inline-block;
+}
+
+.nav-link:hover {
+    background-color: #4CAF50;
+    color: white; /* Torna o texto branco no hover */
+}
+
+/* Estilo especial para "Inserir Novo Registro" */
+.nav-link-new {
+    background-color: #FFA500; /* Laranja */
+    color: white;
+    border: none;
+}
+
+.nav-link-new:hover {
+    background-color: #FF8C00; /* Laranja mais escuro no hover */
+}
+
+
+/* Estilo global (opcional) */
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f8f8f8;
+}
+
+/* Estilos exclusivos da página de login */
+.login-page {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: #f8f8f8;
+}
+
+.login-container {
+    text-align: center;
+    width: 100%;
+    max-width: 400px;
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Header */
+.login-header {
+    margin-bottom: 20px;
+}
+
+.login-header .login-logo {
+    width: 100px;
+    height: auto;
+    margin-bottom: 10px;
+}
+
+.login-header h1 {
+    margin: 0;
+    font-size: 24px;
+    color: #4CAF50;
+}
+
+.login-header p {
+    font-size: 16px;
+    color: #555;
+}
+
+/* Formulário */
+.login-form h2 {
+    font-size: 20px;
+    color: #333;
+    margin-bottom: 20px;
+}
+
+.form-group {
+    margin-bottom: 15px;
+    text-align: left;
+}
+
+.form-group label {
+    display: block;
+    font-size: 14px;
+    color: #333;
+    margin-bottom: 5px;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 10px;
+    font-size: 14px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    box-sizing: border-box;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: #4CAF50;
+    box-shadow: 0 0 5px rgba(76, 175, 80, 0.5);
+}
+
+.btn {
+    width: 100%;
+    padding: 10px;
+    font-size: 16px;
+    color: #fff;
+    background-color: #4CAF50;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.btn:hover {
+    background-color: #45a049;
+}
