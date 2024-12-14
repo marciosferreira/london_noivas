@@ -2,6 +2,8 @@
 <html lang="pt-br">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>Editar Registro</title>
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
@@ -10,7 +12,7 @@
     <h1>Editar Vestido</h1>
     <a href="{{ url_for('index') }}" class="cancel-link">Sair sem Finalizar</a>
     <form method="POST" enctype="multipart/form-data">
-        
+
         <label>Nome do Cliente:</label><br>
         <input type="text" name="client_name" value="{{ dress.client_name }}" required><br><br>
 

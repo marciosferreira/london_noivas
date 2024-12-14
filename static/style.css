@@ -2,7 +2,7 @@
 body {
     font-family: Arial, sans-serif;
     margin: 10px;
-    font-size: 16px;
+    font-size: 16px; /* Tamanho base da fonte */
 }
 
 h1 {
@@ -10,9 +10,13 @@ h1 {
     margin-bottom: 20px;
 }
 
+/* Ajuste adicional: adicionar um pouco de padding interno nos contêineres de formulário
+   para que os campos não fiquem tão colados às bordas da tela em dispositivos móveis. */
 .form-container, .login-container {
     max-width: 100%;
     margin: 0 auto;
+    padding: 20px; /* Adicionado padding para espaços internos */
+    box-sizing: border-box; /* Garante que padding não estoure a largura */
 }
 
 .cancel-link {
@@ -62,6 +66,7 @@ a {
     font-size: 16px;
 }
 
+/* Ajuste adicional para o contêiner de login: já tem padding, mas garantimos box-sizing */
 .login-container {
     max-width: 100%;
     margin-top: 40px;
@@ -69,6 +74,7 @@ a {
     border: 1px solid #ddd;
     border-radius: 4px;
     text-align: center;
+    box-sizing: border-box;
 }
 
 .login-container input {
@@ -92,7 +98,7 @@ button {
 @media (max-width: 600px) {
     body {
         margin: 10px;
-        font-size: 18px;
+        font-size: 18px; /* Aumenta a fonte em dispositivos menores */
     }
 
     h1 {
@@ -112,6 +118,7 @@ button {
     .form-container, .login-container {
         max-width: 95%;
         margin: 0 auto;
+        padding: 20px; /* Mantém um bom padding em mobile */
     }
 }
 
