@@ -10,7 +10,7 @@ app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'chave-secreta-estatica-e-forte-london')
 
 # Garantir que o cookie de sessão seja válido para todo o domínio
-app.config['SESSION_COOKIE_DOMAIN'] = 'http://127.0.0.1:5000/'
+#app.config['SESSION_COOKIE_DOMAIN'] = 'http://127.0.0.1:5000/'
 app.config['SESSION_COOKIE_PATH'] = '/'
 #app.config['SESSION_COOKIE_SECURE'] = True  # se estiver usando HTTPS
 app.config['SESSION_COOKIE_SAMESITE'] = 'None'
