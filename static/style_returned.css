@@ -4,7 +4,7 @@ body {
     margin: 0;
     padding: 0;
     background: linear-gradient(to bottom, #d7f8d9, #e6f9e6); /* Fundo em degradê de verde claro */
-    color: #333; /* Texto cinza escuro */
+    color: #333;
     min-height: 100vh;
 }
 
@@ -12,226 +12,181 @@ body {
 h1.page-title {
     text-align: center;
     font-size: 28px;
-    color: #28a745; /* Verde escuro */
+    color: #28a745;
     margin: 20px 0;
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2); /* Efeito de sombra no texto */
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
 }
 
-/* Botões do topo */
-.btn-top {
-    display: inline-block;
-    text-decoration: none; /* Remove sublinhado */
-    padding: 10px 15px; /* Espaçamento interno */
-    font-size: 14px; /* Tamanho da fonte */
-    border-radius: 5px; /* Bordas arredondadas */
-    margin: 5px; /* Espaçamento entre os botões */
-    color: white; /* Texto branco */
-    transition: background-color 0.3s ease, transform 0.2s ease; /* Suaviza hover */
-    cursor: pointer; /* Mostra a mãozinha ao passar o mouse */
-}
-
-/* Botão Logout (vermelho) */
-.btn-logout {
-    background-color: red;
-}
-
-.btn-logout:hover {
-    background-color: darkred;
-    transform: scale(1.05); /* Leve aumento ao passar o mouse */
-}
-
-/* Botão Ver Alugados (azul) */
-.btn-view-rented {
-    background-color: #007bff; /* Azul */
-}
-
-.btn-view-rented:hover {
-    background-color: #0056b3; /* Azul escuro */
-    transform: scale(1.05);
-}
-
-/* Botão Inserir Novo Registro (tomate) */
-.btn-add {
-    background-color: #ff6347; /* Tomate */
-}
-
-.btn-add:hover {
-    background-color: #ff4500; /* Tomate escuro */
-    transform: scale(1.05);
-}
-
-/* Tabela */
+/* Tabela padrão */
 table {
     width: 100%;
     border-collapse: collapse;
     margin: 20px 0;
     font-size: 14px;
-    background: white; /* Fundo branco */
     border-radius: 10px;
-    overflow: hidden; /* Esconde bordas arredondadas */
+    overflow: hidden;
 }
 
+/* Células */
 table th, table td {
     border: 1px solid #ddd;
     padding: 10px;
     text-align: center;
 }
 
+/* Cabeçalho da tabela */
 table th {
-    background-color: #e9f8e6; /* Verde claro */
+    background-color: #e9f8e6;
     color: #555;
 }
 
-table tr:nth-child(even) {
-    background-color: #f9f9f9;
+/* Fundo cinza para linhas neutras */
+table tr:not(.overdue):not(.retirado) {
+    background-color: #f0f0f0 !important; /* Fundo cinza claro */
 }
 
-table tr:hover {
-    background-color: #e3fcec; /* Verde muito claro ao passar o mouse */
+/* Fundo amarelo para linhas atrasadas */
+table tr.overdue {
+    background-color: #eeb9b9 !important; /* Fundo amarelo */
 }
 
-/* Miniatura de imagens */
-.dress-thumbnail {
-    max-width: 80px;
-    cursor: pointer;
-    border-radius: 5px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Sombra para destacar */
+/* Fundo verde para linhas retiradas */
+table tr.retirado {
+    background-color: #d4edda !important; /* Fundo verde */
 }
 
-/* Botões na tabela */
-button {
-    border: none;
-    border-radius: 5px;
-    padding: 10px;
+/* Responsividade: Cards */
+@media (max-width: 768px) {
+    table, thead, tbody, th, td, tr {
+        display: block; /* Transforma a tabela em cards */
+    }
+
+    thead {
+        display: none; /* Esconde o cabeçalho */
+    }
+
+    tr {
+        margin-bottom: 20px; /* Espaço entre os cards */
+        border-radius: 5px;
+        overflow: hidden;
+    }
+
+    /* Fundo cinza para cards neutros */
+    tr:not(.overdue):not(.retirado) > td {
+        background: #f0f0f0 !important; /* Fundo cinza claro */
+    }
+
+    /* Fundo amarelo para cards atrasados */
+    tr.overdue > td {
+        background: #eeb9b9 !important; /* Fundo amarelo */
+    }
+
+    /* Fundo azul para cards retirados */
+    tr.retirado > td {
+        background: #c5d2f1 !important; /* Fundo verde */
+    }
+
+    td {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 10px;
+        border-bottom: 1px solid #eee; /* Linha divisória entre os campos */
+    }
+
+    td:last-child {
+        border-bottom: none;
+    }
+
+    td::before {
+        content: attr(data-label); /* Exibe o rótulo do campo */
+        font-weight: bold;
+        margin-right: 10px;
+    }
+}
+
+/* Estilo padrão para todos os botões */
+button, a {
+    display: inline-block;
     font-size: 14px;
-    cursor: pointer;
-    transition: background-color 0.3s ease, transform 0.2s ease;
-    margin: 5px;
-}
-
-/* Botão Deletar */
-button[style*="background-color:red"] {
-    background-color: red;
-    color: white;
-}
-
-button[style*="background-color:red"]:hover {
-    background-color: darkred;
-    transform: scale(1.05); /* Leve aumento ao passar o mouse */
-}
-
-/* Botão Editar */
-a[href*="edit"] {
-    background-color: #007bff; /* Azul */
+    padding: 10px 15px;
+    border-radius: 5px;
     color: white;
     text-decoration: none;
-    padding: 10px 15px;
-    font-size: 14px;
-    border-radius: 5px;
-    display: inline-block;
-    transition: background-color 0.3s ease, transform 0.2s ease;
-}
-
-a[href*="edit"]:hover {
-    background-color: #0056b3; /* Azul escuro */
-    transform: scale(1.05);
-}
-
-/* Botão Marcar como Não Devolvido */
-button[style*="background-color:orange"] {
-    background-color: #ff7f50; /* Coral */
-    color: white;
-}
-
-button[style*="background-color:orange"]:hover {
-    background-color: #ff6347; /* Tomate escuro */
-    transform: scale(1.05);
-}
-
-/* Modal */
-.modal {
-    display: none;
-    position: fixed;
-    z-index: 1000;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    overflow: auto;
-    background-color: rgba(0, 0, 0, 0.8); /* Fundo preto transparente */
-    justify-content: center;
-    align-items: center;
-}
-
-.modal-content {
-    max-width: 90%;
-    max-height: 80vh;
-    border-radius: 10px;
-    display: block;
-    margin: auto;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5); /* Sombra mais forte */
-}
-
-.modal-close {
-    position: absolute;
-    top: 10px;
-    right: 20px;
-    font-size: 30px;
-    color: white;
-    cursor: pointer;
+    text-align: center;
+    transition: all 0.3s ease;
+    margin: 5px;
     font-weight: bold;
 }
 
-/* Mensagens Flash */
-.flashes {
-    list-style-type: none;
-    padding: 0;
-    margin: 10px auto;
-    max-width: 400px;
-    text-align: center;
+/* Botão Deletar (vermelho) */
+button.btn-danger, a.btn-danger {
+    background-color: #dc3545;
+    border: none;
 }
 
-.flash {
-    padding: 10px;
+button.btn-danger:hover, a.btn-danger:hover {
+    background-color: #a71d2a;
+    transform: scale(1.05);
+}
+
+/* Botão Editar (amarelo) */
+button.btn-warning, a.btn-warning {
+    background-color: #ffc107;
+    border: none;
+    color: black;
+}
+
+button.btn-warning:hover, a.btn-warning:hover {
+    background-color: #d39e00;
+    transform: scale(1.05);
+}
+
+/* Botão Marcar como Não Devolvido (cinza escuro) */
+button.btn-secondary, a.btn-secondary {
+    background-color: #146c43;
+    border: none;
+}
+
+button.btn-secondary:hover, a.btn-secondary:hover {
+    background-color: #146c43;
+    transform: scale(1.05);
+}
+
+
+
+
+
+
+/* Miniatura de imagens */
+.dress-thumbnail {
+    max-width: 100px;
+    max-height: 100px;
+    width: auto;
+    height: auto;
     border-radius: 5px;
-    margin-bottom: 10px;
-    color: white;
-    font-size: 14px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    object-fit: cover;
 }
 
-.flash.success {
-    background-color: #28a745; /* Verde */
+
+/* Remove o fundo branco padrão do Bootstrap */
+.table>:not(caption)>*>* {
+    background-color: transparent !important; /* Transforma o fundo padrão em transparente */
+    box-shadow: none !important; /* Remove quaisquer sombras aplicadas */
 }
 
-.flash.error {
-    background-color: #dc3545; /* Vermelho */
+/* Fundo cinza claro para linhas neutras */
+.table tr:not(.overdue):not(.retirado) {
+    background-color: #f0f0f0 !important; /* Fundo cinza claro */
 }
 
-.flash.warning {
-    background-color: #ffc107; /* Amarelo */
+/* Fundo amarelo para linhas atrasadas */
+.table tr.overdue {
+    background-color: #eeb9b9 !important; /* Fundo amarelo */
 }
 
-.flash.info {
-    background-color: #17a2b8; /* Azul */
+/* Fundo azul para linhas retiradas */
+.table tr.retirado {
+    background-color: #c5d2f1 !important; /* Fundo verde */
 }
 
-/* Responsividade */
-@media (max-width: 600px) {
-    h1.page-title {
-        font-size: 20px;
-    }
-
-    table {
-        font-size: 12px;
-    }
-
-    .btn-top {
-        font-size: 12px;
-        padding: 8px 10px;
-    }
-
-    button {
-        font-size: 12px;
-        padding: 8px 10px;
-    }
-}
