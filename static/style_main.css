@@ -1,9 +1,9 @@
 /* Estilo Geral */
-body {
+body.index_page {
     font-family: Arial, sans-serif;
     margin: 0;
     padding: 0;
-    background: linear-gradient(to bottom, #d7e8f8, #e6f9f4); /* Fundo em degradê de verde claro */
+    background: linear-gradient(to bottom, #66a1b0, #c2eaf3); /* Degradê azul marcante */
     color: #333;
     min-height: 100vh;
 }

@@ -359,6 +359,7 @@ def mark_returned(dress_id):
         ExpressionAttributeNames={"#status": "status"},
         ExpressionAttributeValues={':s': 'returned'}
     )
+    flash('Vestido movido com sucesso.', 'success')
     return redirect(url_for('index'))
 
 @app.route('/mark_rented/<dress_id>', methods=['POST'])
@@ -372,6 +373,10 @@ def mark_rented(dress_id):
         ExpressionAttributeNames={"#status": "status"},
         ExpressionAttributeValues={':s': 'rented'}
     )
+
+    # Mensagem de sucesso
+    flash('Vestido movido com sucesso.', 'success')
+
     return redirect(url_for('returned'))
 
 # Rota de Logout
