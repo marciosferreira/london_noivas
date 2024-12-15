@@ -72,6 +72,9 @@ def index():
     if not session.get('logged_in'):
         return redirect(url_for('login'))
 
+    # Obter o filtro selecionado (default é "todos")
+    filtro = request.args.get('filter', 'todos')  # "todos", "reservados", "retirados", "atrasados"
+
     # Obter todos os registros "rented"
     response = table.scan(
         FilterExpression="attribute_not_exists(#status) OR #status = :status_rented",
@@ -112,18 +115,23 @@ def index():
             dress['rental_date_formatted'] = 'N/A'
             dress['rental_date_obj'] = today
 
-        # Prioridade para ordenação
-        dress['priority'] = 0 if not dress.get('retirado', False) else 1
+    # Aplicar filtro
+    if filtro == 'reservados':
+        # Itens que NÃO estão marcados como retirados
+        filtered_items = [dress for dress in items if not dress.get('retirado', False)]
+    elif filtro == 'retirados':
+        # Itens que estão marcados como retirados
+        filtered_items = [dress for dress in items if dress.get('retirado', False)]
+    elif filtro == 'atrasados':
+        # Itens com a data de devolução vencida
+        filtered_items = [dress for dress in items if dress.get('overdue', False)]
+    else:  # Default: "todos"
+        filtered_items = items
 
-    # Ordenar: primeiro não retirado, depois por data de retirada mais próxima
-    sorted_items = sorted(items, key=lambda x: (x.get('retirado', False), x['rental_date_obj']))
+    # Ordenar apenas pela data de registro (data de aluguel mais antiga primeiro)
+    sorted_items = sorted(filtered_items, key=lambda x: x['rental_date_obj'])
 
-    # (Opcional) Debugging: Imprimir os dados para verificar
-    # for dress in sorted_items:
-    #     print(f"ID: {dress['dress_id']}, Retirado: {dress['retirado']}, Rental Date: {dress.get('rental_date_formatted')}, Return Date: {dress.get('return_date_formatted')}")
-
-    return render_template('index.html', dresses=sorted_items)
-
+    return render_template('index.html', dresses=sorted_items, current_filter=filtro)
 
 
 

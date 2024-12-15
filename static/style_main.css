@@ -17,9 +17,17 @@ h1.page-title {
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
 }
 
-/* Tabela padrão */
-table {
+/* Contêiner para centralizar a tabela */
+.table-container {
+    display: flex;
+    justify-content: center;
     width: 100%;
+}
+
+.table-container .table {
+    width: 90%; /* Sempre ocupa 90% da largura */
+    max-width: 1200px; /* Opcional: limite máximo para dispositivos muito grandes */
+    margin: 0 auto;
     border-collapse: collapse;
     margin: 20px 0;
     font-size: 14px;
@@ -235,3 +243,63 @@ button.btn-secondary:hover, .btn-secondary:hover {
 
 
     
+
+
+/* Contêiner do menu de filtros */
+.menu-filter {
+    width: 90%; /* Mesma largura da tabela */
+    max-width: 1200px; /* Limite máximo opcional */
+    margin: 0 auto; /* Centraliza o menu */
+    display: flex;
+    justify-content: center;
+    padding: 0; /* Remove padding adicional */
+    position: relative; /* Para alinhar com a tabela */
+    top: 10px; /* Ajusta a posição */
+}
+
+/* Contêiner de abas */
+.tabs-container {
+    display: flex;
+    gap: 10px; /* Espaço entre as abas */
+    position: relative;
+    z-index: 10; /* Garante que as abas fiquem acima da tabela */
+}
+
+/* Abas (botões) */
+.tab {
+    padding: 10px 20px;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: bold;
+    border: 1px solid #ddd;
+    border-radius: 10px 10px 0 0; /* Cantos arredondados no topo */
+    background-color: #f8f9fa; /* Fundo padrão */
+    color: #6c757d; /* Cor do texto padrão */
+    transition: all 0.3s ease-in-out;
+    position: relative;
+    top: 5px; /* Dá um leve "rebaixamento" às abas inativas */
+}
+
+/* Aba ativa */
+.active-tab {
+    background-color: #ffffff; /* Fundo branco para aba ativa */
+    color: #b30c00; /* Texto azul */
+    border-bottom: 1px solid white; /* Remove a borda inferior para parecer levantada */
+    top: 0; /* Levanta a aba ativa */
+    z-index: 20; /* Garante que a aba ativa esteja na frente */
+}
+
+/* Abas inativas */
+.inactive-tab {
+    background-color: #f8f9fa; /* Fundo cinza claro */
+    color: #6c757d; /* Texto cinza escuro */
+    border-bottom: 1px solid #ddd; /* Mantém a borda inferior */
+}
+
+/* Efeito hover */
+.tab:hover {
+    background-color: #e9ecef; /* Cinza mais claro no hover */
+    color: #b30c00; /* Azul mais escuro */
+    top: 2px; /* Levanta levemente ao passar o mouse */
+    z-index: 15; /* Destaca ao passar o mouse */
+}

@@ -9,6 +9,9 @@
 </head>
 <body class="index_page">
 
+
+
+
     <!-- Exibir mensagens flash -->
 {% with messages = get_flashed_messages(with_categories=true) %}
 {% if messages %}
@@ -34,8 +37,37 @@
 
 <!-- Tabela transformada em cards -->
 <div class="table-responsive mb-4">
+
+
+    <div class="menu-filter">
+    <!-- Botões Seletores (Tabs) -->
+    <div class="tabs-container d-flex justify-content-start mt-4">
+    <a href="/?filter=todos" class="tab {% if current_filter == 'todos' %}active-tab{% else %}inactive-tab{% endif %}">Todos</a>
+    <a href="/?filter=reservados" class="tab {% if current_filter == 'reservados' %}active-tab{% else %}inactive-tab{% endif %}">Reservados</a>
+    <a href="/?filter=retirados" class="tab {% if current_filter == 'retirados' %}active-tab{% else %}inactive-tab{% endif %}">Retirados</a>
+    <a href="/?filter=atrasados" class="tab {% if current_filter == 'atrasados' %}active-tab{% else %}inactive-tab{% endif %}">Atrasados</a>
+    </div>
+    </div>
+
+
+    <div class="table-container">
+
+
+
+
+
     <table class="table">
+
+
+
+
         <thead>
+
+   
+ 
+
+
+
             <tr>
                 <th>Imagem</th>
                 <th>Cliente</th>
@@ -87,7 +119,19 @@
             {% endfor %}
         </tbody>
     </table>
+
+    </div>
+
+
+
+
+
+
 </div>
+
+
+
+
 
     <!-- Modal -->
     <div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">

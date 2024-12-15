@@ -50,7 +50,7 @@
         
         <tbody>
             {% for dress in dresses %}
-            <tr class="{% if dress.overdue %}overdue{% elif dress.retirado %}retirado{% endif %}">
+            <tr>
                 <td data-label="Imagem">
                     {% if dress.image_url and dress.image_url != "" %}
                     <img src="{{ dress.image_url }}" alt="Imagem do vestido" class="img-fluid dress-thumbnail">
