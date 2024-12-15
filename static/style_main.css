@@ -243,31 +243,31 @@ button.btn-secondary:hover, .btn-secondary:hover {
 
 
     
-
-
 /* Contêiner do menu de filtros */
 .menu-filter {
-    width: 90%; /* Mesma largura da tabela */
+    width: 90%; /* Igual à tabela */
     max-width: 1200px; /* Limite máximo opcional */
-    margin: 0 auto; /* Centraliza o menu */
+    margin: 0 auto; /* Centraliza o menu horizontalmente */
     display: flex;
-    justify-content: center;
-    padding: 0; /* Remove padding adicional */
-    position: relative; /* Para alinhar com a tabela */
-    top: 10px; /* Ajusta a posição */
+    justify-content: center; /* Centraliza o conteúdo */
+    position: relative;
+    top: 0; /* Remove a distância entre o menu e a tabela */
+    z-index: 10; /* Garante que o menu fique acima da tabela */
 }
 
-/* Contêiner de abas */
+/* Contêiner das abas */
 .tabs-container {
     display: flex;
-    gap: 10px; /* Espaço entre as abas */
-    position: relative;
-    z-index: 10; /* Garante que as abas fiquem acima da tabela */
+    justify-content: space-around; /* Espaça uniformemente as abas */
+    gap: 10px; /* Espaço entre abas */
+    width: 100%; /* Faz as abas respeitarem o limite do menu */
 }
 
 /* Abas (botões) */
 .tab {
-    padding: 10px 20px;
+    flex: 1; /* Faz todas as abas ocuparem o mesmo espaço */
+    padding: 10px;
+    text-align: center; /* Centraliza o texto dentro da aba */
     text-decoration: none;
     font-size: 14px;
     font-weight: bold;
@@ -277,13 +277,13 @@ button.btn-secondary:hover, .btn-secondary:hover {
     color: #6c757d; /* Cor do texto padrão */
     transition: all 0.3s ease-in-out;
     position: relative;
-    top: 5px; /* Dá um leve "rebaixamento" às abas inativas */
+    top: 10px; /* Dá um leve "rebaixamento" às abas inativas */
 }
 
 /* Aba ativa */
 .active-tab {
     background-color: #ffffff; /* Fundo branco para aba ativa */
-    color: #b30c00; /* Texto azul */
+    color: #b30c00; /* Texto destacado */
     border-bottom: 1px solid white; /* Remove a borda inferior para parecer levantada */
     top: 0; /* Levanta a aba ativa */
     z-index: 20; /* Garante que a aba ativa esteja na frente */
@@ -299,7 +299,19 @@ button.btn-secondary:hover, .btn-secondary:hover {
 /* Efeito hover */
 .tab:hover {
     background-color: #e9ecef; /* Cinza mais claro no hover */
-    color: #b30c00; /* Azul mais escuro */
+    color: #b30c00; /* Texto destacado */
     top: 2px; /* Levanta levemente ao passar o mouse */
     z-index: 15; /* Destaca ao passar o mouse */
+}
+
+/* Conexão entre menu e tabela */
+.table-container {
+    margin-top: -1px; /* Remove o espaço entre o menu e a tabela */
+    border-top-left-radius: 0; /* Remove o arredondamento no topo esquerdo */
+    border-top-right-radius: 0; /* Remove o arredondamento no topo direito */
+}
+
+.table {
+    border-top-left-radius: 0; /* Garante continuidade visual */
+    border-top-right-radius: 0; /* Garante continuidade visual */
 }

@@ -35,101 +35,63 @@
         <a href="{{ url_for('add') }}" class="btn btn-primary">Inserir Novo Registro</a>
     </div>
 
-<!-- Tabela transformada em cards -->
-<div class="table-responsive mb-4">
-
-
-    <div class="menu-filter">
-    <!-- Botões Seletores (Tabs) -->
-    <div class="tabs-container d-flex justify-content-start mt-4">
-    <a href="/?filter=todos" class="tab {% if current_filter == 'todos' %}active-tab{% else %}inactive-tab{% endif %}">Todos</a>
-    <a href="/?filter=reservados" class="tab {% if current_filter == 'reservados' %}active-tab{% else %}inactive-tab{% endif %}">Reservados</a>
-    <a href="/?filter=retirados" class="tab {% if current_filter == 'retirados' %}active-tab{% else %}inactive-tab{% endif %}">Retirados</a>
-    <a href="/?filter=atrasados" class="tab {% if current_filter == 'atrasados' %}active-tab{% else %}inactive-tab{% endif %}">Atrasados</a>
+    <div class="table-responsive mb-4">
+        <!-- Menu de Filtros -->
+        <div class="menu-filter">
+            <div class="tabs-container">
+                <a href="/?filter=todos" class="tab {% if current_filter == 'todos' %}active-tab{% else %}inactive-tab{% endif %}">Todos</a>
+                <a href="/?filter=reservados" class="tab {% if current_filter == 'reservados' %}active-tab{% else %}inactive-tab{% endif %}">Reservados</a>
+                <a href="/?filter=retirados" class="tab {% if current_filter == 'retirados' %}active-tab{% else %}inactive-tab{% endif %}">Retirados</a>
+                <a href="/?filter=atrasados" class="tab {% if current_filter == 'atrasados' %}active-tab{% else %}inactive-tab{% endif %}">Atrasados</a>
+            </div>
+        </div>
+    
+        <!-- Tabela -->
+        <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Imagem</th>
+                        <th>Cliente</th>
+                        <th>Telefone</th>
+                        <th>Data de Retirada</th>
+                        <th>Data de Devolução</th>
+                        <th>Retirado</th>
+                        <th>Comentários</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for dress in dresses %}
+                    <tr class="{% if dress.overdue %}overdue{% elif dress.retirado %}retirado{% endif %}">
+                        <td data-label="Imagem">
+                            {% if dress.image_url and dress.image_url != "" %}
+                            <img src="{{ dress.image_url }}" alt="Imagem do vestido" class="img-fluid dress-thumbnail">
+                            {% else %}
+                            <img src="{{ url_for('static', filename='dress-placeholder.png') }}" alt="Sem Imagem" class="img-fluid dress-thumbnail">
+                            {% endif %}
+                        </td>
+                        <td data-label="Cliente">{{ dress.client_name }}</td>
+                        <td data-label="Telefone">{{ dress.client_tel }}</td>
+                        <td data-label="Data de Retirada">{{ dress.rental_date_formatted }}</td>
+                        <td data-label="Data de Devolução">{{ dress.return_date_formatted }}</td>
+                        <td data-label="Retirado">{% if dress.retirado %} Sim {% else %} Não {% endif %}</td>
+                        <td data-label="Comentários">{{ dress.comments }}</td>
+                        <td data-label="Ações">
+                            <form method="POST" action="{{ url_for('delete', dress_id=dress.dress_id) }}" style="display:inline;">
+                                <button type="submit" class="btn btn-danger btn-sm">Deletar</button>
+                            </form>
+                            <a href="{{ url_for('edit', dress_id=dress.dress_id) }}" class="btn btn-warning btn-sm">Editar</a>
+                            <form method="POST" action="{{ url_for('mark_returned', dress_id=dress.dress_id) }}" style="display:inline;">
+                                <button type="submit" class="btn btn-success btn-sm">Marcar como devolvido</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
-    </div>
-
-
-    <div class="table-container">
-
-
-
-
-
-    <table class="table">
-
-
-
-
-        <thead>
-
-   
- 
-
-
-
-            <tr>
-                <th>Imagem</th>
-                <th>Cliente</th>
-                <th>Telefone</th>
-                <th>Data de Retirada</th>
-                <th>Data de Devolução</th>
-                <th>Retirado</th>
-                <th>Comentários</th>
-                <th>Ações</th>
-            </tr>
-        </thead>
-        
-        <tbody>
-            {% for dress in dresses %}
-            <tr class="{% if dress.overdue %}overdue{% elif dress.retirado %}retirado{% endif %}">
-                <td data-label="Imagem">
-                    {% if dress.image_url and dress.image_url != "" %}
-                    <img src="{{ dress.image_url }}" alt="Imagem do vestido" class="img-fluid dress-thumbnail">
-                    {% else %}
-                    <img src="{{ url_for('static', filename='dress-placeholder.png') }}" alt="Sem Imagem" class="img-fluid dress-thumbnail">
-                    {% endif %}
-                </td>
-                <td data-label="Cliente">{{ dress.client_name }}</td>
-                <td data-label="Telefone">{{ dress.client_tel }}</td>
-                <td data-label="Data de Retirada">{{ dress.rental_date_formatted }}</td>
-                <td data-label="Data de Devolução">{{ dress.return_date_formatted }}</td>
-                <td data-label="Retirado">{% if dress.retirado %} Sim {% else %} Não {% endif %}</td>
-                <td data-label="Comentários">{{ dress.comments }}</td>
-                
-                
-           
-
-
-                <td data-label="Ações">
-                    <form method="POST" action="{{ url_for('delete', dress_id=dress.dress_id) }}" style="display:inline;">
-                        <button type="submit" class="btn btn-danger btn-sm">Deletar</button>
-                    </form>
-                    <a href="{{ url_for('edit', dress_id=dress.dress_id) }}" class="btn btn-warning btn-sm">Editar</a>
-                    <form method="POST" action="{{ url_for('mark_returned', dress_id=dress.dress_id) }}" style="display:inline;">
-                        <button type="submit" class="btn btn-success btn-sm">Marcar como devolvido</button>
-                    </form>
-                </td>
-
-
-
-
-                
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-
-    </div>
-
-
-
-
-
-
-</div>
-
-
 
 
 
