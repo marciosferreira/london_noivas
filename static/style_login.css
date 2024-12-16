@@ -1,115 +1,115 @@
 /* Estilo global */
 body {
-    font-family: Arial, sans-serif;
-    margin: 0;
-    padding: 0;
-    background-color: #f8f9fa; /* Fundo cinza claro */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: #f8f9fa; /* Fundo cinza claro */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
 }
 
 /* Contêiner principal da página de login */
 .login-container {
-    background-color: #ffffff; /* Fundo branco */
-    width: 90%; /* Largura ajustável para dispositivos móveis */
-    max-width: 400px; /* Limite em telas maiores */
-    padding: 20px;
-    border-radius: 10px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); /* Sombra suave */
-    text-align: center;
+  background-color: #ffffff; /* Fundo branco */
+  width: 90%; /* Largura ajustável para dispositivos móveis */
+  max-width: 400px; /* Limite em telas maiores */
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); /* Sombra suave */
+  text-align: center;
 }
 
 /* Cabeçalho do login */
 .login-header {
-    margin-bottom: 20px;
+  margin-bottom: 20px;
 }
 
 .login-header .login-logo {
-    width: 80px; /* Tamanho da logo */
-    height: auto;
-    margin-bottom: 10px;
+  width: 80px; /* Tamanho da logo */
+  height: auto;
+  margin-bottom: 10px;
 }
 
 .login-header h1 {
-    font-size: 24px;
-    color: #4CAF50; /* Verde elegante */
-    margin: 0;
+  font-size: 24px;
+  color: #4caf50; /* Verde elegante */
+  margin: 0;
 }
 
 .login-header p {
-    font-size: 14px;
-    color: #555; /* Cinza suave */
-    margin-top: 5px;
+  font-size: 14px;
+  color: #555; /* Cinza suave */
+  margin-top: 5px;
 }
 
 /* Formulário */
 .login-form {
-    margin-top: 20px;
+  margin-top: 20px;
 }
 
 .login-form h2 {
-    font-size: 20px;
-    color: #333;
-    margin-bottom: 20px;
+  font-size: 20px;
+  color: #333;
+  margin-bottom: 20px;
 }
 
 .form-group {
-    margin-bottom: 15px;
-    text-align: left; /* Alinha os rótulos à esquerda */
+  margin-bottom: 15px;
+  text-align: left; /* Alinha os rótulos à esquerda */
 }
 
 .form-group label {
-    display: block;
-    font-size: 14px;
-    color: #333;
-    margin-bottom: 5px;
+  display: block;
+  font-size: 14px;
+  color: #333;
+  margin-bottom: 5px;
 }
 
 .form-group input {
-    width: 100%;
-    padding: 10px;
-    font-size: 14px;
-    border: 1px solid #ced4da; /* Borda cinza */
-    border-radius: 5px;
-    box-sizing: border-box; /* Inclui padding no cálculo da largura */
+  width: 100%;
+  padding: 10px;
+  font-size: 14px;
+  border: 1px solid #ced4da; /* Borda cinza */
+  border-radius: 5px;
+  box-sizing: border-box; /* Inclui padding no cálculo da largura */
 }
 
 .form-group input:focus {
-    outline: none;
-    border-color: #80bdff; /* Azul claro */
-    box-shadow: 0 0 5px rgba(0, 123, 255, 0.5); /* Brilho leve */
+  outline: none;
+  border-color: #80bdff; /* Azul claro */
+  box-shadow: 0 0 5px rgba(0, 123, 255, 0.5); /* Brilho leve */
 }
 
 /* Botão de login */
 button.btn {
-    width: 100%; /* Botão ocupa toda a largura */
-    padding: 12px;
-    font-size: 16px;
-    color: #fff;
-    background-color: #4CAF50; /* Verde */
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: background-color 0.3s;
+  width: 100%; /* Botão ocupa toda a largura */
+  padding: 12px;
+  font-size: 16px;
+  color: #fff;
+  background-color: #4caf50; /* Verde */
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s;
 }
 
 button.btn:hover {
-    background-color: #45a049; /* Verde mais escuro */
+  background-color: #45a049; /* Verde mais escuro */
 }
 
 /* Responsividade */
 @media (max-width: 600px) {
-    .login-container {
-        width: 95%; /* Ocupa quase toda a tela em dispositivos móveis */
-    }
+  .login-container {
+    width: 95%; /* Ocupa quase toda a tela em dispositivos móveis */
+  }
 
-    .login-header h1 {
-        font-size: 20px;
-    }
+  .login-header h1 {
+    font-size: 20px;
+  }
 
-    button.btn {
-        font-size: 18px; /* Botão maior em telas menores */
-    }
+  button.btn {
+    font-size: 18px; /* Botão maior em telas menores */
+  }
 }

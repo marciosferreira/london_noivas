@@ -1,251 +1,249 @@
 /* Estilo Geral */
 body.returned {
-    font-family: Arial, sans-serif;
-    margin: 0;
-    padding: 0;
-    background: linear-gradient(to bottom, #fff8e1, #ffe4b5); /* Degradê em amarelo suave */
-    color: #333;
-    min-height: 100vh;
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  background: linear-gradient(to bottom, #fff8e1, #ffe4b5); /* Degradê em amarelo suave */
+  color: #333;
+  min-height: 100vh;
 }
 
 /* Título da página */
 h1.page-title {
-    text-align: center;
-    font-size: 28px;
-    color: #28a745;
-    margin: 20px 0;
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+  text-align: center;
+  font-size: 28px;
+  color: #28a745;
+  margin: 20px 0;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 /* Contêiner para centralizar a tabela */
 .table-container {
-    display: flex;
-    justify-content: center;
-    width: 100%;
+  display: flex;
+  justify-content: center;
+  width: 100%;
 }
 
 .table-container .table {
-    width: 90%; /* Sempre ocupa 90% da largura */
-    max-width: 1200px; /* Opcional: limite máximo para dispositivos muito grandes */
-    margin: 0 auto;
-    border-collapse: collapse;
-    margin: 20px 0;
-    font-size: 14px;
-    border-radius: 10px;
-    overflow: hidden;
+  width: 90%; /* Sempre ocupa 90% da largura */
+  max-width: 1200px; /* Opcional: limite máximo para dispositivos muito grandes */
+  margin: 0 auto;
+  border-collapse: collapse;
+  margin: 20px 0;
+  font-size: 14px;
+  border-radius: 10px;
+  overflow: hidden;
 }
 
 /* Células */
-table th, table td {
-    border: 1px solid #ddd;
-    padding: 10px;
-    text-align: center;
+table th,
+table td {
+  border: 1px solid #ddd;
+  padding: 10px;
+  text-align: center;
 }
 
 /* Cabeçalho da tabela */
 table th {
-    background-color: #e9f8e6;
-    color: #555;
+  background-color: #e9f8e6;
+  color: #555;
 }
 
 /* Fundo cinza para linhas neutras */
 .table tr:not(.overdue):not(.retirado) {
-    background-color: #f0f0f0 !important; /* Fundo cinza claro */
+  background-color: #f0f0f0 !important; /* Fundo cinza claro */
 }
 
 /* Fundo amarelo para linhas atrasadas */
 .table tr.overdue {
-    background-color: #fff3cd !important; /* Fundo amarelo */
+  background-color: #fff3cd !important; /* Fundo amarelo */
 }
 
 /* Fundo verde para linhas retiradas */
 .table tr.retirado {
-    background-color: #d4edda !important; /* Fundo verde */
+  background-color: #d4edda !important; /* Fundo verde */
 }
 
 /* Botões */
-button, .btn {
-    display: inline-block;
-    border: none;
-    border-radius: 5px;
-    padding: 8px 12px;
-    font-size: 14px;
-    cursor: pointer;
-    transition: background-color 0.3s ease, transform 0.2s ease;
-    margin: 5px;
-    text-align: center;
-    text-decoration: none;
-    color: white;
+button,
+.btn {
+  display: inline-block;
+  border: none;
+  border-radius: 5px;
+  padding: 8px 12px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+  margin: 5px;
+  text-align: center;
+  text-decoration: none;
+  color: white;
 }
 
 /* Botão Deletar */
-button.btn-danger, .btn-danger {
-    background-color: #dc3545; /* Vermelho padrão */
-    color: white;
-    border: none;
+button.btn-danger,
+.btn-danger {
+  background-color: #dc3545; /* Vermelho padrão */
+  color: white;
+  border: none;
 }
 
-button.btn-danger:hover, .btn-danger:hover {
-    background-color: #c82333; /* Vermelho escuro no hover */
-    transform: scale(1.05);
+button.btn-danger:hover,
+.btn-danger:hover {
+  background-color: #c82333; /* Vermelho escuro no hover */
+  transform: scale(1.05);
 }
 
 /* Botão Editar */
-button.btn-warning, .btn-warning {
-    background-color: #ffc107; /* Amarelo padrão */
-    color: black;
-    border: none;
+button.btn-warning,
+.btn-warning {
+  background-color: #ffc107; /* Amarelo padrão */
+  color: black;
+  border: none;
 }
 
-button.btn-warning:hover, .btn-warning:hover {
-    background-color: #e0a800; /* Amarelo escuro no hover */
-    transform: scale(1.05);
+button.btn-warning:hover,
+.btn-warning:hover {
+  background-color: #e0a800; /* Amarelo escuro no hover */
+  transform: scale(1.05);
 }
 
 /* Botão Marcar como Não Devolvido */
-button.btn-secondary, .btn-secondary {
-    background-color: #6c757d; /* Cinza padrão */
-    color: white;
-    border: none;
+button.btn-secondary,
+.btn-secondary {
+  background-color: #6c757d; /* Cinza padrão */
+  color: white;
+  border: none;
 }
 
-button.btn-secondary:hover, .btn-secondary:hover {
-    background-color: #5a6268; /* Cinza escuro no hover */
-    transform: scale(1.05);
+button.btn-secondary:hover,
+.btn-secondary:hover {
+  background-color: #5a6268; /* Cinza escuro no hover */
+  transform: scale(1.05);
 }
 
 /* Miniatura de imagens */
 .dress-thumbnail {
-    max-width: 100px;
-    max-height: 100px;
-    width: auto;
-    height: auto;
-    border-radius: 5px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    object-fit: cover;
+  max-width: 100px;
+  max-height: 100px;
+  width: auto;
+  height: auto;
+  border-radius: 5px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  object-fit: cover;
 }
 
 /* Remove o fundo branco padrão do Bootstrap */
-.table>:not(caption)>*>* {
-    background-color: transparent !important; /* Transforma o fundo padrão em transparente */
-    box-shadow: none !important; /* Remove quaisquer sombras aplicadas */
+.table > :not(caption) > * > * {
+  background-color: transparent !important; /* Transforma o fundo padrão em transparente */
+  box-shadow: none !important; /* Remove quaisquer sombras aplicadas */
 }
 
 /* Responsividade: Cards */
 @media (max-width: 768px) {
-    table, thead, tbody, th, td, tr {
-        display: block; /* Transforma a tabela em cards */
-    }
+  table,
+  thead,
+  tbody,
+  th,
+  td,
+  tr {
+    display: block; /* Transforma a tabela em cards */
+  }
 
-    thead {
-        display: none; /* Esconde o cabeçalho */
-    }
+  thead {
+    display: none; /* Esconde o cabeçalho */
+  }
 
-    tr {
-        margin-bottom: 20px; /* Espaço entre os cards */
-        border-radius: 5px;
-        overflow: hidden;
-    }
+  tr {
+    margin-bottom: 20px; /* Espaço entre os cards */
+    border-radius: 5px;
+    overflow: hidden;
+  }
 
+  td {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 10px;
+    border-bottom: 1px solid #eee; /* Linha divisória entre os campos */
+  }
 
+  td:last-child {
+    border-bottom: none;
+  }
 
-    td {
-        display: flex;
-        justify-content: space-between;
-        padding: 8px 10px;
-        border-bottom: 1px solid #eee; /* Linha divisória entre os campos */
-    }
-
-    td:last-child {
-        border-bottom: none;
-    }
-
-    td::before {
-        content: attr(data-label); /* Exibe o rótulo do campo */
-        font-weight: bold;
-        margin-right: 10px;
-    }
+  td::before {
+    content: attr(data-label); /* Exibe o rótulo do campo */
+    font-weight: bold;
+    margin-right: 10px;
+  }
 }
 
 /* Container dos botões no topo */
 .menu-buttons {
-    text-align: center; /* Centraliza os botões horizontalmente */
-    margin-bottom: 20px; /* Adiciona espaço abaixo dos botões */
+  text-align: center; /* Centraliza os botões horizontalmente */
+  margin-bottom: 20px; /* Adiciona espaço abaixo dos botões */
 }
 
 /* Botões do menu */
 .menu-buttons a {
-    display: inline-block; /* Garante que os botões sejam exibidos como blocos inline */
-    text-decoration: none;
-    padding: 10px 15px; /* Ajuste do espaço interno */
-    font-size: 14px;
-    border-radius: 5px; /* Bordas arredondadas */
-    margin: 5px; /* Espaçamento entre os botões */
-    color: white; /* Cor do texto */
-    transition: background-color 0.3s ease, transform 0.2s ease;
-    cursor: pointer;
+  display: inline-block; /* Garante que os botões sejam exibidos como blocos inline */
+  text-decoration: none;
+  padding: 10px 15px; /* Ajuste do espaço interno */
+  font-size: 14px;
+  border-radius: 5px; /* Bordas arredondadas */
+  margin: 5px; /* Espaçamento entre os botões */
+  color: white; /* Cor do texto */
+  transition: background-color 0.3s ease, transform 0.2s ease;
+  cursor: pointer;
 }
 
 /* Botão Logout (vermelho) */
 .menu-buttons .btn-logout {
-    background-color: #dc3545; /* Vermelho padrão */
+  background-color: #dc3545; /* Vermelho padrão */
 }
 
 .menu-buttons .btn-logout:hover {
-    background-color: #c82333; /* Vermelho escuro no hover */
-    transform: scale(1.05);
+  background-color: #c82333; /* Vermelho escuro no hover */
+  transform: scale(1.05);
 }
 
 /* Botão Ver devolvidos (cinza) */
 .menu-buttons .btn-view-rented {
-    background-color: #146c43; /* Cinza padrão */
+  background-color: #146c43; /* Cinza padrão */
 }
 
 .menu-buttons .btn-view-rented:hover {
-    background-color: #146c43; /* Cinza escuro no hover */
-    transform: scale(1.05);
+  background-color: #146c43; /* Cinza escuro no hover */
+  transform: scale(1.05);
 }
 
 /* Botão Inserir Novo Registro (azul) */
 .menu-buttons .btn-add {
-    background-color: #007bff; /* Azul padrão */
+  background-color: #007bff; /* Azul padrão */
 }
 
 .menu-buttons .btn-add:hover {
-    background-color: #0056b3; /* Azul escuro no hover */
-    transform: scale(1.05);
+  background-color: #0056b3; /* Azul escuro no hover */
+  transform: scale(1.05);
 }
 
-
 /* Remove o fundo branco padrão do Bootstrap */
-.table>:not(caption)>*>* {
-    background-color: transparent !important; /* Transforma o fundo padrão em transparente */
-    box-shadow: none !important; /* Remove quaisquer sombras aplicadas */
+.table > :not(caption) > * > * {
+  background-color: transparent !important; /* Transforma o fundo padrão em transparente */
+  box-shadow: none !important; /* Remove quaisquer sombras aplicadas */
 }
 
 /* Fundo cinza claro para linhas neutras */
 .table tr:not(.overdue):not(.retirado) {
-    background-color: #f0f0f0 !important; /* Fundo cinza claro */
+  background-color: #f0f0f0 !important; /* Fundo cinza claro */
 }
 
 /* Fundo amarelo para linhas atrasadas */
 .table tr.overdue {
-    background-color: #eeb9b9 !important; /* Fundo amarelo */
+  background-color: #eeb9b9 !important; /* Fundo amarelo */
 }
 
 /* Fundo verde para linhas retiradas */
 .table tr.retirado {
-    background-color: #c5d2f1 !important; /* Fundo verde */
+  background-color: #c5d2f1 !important; /* Fundo verde */
 }
-
-
-
-
-
-    
-
-
-
-
-
-

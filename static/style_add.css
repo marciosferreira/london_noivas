@@ -1,112 +1,118 @@
 /* Estilo Geral */
 body {
-    font-family: Arial, sans-serif;
-    margin: 0;
-    padding: 0;
-    background-color: #f8f9fa; /* Fundo claro */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: #f8f9fa; /* Fundo claro */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
 }
 
 /* Contêiner do Formulário */
 .form-container {
-    background-color: #ffffff;
-    width: 90%; /* Para dispositivos móveis */
-    max-width: 400px; /* Limite em telas maiores */
-    padding: 20px;
-    border-radius: 10px;
-    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
-    margin: 20px auto; /* Centraliza no viewport */
-    text-align: left; /* Alinha o texto à esquerda */
+  background-color: #ffffff;
+  width: 90%; /* Para dispositivos móveis */
+  max-width: 400px; /* Limite em telas maiores */
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+  margin: 20px auto; /* Centraliza no viewport */
+  text-align: left; /* Alinha o texto à esquerda */
 }
 
 /* Títulos */
 .form-container h1 {
-    font-size: 24px;
-    text-align: center;
-    color: #343a40; /* Cinza escuro */
-    margin-bottom: 20px;
+  font-size: 24px;
+  text-align: center;
+  color: #343a40; /* Cinza escuro */
+  margin-bottom: 20px;
 }
 
 /* Links de cancelar */
 .cancel-link {
-    display: block;
-    margin-bottom: 20px;
-    color: #dc3545; /* Vermelho */
-    text-align: center;
-    text-decoration: none;
+  display: block;
+  margin-bottom: 20px;
+  color: #dc3545; /* Vermelho */
+  text-align: center;
+  text-decoration: none;
 }
 
 .cancel-link:hover {
-    text-decoration: underline;
+  text-decoration: underline;
 }
 
 /* Estilo dos Grupos */
 .form-group {
-    margin-bottom: 20px; /* Espaço consistente entre os grupos */
+  margin-bottom: 20px; /* Espaço consistente entre os grupos */
 }
 
 /* Alinhar o checkbox e o texto */
 .form-group label {
-    display: flex; /* Alinha horizontalmente */
-    align-items: center; /* Centraliza verticalmente */
-    gap: 10px; /* Espaço entre o checkbox e o texto */
-    font-size: 16px;
-    font-weight: bold;
-    color: #333;
+  display: flex; /* Alinha horizontalmente */
+  align-items: center; /* Centraliza verticalmente */
+  gap: 10px; /* Espaço entre o checkbox e o texto */
+  font-size: 16px;
+  font-weight: bold;
+  color: #333;
 }
 
 /* Inputs de texto, data e textarea */
-input[type="text"], input[type="date"], textarea, input[type="file"] {
-    width: 100%; /* Ocupa toda a largura disponível */
-    padding: 10px;
-    border: 1px solid #ced4da;
-    border-radius: 5px;
-    font-size: 16px;
-    margin-top: 5px; /* Espaço entre o rótulo e o campo */
-    box-sizing: border-box; /* Inclui padding e borda no cálculo do tamanho */
+input[type='text'],
+input[type='date'],
+textarea,
+input[type='file'] {
+  width: 100%; /* Ocupa toda a largura disponível */
+  padding: 10px;
+  border: 1px solid #ced4da;
+  border-radius: 5px;
+  font-size: 16px;
+  margin-top: 5px; /* Espaço entre o rótulo e o campo */
+  box-sizing: border-box; /* Inclui padding e borda no cálculo do tamanho */
 }
 
 /* Checkbox */
-input[type="checkbox"] {
-    width: 16px;
-    height: 16px;
+input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
 }
 
 /* Botão de envio */
-button[type="submit"] {
-    background-color: #28a745; /* Verde */
-    color: #fff;
-    border: none;
-    padding: 12px;
-    font-size: 16px;
-    border-radius: 5px;
-    cursor: pointer;
-    width: 100%; /* Ocupa toda a largura */
+button[type='submit'] {
+  background-color: #28a745; /* Verde */
+  color: #fff;
+  border: none;
+  padding: 12px;
+  font-size: 16px;
+  border-radius: 5px;
+  cursor: pointer;
+  width: 100%; /* Ocupa toda a largura */
 }
 
-button[type="submit"]:hover {
-    background-color: #218838; /* Verde mais escuro */
+button[type='submit']:hover {
+  background-color: #218838; /* Verde mais escuro */
 }
 
 /* Responsividade para dispositivos móveis */
 @media (max-width: 600px) {
-    .form-container {
-        width: 95%; /* Ajusta para quase toda a largura da tela */
-    }
+  .form-container {
+    width: 95%; /* Ajusta para quase toda a largura da tela */
+  }
 
-    .form-container h1 {
-        font-size: 20px; /* Título menor em telas pequenas */
-    }
+  .form-container h1 {
+    font-size: 20px; /* Título menor em telas pequenas */
+  }
 
-    input[type="text"], input[type="date"], textarea, input[type="file"] {
-        font-size: 16px; /* Fontes maiores para melhor usabilidade */
-    }
+  input[type='text'],
+  input[type='date'],
+  textarea,
+  input[type='file'] {
+    font-size: 16px; /* Fontes maiores para melhor usabilidade */
+  }
 
-    button[type="submit"] {
-        font-size: 18px; /* Botão com fonte maior */
-        padding: 14px; /* Mais espaço no botão */
-    }
+  button[type='submit'] {
+    font-size: 18px; /* Botão com fonte maior */
+    padding: 14px; /* Mais espaço no botão */
+  }
 }

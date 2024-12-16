@@ -1,146 +1,156 @@
 /* Estilo Geral */
 body {
-    font-family: Arial, sans-serif;
-    margin: 0;
-    padding: 0;
-    background-color: #f8f9fa; /* Fundo claro e suave */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: #f8f9fa; /* Fundo claro e suave */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
 }
 
 /* Contêiner do Formulário */
 .form-container {
-    background-color: #ffffff;
-    width: 90%; /* Largura ajustada para dispositivos móveis */
-    max-width: 400px; /* Limita a largura em telas maiores */
-    padding: 20px;
-    border-radius: 10px;
-    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1); /* Sombra suave */
-    text-align: center;
+  background-color: #ffffff;
+  width: 90%; /* Largura ajustada para dispositivos móveis */
+  max-width: 400px; /* Limita a largura em telas maiores */
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1); /* Sombra suave */
+  text-align: center;
 }
 
 /* Título */
 .form-container h1 {
-    font-size: 24px;
-    color: #343a40; /* Cinza escuro */
-    margin-bottom: 20px;
+  font-size: 24px;
+  color: #343a40; /* Cinza escuro */
+  margin-bottom: 20px;
 }
 
 /* Links */
 .cancel-link {
-    display: inline-block;
-    font-size: 14px;
-    color: #dc3545; /* Vermelho para destacar */
-    text-decoration: none;
-    margin-bottom: 20px;
+  display: inline-block;
+  font-size: 14px;
+  color: #dc3545; /* Vermelho para destacar */
+  text-decoration: none;
+  margin-bottom: 20px;
 }
 
 .cancel-link:hover {
-    text-decoration: underline;
+  text-decoration: underline;
 }
 
 /* Inputs e Textarea */
-input[type="text"], input[type="date"], textarea, input[type="file"] {
-    width: 100%; /* Preenche a largura disponível */
-    padding: 10px;
-    margin-bottom: 15px;
-    font-size: 14px;
-    border: 1px solid #ced4da; /* Borda cinza */
-    border-radius: 5px;
-    box-sizing: border-box; /* Inclui padding e borda no cálculo do tamanho */
+input[type='text'],
+input[type='date'],
+textarea,
+input[type='file'] {
+  width: 100%; /* Preenche a largura disponível */
+  padding: 10px;
+  margin-bottom: 15px;
+  font-size: 14px;
+  border: 1px solid #ced4da; /* Borda cinza */
+  border-radius: 5px;
+  box-sizing: border-box; /* Inclui padding e borda no cálculo do tamanho */
 }
 
-input[type="text"]:focus, input[type="date"]:focus, textarea:focus, input[type="file"]:focus {
-    outline: none;
-    border-color: #80bdff; /* Azul claro */
-    box-shadow: 0 0 5px rgba(0, 123, 255, 0.5); /* Brilho leve */
+input[type='text']:focus,
+input[type='date']:focus,
+textarea:focus,
+input[type='file']:focus {
+  outline: none;
+  border-color: #80bdff; /* Azul claro */
+  box-shadow: 0 0 5px rgba(0, 123, 255, 0.5); /* Brilho leve */
 }
 
 /* Checkbox */
-input[type="checkbox"] {
-    margin-right: 10px;
+input[type='checkbox'] {
+  margin-right: 10px;
 }
 
 /* Botão */
-button[type="submit"] {
-    background-color: #28a745; /* Verde */
-    color: #fff;
-    border: none;
-    padding: 12px 20px;
-    font-size: 16px;
-    border-radius: 5px;
-    cursor: pointer;
-    width: 100%;
+button[type='submit'] {
+  background-color: #28a745; /* Verde */
+  color: #fff;
+  border: none;
+  padding: 12px 20px;
+  font-size: 16px;
+  border-radius: 5px;
+  cursor: pointer;
+  width: 100%;
 }
 
-button[type="submit"]:hover {
-    background-color: #218838; /* Verde mais escuro */
+button[type='submit']:hover {
+  background-color: #218838; /* Verde mais escuro */
 }
 
 /* Responsividade para dispositivos móveis */
 @media (max-width: 600px) {
-    .form-container {
-        width: 95%; /* Ajusta para quase toda a largura da tela */
-    }
+  .form-container {
+    width: 95%; /* Ajusta para quase toda a largura da tela */
+  }
 
-    h1 {
-        font-size: 20px; /* Título menor em telas pequenas */
-    }
+  h1 {
+    font-size: 20px; /* Título menor em telas pequenas */
+  }
 
-    input[type="text"], input[type="date"], textarea, input[type="file"] {
-        font-size: 16px; /* Fontes maiores para melhor usabilidade */
-    }
+  input[type='text'],
+  input[type='date'],
+  textarea,
+  input[type='file'] {
+    font-size: 16px; /* Fontes maiores para melhor usabilidade */
+  }
 
-    button[type="submit"] {
-        font-size: 18px; /* Botão com fonte maior */
-        padding: 14px; /* Mais espaço no botão */
-    }
+  button[type='submit'] {
+    font-size: 18px; /* Botão com fonte maior */
+    padding: 14px; /* Mais espaço no botão */
+  }
 }
 
 /* Imagem no formulário de edição */
 .form-container img {
-    display: block;
-    margin: 10px auto; /* Centraliza a imagem */
-    max-width: 150px; /* Limita a largura da imagem */
-    border-radius: 5px; /* Deixa os cantos arredondados */
-    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1); /* Adiciona sombra para destacar */
+  display: block;
+  margin: 10px auto; /* Centraliza a imagem */
+  max-width: 150px; /* Limita a largura da imagem */
+  border-radius: 5px; /* Deixa os cantos arredondados */
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1); /* Adiciona sombra para destacar */
 }
 
-input[type="checkbox"] {
-    display: inline-block; /* Para o checkbox */
-    margin-top: 5px; /* Adiciona espaço superior */
+input[type='checkbox'] {
+  display: inline-block; /* Para o checkbox */
+  margin-top: 5px; /* Adiciona espaço superior */
 }
 
 label {
-    display: block; /* Força cada rótulo a ocupar uma linha separada */
-    margin-bottom: 5px; /* Adiciona espaço inferior */
+  display: block; /* Força cada rótulo a ocupar uma linha separada */
+  margin-bottom: 5px; /* Adiciona espaço inferior */
 }
-
 
 /* Form-group para separar visualmente cada grupo */
 .form-group {
-    margin-bottom: 20px; /* Espaço entre este grupo e o próximo */
+  margin-bottom: 20px; /* Espaço entre este grupo e o próximo */
 }
 
 /* Alinhar o checkbox e o texto */
 .form-group label {
-    display: flex; /* Mantém o alinhamento horizontal */
-    align-items: center; /* Centraliza verticalmente o checkbox com o texto */
-    gap: 10px; /* Espaço entre o checkbox e o texto */
-    font-size: 16px; /* Tamanho de texto consistente */
-    cursor: pointer; /* Permite clicar no texto para marcar/desmarcar */
-    margin-bottom: 10px; /* Relaciona melhor com o campo acima */
+  display: flex; /* Mantém o alinhamento horizontal */
+  align-items: center; /* Centraliza verticalmente o checkbox com o texto */
+  gap: 10px; /* Espaço entre o checkbox e o texto */
+  font-size: 16px; /* Tamanho de texto consistente */
+  cursor: pointer; /* Permite clicar no texto para marcar/desmarcar */
+  margin-bottom: 10px; /* Relaciona melhor com o campo acima */
 }
 
 /* Estilo do checkbox */
-input[type="checkbox"] {
-    width: 16px; /* Tamanho do checkbox */
-    height: 16px;
+input[type='checkbox'] {
+  width: 16px; /* Tamanho do checkbox */
+  height: 16px;
 }
 
 /* Ajustar espaçamento entre os campos de formulário */
-input[type="text"], input[type="date"], textarea {
-    margin-bottom: 20px; /* Espaço entre os campos */
+input[type='text'],
+input[type='date'],
+textarea {
+  margin-bottom: 20px; /* Espaço entre os campos */
 }

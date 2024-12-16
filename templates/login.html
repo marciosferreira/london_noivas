@@ -1,41 +1,41 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>London Noivas - Aluguel de Vestidos</title>
-    <link rel="stylesheet" href="/static/style_login.css">
-    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
-</head>
-<body class="login-page">
+    <link rel="stylesheet" href="/static/style_login.css" />
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}" />
+  </head>
+  <body class="login-page">
     <div class="login-container">
-        <!-- Cabeçalho com título e logo -->
-        <header class="login-header">
-            <img src="/static/icons/icon-512x512.png" alt="Vestido" class="login-logo">
-            <h1>London Noivas</h1>
-            <p>Aluguel de Vestidos</p>
-        </header>
+      <!-- Cabeçalho com título e logo -->
+      <header class="login-header">
+        <img src="/static/icons/icon-512x512.png" alt="Vestido" class="login-logo" />
+        <h1>London Noivas</h1>
+        <p>Aluguel de Vestidos</p>
+      </header>
 
-        <!-- Formulário de Login -->
-        <div class="login-form">
-            <h2>Acesse sua conta</h2>
-            <form action="/login" method="POST">
-                <!-- Campo de usuário -->
-                <div class="form-group">
-                    <label for="username">Usuário</label>
-                    <input type="text" id="username" name="username" placeholder="Digite seu usuário" required>
-                </div>
+      <!-- Formulário de Login -->
+      <div class="login-form">
+        <h2>Acesse sua conta</h2>
+        <form action="/login" method="POST">
+          <!-- Campo de usuário -->
+          <div class="form-group">
+            <label for="username">Usuário</label>
+            <input type="text" id="username" name="username" placeholder="Digite seu usuário" required />
+          </div>
 
-                <!-- Campo de senha -->
-                <div class="form-group">
-                    <label for="password">Senha</label>
-                    <input type="password" id="password" name="password" placeholder="Digite sua senha" required>
-                </div>
+          <!-- Campo de senha -->
+          <div class="form-group">
+            <label for="password">Senha</label>
+            <input type="password" id="password" name="password" placeholder="Digite sua senha" required />
+          </div>
 
-                <!-- Botão de login -->
-                <button type="submit" class="btn">Entrar</button>
-            </form>
-        </div>
+          <!-- Botão de login -->
+          <button type="submit" class="btn">Entrar</button>
+        </form>
+      </div>
     </div>
-</body>
+  </body>
 </html>

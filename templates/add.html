@@ -1,41 +1,62 @@
 <!DOCTYPE html>
 <html lang="pt-br">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-<title>Adicionar Registro</title>
-<link rel="stylesheet" href="{{ url_for('static', filename='style_add.css') }}">
-</head>
-<body>
-<div class="form-container">
-    <h1>Inserir Novo Vestido</h1>
-    <a href="{{ url_for('index') }}" class="cancel-link">Sair sem Finalizar</a>
-    <form method="POST" enctype="multipart/form-data">
+    <title>Adicionar Registro</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style_add.css') }}" />
+  </head>
+  <body>
+    <div class="form-container">
+      <h1>Inserir Novo Vestido</h1>
+      <a href="{{ url_for('index') }}" class="cancel-link">Sair sem Finalizar</a>
+      <form method="POST" enctype="multipart/form-data">
+        <label>Nome do Cliente:</label>
+        <br />
+        <input type="text" name="client_name" required />
+        <br />
+        <br />
 
-        <label>Nome do Cliente:</label><br>
-        <input type="text" name="client_name" required><br><br>
+        <label>Telefone do Cliente:</label>
+        <br />
+        <input type="text" name="client_tel" required />
+        <br />
+        <br />
 
-        <label>Telefone do Cliente:</label><br>
-        <input type="text" name="client_tel" required><br><br>        
-        
-        <label>Data de Retirada:</label><br>
-        <input type="date" name="rental_date" required><br><br>
+        <label>Data de Retirada:</label>
+        <br />
+        <input type="date" name="rental_date" required />
+        <br />
+        <br />
 
-        <label>Retirado:</label>
-        <input type="checkbox" name="retirado" value="True"><br><br>
+        <div class="form-group">
+          <label for="retirado">
+            <input type="checkbox" id="retirado" name="retirado" value="True" />
+            Retirado
+          </label>
+        </div>
 
-        <label>Data de Devolução:</label><br>
-        <input type="date" name="return_date" required><br><br>
+        <label>Data de Devolução:</label>
+        <br />
+        <input type="date" name="return_date" required />
+        <br />
+        <br />
 
-        <label>Comentários:</label><br>
-        <textarea name="comments" rows="3" cols="30"></textarea><br><br>
+        <label>Comentários:</label>
+        <br />
+        <textarea name="comments" rows="3" cols="30"></textarea>
+        <br />
+        <br />
 
-        <label>Foto:</label><br>
-        <input type="file" name="image_file" accept="image/*;capture=camera"><br><br>
+        <label>Foto:</label>
+        <br />
+        <input type="file" name="image_file" accept="image/*;capture=camera" />
+        <br />
+        <br />
 
         <button type="submit">Inserir</button>
-    </form>
-</div>
-</body>
+      </form>
+    </div>
+  </body>
 </html>
