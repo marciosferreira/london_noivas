@@ -61,6 +61,8 @@ body {
 /* Inputs de texto, data e textarea */
 input[type='text'],
 input[type='date'],
+input[type='number'],
+select,
 textarea,
 input[type='file'] {
   width: 100%; /* Ocupa toda a largura disponível */

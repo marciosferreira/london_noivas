@@ -39,6 +39,8 @@
               <th>Data de Retirada</th>
               <th>Data de Devolução</th>
               <th>Retirado</th>
+              <th>Valor (R$)</th>
+              <th>Pagamento</th>
               <th>Comentários</th>
               <th>Ações</th>
             </tr>
@@ -59,6 +61,8 @@
               <td data-label="Data de Retirada">{{ dress.rental_date_formatted }}</td>
               <td data-label="Data de Devolução">{{ dress.return_date_formatted }}</td>
               <td data-label="Retirado">{% if dress.retirado %} Sim {% else %} Não {% endif %}</td>
+              <td data-label="Valor">{{ dress.valor }}</td>
+              <td data-label="Pagamento">{{ dress.pagamento }}</td>
               <td data-label="Comentários">{{ dress.comments }}</td>
 
               <td data-label="Ações">
@@ -76,6 +80,17 @@
             {% endfor %}
           </tbody>
         </table>
+      </div>
+    </div>
+
+    <!-- Adicione esta seção para exibir os totais -->
+    <div class="card mb-4 mx-auto" style="max-width: 600px">
+      <div class="card-body">
+        <h5 class="card-title">Resumo Financeiro</h5>
+        {% set total_pago = namespace(value=0) %} {% for dress in dresses %} {% if dress.valor %} {% if dress.pagamento == "pago 100%" %} {% set
+        total_pago.value = total_pago.value + dress.valor|float %} {% elif dress.pagamento == "pago 50%" %} {% set total_pago.value = total_pago.value
+        + (dress.valor|float * 0.5) %} {% endif %} {% endif %} {% endfor %}
+        <p class="card-text">Total Recebido: R$ {{ "%.2f"|format(total_pago.value) }}</p>
       </div>
     </div>
 

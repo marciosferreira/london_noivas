@@ -210,6 +210,8 @@ def add():
         rental_date_str = request.form.get("rental_date")
         return_date_str = request.form.get("return_date")
         retirado = "retirado" in request.form  # Verifica se o checkbox está marcado
+        valor = request.form.get("valor")
+        pagamento = request.form.get("pagamento")
         comments = request.form.get("comments")
         image_file = request.files.get("image_file")
 
@@ -241,6 +243,8 @@ def add():
                 "return_date": return_date.strftime("%Y-%m-%d"),
                 "retirado": retirado,
                 "comments": comments,
+                "valor": valor,
+                "pagamento": pagamento,
                 "image_url": image_url,
                 "status": "rented",  # ou outro status conforme necessário
             }
@@ -271,6 +275,8 @@ def edit(dress_id):
         client_name = request.form.get("client_name")
         client_tel = request.form.get("client_tel")
         retirado = "retirado" in request.form  # Verifica presença do checkbox
+        valor = request.form.get("valor")
+        pagamento = request.form.get("pagamento")
         comments = request.form.get("comments")
         image_file = request.files.get("image_file")
 
@@ -299,7 +305,9 @@ def edit(dress_id):
                     image_url = :i,
                     client_name = :cn,
                     client_tel = :ct,
-                    retirado = :ret
+                    retirado = :ret,
+                    valor = :val,
+                    pagamento = :pag
             """,
             ExpressionAttributeValues={
                 ":r": rental_date.strftime("%Y-%m-%d"),
@@ -309,6 +317,8 @@ def edit(dress_id):
                 ":cn": client_name,
                 ":ct": client_tel,
                 ":ret": retirado,
+                ":val": valor,
+                ":pag": pagamento,
             },
         )
 
@@ -329,6 +339,8 @@ def edit(dress_id):
         "comments": item.get("comments"),
         "image_url": item.get("image_url"),
         "retirado": item.get("retirado", False),
+        "valor": item.get("valor"),
+        "pagamento": item.get("pagamento"),
     }
 
     return render_template("edit.html", dress=dress)
@@ -420,5 +432,4 @@ def logout():
 if __name__ == "__main__":
     # Determina se está no localhost
     debug_mode = os.getenv("debug_env").lower() == "true"
-    print(f"Debug modes:{debug_mode}")
     app.run(debug=debug_mode, host="0.0.0.0", port=5000)

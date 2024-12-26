@@ -43,6 +43,20 @@
         <br />
         <br />
 
+        <label for="valor">Valor (R$):</label>
+        <input type="number" id="valor" name="valor" step="0.01" min="0" required />
+        <br />
+        <br />
+
+        <label for="pagamento">Pagamento:</label>
+        <select id="pagamento" name="pagamento">
+          <option value="nao pago">Não pago</option>
+          <option value="pago 50%">Pago 50%</option>
+          <option value="pago 100%">Pago 100%</option>
+        </select>
+        <br />
+        <br />
+
         <label>Comentários:</label>
         <br />
         <textarea name="comments" rows="3" cols="30"></textarea>
