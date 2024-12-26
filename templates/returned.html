@@ -63,7 +63,9 @@
 
               <td data-label="Ações">
                 <form method="POST" action="{{ url_for('delete', dress_id=dress.dress_id) }}" style="display: inline">
-                  <button type="submit" class="btn btn-danger btn-sm">Deletar</button>
+                  <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Tem certeza de que deseja deletar este item?');">
+                    Deletar
+                  </button>
                 </form>
                 <a href="{{ url_for('edit', dress_id=dress.dress_id) }}" class="btn btn-warning btn-sm">Editar</a>
                 <form method="POST" action="{{ url_for('mark_rented', dress_id=dress.dress_id) }}" style="display: inline">
