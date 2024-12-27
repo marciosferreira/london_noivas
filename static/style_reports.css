@@ -1,98 +1,178 @@
 body.reports {
-  background: linear-gradient(135deg, #ffecd2, #fcb69f);
   font-family: Arial, sans-serif;
-  min-height: 100vh;
   margin: 0;
+  padding: 0;
+  background: linear-gradient(to bottom, #fcb69f, #ffecd2); /* Degradê laranja suave */
+  color: #333;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
-  padding: 10px; /* Espaço interno para evitar conteúdo colado às bordas */
+  padding: 10px; /* Margem interna para evitar conteúdo colado */
 }
 
-h1 {
-  font-size: 2.5rem;
-  font-weight: bold;
-  color: #00509e; /* Azul escuro */
-  text-align: center; /* Centraliza o título */
-  margin-bottom: 20px; /* Espaçamento inferior */
+/* Título da página */
+h1.page-title {
+  text-align: center;
+  font-size: 28px;
+  color: #ff6f61; /* Laranja escuro */
+  margin: 20px 0;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
 }
 
-.text-dark-blue {
-  color: #00509e; /* Azul escuro */
+/* Contêiner central */
+.container {
+  width: 100%;
+  max-width: 1200px; /* Limite de largura */
+  margin: 0 auto;
+  padding: 20px;
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+  background: white; /* Fundo branco para contraste */
 }
 
+/* Labels e campos */
 label {
   font-weight: bold;
-  color: #00509e; /* Azul escuro */
-  font-size: 1rem; /* Tamanho padrão */
+  color: #333;
+  font-size: 1rem;
 }
 
+input[type='date'] {
+  display: block;
+  width: 100%; /* Campos ocupam toda a largura */
+  margin-bottom: 15px;
+  font-size: 1rem;
+  padding: 10px 15px;
+  border-radius: 5px;
+}
+
+/* Botões gerais */
 .btn {
-  font-size: 1.2rem; /* Botões mais visíveis */
-  padding: 10px 15px; /* Aumenta o espaço interno do botão */
+  border: none;
+  color: white;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.2s ease;
 }
 
+/* Botões específicos para .reports */
+.reports .btn {
+  display: inline-block; /* Botões respeitam o conteúdo */
+  width: auto; /* Ajuste automático baseado no texto */
+  margin: 10px auto; /* Centraliza os botões */
+  padding: 10px 20px; /* Espaçamento interno */
+  font-size: 1rem; /* Ajuste de tamanho */
+}
+
+/* Botão Primário (Laranja) */
+.btn-primary {
+  background-color: #ff6f61; /* Laranja */
+}
+
+.btn-primary:hover {
+  background-color: #e55d4f; /* Laranja escuro */
+  transform: scale(1.05);
+}
+
+/* Botão Secundário (Cinza) */
+.btn-secondary {
+  background-color: #6c757d; /* Cinza */
+}
+
+.btn-secondary:hover {
+  background-color: #5a6268; /* Cinza escuro */
+  transform: scale(1.05);
+}
+
+/* Resumo Financeiro */
 .card {
   background-color: white;
   border: none;
   box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
-  margin: 20px auto; /* Centraliza o cartão */
-  width: 100%; /* Largura total por padrão */
-  max-width: 400px; /* Limite de largura para telas maiores */
+  margin: 20px auto;
+  width: 100%;
+  max-width: 400px;
+  padding: 15px;
+  border-radius: 10px;
 }
 
 .card-title {
-  font-size: 1.25rem;
+  font-size: 1.5rem;
   font-weight: bold;
-  color: #00509e; /* Azul escuro */
+  color: #ff6f61;
+  text-align: center;
 }
 
 .card-text {
-  font-size: 1.1rem; /* Aumenta a fonte */
-  color: #333;
-  line-height: 1.5; /* Melhora o espaçamento entre linhas */
+  font-size: 1.1rem;
+  color: #555;
+  line-height: 1.5;
+  text-align: center;
 }
 
-/* Ajustes para dispositivos estreitos */
+/* Corrigir largura de botões em .returned */
+.returned .btn {
+  display: inline-block;
+  width: auto;
+  padding: 10px 15px;
+  font-size: 1rem;
+  margin: 5px;
+  text-align: center;
+  max-width: 200px; /* Limite máximo para botões muito largos */
+}
+
+/* Responsividade */
 @media (max-width: 768px) {
-  h1 {
-    font-size: 2rem; /* Reduz o tamanho do título */
+  h1.page-title {
+    font-size: 24px;
   }
 
   .btn {
-    font-size: 1rem; /* Ajusta o tamanho dos botões */
-    padding: 8px 12px;
-  }
-
-  label {
-    font-size: 0.9rem; /* Reduz o tamanho da fonte do label */
-  }
-
-  .card-text {
-    font-size: 1rem; /* Ajusta a fonte no texto do cartão */
-  }
-}
-
-/* Ajustes para dispositivos muito estreitos (celulares pequenos) */
-@media (max-width: 480px) {
-  h1 {
-    font-size: 1.8rem; /* Reduz mais o tamanho do título */
-  }
-
-  .btn {
-    font-size: 0.9rem; /* Tamanho menor para botões */
-    padding: 6px 10px;
-  }
-
-  label {
-    font-size: 0.85rem; /* Reduz o tamanho dos labels */
+    font-size: 0.9rem;
+    padding: 8px 10px;
   }
 
   .card {
-    padding: 10px; /* Adiciona espaço interno no cartão */
-    width: 90%; /* Ocupa 90% da largura da tela */
+    width: 90%;
+  }
+
+  .card-title {
+    font-size: 1.3rem;
   }
 
   .card-text {
-    font-size: 0.95rem; /* Texto menor */
+    font-size: 1rem;
+  }
+
+  .reports .btn,
+  .returned .btn {
+    font-size: 0.9rem;
+    padding: 8px 12px;
+    margin: 5px 0;
+    display: block;
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  h1.page-title {
+    font-size: 20px;
+  }
+
+  label {
+    font-size: 0.9rem;
+  }
+
+  .btn {
+    font-size: 0.8rem;
+    padding: 6px 8px;
+  }
+
+  .card-title {
+    font-size: 1.2rem;
+  }
+
+  .card-text {
+    font-size: 0.95rem;
   }
 }
