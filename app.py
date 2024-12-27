@@ -6,6 +6,8 @@ import boto3
 from werkzeug.utils import secure_filename
 import socket
 from dotenv import load_dotenv
+from datetime import datetime, timedelta
+
 
 load_dotenv()  # only for setting up the env as debug
 
@@ -83,6 +85,10 @@ def index():
     if not session.get("logged_in"):
         return redirect(url_for("login"))
 
+    # Parâmetros de paginação
+    page = int(request.args.get("page", 1))
+    per_page = 3  # Número de itens por página
+
     # Obter o filtro selecionado (default é "todos")
     filtro = request.args.get(
         "filter", "todos"
@@ -144,13 +150,35 @@ def index():
     # Ordenar apenas pela data de registro (data de aluguel mais antiga primeiro)
     sorted_items = sorted(filtered_items, key=lambda x: x["rental_date_obj"])
 
-    return render_template("index.html", dresses=sorted_items, current_filter=filtro)
+    # Paginação
+    total_items = len(sorted_items)
+    total_pages = (total_items + per_page - 1) // per_page
+    start = (page - 1) * per_page
+    end = start + per_page
+    paginated_items = sorted_items[start:end]
+
+    return render_template(
+        "index.html",
+        dresses=paginated_items,
+        page=page,
+        total_pages=total_pages,
+        current_filter=filtro,
+    )
+
+    # return render_template("index.html", dresses=sorted_items, current_filter=filtro)
+
+
+from flask import request, url_for
 
 
 @app.route("/returned")
 def returned():
     if not session.get("logged_in"):
         return redirect(url_for("login"))
+
+    # Parâmetros de paginação
+    page = int(request.args.get("page", 1))
+    per_page = 3  # Número de itens por página
 
     # Obter todos os registros "returned"
     response = table.scan(
@@ -178,7 +206,6 @@ def returned():
             dress["overdue"] = False
             dress["return_date_formatted"] = "N/A"
 
-        # Processar rental_date
         if rental_date_str:
             try:
                 rental_date = datetime.strptime(rental_date_str, "%Y-%m-%d").date()
@@ -188,15 +215,25 @@ def returned():
         else:
             dress["rental_date_formatted"] = "N/A"
 
-        # Prioridade para ordenação
         dress["priority"] = 0 if not dress.get("retirado", False) else 1
 
-    # Ordenar conforme a necessidade (opcional)
     sorted_items = sorted(
         items, key=lambda x: (x.get("retirado", False), x.get("rental_date_obj", today))
     )
 
-    return render_template("returned.html", dresses=sorted_items)
+    # Paginação
+    total_items = len(sorted_items)
+    total_pages = (total_items + per_page - 1) // per_page
+    start = (page - 1) * per_page
+    end = start + per_page
+    paginated_items = sorted_items[start:end]
+
+    return render_template(
+        "returned.html",
+        dresses=paginated_items,
+        page=page,
+        total_pages=total_pages,
+    )
 
 
 @app.route("/add", methods=["GET", "POST"])
@@ -255,6 +292,77 @@ def add():
         return redirect(url_for("index", dress_id=dress_id))
 
     return render_template("add.html")
+
+
+@app.route("/reports", methods=["GET", "POST"])
+def reports():
+    if not session.get("logged_in"):
+        return redirect(url_for("login"))
+
+    # Valores padrão para data inicial e final (últimos 30 dias)
+    end_date = datetime.now().date()
+    start_date = end_date - timedelta(days=30)
+
+    if request.method == "POST":
+        try:
+            start_date = datetime.strptime(
+                request.form.get("start_date"), "%Y-%m-%d"
+            ).date()
+            end_date = datetime.strptime(
+                request.form.get("end_date"), "%Y-%m-%d"
+            ).date()
+        except ValueError:
+            flash("Formato de data inválido. Use AAAA-MM-DD.", "error")
+            return render_template(
+                "reports.html",
+                total_paid=0,
+                total_due=0,
+                total_general=0,
+                start_date=start_date,
+                end_date=end_date,
+            )
+
+    # Obter todos os registros (independente do status)
+    response = table.scan()
+    items = response.get("Items", [])
+
+    # Inicializar os totais
+    total_paid = 0  # Total recebido
+    total_due = 0  # Total a receber
+
+    for dress in items:
+        try:
+            # Considerar apenas registros dentro do período
+            rental_date = datetime.strptime(dress.get("rental_date"), "%Y-%m-%d").date()
+            if start_date <= rental_date <= end_date:
+                valor = float(dress.get("valor", 0))
+                pagamento = dress.get("pagamento", "").lower()
+
+                # Calcular o total recebido
+                if pagamento == "pago 100%":
+                    total_paid += valor
+                elif pagamento == "pago 50%":
+                    total_paid += valor * 0.5
+
+                # Calcular o total a receber
+                if pagamento == "não pago":
+                    total_due += valor
+                elif pagamento == "pago 50%":
+                    total_due += valor * 0.5
+        except (ValueError, TypeError):
+            continue  # Ignorar registros com datas ou valores inválidos
+
+    # Total geral: recebido + a receber
+    total_general = total_paid + total_due
+
+    return render_template(
+        "reports.html",
+        total_paid=total_paid,
+        total_due=total_due,
+        total_general=total_general,
+        start_date=start_date,
+        end_date=end_date,
+    )
 
 
 @app.route("/edit/<dress_id>", methods=["GET", "POST"])

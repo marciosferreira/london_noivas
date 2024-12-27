@@ -1,0 +1,44 @@
+body.reports {
+  background: linear-gradient(135deg, #ffecd2, #fcb69f);
+  font-family: Arial, sans-serif;
+  min-height: 100vh;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+h1 {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: #00509e; /* Azul escuro */
+}
+
+.text-dark-blue {
+  color: #00509e; /* Azul escuro */
+}
+
+label {
+  font-weight: bold;
+  color: #00509e; /* Azul escuro */
+}
+
+.btn {
+  font-size: 1rem;
+}
+
+.card {
+  background-color: white;
+  border: none;
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.card-title {
+  font-size: 1.25rem;
+  font-weight: bold;
+  color: #00509e; /* Azul escuro */
+}
+
+.card-text {
+  font-size: 1rem;
+  color: #333;
+}
