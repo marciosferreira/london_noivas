@@ -87,7 +87,7 @@ def index():
 
     # Parâmetros de paginação
     page = int(request.args.get("page", 1))
-    per_page = 3  # Número de itens por página
+    per_page = 5  # Número de itens por página
 
     # Obter o filtro selecionado (default é "todos")
     filtro = request.args.get(
@@ -178,7 +178,7 @@ def returned():
 
     # Parâmetros de paginação
     page = int(request.args.get("page", 1))
-    per_page = 3  # Número de itens por página
+    per_page = 5  # Número de itens por página
 
     # Obter todos os registros "returned"
     response = table.scan(
