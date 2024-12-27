@@ -5,12 +5,15 @@ body.reports {
   margin: 0;
   display: flex;
   flex-direction: column;
+  padding: 10px; /* Espaço interno para evitar conteúdo colado às bordas */
 }
 
 h1 {
   font-size: 2.5rem;
   font-weight: bold;
   color: #00509e; /* Azul escuro */
+  text-align: center; /* Centraliza o título */
+  margin-bottom: 20px; /* Espaçamento inferior */
 }
 
 .text-dark-blue {
@@ -20,16 +23,21 @@ h1 {
 label {
   font-weight: bold;
   color: #00509e; /* Azul escuro */
+  font-size: 1rem; /* Tamanho padrão */
 }
 
 .btn {
-  font-size: 1rem;
+  font-size: 1.2rem; /* Botões mais visíveis */
+  padding: 10px 15px; /* Aumenta o espaço interno do botão */
 }
 
 .card {
   background-color: white;
   border: none;
   box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+  margin: 20px auto; /* Centraliza o cartão */
+  width: 100%; /* Largura total por padrão */
+  max-width: 400px; /* Limite de largura para telas maiores */
 }
 
 .card-title {
@@ -39,6 +47,52 @@ label {
 }
 
 .card-text {
-  font-size: 1rem;
+  font-size: 1.1rem; /* Aumenta a fonte */
   color: #333;
+  line-height: 1.5; /* Melhora o espaçamento entre linhas */
+}
+
+/* Ajustes para dispositivos estreitos */
+@media (max-width: 768px) {
+  h1 {
+    font-size: 2rem; /* Reduz o tamanho do título */
+  }
+
+  .btn {
+    font-size: 1rem; /* Ajusta o tamanho dos botões */
+    padding: 8px 12px;
+  }
+
+  label {
+    font-size: 0.9rem; /* Reduz o tamanho da fonte do label */
+  }
+
+  .card-text {
+    font-size: 1rem; /* Ajusta a fonte no texto do cartão */
+  }
+}
+
+/* Ajustes para dispositivos muito estreitos (celulares pequenos) */
+@media (max-width: 480px) {
+  h1 {
+    font-size: 1.8rem; /* Reduz mais o tamanho do título */
+  }
+
+  .btn {
+    font-size: 0.9rem; /* Tamanho menor para botões */
+    padding: 6px 10px;
+  }
+
+  label {
+    font-size: 0.85rem; /* Reduz o tamanho dos labels */
+  }
+
+  .card {
+    padding: 10px; /* Adiciona espaço interno no cartão */
+    width: 90%; /* Ocupa 90% da largura da tela */
+  }
+
+  .card-text {
+    font-size: 0.95rem; /* Texto menor */
+  }
 }
