@@ -10,8 +10,37 @@
   <body>
     <div class="form-container">
       <h1>Inserir Novo Vestido</h1>
-      <a href="{{ url_for('index') }}" class="cancel-link">Sair sem Finalizar</a>
+      <!-- Link "Sair sem Finalizar" -->
+      <a href="{{ next }}" class="cancel-link">Sair sem Finalizar</a>
       <form method="POST" enctype="multipart/form-data">
+        <!-- Campo oculto para preservar a página de origem -->
+        <input type="hidden" name="next" value="{{ next }}" />
+
+        <!-- Checkboxes para status -->
+        <div class="form-group">
+          <label for="status-rented">
+            <input
+              type="checkbox"
+              id="status-rented"
+              name="status"
+              value="rented"
+              onclick="toggleCheckbox('status-rented', 'status-returned')"
+              checked
+            />
+            Alugado
+          </label>
+          <label for="status-returned">
+            <input type="checkbox" id="status-returned" name="status" value="returned" onclick="toggleCheckbox('status-returned', 'status-rented')" />
+            Arquivado
+          </label>
+        </div>
+
+        <label>Descrição:</label>
+        <br />
+        <input type="text" name="description" required />
+        <br />
+        <br />
+
         <label>Nome do Cliente:</label>
         <br />
         <input type="text" name="client_name" required />
@@ -72,5 +101,17 @@
         <button type="submit">Inserir</button>
       </form>
     </div>
+
+    <script>
+      // Função para tornar os checkboxes mutuamente exclusivos
+      function toggleCheckbox(activeId, inactiveId) {
+        const activeCheckbox = document.getElementById(activeId);
+        const inactiveCheckbox = document.getElementById(inactiveId);
+
+        if (activeCheckbox.checked) {
+          inactiveCheckbox.checked = false;
+        }
+      }
+    </script>
   </body>
 </html>

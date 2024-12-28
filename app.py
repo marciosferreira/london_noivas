@@ -334,7 +334,13 @@ def add():
     if not session.get("logged_in"):
         return redirect(url_for("login"))
 
+    # Recuperar a página de origem (next)
+    next_page = request.args.get("next", url_for("index"))
+
     if request.method == "POST":
+        # Capturar dados do formulário
+        status = request.form.get("status")  # Captura o status: rented ou returned
+        description = request.form.get("description")
         client_name = request.form.get("client_name")
         client_tel = request.form.get("client_tel")
         rental_date_str = request.form.get("rental_date")
@@ -345,13 +351,18 @@ def add():
         comments = request.form.get("comments")
         image_file = request.files.get("image_file")
 
+        # Validar se o status foi escolhido
+        if status not in ["rented", "returned"]:
+            flash("Por favor, selecione o status do vestido.", "error")
+            return render_template("add.html", next=next_page)
+
         # Validar e converter as datas
         try:
             rental_date = datetime.strptime(rental_date_str, "%Y-%m-%d").date()
             return_date = datetime.strptime(return_date_str, "%Y-%m-%d").date()
         except ValueError:
             flash("Formato de data inválido. Use AAAA-MM-DD.", "error")
-            return render_template("add.html")
+            return render_template("add.html", next=next_page)
 
         # Fazer upload da imagem, se houver
         image_url = ""
@@ -367,6 +378,7 @@ def add():
         table.put_item(
             Item={
                 "dress_id": dress_id,
+                "description": description,
                 "client_name": client_name,
                 "client_tel": client_tel,
                 "rental_date": rental_date.strftime("%Y-%m-%d"),
@@ -376,15 +388,15 @@ def add():
                 "valor": valor,
                 "pagamento": pagamento,
                 "image_url": image_url,
-                "status": "rented",  # ou outro status conforme necessário
+                "status": status,  # Adiciona o status selecionado
             }
         )
 
         flash("Vestido adicionado com sucesso.", "success")
-        # return redirect(url_for("index", dress_id=dress_id))
-        return redirect(url_for("index", dress_id=dress_id))
+        # Redirecionar para a página de origem
+        return redirect(next_page)
 
-    return render_template("add.html")
+    return render_template("add.html", next=next_page)
 
 
 @app.route("/reports", methods=["GET", "POST"])
@@ -473,6 +485,7 @@ def edit(dress_id):
     if request.method == "POST":
         rental_date_str = request.form.get("rental_date")
         return_date_str = request.form.get("return_date")
+        description = request.form.get("description")
         client_name = request.form.get("client_name")
         client_tel = request.form.get("client_tel")
         retirado = "retirado" in request.form  # Verifica presença do checkbox
@@ -504,6 +517,7 @@ def edit(dress_id):
                     return_date = :rt,
                     comments = :c,
                     image_url = :i,
+                    description = :dc,
                     client_name = :cn,
                     client_tel = :ct,
                     retirado = :ret,
@@ -515,6 +529,7 @@ def edit(dress_id):
                 ":rt": return_date.strftime("%Y-%m-%d"),
                 ":c": comments,
                 ":i": new_image_url,
+                ":dc": description,
                 ":cn": client_name,
                 ":ct": client_tel,
                 ":ret": retirado,
@@ -533,6 +548,7 @@ def edit(dress_id):
     # Preparar dados para o template
     dress = {
         "dress_id": item.get("dress_id"),
+        "description": item.get("description"),
         "client_name": item.get("client_name"),
         "client_tel": item.get("client_tel"),
         "rental_date": item.get("rental_date"),

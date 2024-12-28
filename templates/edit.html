@@ -20,6 +20,10 @@
       <h1>Editar Vestido</h1>
       <a href="{{ url_for('index') }}" class="cancel-link">Sair sem Finalizar</a>
       <form method="POST" enctype="multipart/form-data">
+
+        <label for="description">Descrição:</label>
+        <input type="text" id="description" name="description" value="{{ dress.description }}" required />
+
         <label for="client_name">Nome do Cliente:</label>
         <input type="text" id="client_name" name="client_name" value="{{ dress.client_name }}" required />
 

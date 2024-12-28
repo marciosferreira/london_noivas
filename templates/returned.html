@@ -28,7 +28,7 @@
     <div class="mb-3 text-center">
       <a href="{{ url_for('logout') }}" class="btn btn-danger">Logout</a>
       <a href="{{ url_for('index') }}" class="btn btn-secondary">Ver Alugados</a>
-      <a href="{{ url_for('add') }}" class="btn btn-primary">Inserir Novo Registro</a>
+      <a href="{{ url_for('add', next=request.url) }}" class="btn btn-primary">Adicionar Item</a>
       <a href="{{ url_for('reports') }}" class="btn btn-success">Relatórios</a>
     </div>
 
@@ -87,6 +87,7 @@
           <thead>
             <tr>
               <th>Imagem</th>
+              <th>Descrição</th>
               <th>Cliente</th>
               <th>Telefone</th>
               <th>Data de Retirada</th>
@@ -109,6 +110,7 @@
                 <img src="{{ url_for('static', filename='dress-placeholder.png') }}" alt="Sem Imagem" class="img-fluid dress-thumbnail" />
                 {% endif %}
               </td>
+              <td data-label="Descrição">{{ dress.description }}</td>
               <td data-label="Cliente">{{ dress.client_name }}</td>
               <td data-label="Telefone">{{ dress.client_tel }}</td>
               <td data-label="Data de Retirada">{{ dress.rental_date_formatted }}</td>
