@@ -2,7 +2,7 @@
 <html lang="pt-br">
   <head>
     <meta charset="UTF-8" />
-    <title>Vestidos Devolvidos</title>
+    <title>Vestidos Alugados</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="{{ url_for('static', filename='style_main.css') }}" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
@@ -23,21 +23,84 @@
     <!-- Botões -->
     <div class="mb-3 text-center">
       <a href="{{ url_for('logout') }}" class="btn btn-danger">Logout</a>
-      <a href="{{ url_for('returned') }}" class="btn btn-secondary">Ver devolvidos</a>
+      <a href="{{ url_for('returned') }}" class="btn btn-secondary">Ver arquivo</a>
       <a href="{{ url_for('add') }}" class="btn btn-primary">Inserir Novo Registro</a>
       <a href="{{ url_for('reports') }}" class="btn btn-success">Relatórios</a>
     </div>
 
     <div class="table-responsive mb-4">
-      <!-- Menu de Filtros -->
-      <div class="menu-filter">
-        <div class="tabs-container">
-          <a href="/?filter=todos" class="tab {% if current_filter == 'todos' %}active-tab{% else %}inactive-tab{% endif %}">Todos</a>
-          <a href="/?filter=reservados" class="tab {% if current_filter == 'reservados' %}active-tab{% else %}inactive-tab{% endif %}">Reservados</a>
-          <a href="/?filter=retirados" class="tab {% if current_filter == 'retirados' %}active-tab{% else %}inactive-tab{% endif %}">Retirados</a>
-          <a href="/?filter=atrasados" class="tab {% if current_filter == 'atrasados' %}active-tab{% else %}inactive-tab{% endif %}">Atrasados</a>
-        </div>
+
+
+<!-- Filtros -->
+    <div class="menu-filter">
+      <button class="btn btn-info" id="filter-toggle">Filtros</button>
+
+      <div id="filter-section" class="mt-3 d-none">
+        <form method="GET" action="/">
+
+
+
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="filter" id="filter-todos" value="todos" {% if current_filter == 'todos' %}checked{% endif %}>
+            <label class="form-check-label" for="filter-todos">Todos</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="filter" id="filter-reservados" value="reservados" {% if current_filter == 'reservados' %}checked{% endif %}>
+            <label class="form-check-label" for="filter-reservados">Reservados</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="filter" id="filter-retirados" value="retirados" {% if current_filter == 'retirados' %}checked{% endif %}>
+            <label class="form-check-label" for="filter-retirados">Retirados</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="filter" id="filter-atrasados" value="atrasados" {% if current_filter == 'atrasados' %}checked{% endif %}>
+            <label class="form-check-label" for="filter-atrasados">Devolução atrasada</label>
+          </div>
+
+
+
+
+          <div class="mt-3">
+            <label for="client-name" class="form-label">Nome do Cliente:</label>
+            <input type="text" class="form-control" id="client-name" name="client_name" value="{{ request.args.get('client_name', '') }}">
+          </div>
+
+          <div class="mt-3">
+            <label for="payment-status" class="form-label">Pagamento:</label>
+            <select class="form-select" id="payment-status" name="payment">
+              <option value="">Todos</option>
+              <option value="Não pago" {% if request.args.get('payment') == 'Não pago' %}selected{% endif %}>Não Pago</option>
+              <option value="Pago 50%" {% if request.args.get('payment') == 'Pago 50%' %}selected{% endif %}>Pago 50%</option>
+              <option value="Pago 100%" {% if request.args.get('payment') == 'Pago 100%' %}selected{% endif %}>Pago 100%</option>
+            </select>
+          </div>
+
+          <div class="row mt-3">
+            <div class="col">
+              <label for="start-date" class="form-label">Retir. prevista (de):</label>
+              <input type="date" class="form-control" id="start-date" name="start_date" value="{{ request.args.get('start_date', '') }}">
+            </div>
+            <div class="col">
+              <label for="end-date" class="form-label">Retir. prevista (até):</label>
+              <input type="date" class="form-control" id="end-date" name="end_date" value="{{ request.args.get('end_date', '') }}">
+            </div>
+          </div>
+
+          <div class="row mt-3">
+            <div class="col">
+              <label for="return-start-date" class="form-label">Devol. prevista (de):</label>
+              <input type="date" class="form-control" id="return-start-date" name="return_start_date" value="{{ request.args.get('return_start_date', '') }}">
+            </div>
+            <div class="col">
+              <label for="return-end-date" class="form-label">Devol. prevista (até):</label>
+              <input type="date" class="form-control" id="return-end-date" name="return_end_date" value="{{ request.args.get('return_end_date', '') }}">
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary mt-3">Aplicar Filtros</button>
+        </form>
       </div>
+    </div>
 
       <!-- Tabela -->
       <div class="table-container">
@@ -82,7 +145,7 @@
                 </form>
                 <a href="{{ url_for('edit', dress_id=dress.dress_id) }}" class="btn btn-warning btn-sm">Editar</a>
                 <form method="POST" action="{{ url_for('mark_returned', dress_id=dress.dress_id) }}" style="display: inline">
-                  <button type="submit" class="btn btn-success btn-sm">Marcar como devolvido</button>
+                  <button type="submit" class="btn btn-success btn-sm">Arquivar</button>
                 </form>
               </td>
             </tr>
@@ -95,21 +158,27 @@
 
     <nav aria-label="Page navigation">
       <ul class="pagination justify-content-center">
+        {% set args = request.args.to_dict() %} <!-- Captura todos os argumentos da URL -->
         {% if page > 1 %}
         <li class="page-item">
-          <a class="page-link" href="{{ url_for('index', page=page-1, filter=request.args.get('filter')) }}">Anterior</a>
+          <a class="page-link" href="{{ url_for('index', **dict(args, page=page-1)) }}">Anterior</a>
         </li>
-        {% endif %} {% for p in range(1, total_pages + 1) %}
+        {% endif %}
+        {% for p in range(1, total_pages + 1) %}
         <li class="page-item {% if p == page %}active{% endif %}">
-          <a class="page-link" href="{{ url_for('index', page=p, filter=request.args.get('filter')) }}">{{ p }}</a>
+          <a class="page-link" href="{{ url_for('index', **dict(args, page=p)) }}">{{ p }}</a>
         </li>
-        {% endfor %} {% if page < total_pages %}
+        {% endfor %}
+        {% if page < total_pages %}
         <li class="page-item">
-          <a class="page-link" href="{{ url_for('index', page=page+1, filter=request.args.get('filter')) }}">Próxima</a>
+          <a class="page-link" href="{{ url_for('index', **dict(args, page=page+1)) }}">Próxima</a>
         </li>
         {% endif %}
       </ul>
     </nav>
+
+
+
 
     <!-- Modal -->
     <div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
@@ -127,12 +196,22 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- Script para o modal -->
     <script>
       const thumbnails = document.querySelectorAll('.dress-thumbnail');
       const modalImg = document.getElementById('modalImg');
       const imageModal = new bootstrap.Modal(document.getElementById('imageModal'));
+      const filterToggle = document.getElementById('filter-toggle');
+      const filterSection = document.getElementById('filter-section');
+      const menuFilter = document.querySelector('.menu-filter'); // Captura o container do filtro
 
+      // Função para alternar a visibilidade do filtro
+      filterToggle.addEventListener('click', () => {
+        filterSection.classList.toggle('d-none'); // Alterna a classe d-none para mostrar/ocultar
+        filterSection.classList.toggle('active'); // Adiciona classe active para visibilidade
+        menuFilter.style.height = 'auto'; // Garante que a altura do container se ajuste
+      });
+
+      // Função para exibir imagem no modal
       thumbnails.forEach((img) => {
         img.addEventListener('click', () => {
           modalImg.src = img.src;
@@ -140,5 +219,12 @@
         });
       });
     </script>
+
+
+
+
+
+
+
   </body>
 </html>

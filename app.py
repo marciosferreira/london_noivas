@@ -7,6 +7,8 @@ from werkzeug.utils import secure_filename
 import socket
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
+from flask import request, url_for
+from datetime import datetime
 
 
 load_dotenv()  # only for setting up the env as debug
@@ -77,34 +79,31 @@ def login():
     return render_template("login.html")
 
 
-from datetime import datetime
+def aplicar_filtro(
+    items,
+    filtro,
+    today,
+    client_name=None,
+    payment_status=None,
+    start_date=None,
+    end_date=None,
+    return_start_date=None,
+    return_end_date=None,
+):
+    """
+    Filtra e processa a lista de itens de acordo com o filtro fornecido.
 
-
-@app.route("/")
-def index():
-    if not session.get("logged_in"):
-        return redirect(url_for("login"))
-
-    # Parâmetros de paginação
-    page = int(request.args.get("page", 1))
-    per_page = 5  # Número de itens por página
-
-    # Obter o filtro selecionado (default é "todos")
-    filtro = request.args.get(
-        "filter", "todos"
-    )  # "todos", "reservados", "retirados", "atrasados"
-
-    # Obter todos os registros "rented"
-    response = table.scan(
-        FilterExpression="attribute_not_exists(#status) OR #status = :status_rented",
-        ExpressionAttributeNames={"#status": "status"},
-        ExpressionAttributeValues={":status_rented": "rented"},
-    )
-    items = response.get("Items", [])
-
-    # Data atual sem hora, para facilitar comparação
-    today = datetime.now().date()
-
+    :param items: Lista de itens a serem filtrados
+    :param filtro: Filtro selecionado ("todos", "reservados", "retirados", "atrasados")
+    :param today: Data atual para comparação
+    :param client_name: Nome do cliente para filtro parcial
+    :param payment_status: Status de pagamento ("nao pago", "pago 50%", "pago 100%")
+    :param start_date: Data inicial para retirada
+    :param end_date: Data final para retirada
+    :param return_start_date: Data inicial para devolução
+    :param return_end_date: Data final para devolução
+    :return: Lista filtrada e processada de itens
+    """
     for dress in items:
         # Processar return_date
         return_date_str = dress.get("return_date")
@@ -134,18 +133,114 @@ def index():
             dress["rental_date_formatted"] = "N/A"
             dress["rental_date_obj"] = today
 
-    # Aplicar filtro
+    # Aplicar filtro principal
     if filtro == "reservados":
-        # Itens que NÃO estão marcados como retirados
         filtered_items = [dress for dress in items if not dress.get("retirado", False)]
     elif filtro == "retirados":
-        # Itens que estão marcados como retirados
         filtered_items = [dress for dress in items if dress.get("retirado", False)]
     elif filtro == "atrasados":
-        # Itens com a data de devolução vencida
         filtered_items = [dress for dress in items if dress.get("overdue", False)]
     else:  # Default: "todos"
         filtered_items = items
+
+    # Filtrar por nome do cliente
+    if client_name:
+        filtered_items = [
+            dress
+            for dress in filtered_items
+            if client_name.lower() in dress.get("client_name", "").lower()
+        ]
+
+    # Filtrar por status de pagamento
+    if payment_status:
+        filtered_items = [
+            dress
+            for dress in filtered_items
+            if dress.get("pagamento", "").lower() == payment_status.lower()
+        ]
+
+    # Filtrar por intervalo de datas de retirada
+    if start_date or end_date:
+        filtered_items = [
+            dress
+            for dress in filtered_items
+            if (not start_date or dress["rental_date_obj"] >= start_date)
+            and (not end_date or dress["rental_date_obj"] <= end_date)
+        ]
+
+    # Filtrar por intervalo de datas de devolução
+    if return_start_date or return_end_date:
+        filtered_items = [
+            dress
+            for dress in filtered_items
+            if (
+                not return_start_date
+                or dress.get("return_date") >= return_start_date.strftime("%Y-%m-%d")
+            )
+            and (
+                not return_end_date
+                or dress.get("return_date") <= return_end_date.strftime("%Y-%m-%d")
+            )
+        ]
+
+    return filtered_items
+
+
+@app.route("/")
+def index():
+    if not session.get("logged_in"):
+        return redirect(url_for("login"))
+
+    # Parâmetros de paginação
+    page = int(request.args.get("page", 1))
+    per_page = 5  # Número de itens por página
+
+    # Obter o filtro principal (default é "todos")
+    filtro = request.args.get(
+        "filter", "todos"
+    )  # "todos", "reservados", "retirados", "atrasados"
+
+    # Capturar parâmetros adicionais
+    client_name = request.args.get("client_name")
+    payment_status = request.args.get("payment")
+    start_date = request.args.get("start_date")
+    end_date = request.args.get("end_date")
+    return_start_date = request.args.get("return_start_date")
+    return_end_date = request.args.get("return_end_date")
+
+    # Converter intervalos de datas, se fornecidos
+    if start_date:
+        start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
+    if end_date:
+        end_date = datetime.strptime(end_date, "%Y-%m-%d").date()
+    if return_start_date:
+        return_start_date = datetime.strptime(return_start_date, "%Y-%m-%d").date()
+    if return_end_date:
+        return_end_date = datetime.strptime(return_end_date, "%Y-%m-%d").date()
+
+    # Obter todos os registros "rented"
+    response = table.scan(
+        FilterExpression="attribute_not_exists(#status) OR #status = :status_rented",
+        ExpressionAttributeNames={"#status": "status"},
+        ExpressionAttributeValues={":status_rented": "rented"},
+    )
+    items = response.get("Items", [])
+
+    # Data atual sem hora, para facilitar comparação
+    today = datetime.now().date()
+
+    # Aplicar filtro com todos os parâmetros
+    filtered_items = aplicar_filtro(
+        items,
+        filtro,
+        today,
+        client_name=client_name,
+        payment_status=payment_status,
+        start_date=start_date,
+        end_date=end_date,
+        return_start_date=return_start_date,
+        return_end_date=return_end_date,
+    )
 
     # Ordenar apenas pela data de registro (data de aluguel mais antiga primeiro)
     sorted_items = sorted(filtered_items, key=lambda x: x["rental_date_obj"])
@@ -165,11 +260,6 @@ def index():
         current_filter=filtro,
     )
 
-    # return render_template("index.html", dresses=sorted_items, current_filter=filtro)
-
-
-from flask import request, url_for
-
 
 @app.route("/returned")
 def returned():
@@ -179,6 +269,25 @@ def returned():
     # Parâmetros de paginação
     page = int(request.args.get("page", 1))
     per_page = 5  # Número de itens por página
+
+    # Capturar parâmetros adicionais
+    filtro = request.args.get("filter", "todos")  # Default é "todos"
+    client_name = request.args.get("client_name")
+    payment_status = request.args.get("payment")
+    start_date = request.args.get("start_date")
+    end_date = request.args.get("end_date")
+    return_start_date = request.args.get("return_start_date")
+    return_end_date = request.args.get("return_end_date")
+
+    # Converter intervalos de datas, se fornecidos
+    if start_date:
+        start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
+    if end_date:
+        end_date = datetime.strptime(end_date, "%Y-%m-%d").date()
+    if return_start_date:
+        return_start_date = datetime.strptime(return_start_date, "%Y-%m-%d").date()
+    if return_end_date:
+        return_end_date = datetime.strptime(return_end_date, "%Y-%m-%d").date()
 
     # Obter todos os registros "returned"
     response = table.scan(
@@ -191,48 +300,32 @@ def returned():
     # Data atual sem hora, para facilitar comparação
     today = datetime.now().date()
 
-    for dress in items:
-        return_date_str = dress.get("return_date")
-        rental_date_str = dress.get("rental_date")
-        if return_date_str:
-            try:
-                return_date = datetime.strptime(return_date_str, "%Y-%m-%d").date()
-                dress["overdue"] = return_date < today
-                dress["return_date_formatted"] = return_date.strftime("%d-%m-%Y")
-            except ValueError:
-                dress["overdue"] = False
-                dress["return_date_formatted"] = "Data Inválida"
-        else:
-            dress["overdue"] = False
-            dress["return_date_formatted"] = "N/A"
-
-        if rental_date_str:
-            try:
-                rental_date = datetime.strptime(rental_date_str, "%Y-%m-%d").date()
-                dress["rental_date_formatted"] = rental_date.strftime("%d-%m-%Y")
-            except ValueError:
-                dress["rental_date_formatted"] = "Data Inválida"
-        else:
-            dress["rental_date_formatted"] = "N/A"
-
-        dress["priority"] = 0 if not dress.get("retirado", False) else 1
-
-    sorted_items = sorted(
-        items, key=lambda x: (x.get("retirado", False), x.get("rental_date_obj", today))
+    # Aplicar filtro com todos os parâmetros
+    filtered_items = aplicar_filtro(
+        items,
+        filtro,
+        today,
+        client_name=client_name,
+        payment_status=payment_status,
+        start_date=start_date,
+        end_date=end_date,
+        return_start_date=return_start_date,
+        return_end_date=return_end_date,
     )
 
     # Paginação
-    total_items = len(sorted_items)
+    total_items = len(filtered_items)
     total_pages = (total_items + per_page - 1) // per_page
     start = (page - 1) * per_page
     end = start + per_page
-    paginated_items = sorted_items[start:end]
+    paginated_items = filtered_items[start:end]
 
     return render_template(
         "returned.html",
         dresses=paginated_items,
         page=page,
         total_pages=total_pages,
+        current_filter=filtro,
     )
 
 

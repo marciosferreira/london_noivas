@@ -44,9 +44,9 @@
 
         <label for="pagamento">Pagamento:</label>
 <select id="pagamento" name="pagamento">
-    <option value="não pago" {% if dress.pagamento == "não pago" or not dress.pagamento %}selected{% endif %}>Não pago</option>
-    <option value="pago 50%" {% if dress.pagamento == "pago 50%" %}selected{% endif %}>Pago 50%</option>
-    <option value="pago 100%" {% if dress.pagamento == "pago 100%" %}selected{% endif %}>Pago 100%</option>
+    <option value="Não pago" {% if dress.pagamento == "Não pago" or not dress.pagamento %}selected{% endif %}>Não pago</option>
+    <option value="Pago 50%" {% if dress.pagamento == "Pago 50%" %}selected{% endif %}>Pago 50%</option>
+    <option value="Pago 100%" {% if dress.pagamento == "Pago 100%" %}selected{% endif %}>Pago 100%</option>
 </select>
 
         <label for="comments">Comentários:</label>

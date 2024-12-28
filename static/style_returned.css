@@ -247,3 +247,48 @@ button.btn-secondary:hover,
 .table tr.retirado {
   background-color: #c5d2f1 !important; /* Fundo verde */
 }
+
+/* Estilo do botão de alternância do filtro */
+#filter-toggle {
+  display: block;
+  margin: 10px auto;
+  background-color: #17a2b8;
+  color: white;
+  font-size: 16px;
+  padding: 10px 15px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+#filter-toggle:hover {
+  background-color: #138496;
+  transform: scale(1.05);
+}
+
+/* Estilo do container de filtros */
+#filter-section {
+  width: 90%;
+  max-width: 800px;
+  margin: 20px auto; /* Centraliza a seção */
+  padding: 20px;
+  background-color: #f9f9f9; /* Fundo branco suave */
+  border-radius: 10px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+/* Estilo dos inputs e selects */
+#filter-section input,
+#filter-section select {
+  width: 100%;
+  margin-bottom: 15px;
+}
+
+/* Responsividade do filtro */
+@media (max-width: 768px) {
+  #filter-section {
+    width: 95%;
+    padding: 15px;
+  }
+}

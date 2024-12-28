@@ -3,7 +3,7 @@ body.index_page {
   font-family: Arial, sans-serif;
   margin: 0;
   padding: 0;
-  background: linear-gradient(to bottom, #66a1b0, #c2eaf3); /* Degradê azul marcante */
+  background: linear-gradient(to bottom, #fff8e1, #ffe4b5); /* Degradê em amarelo suave */
   color: #333;
   min-height: 100vh;
 }
@@ -248,75 +248,61 @@ button.btn-secondary:hover,
   background-color: #c5d2f1 !important; /* Fundo verde */
 }
 
-/* Contêiner do menu de filtros */
-.menu-filter {
-  width: 90%; /* Igual à tabela */
-  max-width: 1200px; /* Limite máximo opcional */
-  margin: 0 auto; /* Centraliza o menu horizontalmente */
-  display: flex;
-  justify-content: center; /* Centraliza o conteúdo */
-  position: relative;
-  top: 0; /* Remove a distância entre o menu e a tabela */
-  z-index: 10; /* Garante que o menu fique acima da tabela */
+/* Estilo do botão de alternância do filtro */
+#filter-toggle {
+  display: block;
+  margin: 10px auto;
+  background-color: #17a2b8;
+  color: white;
+  font-size: 16px;
+  padding: 10px 15px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.2s ease;
 }
 
-/* Contêiner das abas */
-.tabs-container {
-  display: flex;
-  justify-content: space-around; /* Espaça uniformemente as abas */
-  gap: 10px; /* Espaço entre abas */
-  width: 100%; /* Faz as abas respeitarem o limite do menu */
+#filter-toggle:hover {
+  background-color: #138496;
+  transform: scale(1.05);
 }
 
-/* Abas (botões) */
-.tab {
-  flex: 1; /* Faz todas as abas ocuparem o mesmo espaço */
-  padding: 10px;
-  text-align: center; /* Centraliza o texto dentro da aba */
-  text-decoration: none;
-  font-size: 14px;
-  font-weight: bold;
-  border: 1px solid #ddd;
-  border-radius: 10px 10px 0 0; /* Cantos arredondados no topo */
-  background-color: #f8f9fa; /* Fundo padrão */
-  color: #6c757d; /* Cor do texto padrão */
-  transition: all 0.3s ease-in-out;
-  position: relative;
-  top: 10px; /* Dá um leve "rebaixamento" às abas inativas */
+/* Estilo do container de filtros */
+#filter-section {
+  width: 90%;
+  max-width: 800px;
+  margin: 20px auto; /* Centraliza a seção */
+  padding: 20px;
+  background-color: #f9f9f9; /* Fundo branco suave */
+  border-radius: 10px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
-/* Aba ativa */
-.active-tab {
-  background-color: #ffffff; /* Fundo branco para aba ativa */
-  color: #b30c00; /* Texto destacado */
-  border-bottom: 1px solid white; /* Remove a borda inferior para parecer levantada */
-  top: 0; /* Levanta a aba ativa */
-  z-index: 20; /* Garante que a aba ativa esteja na frente */
+/* Estilo dos inputs e selects */
+#filter-section input:not(.form-check-input),
+#filter-section select {
+  width: 100%;
+  margin-bottom: 15px;
 }
 
-/* Abas inativas */
-.inactive-tab {
-  background-color: #f8f9fa; /* Fundo cinza claro */
-  color: #6c757d; /* Texto cinza escuro */
-  border-bottom: 1px solid #ddd; /* Mantém a borda inferior */
+/* Ajuste dos radio buttons */
+.form-check-input {
+  width: auto; /* Remove largura forçada */
+  height: auto; /* Remove altura forçada */
+  margin-right: 10px; /* Espaço entre o botão e o label */
+  vertical-align: middle; /* Centraliza com o texto */
 }
 
-/* Efeito hover */
-.tab:hover {
-  background-color: #e9ecef; /* Cinza mais claro no hover */
-  color: #b30c00; /* Texto destacado */
-  top: 2px; /* Levanta levemente ao passar o mouse */
-  z-index: 15; /* Destaca ao passar o mouse */
+/* Estilo dos labels */
+.form-check-label {
+  display: inline-block; /* Garante alinhamento com o botão */
+  font-size: 14px; /* Ajuste opcional para texto menor */
 }
 
-/* Conexão entre menu e tabela */
-.table-container {
-  margin-top: -1px; /* Remove o espaço entre o menu e a tabela */
-  border-top-left-radius: 0; /* Remove o arredondamento no topo esquerdo */
-  border-top-right-radius: 0; /* Remove o arredondamento no topo direito */
-}
-
-.table {
-  border-top-left-radius: 0; /* Garante continuidade visual */
-  border-top-right-radius: 0; /* Garante continuidade visual */
+/* Responsividade do filtro */
+@media (max-width: 768px) {
+  #filter-section {
+    width: 95%;
+    padding: 15px;
+  }
 }
