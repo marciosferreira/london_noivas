@@ -19,14 +19,7 @@
         <!-- Checkboxes para status -->
         <div class="form-group">
           <label for="status-rented">
-            <input
-              type="checkbox"
-              id="status-rented"
-              name="status"
-              value="rented"
-              onclick="toggleCheckbox('status-rented', 'status-returned')"
-              checked
-            />
+            <input type="checkbox" id="status-rented" name="status" value="rented" onclick="toggleCheckbox('status-rented', 'status-returned')" />
             Alugado
           </label>
           <label for="status-returned">
@@ -34,6 +27,23 @@
             Arquivado
           </label>
         </div>
+
+        <script>
+          // Função para verificar e ajustar a seleção inicial com base na URL
+          window.onload = function () {
+            // Obtém a URL atual
+            const currentUrl = window.location.href;
+
+            // Verifica se a URL termina com 'returned'
+            if (currentUrl.endsWith('returned')) {
+              document.getElementById('status-returned').checked = true; // Marca "Arquivado"
+              document.getElementById('status-rented').checked = false; // Desmarca "Alugado"
+            } else {
+              document.getElementById('status-rented').checked = true; // Marca "Alugado"
+              document.getElementById('status-returned').checked = false; // Desmarca "Arquivado"
+            }
+          };
+        </script>
 
         <label>Descrição:</label>
         <br />

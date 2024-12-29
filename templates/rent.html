@@ -3,8 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Editar Registro</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style_edit.css') }}" />
+    <title>Alugar vestido</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style_rent.css') }}" />
   </head>
   <body>
     <!-- Exibir mensagens flash -->
@@ -17,33 +17,31 @@
     {% endif %} {% endwith %}
 
     <div class="form-container">
-      <h1>Editar Vestido</h1>
-      <a href="{{ request.args.get('next', url_for('index')) }}" class="cancel-link">Sair sem Finalizar</a>
-
-
+      <h1>Alugar vestido</h1>
+      <a href="{{ url_for('available') }}" class="cancel-link">Sair sem Finalizar</a>
       <form method="POST" enctype="multipart/form-data">
 
         <label for="description">Descrição:</label>
         <input type="text" id="description" name="description" value="{{ dress.description }}" required />
 
         <label for="client_name">Nome do Cliente:</label>
-        <input type="text" id="client_name" name="client_name" value="{{ dress.client_name }}" required />
+        <input type="text" id="client_name" name="client_name" required />
 
         <label for="client_tel">Telefone do Cliente:</label>
-        <input type="text" id="client_tel" name="client_tel" value="{{ dress.client_tel }}" required />
+        <input type="text" id="client_tel" name="client_tel" required />
 
         <label for="rental_date">Data de Retirada:</label>
-        <input type="date" id="rental_date" name="rental_date" value="{{ dress.rental_date }}" required />
+        <input type="date" id="rental_date" name="rental_date" required />
 
         <div class="form-group">
           <label for="retirado">
-            <input type="checkbox" id="retirado" name="retirado" value="True" {% if dress.retirado %}checked{% endif %} />
+            <input type="checkbox" id="retirado" name="retirado" />
             Retirado
           </label>
         </div>
 
         <label for="return_date">Data de Devolução:</label>
-        <input type="date" id="return_date" name="return_date" value="{{ dress.return_date }}" required />
+        <input type="date" id="return_date" name="return_date" required />
 
         <label for="valor">Valor (R$):</label>
         <input type="number" id="valor" name="valor" step="0.01" min="0" value="{{ dress.valor }}" required/>

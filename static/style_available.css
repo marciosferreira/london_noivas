@@ -1,9 +1,9 @@
 /* Estilo Geral */
-body.index_page {
+body.available {
   font-family: Arial, sans-serif;
   margin: 0;
   padding: 0;
-  background: linear-gradient(to bottom, #f1f0d5, #fcf793); /* Degradê em amarelo suave */
+  background: linear-gradient(to bottom, #e1fbff, #8189c4); /* Degradê em amarelo suave */
   color: #333;
   min-height: 100vh;
 }
@@ -279,24 +279,10 @@ button.btn-secondary:hover,
 }
 
 /* Estilo dos inputs e selects */
-#filter-section input:not(.form-check-input),
+#filter-section input,
 #filter-section select {
   width: 100%;
   margin-bottom: 15px;
-}
-
-/* Ajuste dos radio buttons */
-.form-check-input {
-  width: auto; /* Remove largura forçada */
-  height: auto; /* Remove altura forçada */
-  margin-right: 10px; /* Espaço entre o botão e o label */
-  vertical-align: middle; /* Centraliza com o texto */
-}
-
-/* Estilo dos labels */
-.form-check-label {
-  display: inline-block; /* Garante alinhamento com o botão */
-  font-size: 14px; /* Ajuste opcional para texto menor */
 }
 
 /* Responsividade do filtro */

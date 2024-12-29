@@ -90,6 +90,7 @@ def aplicar_filtro(
     end_date=None,
     return_start_date=None,
     return_end_date=None,
+    comments=None,
 ):
     """
     Filtra e processa a lista de itens de acordo com o filtro fornecido.
@@ -150,6 +151,14 @@ def aplicar_filtro(
             dress
             for dress in filtered_items
             if description.lower() in dress.get("description", "").lower()
+        ]
+
+    # Filtrar por comentários
+    if comments:
+        filtered_items = [
+            dress
+            for dress in filtered_items
+            if comments.lower() in dress.get("comments", "").lower()
         ]
 
     # Filtrar por nome do cliente
@@ -342,6 +351,78 @@ def returned():
     )
 
 
+@app.route("/available")
+def available():
+    if not session.get("logged_in"):
+        return redirect(url_for("login"))
+
+    # Parâmetros de paginação
+    page = int(request.args.get("page", 1))
+    per_page = 5  # Número de itens por página
+
+    # Capturar parâmetros adicionais
+    filtro = request.args.get("filter", "todos")  # Default é "todos"
+    description = request.args.get("description")
+    comments = request.args.get("comments")
+    client_name = request.args.get("client_name")
+    payment_status = request.args.get("payment")
+    start_date = request.args.get("start_date")
+    end_date = request.args.get("end_date")
+    return_start_date = request.args.get("return_start_date")
+    return_end_date = request.args.get("return_end_date")
+
+    # Converter intervalos de datas, se fornecidos
+    if start_date:
+        start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
+    if end_date:
+        end_date = datetime.strptime(end_date, "%Y-%m-%d").date()
+    if return_start_date:
+        return_start_date = datetime.strptime(return_start_date, "%Y-%m-%d").date()
+    if return_end_date:
+        return_end_date = datetime.strptime(return_end_date, "%Y-%m-%d").date()
+
+    # Obter todos os registros "available"
+    response = table.scan(
+        FilterExpression="#status = :status_available",
+        ExpressionAttributeNames={"#status": "status"},
+        ExpressionAttributeValues={":status_available": "available"},
+    )
+    items = response.get("Items", [])
+
+    # Data atual sem hora, para facilitar comparação
+    today = datetime.now().date()
+
+    # Aplicar filtro com todos os parâmetros
+    filtered_items = aplicar_filtro(
+        items,
+        filtro,
+        today,
+        client_name=client_name,
+        description=description,
+        comments=comments,
+        payment_status=payment_status,
+        start_date=start_date,
+        end_date=end_date,
+        return_start_date=return_start_date,
+        return_end_date=return_end_date,
+    )
+
+    # Paginação
+    total_items = len(filtered_items)
+    total_pages = (total_items + per_page - 1) // per_page
+    start = (page - 1) * per_page
+    end = start + per_page
+    paginated_items = filtered_items[start:end]
+
+    return render_template(
+        "available.html",
+        dresses=paginated_items,
+        page=page,
+        total_pages=total_pages,
+        current_filter=filtro,
+    )
+
+
 @app.route("/add", methods=["GET", "POST"])
 def add():
     if not session.get("logged_in"):
@@ -352,7 +433,9 @@ def add():
 
     if request.method == "POST":
         # Capturar dados do formulário
-        status = request.form.get("status")  # Captura o status: rented ou returned
+        status = request.form.get(
+            "status"
+        )  # Captura o status: rented, returned, available
         description = request.form.get("description")
         client_name = request.form.get("client_name")
         client_tel = request.form.get("client_tel")
@@ -412,6 +495,70 @@ def add():
     return render_template("add.html", next=next_page)
 
 
+@app.route("/add_small", methods=["GET", "POST"])
+def add_small():
+    if not session.get("logged_in"):
+        return redirect(url_for("login"))
+
+    # Recuperar a página de origem (next)
+    next_page = request.args.get("next", url_for("index"))
+
+    if request.method == "POST":
+        # Capturar dados do formulário
+        status = request.form.get(
+            "status"
+        )  # Captura o status: rented, returned, available
+        description = None
+        client_name = None
+        client_tel = None
+        rental_date_str = None
+        return_date_str = None
+        retirado = None  # Verifica se o checkbox está marcado
+        valor = request.form.get("valor")
+        pagamento = None
+        comments = request.form.get("comments")
+        image_file = request.files.get("image_file")
+
+        # Validar se o status foi escolhido
+        if status not in ["rented", "returned", "available"]:
+            flash("Por favor, selecione o status do vestido.", "error")
+            return render_template("add_small.html", next=next_page)
+
+        # Fazer upload da imagem, se houver
+        image_url = ""
+        if image_file and image_file.filename != "":
+            image_url = upload_image_to_s3(
+                image_file
+            )  # Implemente esta função conforme necessário
+
+        # Gerar um ID único para o vestido (pode usar UUID)
+        dress_id = str(uuid.uuid4())
+
+        # Adicionar o novo vestido ao DynamoDB
+        table.put_item(
+            Item={
+                "dress_id": dress_id,
+                "description": description,
+                "client_name": client_name,
+                "client_tel": client_tel,
+                "rental_date": rental_date_str,
+                "return_date": return_date_str,
+                "retirado": retirado,
+                "comments": comments,
+                "valor": valor,
+                "pagamento": pagamento,
+                "image_url": image_url,
+                "status": status,  # Adiciona o status selecionado
+            }
+        )
+
+        flash("Vestido adicionado com sucesso.", "success")
+        # Redirecionar para a página de origem
+        return redirect(next_page)
+
+    return render_template("add_small.html", next=next_page)
+
+
 def copy_image_in_s3(original_url):
     import boto3
     from urllib.parse import urlparse
@@ -430,81 +577,6 @@ def copy_image_in_s3(original_url):
     )
 
     return f"https://{bucket_name}.s3.amazonaws.com/{new_key}"
-
-
-@app.route("/replicate/<dress_id>", methods=["GET", "POST"])
-def replicate(dress_id):
-    if not session.get("logged_in"):
-        return redirect(url_for("login"))
-
-    # Capturar a página de origem (next) ou usar 'index' como padrão
-    next_page = request.args.get("next", url_for("index"))
-
-    # Obter os dados do item existente
-    response = table.get_item(Key={"dress_id": dress_id})
-    item = response.get("Item")
-    if not item:
-        flash("Vestido não encontrado.", "error")
-        return redirect(url_for("index"))
-
-    # Copiar a imagem no AWS S3
-    if item.get("image_url"):
-        new_image_url = copy_image_in_s3(item["image_url"])  # Implementar esta função
-    else:
-        new_image_url = ""
-
-    if request.method == "POST":
-        # Capturar dados do formulário
-        status = request.form.get("status")
-        description = request.form.get("description")
-        client_name = request.form.get("client_name")
-        client_tel = request.form.get("client_tel")
-        rental_date_str = request.form.get("rental_date")
-        return_date_str = request.form.get("return_date")
-        retirado = "retirado" in request.form
-        valor = request.form.get("valor")
-        pagamento = request.form.get("pagamento")
-        comments = request.form.get("comments")
-
-        # Validar e converter as datas
-        try:
-            rental_date = datetime.strptime(rental_date_str, "%Y-%m-%d").date()
-            return_date = datetime.strptime(return_date_str, "%Y-%m-%d").date()
-        except ValueError:
-            flash("Formato de data inválido. Use AAAA-MM-DD.", "error")
-            return render_template(
-                "replicate.html",
-                item=item,
-                next=url_for("replicate", dress_id=dress_id),
-            )
-
-        # Gerar um novo ID único
-        new_dress_id = str(uuid.uuid4())
-
-        # Adicionar o novo vestido ao DynamoDB
-        table.put_item(
-            Item={
-                "dress_id": new_dress_id,
-                "description": description,
-                "client_name": client_name,
-                "client_tel": client_tel,
-                "rental_date": rental_date.strftime("%Y-%m-%d"),
-                "return_date": return_date.strftime("%Y-%m-%d"),
-                "retirado": retirado,
-                "comments": comments,
-                "valor": valor,
-                "pagamento": pagamento,
-                "image_url": new_image_url,
-                "status": status,
-            }
-        )
-
-        flash("Vestido replicado com sucesso.", "success")
-        return redirect(next_page)
-
-    # Renderizar o formulário com dados pré-preenchidos
-    # Renderizar o formulário de replicação com dados do item
-    return render_template("replicate.html", item=item, next=next_page)
 
 
 @app.route("/reports", methods=["GET", "POST"])
@@ -583,6 +655,9 @@ def edit(dress_id):
     if not session.get("logged_in"):
         return redirect(url_for("login"))
 
+    # Recuperar a página de origem (next)
+    next_page = request.args.get("next", url_for("index"))
+
     # Buscar item existente
     response = table.get_item(Key={"dress_id": dress_id})
     item = response.get("Item")
@@ -608,7 +683,7 @@ def edit(dress_id):
             return_date = datetime.strptime(return_date_str, "%Y-%m-%d").date()
         except ValueError:
             flash("Formato de data inválido. Use AAAA-MM-DD.", "error")
-            return render_template("edit.html", dress=dress)
+            return render_template("edit.html")
 
         # Fazer upload da imagem, se houver
         new_image_url = item.get("image_url", "")
@@ -647,9 +722,184 @@ def edit(dress_id):
         )
 
         flash("Vestido atualizado com sucesso.", "success")
+        return redirect(next_page)
+
+    # Preparar dados para o template
+    dress = {
+        "dress_id": item.get("dress_id"),
+        "description": item.get("description"),
+        "client_name": item.get("client_name"),
+        "client_tel": item.get("client_tel"),
+        "rental_date": item.get("rental_date"),
+        "return_date": item.get("return_date"),
+        "comments": item.get("comments"),
+        "image_url": item.get("image_url"),
+        "retirado": item.get("retirado", False),
+        "valor": item.get("valor"),
+        "pagamento": item.get("pagamento"),
+    }
+
+    return render_template("edit.html", dress=dress)
+
+
+@app.route("/rent/<dress_id>", methods=["GET", "POST"])
+def rent(dress_id):
+    if not session.get("logged_in"):
+        return redirect(url_for("login"))
+
+    # Buscar item existente
+    response = table.get_item(Key={"dress_id": dress_id})
+    item = response.get("Item")
+    if not item:
+        flash("Vestido não encontrado.", "error")
+        return redirect(url_for("available"))
+
+    if request.method == "POST":
+        rental_date_str = request.form.get("rental_date")
+        return_date_str = request.form.get("return_date")
+        description = request.form.get("description")
+        client_name = request.form.get("client_name")
+        client_tel = request.form.get("client_tel")
+        retirado = "retirado" in request.form  # Verifica presença do checkbox
+        valor = request.form.get("valor")
+        pagamento = request.form.get("pagamento")
+        comments = request.form.get("comments")
+        image_file = request.files.get("image_file")
+
+        # Validar e converter as datas
+        try:
+            rental_date = datetime.strptime(rental_date_str, "%Y-%m-%d").date()
+            return_date = datetime.strptime(return_date_str, "%Y-%m-%d").date()
+        except ValueError:
+            flash("Formato de data inválido. Use AAAA-MM-DD.", "error")
+            return render_template("edit.html")
+
+        # Fazer upload da imagem, se houver
+        new_image_url = item.get("image_url", "")
+        if image_file and image_file.filename != "":
+            new_image_url = upload_image_to_s3(
+                image_file
+            )  # Implemente esta função conforme necessário
+
+        # Atualizar item no DynamoDB
+        table.update_item(
+            Key={"dress_id": dress_id},
+            UpdateExpression="""
+                set rental_date = :r,
+                    return_date = :rt,
+                    comments = :c,
+                    image_url = :i,
+                    description = :dc,
+                    client_name = :cn,
+                    client_tel = :ct,
+                    retirado = :ret,
+                    valor = :val,
+                    pagamento = :pag,
+                    #status = :st
+            """,
+            ExpressionAttributeNames={
+                "#status": "status"  # Define um alias para o atributo reservado
+            },
+            ExpressionAttributeValues={
+                ":r": rental_date.strftime("%Y-%m-%d"),
+                ":rt": return_date.strftime("%Y-%m-%d"),
+                ":c": comments,
+                ":i": new_image_url,
+                ":dc": description,
+                ":cn": client_name,
+                ":ct": client_tel,
+                ":ret": retirado,
+                ":val": valor,
+                ":pag": pagamento,
+                ":st": "rented",
+            },
+        )
+
+        flash("Vestido alugado com sucesso.", "success")
+        return redirect(url_for("available"))
+
+    # Preparar dados para o template
+    dress = {
+        "dress_id": item.get("dress_id"),
+        "description": item.get("description"),
+        "client_name": item.get("client_name"),
+        "client_tel": item.get("client_tel"),
+        "rental_date": item.get("rental_date"),
+        "return_date": item.get("return_date"),
+        "comments": item.get("comments"),
+        "image_url": item.get("image_url"),
+        "retirado": item.get("retirado", False),
+        "valor": item.get("valor"),
+        "pagamento": item.get("pagamento"),
+    }
+
+    return render_template("rent.html", dress=dress)
+
+
+@app.route("/edit_small/<dress_id>", methods=["GET", "POST"])
+def edit_small(dress_id):
+    if not session.get("logged_in"):
+        return redirect(url_for("login"))
+
+    # Buscar item existente
+    response = table.get_item(Key={"dress_id": dress_id})
+    item = response.get("Item")
+    if not item:
+        flash("Vestido não encontrado.", "error")
+        return redirect(url_for("available"))
+
+    if request.method == "POST":
+        rental_date_str = None
+        return_date_str = None
+        description = request.form.get("description")
+        client_name = None
+        client_tel = None
+        retirado = None
+        valor = request.form.get("valor")
+        pagamento = None
+        comments = request.form.get("comments")
+        image_file = request.files.get("image_file")
+
+        # Fazer upload da imagem, se houver
+        new_image_url = item.get("image_url", "")
+        if image_file and image_file.filename != "":
+            new_image_url = upload_image_to_s3(
+                image_file
+            )  # Implemente esta função conforme necessário
+
+        # Atualizar item no DynamoDB
+        table.update_item(
+            Key={"dress_id": dress_id},
+            UpdateExpression="""
+                set rental_date = :r,
+                    return_date = :rt,
+                    comments = :c,
+                    image_url = :i,
+                    description = :dc,
+                    client_name = :cn,
+                    client_tel = :ct,
+                    retirado = :ret,
+                    valor = :val,
+                    pagamento = :pag
+            """,
+            ExpressionAttributeValues={
+                ":r": rental_date_str,
+                ":rt": return_date_str,
+                ":c": comments,
+                ":i": new_image_url,
+                ":dc": description,
+                ":cn": client_name,
+                ":ct": client_tel,
+                ":ret": retirado,
+                ":val": valor,
+                ":pag": pagamento,
+            },
+        )
+
+        flash("Vestido atualizado com sucesso.", "success")
         # Redirecionar de acordo com o status atual
-        if item.get("status") == "returned":
-            return redirect(url_for("returned"))
+        if item.get("status") == "available":
+            return redirect(url_for("available"))
         else:
             return redirect(url_for("index"))
 
@@ -668,7 +918,7 @@ def edit(dress_id):
         "pagamento": item.get("pagamento"),
     }
 
-    return render_template("edit.html", dress=dress)
+    return render_template("edit_small.html", dress=dress)
 
 
 @app.route("/delete/<dress_id>", methods=["POST"])
@@ -710,11 +960,13 @@ def delete(dress_id):
     prev = request.referrer
     if "/returned" in prev:
         return redirect(url_for("returned"))
+    elif "/available" in prev:
+        return redirect(url_for("available"))
     else:
         return redirect(url_for("index"))
 
 
-@app.route("/mark_returned/<dress_id>", methods=["POST"])
+@app.route("/mark_returned/<dress_id>", methods=["GET", "POST"])
 def mark_returned(dress_id):
     if not session.get("logged_in"):
         return redirect(url_for("login"))
@@ -725,7 +977,44 @@ def mark_returned(dress_id):
         ExpressionAttributeNames={"#status": "status"},
         ExpressionAttributeValues={":s": "returned"},
     )
-    flash("Vestido movido com sucesso.", "success")
+
+    next_page = request.args.get("next", url_for("index"))
+
+    response = table.get_item(Key={"dress_id": dress_id})
+    item = response.get("Item")
+    if not item:
+        flash("Vestido não encontrado.", "error")
+        return redirect(url_for("returned"))
+
+    # Copiar a imagem no AWS S3
+    if item.get("image_url"):
+        new_image_url = copy_image_in_s3(item["image_url"])  # Implementar esta função
+    else:
+        new_image_url = ""
+
+    # Buscar item existente
+    response = table.get_item(Key={"dress_id": dress_id})
+    item = response.get("Item")
+    if not item:
+        flash("Vestido não encontrado.", "error")
+        return redirect(url_for(index))
+
+    # Gerar um novo ID único
+    new_dress_id = str(uuid.uuid4())
+
+    # Adicionar o novo vestido ao DynamoDB
+    table.put_item(
+        Item={
+            "dress_id": new_dress_id,
+            "description": item.get("description"),
+            "comments": item.get("comments"),
+            "valor": item.get("valor"),
+            "image_url": new_image_url,
+            "status": "available",
+        }
+    )
+
+    flash("Vestido devolvido com sucesso.", "success")
     return redirect(url_for("index"))
 
 
@@ -743,8 +1032,7 @@ def mark_rented(dress_id):
 
     # Mensagem de sucesso
     flash("Vestido movido com sucesso.", "success")
-
-    return redirect(url_for("returned"))
+    return redirect(url_for("available"))
 
 
 # Rota de Logout
