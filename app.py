@@ -83,6 +83,7 @@ def aplicar_filtro(
     items,
     filtro,
     today,
+    description=None,
     client_name=None,
     payment_status=None,
     start_date=None,
@@ -143,6 +144,14 @@ def aplicar_filtro(
     else:  # Default: "todos"
         filtered_items = items
 
+    # Filtrar por descrição
+    if description:
+        filtered_items = [
+            dress
+            for dress in filtered_items
+            if description.lower() in dress.get("description", "").lower()
+        ]
+
     # Filtrar por nome do cliente
     if client_name:
         filtered_items = [
@@ -201,6 +210,7 @@ def index():
     )  # "todos", "reservados", "retirados", "atrasados"
 
     # Capturar parâmetros adicionais
+    description = request.args.get("description")
     client_name = request.args.get("client_name")
     payment_status = request.args.get("payment")
     start_date = request.args.get("start_date")
@@ -234,6 +244,7 @@ def index():
         items,
         filtro,
         today,
+        description=description,
         client_name=client_name,
         payment_status=payment_status,
         start_date=start_date,
@@ -272,6 +283,7 @@ def returned():
 
     # Capturar parâmetros adicionais
     filtro = request.args.get("filter", "todos")  # Default é "todos"
+    description = request.args.get("description")
     client_name = request.args.get("client_name")
     payment_status = request.args.get("payment")
     start_date = request.args.get("start_date")
@@ -306,6 +318,7 @@ def returned():
         filtro,
         today,
         client_name=client_name,
+        description=description,
         payment_status=payment_status,
         start_date=start_date,
         end_date=end_date,
@@ -397,6 +410,101 @@ def add():
         return redirect(next_page)
 
     return render_template("add.html", next=next_page)
+
+
+def copy_image_in_s3(original_url):
+    import boto3
+    from urllib.parse import urlparse
+    import uuid
+
+    s3 = boto3.client("s3")
+    parsed_url = urlparse(original_url)
+    bucket_name = parsed_url.netloc.split(".")[0]
+    original_key = parsed_url.path.lstrip("/")
+    new_key = f"copies/{uuid.uuid4()}_{original_key.split('/')[-1]}"
+
+    s3.copy_object(
+        CopySource={"Bucket": bucket_name, "Key": original_key},
+        Bucket=bucket_name,
+        Key=new_key,
+    )
+
+    return f"https://{bucket_name}.s3.amazonaws.com/{new_key}"
+
+
+@app.route("/replicate/<dress_id>", methods=["GET", "POST"])
+def replicate(dress_id):
+    if not session.get("logged_in"):
+        return redirect(url_for("login"))
+
+    # Capturar a página de origem (next) ou usar 'index' como padrão
+    next_page = request.args.get("next", url_for("index"))
+
+    # Obter os dados do item existente
+    response = table.get_item(Key={"dress_id": dress_id})
+    item = response.get("Item")
+    if not item:
+        flash("Vestido não encontrado.", "error")
+        return redirect(url_for("index"))
+
+    # Copiar a imagem no AWS S3
+    if item.get("image_url"):
+        new_image_url = copy_image_in_s3(item["image_url"])  # Implementar esta função
+    else:
+        new_image_url = ""
+
+    if request.method == "POST":
+        # Capturar dados do formulário
+        status = request.form.get("status")
+        description = request.form.get("description")
+        client_name = request.form.get("client_name")
+        client_tel = request.form.get("client_tel")
+        rental_date_str = request.form.get("rental_date")
+        return_date_str = request.form.get("return_date")
+        retirado = "retirado" in request.form
+        valor = request.form.get("valor")
+        pagamento = request.form.get("pagamento")
+        comments = request.form.get("comments")
+
+        # Validar e converter as datas
+        try:
+            rental_date = datetime.strptime(rental_date_str, "%Y-%m-%d").date()
+            return_date = datetime.strptime(return_date_str, "%Y-%m-%d").date()
+        except ValueError:
+            flash("Formato de data inválido. Use AAAA-MM-DD.", "error")
+            return render_template(
+                "replicate.html",
+                item=item,
+                next=url_for("replicate", dress_id=dress_id),
+            )
+
+        # Gerar um novo ID único
+        new_dress_id = str(uuid.uuid4())
+
+        # Adicionar o novo vestido ao DynamoDB
+        table.put_item(
+            Item={
+                "dress_id": new_dress_id,
+                "description": description,
+                "client_name": client_name,
+                "client_tel": client_tel,
+                "rental_date": rental_date.strftime("%Y-%m-%d"),
+                "return_date": return_date.strftime("%Y-%m-%d"),
+                "retirado": retirado,
+                "comments": comments,
+                "valor": valor,
+                "pagamento": pagamento,
+                "image_url": new_image_url,
+                "status": status,
+            }
+        )
+
+        flash("Vestido replicado com sucesso.", "success")
+        return redirect(next_page)
+
+    # Renderizar o formulário com dados pré-preenchidos
+    # Renderizar o formulário de replicação com dados do item
+    return render_template("replicate.html", item=item, next=next_page)
 
 
 @app.route("/reports", methods=["GET", "POST"])

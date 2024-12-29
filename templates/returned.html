@@ -29,7 +29,7 @@
       <a href="{{ url_for('logout') }}" class="btn btn-danger">Logout</a>
       <a href="{{ url_for('index') }}" class="btn btn-secondary">Ver Alugados</a>
       <a href="{{ url_for('add', next=request.url) }}" class="btn btn-primary">Adicionar Item</a>
-      <a href="{{ url_for('reports') }}" class="btn btn-success">Relatórios</a>
+      <a href="{{ url_for('reports') }}" class="btn btn-success">Financeiro</a>
     </div>
 
     <!-- Filtros -->
@@ -38,6 +38,14 @@
 
       <div id="filter-section" class="mt-3 d-none">
         <form method="GET" action="/returned">
+
+
+          <div class="mt-3">
+            <label for="description" class="form-label">Descrição:</label>
+            <input type="text" class="form-control" id="description" name="description" value="{{ request.args.get('description', '') }}">
+          </div>
+
+
           <div class="mt-3">
             <label for="client-name" class="form-label">Nome do Cliente:</label>
             <input type="text" class="form-control" id="client-name" name="client_name" value="{{ request.args.get('client_name', '') }}">
@@ -120,6 +128,7 @@
               <td data-label="Pagamento">{{ dress.pagamento }}</td>
               <td data-label="Comentários">{{ dress.comments }}</td>
 
+
               <td data-label="Ações">
                 <form method="POST" action="{{ url_for('delete', dress_id=dress.dress_id) }}" style="display: inline">
                   <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Tem certeza de que deseja deletar este item?');">
@@ -128,9 +137,13 @@
                 </form>
                 <a href="{{ url_for('edit', dress_id=dress.dress_id) }}" class="btn btn-warning btn-sm">Editar</a>
                 <form method="POST" action="{{ url_for('mark_rented', dress_id=dress.dress_id) }}" style="display: inline">
-                  <button type="submit" class="btn btn-success btn-sm">Marcar como alugado</button>
+                  <button type="submit" class="btn btn-success btn-sm">Alugado</button>
                 </form>
+                <!-- Botão de replicação -->
+                <a href="{{ url_for('replicate', dress_id=dress.dress_id, next=request.path) }}" class="btn btn-info btn-sm">Replicar</a>
               </td>
+
+
             </tr>
             {% endfor %}
           </tbody>
