@@ -4,53 +4,130 @@
     <meta charset="UTF-8" />
     <title>Vestidos Disponíveis</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
+
+    <!-- CSS específico para a página "available" -->
     <link rel="stylesheet" href="{{ url_for('static', filename='style_available.css') }}" />
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
   </head>
   <body class="available">
-    <!-- Exibir mensagens flash -->
+    <!-- Exibir mensagens flash (caso haja) -->
     {% with messages = get_flashed_messages(with_categories=true) %} {% if messages %}
-    <div>
+    <div class="container mt-3">
       {% for category, message in messages %}
       <div class="alert alert-{{ category }}" role="alert">{{ message }}</div>
       {% endfor %}
     </div>
     {% endif %} {% endwith %}
 
-    <!-- Título -->
-    <h1 class="text-center my-4">Vestidos Disponíveis</h1>
+    <!-- NAVBAR -->
+    <nav class="navbar navbar-expand-md navbar-dark bg-dark">
+      <div class="container-fluid">
+        <!-- Marca / Nome do sistema -->
+        <a class="navbar-brand" href="{{ url_for('index') }}">London Noivas</a>
+        <!-- Botão hamburger para telas pequenas -->
+        <button
+          class="navbar-toggler"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#navbarSupportedContent"
+          aria-controls="navbarSupportedContent"
+          aria-expanded="false"
+          aria-label="Toggle navigation"
+        >
+          <span class="navbar-toggler-icon"></span>
+        </button>
 
-    <!-- Botões -->
-    <div class="mb-3 text-center">
-      <a href="{{ url_for('logout') }}" class="btn btn-danger">Logout</a>
-      <a href="{{ url_for('index') }}" class="btn btn-secondary">Ver Alugados</a>
-      <a href="{{ url_for('returned') }}" class="btn btn-secondary">Ver Histórico</a>
-      <a href="{{ url_for('add_small', next=request.url) }}" class="btn btn-primary">Adicionar Item</a>
-      <a href="{{ url_for('reports') }}" class="btn btn-success">Financeiro</a>
-    </div>
-
-    <!-- Filtros -->
-    <div class="menu-filter">
-      <button class="btn btn-info" id="filter-toggle">Filtros</button>
-
-      <div id="filter-section" class="mt-3 d-none">
-        <form method="GET" action="/available">
-          <div class="mt-3">
-            <label for="description" class="form-label">Descrição:</label>
-            <input type="text" class="form-control" id="description" name="description" value="{{ request.args.get('description', '') }}" />
-            <label for="comments" class="form-label">Comentários:</label>
-            <input type="text" class="form-control" id="comments" name="comments" value="{{ request.args.get('comments', '') }}" />
-          </div>
-
-          <button type="submit" class="btn btn-primary mt-3">Aplicar Filtros</button>
-        </form>
+        <!-- Itens do menu -->
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+          <ul class="navbar-nav ms-auto">
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('index') }}">Ver Alugados</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('returned') }}">Ver Histórico</a>
+            </li>
+            <!-- Dropdown para Financeiro e Logout -->
+            <li class="nav-item dropdown">
+              <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Menu</a>
+              <ul class="dropdown-menu dropdown-menu-end">
+                <li>
+                  <a class="dropdown-item" href="{{ url_for('reports') }}">Financeiro</a>
+                </li>
+                <li><hr class="dropdown-divider" /></li>
+                <li>
+                  <a class="dropdown-item text-danger" href="{{ url_for('logout') }}">Logout</a>
+                </li>
+              </ul>
+            </li>
+          </ul>
+        </div>
       </div>
-    </div>
+    </nav>
+    <!-- FIM NAVBAR -->
 
-    <!-- Tabela transformada em cards -->
-    <div class="table-responsive mb-4">
-      <div class="table-container">
-        <table class="table">
+    <!-- CONTEÚDO PRINCIPAL -->
+    <div class="container my-4">
+      <!-- Título e Botões principais -->
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="h3 mb-0">Vestidos Disponíveis</h1>
+
+        <div>
+          <!-- Botão de filtro (ícone de funil) -->
+          <button class="btn btn-outline-secondary me-2" id="filter-toggle" title="Filtros">
+            <!-- Ícone de funil -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-funnel" viewBox="0 0 16 16">
+              <path
+                d="M1.5 1.5A.5.5 0 0 1 2 .5h12a.5.5
+                   0 0 1 .4.8l-4.4 5.2v3.4a.5.5 0
+                   0 1-.2.4l-3 2.4a.5.5 0 0
+                   1-.8-.4V6.5L2.1 1.3a.5.5
+                   0 0 1-.1-.3z"
+              />
+            </svg>
+          </button>
+
+          <!-- Botão de adicionar item (ícone "+") -->
+          <a href="{{ url_for('add_small', next=request.url) }}" class="btn btn-primary" title="Adicionar Item">
+            <!-- Ícone de + -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-plus-circle" viewBox="0 0 16 16">
+              <path
+                d="M8 1a7 7 0 1 1 0 14A7 7 0
+                   0 1 8 1zm3 7a.5.5 0 0
+                   0-.5-.5H9V5.5a.5.5 0
+                   0 0-1 0V7H5.5a.5.5 0
+                   0 0 0 1H8v1.5a.5.5
+                   0 0 0 1
+                   0V8h1.5a.5.5 0 0
+                   0 .5-.5z"
+              />
+            </svg>
+          </a>
+        </div>
+      </div>
+
+      <!-- Seção de Filtros (inicialmente oculta) -->
+      <div id="filter-section" class="d-none">
+        <div class="p-3">
+          <form method="GET" action="/available">
+            <div class="mt-3">
+              <label for="description" class="form-label">Descrição:</label>
+              <input type="text" class="form-control" id="description" name="description" value="{{ request.args.get('description', '') }}" />
+
+              <label for="comments" class="form-label mt-2">Comentários:</label>
+              <input type="text" class="form-control" id="comments" name="comments" value="{{ request.args.get('comments', '') }}" />
+            </div>
+
+            <button type="submit" class="btn btn-primary mt-3">Aplicar Filtros</button>
+          </form>
+        </div>
+      </div>
+      <!-- Fim da seção de filtros -->
+
+      <!-- Tabela (que vira “cards” no mobile) -->
+      <div class="table-container mt-4">
+        <table class="table table-hover responsive-table align-middle rounded-table">
           <thead>
             <tr>
               <th>Imagem</th>
@@ -60,61 +137,108 @@
               <th>Ações</th>
             </tr>
           </thead>
-
           <tbody>
             {% for dress in dresses %}
             <tr>
               <td data-label="Imagem">
                 {% if dress.image_url and dress.image_url != "" %}
-                <img src="{{ dress.image_url }}" alt="Imagem do vestido" class="img-fluid dress-thumbnail" />
+                <img src="{{ dress.image_url }}" alt="Imagem do vestido" class="img-fluid dress-thumbnail" style="max-width: 100px" />
                 {% else %}
-                <img src="{{ url_for('static', filename='dress-placeholder.png') }}" alt="Sem Imagem" class="img-fluid dress-thumbnail" />
+                <img
+                  src="{{ url_for('static', filename='dress-placeholder.png') }}"
+                  alt="Sem Imagem"
+                  class="img-fluid dress-thumbnail"
+                  style="max-width: 100px"
+                />
                 {% endif %}
               </td>
               <td data-label="Descrição">{{ dress.description }}</td>
-
               <td data-label="Valor">{{ dress.valor }}</td>
-
               <td data-label="Comentários">{{ dress.comments }}</td>
+
               <td data-label="Ações">
+                <!-- Botão Deletar -->
                 <form method="POST" action="{{ url_for('delete', dress_id=dress.dress_id) }}" style="display: inline">
-                  <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Tem certeza de que deseja deletar este item?');">
-                    Deletar
+                  <button
+                    type="submit"
+                    class="btn btn-danger btn-sm"
+                    onclick="return confirm('Tem certeza de que deseja deletar este item?');"
+                    title="Deletar"
+                  >
+                    <!-- Ícone de lixeira -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16">
+                      <path
+                        d="M5.5 5.5A.5.5 0
+                           0 1 6 5h4a.5.5
+                           0 0 1 .5.5v7a.5.5
+                           0 0 1-.5.5H6a.5.5
+                           0 0 1-.5-.5v-7z"
+                      />
+                      <path
+                        d="M14.5 3a1 1
+                           0 0 1-1
+                           1H13l-1 9a2 2
+                           0 0
+                           1-2 2H6a2 2
+                           0 0
+                           1-2-2l-1-9h-.5a1 1
+                           0 0 1 0-2h3.5l1-1h3l1
+                           1h3.5a1 1 0 0 1 1 1z"
+                      />
+                    </svg>
                   </button>
                 </form>
 
-                <a href="{{ url_for('rent', dress_id=dress.dress_id, rent='true') }}" class="btn btn-warning btn-sm">Alugar</a>
+                <!-- Botão Alugar -->
+                <a
+                  href="{{
+                    url_for('rent', dress_id=dress.dress_id, rent='true')
+                  }}"
+                  class="btn btn-warning btn-sm"
+                  title="Alugar"
+                >
+                  Alugar
+                </a>
 
-                <a href="{{ url_for('edit_small', dress_id=dress.dress_id) }}" class="btn btn-warning btn-sm">Editar</a>
+                <!-- Botão Editar -->
+                <a
+                  href="{{
+                    url_for('edit_small', dress_id=dress.dress_id)
+                  }}"
+                  class="btn btn-warning btn-sm"
+                  title="Editar"
+                >
+                  Editar
+                </a>
               </td>
             </tr>
             {% endfor %}
           </tbody>
         </table>
       </div>
+
+      <!-- Paginação -->
+      <nav aria-label="Page navigation" class="mt-4">
+        <ul class="pagination justify-content-center">
+          {% set args = request.args.to_dict() %} {% if page > 1 %}
+          <li class="page-item">
+            <a class="page-link" href="{{ url_for('available', **dict(args, page=page-1)) }}">Anterior</a>
+          </li>
+          {% endif %} {% for p in range(1, total_pages + 1) %}
+          <li class="page-item {% if p == page %}active{% endif %}">
+            <a class="page-link" href="{{ url_for('available', **dict(args, page=p)) }}">{{ p }}</a>
+          </li>
+          {% endfor %} {% if page < total_pages %}
+          <li class="page-item">
+            <a class="page-link" href="{{ url_for('available', **dict(args, page=page+1)) }}">Próxima</a>
+          </li>
+          {% endif %}
+        </ul>
+      </nav>
     </div>
+    <!-- FIM CONTEÚDO PRINCIPAL -->
 
-    <nav aria-label="Page navigation">
-      <ul class="pagination justify-content-center">
-        {% set args = request.args.to_dict() %}
-        <!-- Captura todos os argumentos da URL -->
-        {% if page > 1 %}
-        <li class="page-item">
-          <a class="page-link" href="{{ url_for('available', **dict(args, page=page-1)) }}">Anterior</a>
-        </li>
-        {% endif %} {% for p in range(1, total_pages + 1) %}
-        <li class="page-item {% if p == page %}active{% endif %}">
-          <a class="page-link" href="{{ url_for('available', **dict(args, page=p)) }}">{{ p }}</a>
-        </li>
-        {% endfor %} {% if page < total_pages %}
-        <li class="page-item">
-          <a class="page-link" href="{{ url_for('available', **dict(args, page=page+1)) }}">Próxima</a>
-        </li>
-        {% endif %}
-      </ul>
-    </nav>
-
-    <!-- Modal -->
+    <!-- MODAL para imagem -->
     <div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -129,8 +253,12 @@
       </div>
     </div>
 
+    <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Scripts personalizados -->
     <script>
+      // Modal de imagem
       const thumbnails = document.querySelectorAll('.dress-thumbnail');
       const modalImg = document.getElementById('modalImg');
       const imageModal = new bootstrap.Modal(document.getElementById('imageModal'));
@@ -141,9 +269,8 @@
           imageModal.show();
         });
       });
-    </script>
 
-    <script>
+      // Toggle de filtros
       const filterToggle = document.getElementById('filter-toggle');
       const filterSection = document.getElementById('filter-section');
 

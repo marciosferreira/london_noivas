@@ -1,178 +1,160 @@
-body.reports {
-  font-family: Arial, sans-serif;
+/* --------------------------------------------------
+   RESET & BASE
+-------------------------------------------------- */
+html,
+body {
+  height: 100%;
   margin: 0;
   padding: 0;
-  background: linear-gradient(to bottom, #fcb69f, #ffecd2); /* Degradê laranja suave */
-  color: #333;
+  box-sizing: border-box;
+}
+
+/* Aplicar o estilo (degradê, fonte) apenas em body.reports */
+body.reports {
+  /* Altura mínima da tela */
   min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  padding: 10px; /* Margem interna para evitar conteúdo colado */
+
+  /* Exemplo de degradê linear (você pode trocar as cores) */
+  background: linear-gradient(120deg, #f5e3a6 0%, #f3bbab 100%);
+  background-attachment: fixed; /* Fica fixo ao rolar */
+  background-repeat: no-repeat;
+  background-size: cover;
+
+  /* Fonte padrão */
+  font-family: Arial, sans-serif;
 }
 
-/* Título da página */
-h1.page-title {
-  text-align: center;
-  font-size: 28px;
-  color: #ff6f61; /* Laranja escuro */
-  margin: 20px 0;
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+/* Se quiser alguma cor de fundo adicional,
+   descomente e ajuste:
+   background-color: #f8f9fa;
+*/
+
+/* Caso queira um container com max-width menor,
+   use .container { max-width: 90%; margin: 0 auto; } etc.
+   Aqui deixamos livre para o Bootstrap gerenciar. */
+
+/* --------------------------------------------------
+   TIPOGRAFIA E UTILITÁRIOS
+-------------------------------------------------- */
+/* Exemplo de cor de texto para .text-dark-blue */
+.text-dark-blue {
+  color: #2c3e50; /* Ajuste se quiser outro tom */
 }
 
-/* Contêiner central */
-.container {
-  width: 100%;
-  max-width: 1200px; /* Limite de largura */
+/* Estilo básico para alerts (caso apareçam) */
+.alert {
+  margin-bottom: 1rem;
+}
+
+/* --------------------------------------------------
+   EXEMPLOS DE ESTILOS DE TABELA (se precisar)
+-------------------------------------------------- */
+/* Se, futuramente, quiser exibir alguma tabela em relatórios
+   e manter o mesmo estilo responsivo. Se não houver tabela,
+   pode remover esta parte. */
+
+/* Container de tabela para limitar largura */
+.table-container {
+  max-width: 100%;
   margin: 0 auto;
-  padding: 20px;
-  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
-  border-radius: 10px;
-  background: white; /* Fundo branco para contraste */
 }
 
-/* Labels e campos */
-label {
-  font-weight: bold;
-  color: #333;
-  font-size: 1rem;
-}
-
-input[type='date'] {
-  display: block;
-  width: 100%; /* Campos ocupam toda a largura */
-  margin-bottom: 15px;
-  font-size: 1rem;
-  padding: 10px 15px;
-  border-radius: 5px;
-}
-
-/* Botões gerais */
-.btn {
-  border: none;
-  color: white;
-  text-decoration: none;
-  cursor: pointer;
-  transition: background-color 0.3s ease, transform 0.2s ease;
-}
-
-/* Botões específicos para .reports */
-.reports .btn {
-  display: inline-block; /* Botões respeitam o conteúdo */
-  width: auto; /* Ajuste automático baseado no texto */
-  margin: 10px auto; /* Centraliza os botões */
-  padding: 10px 20px; /* Espaçamento interno */
-  font-size: 1rem; /* Ajuste de tamanho */
-}
-
-/* Botão Primário (Laranja) */
-.btn-primary {
-  background-color: #ff6f61; /* Laranja */
-}
-
-.btn-primary:hover {
-  background-color: #e55d4f; /* Laranja escuro */
-  transform: scale(1.05);
-}
-
-/* Botão Secundário (Cinza) */
-.btn-secondary {
-  background-color: #6c757d; /* Cinza */
-}
-
-.btn-secondary:hover {
-  background-color: #5a6268; /* Cinza escuro */
-  transform: scale(1.05);
-}
-
-/* Resumo Financeiro */
-.card {
-  background-color: white;
-  border: none;
-  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
-  margin: 20px auto;
+.responsive-table {
   width: 100%;
-  max-width: 400px;
-  padding: 15px;
+  border-collapse: collapse;
+}
+
+.table.rounded-table {
   border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid #dee2e6;
 }
 
-.card-title {
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: #ff6f61;
-  text-align: center;
+.table-danger {
+  background-color: #f8d7da !important;
 }
 
-.card-text {
-  font-size: 1.1rem;
-  color: #555;
-  line-height: 1.5;
-  text-align: center;
+.table-warning {
+  background-color: #fff3cd !important;
 }
 
-/* Corrigir largura de botões em .returned */
-.returned .btn {
-  display: inline-block;
-  width: auto;
-  padding: 10px 15px;
-  font-size: 1rem;
-  margin: 5px;
-  text-align: center;
-  max-width: 200px; /* Limite máximo para botões muito largos */
+/* Miniaturas de imagem */
+.dress-thumbnail {
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+.dress-thumbnail:hover {
+  transform: scale(1.03);
 }
 
-/* Responsividade */
-@media (max-width: 768px) {
-  h1.page-title {
-    font-size: 24px;
+/* "Virar cards" no mobile, caso necessário */
+@media (max-width: 576px) {
+  .responsive-table thead {
+    display: none;
   }
-
-  .btn {
-    font-size: 0.9rem;
-    padding: 8px 10px;
-  }
-
-  .card {
-    width: 90%;
-  }
-
-  .card-title {
-    font-size: 1.3rem;
-  }
-
-  .card-text {
-    font-size: 1rem;
-  }
-
-  .reports .btn,
-  .returned .btn {
-    font-size: 0.9rem;
-    padding: 8px 12px;
-    margin: 5px 0;
+  .responsive-table,
+  .responsive-table tbody,
+  .responsive-table tr,
+  .responsive-table td {
     display: block;
     width: 100%;
   }
-}
-
-@media (max-width: 480px) {
-  h1.page-title {
-    font-size: 20px;
+  .responsive-table tr {
+    margin-bottom: 1rem;
+    border: 1px solid #dee2e6;
+    border-radius: 0.5rem;
+    padding: 0.5rem;
+    background-color: #fff;
   }
-
-  label {
-    font-size: 0.9rem;
+  .responsive-table td {
+    position: relative;
+    padding-left: 50%;
+    margin-bottom: 0.75rem;
+    text-align: left;
+    min-height: 2.5rem;
   }
-
-  .btn {
-    font-size: 0.8rem;
-    padding: 6px 8px;
-  }
-
-  .card-title {
-    font-size: 1.2rem;
-  }
-
-  .card-text {
-    font-size: 0.95rem;
+  .responsive-table td::before {
+    content: attr(data-label) ': ';
+    position: absolute;
+    left: 1rem;
+    font-weight: bold;
   }
 }
+
+/* --------------------------------------------------
+   BOTOES, FILTRO E OUTRAS CLASSES OPCIONAIS
+-------------------------------------------------- */
+/* Se quiser usar ícones em btn-sm, por exemplo */
+.btn.btn-sm svg {
+  vertical-align: middle;
+  margin-right: 0;
+}
+
+/* Se, por algum motivo, for usar filtro em relatórios */
+#filter-toggle {
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#filter-section {
+  margin-top: 1rem;
+}
+
+/* --------------------------------------------------
+   AJUSTES ESPECÍFICOS PARA CARTÕES, TÍTULOS, ETC.
+-------------------------------------------------- */
+/* Ajusta o título principal */
+h1 {
+  font-weight: 600; /* ou 700, se preferir mais grosso */
+}
+
+/* Caso queira mexer no card .card usado no resumo financeiro:
+   .card {
+     background: rgba(255, 255, 255, 0.8);
+   }
+*/
