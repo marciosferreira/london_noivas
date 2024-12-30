@@ -62,7 +62,7 @@ body.available {
 .table.rounded-table {
   border-radius: 10px; /* Ajuste o valor conforme desejar */
   overflow: hidden; /* Garante que o conteúdo também seja arredondado */
-  border: 1px solid #dee2e6;
+  border: none;
 }
 
 /* Imagens miniatura */
