@@ -436,7 +436,7 @@ def add():
         status = request.form.get(
             "status"
         )  # Captura o status: rented, returned, available
-        description = request.form.get("description")
+        description = request.form.get("description").strip()
         client_name = request.form.get("client_name")
         client_tel = request.form.get("client_tel")
         rental_date_str = request.form.get("rental_date")
@@ -444,7 +444,7 @@ def add():
         retirado = "retirado" in request.form  # Verifica se o checkbox está marcado
         valor = request.form.get("valor")
         pagamento = request.form.get("pagamento")
-        comments = request.form.get("comments")
+        comments = request.form.get("comments").strip()
         image_file = request.files.get("image_file")
 
         # Validar se o status foi escolhido
@@ -508,7 +508,7 @@ def add_small():
         status = request.form.get(
             "status"
         )  # Captura o status: rented, returned, available
-        description = None
+        description = request.form.get("description").strip()
         client_name = None
         client_tel = None
         rental_date_str = None
@@ -668,13 +668,13 @@ def edit(dress_id):
     if request.method == "POST":
         rental_date_str = request.form.get("rental_date")
         return_date_str = request.form.get("return_date")
-        description = request.form.get("description")
+        description = request.form.get("description").strip()
         client_name = request.form.get("client_name")
         client_tel = request.form.get("client_tel")
         retirado = "retirado" in request.form  # Verifica presença do checkbox
         valor = request.form.get("valor")
         pagamento = request.form.get("pagamento")
-        comments = request.form.get("comments")
+        comments = request.form.get("comments").strip()
         image_file = request.files.get("image_file")
 
         # Validar e converter as datas
@@ -851,13 +851,13 @@ def edit_small(dress_id):
     if request.method == "POST":
         rental_date_str = None
         return_date_str = None
-        description = request.form.get("description")
+        description = request.form.get("description").strip()
         client_name = None
         client_tel = None
         retirado = None
         valor = request.form.get("valor")
         pagamento = None
-        comments = request.form.get("comments")
+        comments = request.form.get("comments").strip()
         image_file = request.files.get("image_file")
 
         # Fazer upload da imagem, se houver

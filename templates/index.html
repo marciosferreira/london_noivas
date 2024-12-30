@@ -375,10 +375,8 @@
                   />
                 {% endif %}
               </td>
-              <td data-label="Descrição" style="white-space: pre-wrap;">
-                {{ dress.description }}
-              </td>
-                            <td data-label="Cliente">{{ dress.client_name }}</td>
+              <td data-label="Descrição" style="white-space: pre-wrap; text-align: left;">{{dress.description}}</td>
+              <td data-label="Cliente">{{ dress.client_name }}</td>
               <td data-label="Telefone">{{ dress.client_tel }}</td>
               <td data-label="Data Retirada">{{ dress.rental_date_formatted }}</td>
               <td data-label="Data Devolução">{{ dress.return_date_formatted }}</td>
@@ -387,9 +385,7 @@
               </td>
               <td data-label="Valor">{{ dress.valor }}</td>
               <td data-label="Pagamento">{{ dress.pagamento }}</td>
-              <td data-label="Comentários" style="white-space: pre-wrap;">
-                {{ dress.comments }}
-              </td>
+              <td data-label="Comentários" style="white-space: pre-wrap; text-align: left;">{{dress.comments}}</td>
 
               <td data-label="Ações">
                 <!-- Botões como ícones -->

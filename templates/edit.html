@@ -22,13 +22,7 @@
 
 
       <form method="POST" enctype="multipart/form-data">
-
-        <textarea
-  id="description"
-  name="description"
-  rows="3"
-  required
->{{ dress.description }}</textarea>
+        <textarea  id="description" name="description" rows="3" value="{{dress.description}}" required>{{dress.description}}</textarea>
 
 
         <label for="client_name">Nome do Cliente:</label>
@@ -61,9 +55,7 @@
 </select>
 
 <label for="comments">Comentários:</label>
-<textarea id="comments" name="comments" rows="3" value="{{ dress.comments }}">
-  {{ dress.comments }}
-</textarea>
+<textarea id="comments" name="comments" rows="3" value="{{dress.comments}}">{{dress.comments}}</textarea>
 
         <label>Foto Atual:</label>
         {% if dress.image_url and dress.image_url != "" %}

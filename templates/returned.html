@@ -322,16 +322,8 @@
                 {% endif %}
               </td>
 
-              <td data-label="Descrição"
-              style="
-                text-align: left;
-                white-space: pre-wrap;
-                max-width: 200px;
-                overflow-wrap: break-word;
-              "
-          >
-            {{ dress.description }}
-          </td>
+              <td data-label="Descrição" style="white-space: pre-wrap;">{{ dress.description }}</td>
+
 
 
 
@@ -348,9 +340,7 @@
               </td>
               <td data-label="Valor">{{ dress.valor }}</td>
               <td data-label="Pagamento">{{ dress.pagamento }}</td>
-              <td data-label="Comentários" style="white-space: pre-wrap;">
-                {{ dress.comments }}
-              </td>
+              <td data-label="Comentários" style="white-space: pre-wrap;">{{ dress.comments }}</td>
 
               <td data-label="Ações">
                 <!-- Botão Excluir -->
