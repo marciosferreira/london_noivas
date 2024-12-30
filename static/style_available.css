@@ -151,11 +151,3 @@ h1.h3 {
   vertical-align: middle; /* Alinha melhor o SVG */
   margin-right: 0; /* Remove margem à direita, se quiser */
 }
-
-/* Ajuste do container principal, se precisar */
-.container.my-4 {
-  /* Exemplo:
-  padding-left: 1rem;
-  padding-right: 1rem;
-  */
-}

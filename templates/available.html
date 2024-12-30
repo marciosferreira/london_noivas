@@ -152,9 +152,12 @@
                 />
                 {% endif %}
               </td>
-              <td data-label="Descrição">{{ dress.description }}</td>
+              <td data-label="Descrição" style="white-space: pre-wrap;">
+                {{ dress.description }}
+              </td>
+              </td>
               <td data-label="Valor">{{ dress.valor }}</td>
-              <td data-label="Comentários">{{ dress.comments }}</td>
+              <td data-label="Comentários" style="white-space: pre-wrap">{{ dress.comments }}</td>
 
               <td data-label="Ações">
                 <!-- Botão Deletar -->
