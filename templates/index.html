@@ -27,18 +27,15 @@
   </head>
 
   <body class="index_page">
-    <!-- Exibir mensagens flash -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        <div class="container mt-3">
-          {% for category, message in messages %}
-            <div class="alert alert-{{ category }}" role="alert">
-              {{ message }}
-            </div>
-          {% endfor %}
-        </div>
-      {% endif %}
-    {% endwith %}
+    <!-- Exibir mensagens flash (caso haja) -->
+    {% with messages = get_flashed_messages(with_categories=true) %} {% if messages %}
+    <div class="container mt-3">
+      {% for category, message in messages %}
+      <div class="alert alert-{{ category }}" role="alert">{{ message|safe }}</div>
+      {% endfor %}
+    </div>
+    {% endif %} {% endwith %}
+
 
 
 <!-- Incluir a Navbar -->
@@ -285,11 +282,11 @@
               <th>Descrição</th>
               <th>Cliente</th>
               <th>Telefone</th>
-              <th>Ret. Prevista</th>
-              <th>Dev. Prevista</th>
-              <th>Retirado</th>
+              <th>Retirada prevista</th>
+              <th>Devolução Prevista</th>
+              <th>Retirado?</th>
               <th>Valor (R$)</th>
-              <th>Pagamento</th>
+              <th>Pago?</th>
               <th>Comentários</th>
               <th>Ações</th>
             </tr>
@@ -321,8 +318,8 @@
               <td data-label="Descrição" style="white-space: pre-wrap; text-align: left;">{{dress.description}}</td>
               <td data-label="Cliente">{{ dress.client_name }}</td>
               <td data-label="Telefone">{{ dress.client_tel }}</td>
-              <td data-label="Data Retirada">{{ dress.rental_date_formatted }}</td>
-              <td data-label="Data Devolução">{{ dress.return_date_formatted }}</td>
+              <td data-label="Retirada Prevista">{{ dress.rental_date_formatted }}</td>
+              <td data-label="Devolução Prevista">{{ dress.return_date_formatted }}</td>
               <td data-label="Retirado">
                 {% if dress.retirado %}Sim{% else %}Não{% endif %}
               </td>

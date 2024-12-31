@@ -1133,7 +1133,7 @@ def delete(dress_id):
 
             # Apagar registro no DynamoDB
             table.delete_item(Key={"dress_id": dress_id})
-            flash("Vestido deletado com sucesso!", "success")  # Mensagem de sucesso
+            flash("Item deletado com sucesso! ", "success")  # Mensagem de sucesso
         else:
             flash(
                 "Vestido não encontrado.", "error"
@@ -1217,6 +1217,9 @@ def mark_available(dress_id):
     if not session.get("logged_in"):
         return redirect(url_for("login"))
 
+    # Recuperar a página de origem (next)
+    next_page = request.args.get("next", url_for("index"))
+
     # Obter o item completo do DynamoDB
     response = table.get_item(Key={"dress_id": dress_id})
     item = response.get("Item")
@@ -1224,6 +1227,20 @@ def mark_available(dress_id):
     if not item:
         flash("Vestido não encontrado.", "error")
         return redirect(url_for("returned"))
+
+    if "archive" in next_page:
+        # Atualiza status para 'returned' e insere data de devolução
+        table.update_item(
+            Key={"dress_id": dress_id},
+            UpdateExpression="set #status = :s",
+            ExpressionAttributeNames={"#status": "status"},
+            ExpressionAttributeValues={":s": "available"},
+        )
+        flash(
+            "Item marcado com disponível. Clique <a href='/available'>aqui</a> para ver",
+            "success",
+        )
+        return redirect(url_for("archive"))
 
     # Criar uma cópia do item antes de qualquer modificação
     new_dress_id = str(uuid.uuid4())
@@ -1266,7 +1283,10 @@ def mark_rented(dress_id):
     )
 
     # Mensagem de sucesso
-    flash("Vestido movido com sucesso.", "success")
+    flash(
+        "Item marcado com alugado. Clique <a href='/rented'>aqui</a> para ver",
+        "success",
+    )
     return redirect(url_for("returned"))
 
 

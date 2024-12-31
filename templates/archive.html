@@ -16,7 +16,7 @@
     {% with messages = get_flashed_messages(with_categories=true) %} {% if messages %}
     <div class="container mt-3">
       {% for category, message in messages %}
-      <div class="alert alert-{{ category }}" role="alert">{{ message }}</div>
+      <div class="alert alert-{{ category }}" role="alert">{{ message|safe }}</div>
       {% endfor %}
     </div>
     {% endif %} {% endwith %}
@@ -147,7 +147,11 @@
                 </form>
 
                 <!-- Botão disponível (ícone de seta para cima) -->
-                <a href="{{ url_for('mark_available', dress_id=dress.dress_id) }}" class="btn btn-success btn-sm" title="Tornar disponível">
+                <a
+                  href="{{ url_for('mark_available', dress_id=dress.dress_id, next=request.url) }}"
+                  class="btn btn-success btn-sm"
+                  title="Tornar disponível"
+                >
                   <!-- Ícone de seta para cima (“bi-arrow-up”) -->
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-up" viewBox="0 0 16 16">
                     <path

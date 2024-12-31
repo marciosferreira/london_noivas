@@ -189,7 +189,11 @@
                 </a>
 
                 <!-- Botão Arquivar  -->
-                <a href="{{ url_for('mark_archived', dress_id=dress.dress_id) }}" class="btn btn-info btn-sm" title="Apenas Arquivar">
+                <a
+                  href="{{ url_for('mark_archived', dress_id=dress.dress_id, next=request.url) }}"
+                  class="btn btn-info btn-sm"
+                  title="Apenas Arquivar"
+                >
                   <!-- Ícone de seta para cima (“bi-arrow-up”) -->
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-up" viewBox="0 0 16 16">
                     <path

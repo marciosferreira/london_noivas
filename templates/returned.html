@@ -224,18 +224,18 @@
         <table class="table table-hover responsive-table align-middle rounded-table">
           <thead>
             <tr>
-              <th>Imagem<br>&nbsp;</th>
-              <th>Descrição<br>&nbsp;</th>
-              <th>Nome do<br>cliente</th>
-              <th>Telefone<br>&nbsp;</th>
-              <th>Retirada<br>Prevista</th>
-              <th>Devolução<br>Prevista</th>
-              <th>Cliente<br>retirou?</th>
-              <th>Valor(R$)<br>&nbsp;</th>
-              <th>Pago?<br>&nbsp;</th>
-              <th>Comentários<br>&nbsp;</th>
-              <th>Devolvido<br>em</th>
-              <th>Ações<br>&nbsp;</th>
+              <th>Imagem</th>
+              <th>Descrição</th>
+              <th>Cliente</th>
+              <th>Telefone</th>
+              <th>Retirada Prevista</th>
+              <th>Devolução Prevista</th>
+              <th>Retirado?</th>
+              <th>Valor (R$)</th>
+              <th>Pago?</th>
+              <th>Comentários</th>
+              <th>Devolvido em</th>
+              <th>Ações</th>
             </tr>
           </thead>
           <tbody>
@@ -266,10 +266,10 @@
 
                             <td data-label="Cliente">{{ dress.client_name }}</td>
               <td data-label="Telefone">{{ dress.client_tel }}</td>
-              <td data-label="Data de Retirada Prevista">
+              <td data-label="Retirada Prevista">
                 {{ dress.rental_date_formatted }}
               </td>
-              <td data-label="Data de Devolução Prevista">
+              <td data-label="Devolução Prevista">
                 {{ dress.return_date_formatted }}
               </td>
               <td data-label="Retirado">
