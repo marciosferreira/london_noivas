@@ -9,6 +9,11 @@ from dotenv import load_dotenv
 from datetime import datetime, timedelta
 from flask import request, url_for
 from datetime import datetime
+from datetime import datetime, timezone
+import pytz
+
+# Define o fuso horário de Manaus
+manaus_tz = pytz.timezone("America/Manaus")
 
 
 load_dotenv()  # only for setting up the env as debug
@@ -91,6 +96,8 @@ def aplicar_filtro(
     return_start_date=None,
     return_end_date=None,
     comments=None,
+    formatted_dev_date=None,
+    dev_date=None,
 ):
     """
     Filtra e processa a lista de itens de acordo com o filtro fornecido.
@@ -134,6 +141,17 @@ def aplicar_filtro(
         else:
             dress["rental_date_formatted"] = "N/A"
             dress["rental_date_obj"] = today
+
+        # Processar dev_date
+        if dress.get("dev_date"):
+
+            try:
+                # Converte a string no formato "YYYY-MM-DD" para um objeto datetime
+                dev_date_obj = datetime.strptime(dress.get("dev_date"), "%Y-%m-%d")
+                # Reformatar o objeto datetime para "DD-MM-YYYY"
+                dress["dev_date"] = dev_date_obj.strftime("%d-%m-%Y")
+            except ValueError:
+                print("no dev_date")
 
     # Aplicar filtro principal
     if filtro == "reservados":
@@ -186,21 +204,11 @@ def aplicar_filtro(
             and (not end_date or dress["rental_date_obj"] <= end_date)
         ]
 
-    # Filtrar por intervalo de datas de devolução
-    if return_start_date or return_end_date:
-        filtered_items = [
-            dress
-            for dress in filtered_items
-            if (
-                not return_start_date
-                or dress.get("return_date") >= return_start_date.strftime("%Y-%m-%d")
-            )
-            and (
-                not return_end_date
-                or dress.get("return_date") <= return_end_date.strftime("%Y-%m-%d")
-            )
-        ]
+    # Need fixing ########################
+    if dev_date:
+        filtered_items = [dress for dress in filtered_items]
 
+    print(filtered_items)
     return filtered_items
 
 
@@ -299,6 +307,7 @@ def returned():
     end_date = request.args.get("end_date")
     return_start_date = request.args.get("return_start_date")
     return_end_date = request.args.get("return_end_date")
+    dev_date = request.args.get("dev_date")
 
     # Converter intervalos de datas, se fornecidos
     if start_date:
@@ -333,6 +342,82 @@ def returned():
         end_date=end_date,
         return_start_date=return_start_date,
         return_end_date=return_end_date,
+        dev_date=dev_date,
+    )
+
+    print(filtered_items)
+
+    # Paginação
+    # print(filtered_items)
+    total_items = len(filtered_items)
+    total_pages = (total_items + per_page - 1) // per_page
+    start = (page - 1) * per_page
+    end = start + per_page
+    paginated_items = filtered_items[start:end]
+
+    return render_template(
+        "returned.html",
+        dresses=paginated_items,
+        page=page,
+        total_pages=total_pages,
+        current_filter=filtro,
+    )
+
+
+@app.route("/history")
+def history():
+    if not session.get("logged_in"):
+        return redirect(url_for("login"))
+
+    # Parâmetros de paginação
+    page = int(request.args.get("page", 1))
+    per_page = 5  # Número de itens por página
+
+    # Capturar parâmetros adicionais
+    filtro = request.args.get("filter", "todos")  # Default é "todos"
+    description = request.args.get("description")
+    client_name = request.args.get("client_name")
+    payment_status = request.args.get("payment")
+    start_date = request.args.get("start_date")
+    end_date = request.args.get("end_date")
+    return_start_date = request.args.get("return_start_date")
+    return_end_date = request.args.get("return_end_date")
+    dev_date = request.args.get("dev_date")
+
+    # Converter intervalos de datas, se fornecidos
+    if start_date:
+        start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
+    if end_date:
+        end_date = datetime.strptime(end_date, "%Y-%m-%d").date()
+    if return_start_date:
+        return_start_date = datetime.strptime(return_start_date, "%Y-%m-%d").date()
+    if return_end_date:
+        return_end_date = datetime.strptime(return_end_date, "%Y-%m-%d").date()
+
+    # Obter todos os registros "archived"
+    response = table.scan(
+        FilterExpression="#status = :status_archived",
+        ExpressionAttributeNames={"#status": "status"},
+        ExpressionAttributeValues={":status_archived": "archived"},
+    )
+    items = response.get("Items", [])
+
+    # Data atual sem hora, para facilitar comparação
+    today = datetime.now().date()
+
+    # Aplicar filtro com todos os parâmetros
+    filtered_items = aplicar_filtro(
+        items,
+        filtro,
+        today,
+        client_name=client_name,
+        description=description,
+        payment_status=payment_status,
+        start_date=start_date,
+        end_date=end_date,
+        return_start_date=return_start_date,
+        return_end_date=return_end_date,
+        dev_date=dev_date,
     )
 
     # Paginação
@@ -343,7 +428,7 @@ def returned():
     paginated_items = filtered_items[start:end]
 
     return render_template(
-        "returned.html",
+        "history.html",
         dresses=paginated_items,
         page=page,
         total_pages=total_pages,
@@ -416,6 +501,78 @@ def available():
 
     return render_template(
         "available.html",
+        dresses=paginated_items,
+        page=page,
+        total_pages=total_pages,
+        current_filter=filtro,
+    )
+
+
+@app.route("/archive")
+def archive():
+    if not session.get("logged_in"):
+        return redirect(url_for("login"))
+
+    # Parâmetros de paginação
+    page = int(request.args.get("page", 1))
+    per_page = 5  # Número de itens por página
+
+    # Capturar parâmetros adicionais
+    filtro = request.args.get("filter", "todos")  # Default é "todos"
+    description = request.args.get("description")
+    comments = request.args.get("comments")
+    client_name = request.args.get("client_name")
+    payment_status = request.args.get("payment")
+    start_date = request.args.get("start_date")
+    end_date = request.args.get("end_date")
+    return_start_date = request.args.get("return_start_date")
+    return_end_date = request.args.get("return_end_date")
+
+    # Converter intervalos de datas, se fornecidos
+    if start_date:
+        start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
+    if end_date:
+        end_date = datetime.strptime(end_date, "%Y-%m-%d").date()
+    if return_start_date:
+        return_start_date = datetime.strptime(return_start_date, "%Y-%m-%d").date()
+    if return_end_date:
+        return_end_date = datetime.strptime(return_end_date, "%Y-%m-%d").date()
+
+    # Obter todos os registros "archived"
+    response = table.scan(
+        FilterExpression="#status = :status_archived",
+        ExpressionAttributeNames={"#status": "status"},
+        ExpressionAttributeValues={":status_archived": "archived"},
+    )
+    items = response.get("Items", [])
+
+    # Data atual sem hora, para facilitar comparação
+    today = datetime.now().date()
+
+    # Aplicar filtro com todos os parâmetros
+    filtered_items = aplicar_filtro(
+        items,
+        filtro,
+        today,
+        client_name=client_name,
+        description=description,
+        comments=comments,
+        payment_status=payment_status,
+        start_date=start_date,
+        end_date=end_date,
+        return_start_date=return_start_date,
+        return_end_date=return_end_date,
+    )
+
+    # Paginação
+    total_items = len(filtered_items)
+    total_pages = (total_items + per_page - 1) // per_page
+    start = (page - 1) * per_page
+    end = start + per_page
+    paginated_items = filtered_items[start:end]
+
+    return render_template(
+        "archive.html",
         dresses=paginated_items,
         page=page,
         total_pages=total_pages,
@@ -505,9 +662,7 @@ def add_small():
 
     if request.method == "POST":
         # Capturar dados do formulário
-        status = request.form.get(
-            "status"
-        )  # Captura o status: rented, returned, available
+        status = "archived" if "archive" in next_page else "available"
         description = request.form.get("description").strip()
         client_name = None
         client_tel = None
@@ -520,9 +675,9 @@ def add_small():
         image_file = request.files.get("image_file")
 
         # Validar se o status foi escolhido
-        if status not in ["rented", "returned", "available"]:
+        if status not in ["rented", "returned", "available", "archived"]:
             flash("Por favor, selecione o status do vestido.", "error")
-            return render_template("add_small.html", next=next_page)
+            return render_template(next_page)
 
         # Fazer upload da imagem, se houver
         image_url = ""
@@ -665,9 +820,13 @@ def edit(dress_id):
         flash("Vestido não encontrado.", "error")
         return redirect(url_for("index"))
 
+    print(item)
+
     if request.method == "POST":
+        status = request.form.get("status")
         rental_date_str = request.form.get("rental_date")
         return_date_str = request.form.get("return_date")
+        dev_date = request.form.get("dev_date")
         description = request.form.get("description").strip()
         client_name = request.form.get("client_name")
         client_tel = request.form.get("client_tel")
@@ -681,6 +840,8 @@ def edit(dress_id):
         try:
             rental_date = datetime.strptime(rental_date_str, "%Y-%m-%d").date()
             return_date = datetime.strptime(return_date_str, "%Y-%m-%d").date()
+            # dev_date = datetime.strptime(dev_date, "%Y-%m-%d").date()
+
         except ValueError:
             flash("Formato de data inválido. Use AAAA-MM-DD.", "error")
             return render_template("edit.html")
@@ -705,8 +866,13 @@ def edit(dress_id):
                     client_tel = :ct,
                     retirado = :ret,
                     valor = :val,
-                    pagamento = :pag
+                    pagamento = :pag,
+                    dev_date =:dd,
+                    #status = :st
             """,
+            ExpressionAttributeNames={
+                "#status": "status"  # Define um alias para o atributo reservado
+            },
             ExpressionAttributeValues={
                 ":r": rental_date.strftime("%Y-%m-%d"),
                 ":rt": return_date.strftime("%Y-%m-%d"),
@@ -718,6 +884,8 @@ def edit(dress_id):
                 ":ret": retirado,
                 ":val": valor,
                 ":pag": pagamento,
+                ":st": status,
+                ":dd": dev_date,
             },
         )
 
@@ -732,11 +900,13 @@ def edit(dress_id):
         "client_tel": item.get("client_tel"),
         "rental_date": item.get("rental_date"),
         "return_date": item.get("return_date"),
+        "dev_date": item.get("dev_date"),
         "comments": item.get("comments"),
         "image_url": item.get("image_url"),
         "retirado": item.get("retirado", False),
         "valor": item.get("valor"),
         "pagamento": item.get("pagamento"),
+        "status": item.get("status"),
     }
 
     return render_template("edit.html", dress=dress)
@@ -841,6 +1011,8 @@ def edit_small(dress_id):
     if not session.get("logged_in"):
         return redirect(url_for("login"))
 
+    next_page = request.args.get("next", url_for("index"))
+
     # Buscar item existente
     response = table.get_item(Key={"dress_id": dress_id})
     item = response.get("Item")
@@ -898,10 +1070,8 @@ def edit_small(dress_id):
 
         flash("Vestido atualizado com sucesso.", "success")
         # Redirecionar de acordo com o status atual
-        if item.get("status") == "available":
-            return redirect(url_for("available"))
-        else:
-            return redirect(url_for("index"))
+
+        return redirect(next_page)
 
     # Preparar dados para o template
     dress = {
@@ -925,6 +1095,9 @@ def edit_small(dress_id):
 def delete(dress_id):
     if not session.get("logged_in"):
         return redirect(url_for("login"))
+
+    # Recuperar a página de origem (next)
+    next_page = request.args.get("next", url_for("index"))
 
     try:
         # Obter o item antes de deletar
@@ -957,28 +1130,28 @@ def delete(dress_id):
         )  # Mensagem de erro
 
     # Redirecionar para a página anterior (index ou returned)
-    prev = request.referrer
-    if "/returned" in prev:
-        return redirect(url_for("returned"))
-    elif "/available" in prev:
-        return redirect(url_for("available"))
-    else:
-        return redirect(url_for("index"))
+
+    return redirect(next_page)
 
 
 @app.route("/mark_returned/<dress_id>", methods=["GET", "POST"])
 def mark_returned(dress_id):
     if not session.get("logged_in"):
         return redirect(url_for("login"))
+
+    # Obtém a data atual
+    dev_date = datetime.now(manaus_tz).strftime("%Y-%m-%d")
+
     # Atualiza status para 'returned'
+    # Atualiza status para 'returned' e insere data de devolução
     table.update_item(
         Key={"dress_id": dress_id},
-        UpdateExpression="set #status = :s",
+        UpdateExpression="set #status = :s, dev_date = :d",
         ExpressionAttributeNames={"#status": "status"},
-        ExpressionAttributeValues={":s": "returned"},
+        ExpressionAttributeValues={":s": "returned", ":d": dev_date},
     )
 
-    next_page = request.args.get("next", url_for("index"))
+    """next_page = request.args.get("next", url_for("index"))
 
     response = table.get_item(Key={"dress_id": dress_id})
     item = response.get("Item")
@@ -1013,9 +1186,57 @@ def mark_returned(dress_id):
             "status": "available",
         }
     )
-
+    """
     flash("Vestido devolvido com sucesso.", "success")
     return redirect(url_for("index"))
+
+
+@app.route("/mark_archived/<dress_id>", methods=["GET", "POST"])
+def mark_archived(dress_id):
+    if not session.get("logged_in"):
+        return redirect(url_for("login"))
+    # Atualiza status para 'archived'
+    table.update_item(
+        Key={"dress_id": dress_id},
+        UpdateExpression="set #status = :s",
+        ExpressionAttributeNames={"#status": "status"},
+        ExpressionAttributeValues={":s": "archived"},
+    )
+
+    # next_page = request.args.get("next", url_for("index"))
+
+    response = table.get_item(Key={"dress_id": dress_id})
+    item = response.get("Item")
+    if not item:
+        flash("Vestido não encontrado.", "error")
+        return redirect(url_for("returned"))
+
+    flash("Vestido arquivado com sucesso.", "success")
+    return redirect(url_for("returned"))
+
+
+@app.route("/mark_available/<dress_id>", methods=["GET", "POST"])
+def mark_available(dress_id):
+    if not session.get("logged_in"):
+        return redirect(url_for("login"))
+    # Atualiza status para 'archived'
+    table.update_item(
+        Key={"dress_id": dress_id},
+        UpdateExpression="set #status = :s",
+        ExpressionAttributeNames={"#status": "status"},
+        ExpressionAttributeValues={":s": "available"},
+    )
+
+    # next_page = request.args.get("next", url_for("index"))
+
+    response = table.get_item(Key={"dress_id": dress_id})
+    item = response.get("Item")
+    if not item:
+        flash("Vestido não encontrado.", "error")
+        return redirect(url_for("returned"))
+
+    flash("Vestido está disponível agora.", "success")
+    return redirect(url_for("archive"))
 
 
 @app.route("/mark_rented/<dress_id>", methods=["POST"])
@@ -1032,7 +1253,7 @@ def mark_rented(dress_id):
 
     # Mensagem de sucesso
     flash("Vestido movido com sucesso.", "success")
-    return redirect(url_for("available"))
+    return redirect(url_for("returned"))
 
 
 # Rota de Logout

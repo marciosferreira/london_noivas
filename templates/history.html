@@ -2,7 +2,7 @@
 <html lang="pt-br">
   <head>
     <meta charset="UTF-8" />
-    <title>Vestidos Devolvidos</title>
+    <title>Histórico</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <!-- Bootstrap CSS -->
@@ -14,11 +14,11 @@
     <!-- CSS (pode usar style_main.css unificado ou outro arquivo) -->
     <link
       rel="stylesheet"
-      href="{{ url_for('static', filename='style_returned.css') }}"
+      href="{{ url_for('static', filename='style_history.css') }}"
     />
   </head>
 
-  <body class="returned">
+  <body class="history">
     <!-- Exibir mensagens flash -->
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
@@ -35,16 +35,14 @@
 <!-- Incluir a Navbar -->
 {% include 'navbar.html' %}
 
+
     <!-- CONTEÚDO PRINCIPAL -->
     <div class="container my-4">
-
-
       <!-- Título e Botões principais -->
       <div class="d-flex justify-content-between align-items-center mb-3">
-        <h1 class="h3 mb-0">Vestidos Devolvidos</h1>
-      <div>
+        <h1 class="h3 mb-0">Histórico</h1>
 
-
+        <div>
           <!-- Botão de filtro (ícone de funil) -->
           <button class="btn btn-outline-secondary me-2" id="filter-toggle" title="Filtros">
             <!-- Ícone de funil -->
@@ -81,7 +79,7 @@
       <!-- Seção de filtros (inicialmente oculta) -->
       <div id="filter-section" class="d-none">
         <div class="p-3">
-          <form method="GET" action="/returned">
+          <form method="GET" action="/history">
             <div class="row g-3">
               <!-- Descrição -->
               <div class="col-auto">
@@ -224,18 +222,17 @@
         <table class="table table-hover responsive-table align-middle rounded-table">
           <thead>
             <tr>
-              <th>Imagem<br>&nbsp;</th>
-              <th>Descrição<br>&nbsp;</th>
-              <th>Nome do<br>cliente</th>
-              <th>Telefone<br>&nbsp;</th>
-              <th>Retirada<br>Prevista</th>
-              <th>Devolução<br>Prevista</th>
-              <th>Cliente<br>retirou?</th>
-              <th>Valor(R$)<br>&nbsp;</th>
-              <th>Pago?<br>&nbsp;</th>
-              <th>Comentários<br>&nbsp;</th>
-              <th>Devolvido<br>em</th>
-              <th>Ações<br>&nbsp;</th>
+              <th>Imagem</th>
+              <th>Descrição</th>
+              <th>Cliente</th>
+              <th>Telefone</th>
+              <th>Ret. Prevista</th>
+              <th>Dev. Prevista</th>
+              <th>Retirado</th>
+              <th>Valor (R$)</th>
+              <th>Pagamento</th>
+              <th>Comentários</th>
+              <th>Ações</th>
             </tr>
           </thead>
           <tbody>
@@ -266,10 +263,10 @@
 
                             <td data-label="Cliente">{{ dress.client_name }}</td>
               <td data-label="Telefone">{{ dress.client_tel }}</td>
-              <td data-label="Data de Retirada Prevista">
+              <td data-label="Data de Retirada">
                 {{ dress.rental_date_formatted }}
               </td>
-              <td data-label="Data de Devolução Prevista">
+              <td data-label="Data de Devolução">
                 {{ dress.return_date_formatted }}
               </td>
               <td data-label="Retirado">
@@ -278,16 +275,12 @@
               <td data-label="Valor">{{ dress.valor }}</td>
               <td data-label="Pagamento">{{ dress.pagamento }}</td>
               <td data-label="Comentários" style="white-space: pre-wrap;">{{ dress.comments }}</td>
-              <td data-label="Devolvido em">
-                {{ dress.dev_date }}
-            </td>
-
 
               <td data-label="Ações">
                 <!-- Botão Excluir -->
                 <form
                   method="POST"
-                  action="{{ url_for('delete', dress_id=dress.dress_id, next=request.url) }}"
+                  action="{{ url_for('delete', dress_id=dress.dress_id) }}"
                   style="display: inline"
                 >
                   <button
@@ -364,8 +357,8 @@
 
 
 
-  <!-- Botão disponivel  -->
-  <a href="{{ url_for('rent', dress_id=dress.dress_id) }}" class="btn btn-warning btn-sm" title="Arquivar aluguel e tornar disponível">
+  <!-- Botão recriar  -->
+  <a href="{{ url_for('rent', dress_id=dress.dress_id, rent='true') }}" class="btn btn-warning btn-sm" title="recriar">
     <!-- Ícone de seta para cima (“bi-arrow-up”) -->
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-up" viewBox="0 0 16 16">
       <path
@@ -381,20 +374,7 @@
 
 
 
-  <!-- Botão Arquivar  -->
-  <a href="{{ url_for('mark_archived', dress_id=dress.dress_id) }}" class="btn btn-success btn-sm" title="Apenas Arquivar">
-    <!-- Ícone de seta para cima (“bi-arrow-up”) -->
-    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-up" viewBox="0 0 16 16">
-      <path
-        fill-rule="evenodd"
-        d="M8 12a.5.5 0 0 0 .5-.5V3.707l2.147
-2.146a.5.5 0 0 0 .708-.708l-3-3a.5.5
-0 0 0-.708 0l-3 3a.5.5 0 1 0
-.708.708L7.5 3.707V11.5A.5.5 0
-0 0 8 12z"
-      />
-    </svg>
-  </a>
+
 
 
 
@@ -415,7 +395,7 @@
             <li class="page-item">
               <a
                 class="page-link"
-                href="{{ url_for('returned', **dict(args, page=page-1)) }}"
+                href="{{ url_for('history', **dict(args, page=page-1)) }}"
               >
                 Anterior
               </a>
@@ -425,7 +405,7 @@
             <li class="page-item {% if p == page %}active{% endif %}">
               <a
                 class="page-link"
-                href="{{ url_for('returned', **dict(args, page=p)) }}"
+                href="{{ url_for('history', **dict(args, page=p)) }}"
               >
                 {{ p }}
               </a>
@@ -435,7 +415,7 @@
             <li class="page-item">
               <a
                 class="page-link"
-                href="{{ url_for('returned', **dict(args, page=page+1)) }}"
+                href="{{ url_for('history', **dict(args, page=page+1)) }}"
               >
                 Próxima
               </a>

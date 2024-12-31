@@ -16,15 +16,15 @@
         <!-- Campo oculto para preservar a página de origem -->
         <input type="hidden" name="next" value="{{ next }}" />
 
-        <!-- Checkboxes para status -->
+        <!-- Radio Buttons para status -->
         <div class="form-group">
           <label for="status-rented">
-            <input type="checkbox" id="status-rented" name="status" value="rented" onclick="toggleCheckbox('status-rented', 'status-returned')" />
+            <input type="radio" id="status-rented" name="status" value="rented" />
             Alugado
           </label>
           <label for="status-returned">
-            <input type="checkbox" id="status-returned" name="status" value="returned" onclick="toggleCheckbox('status-returned', 'status-rented')" />
-            Arquivado
+            <input type="radio" id="status-returned" name="status" value="returned" />
+            Devolvido
           </label>
         </div>
 
@@ -34,16 +34,21 @@
             // Obtém a URL atual
             const currentUrl = window.location.href;
 
-            // Verifica se a URL termina com 'returned'
-            if (currentUrl.endsWith('returned')) {
-              document.getElementById('status-returned').checked = true; // Marca "Arquivado"
-              document.getElementById('status-rented').checked = false; // Desmarca "Alugado"
-            } else {
-              document.getElementById('status-rented').checked = true; // Marca "Alugado"
-              document.getElementById('status-returned').checked = false; // Desmarca "Arquivado"
+            // Verifica se a URL contém 'returned'
+            if (currentUrl.includes('returned')) {
+              document.getElementById('status-returned').checked = true;
+            }
+            // Verifica se a URL contém 'rented'
+            else if (currentUrl.includes('rented')) {
+              document.getElementById('status-rented').checked = true;
+            }
+            // Caso nenhum seja especificado, pode definir um padrão (opcional)
+            else {
+              document.getElementById('status-rented').checked = true; // Define um padrão, se necessário
             }
           };
         </script>
+
         <label for="description">Descrição:</label>
         <br />
         <textarea id="description" name="description" rows="3" required></textarea>

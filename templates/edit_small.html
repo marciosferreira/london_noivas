@@ -18,7 +18,8 @@
 
     <div class="form-container">
       <h1>Editar Vestido</h1>
-      <a href="{{ url_for('available') }}" class="cancel-link">Sair sem Finalizar</a>
+      <a href="{{ request.args.get('next', url_for('index')) }}" class="cancel-link">Sair sem Finalizar</a>
+
       <form method="POST" enctype="multipart/form-data">
         <textarea id="description" name="description" rows="3" required>{{dress.description}}</textarea>
 

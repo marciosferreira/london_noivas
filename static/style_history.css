@@ -1,0 +1,153 @@
+/* ---------------------------------------
+   HTML & BODY (100% ALTURA)
+--------------------------------------- */
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/*
+   Aplica o degradê (ou fundo) somente à página "available"
+   Ajuste livremente as cores do degradê, se quiser outro visual.
+*/
+body.history {
+  min-height: 100vh;
+
+  /* Exemplo de degradê linear */
+  background: linear-gradient(120deg, #f5e3a6 0%, #f3bbab 100%);
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+  background-size: cover;
+
+  font-family: Arial, sans-serif;
+  /* Se quiser a cor de fundo base adicional, pode manter ou remover:
+     background-color: #f8f9fa; */
+}
+
+/* ---------------------------------------
+   RESET & BASE
+--------------------------------------- */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* ---------------------------------------
+   TABELA E CONTAINER
+--------------------------------------- */
+/* Container para limitar a tabela (ajuste max-width se quiser 90% em vez de 100%) */
+.table-container {
+  max-width: 100%;
+  margin: 0 auto; /* Centraliza se for menor que 100% */
+}
+
+/* Tabela responsiva + "cards" no mobile */
+.responsive-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+/* Classes do Bootstrap personalizadas, se quiser mudar cor de fundo */
+.table-danger {
+  background-color: #f8d7da !important;
+}
+.table-warning {
+  background-color: #fff3cd !important;
+}
+
+/* Borda arredondada na tabela */
+.table.rounded-table {
+  border-radius: 10px; /* Ajuste o valor conforme desejar */
+  overflow: hidden; /* Garante que o conteúdo também seja arredondado */
+  border: none;
+}
+
+/* Imagens miniatura */
+.dress-thumbnail {
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+.dress-thumbnail:hover {
+  transform: scale(1.03);
+}
+
+/* ---------------------------------------
+   RESPONSIVIDADE: "VIRAR CARDS" NO MOBILE
+--------------------------------------- */
+@media (max-width: 576px) {
+  /* Esconde o cabeçalho da tabela */
+  .responsive-table thead {
+    display: none;
+  }
+
+  /* Cada tr e td se comportam como "cards" empilhados */
+  .responsive-table,
+  .responsive-table tbody,
+  .responsive-table tr,
+  .responsive-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .responsive-table tr {
+    margin-bottom: 1rem;
+    border: 1px solid #dee2e6;
+    border-radius: 0.5rem;
+    padding: 0.5rem;
+    background-color: #fff;
+  }
+
+  .responsive-table td {
+    position: relative;
+    padding-left: 50%;
+    margin-bottom: 0.75rem;
+    text-align: left;
+    min-height: 2.5rem; /* Dá espaço mesmo se vazio */
+  }
+
+  /* Label do data-label como "título" antes do valor */
+  .responsive-table td::before {
+    content: attr(data-label) ': ';
+    position: absolute;
+    left: 1rem;
+    font-weight: bold;
+  }
+}
+
+/* ---------------------------------------
+   BOTOES, FILTRO E OUTROS AJUSTES
+--------------------------------------- */
+/* Botão de filtro em formato redondo */
+#filter-toggle {
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Filtro oculto inicialmente */
+#filter-section {
+  margin-top: 1rem;
+}
+
+/* Se desejar manter o estilo h1.h3 do index */
+h1.h3 {
+  font-weight: 600;
+}
+
+/* Alertas (espacinho entre eles) */
+.alert {
+  margin-bottom: 1rem;
+}
+
+/* Ícones nos botões (lixeira, lápis, etc.) */
+.btn.btn-sm svg {
+  vertical-align: middle; /* Alinha melhor o SVG */
+  margin-right: 0; /* Remove margem à direita, se quiser */
+}

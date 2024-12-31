@@ -21,57 +21,8 @@
     </div>
     {% endif %} {% endwith %}
 
-    <!-- NAVBAR (mesmo layout das outras páginas) -->
-    <nav class="navbar navbar-expand-md navbar-dark bg-dark">
-      <div class="container-fluid">
-        <!-- Marca / Nome do sistema -->
-        <a class="navbar-brand" href="{{ url_for('index') }}">London Noivas</a>
-        <!-- Botão hamburger para telas pequenas -->
-        <button
-          class="navbar-toggler"
-          type="button"
-          data-bs-toggle="collapse"
-          data-bs-target="#navbarSupportedContent"
-          aria-controls="navbarSupportedContent"
-          aria-expanded="false"
-          aria-label="Toggle navigation"
-        >
-          <span class="navbar-toggler-icon"></span>
-        </button>
-
-        <!-- Itens do menu -->
-        <div class="collapse navbar-collapse" id="navbarSupportedContent">
-          <ul class="navbar-nav ms-auto">
-            <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('index') }}">Ver Alugados</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('returned') }}">Ver Histórico</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('available') }}">Ver Disponíveis</a>
-            </li>
-            <!-- Dropdown para Financeiro e Logout -->
-            <li class="nav-item dropdown">
-              <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Menu</a>
-              <ul class="dropdown-menu dropdown-menu-end">
-                <li>
-                  <!-- Caso já estejamos em "Relatórios",
-                       este link poderia ser oculto ou desabilitado,
-                       mas vou manter para consistência -->
-                  <a class="dropdown-item active" href="{{ url_for('reports') }}">Financeiro</a>
-                </li>
-                <li><hr class="dropdown-divider" /></li>
-                <li>
-                  <a class="dropdown-item text-danger" href="{{ url_for('logout') }}">Logout</a>
-                </li>
-              </ul>
-            </li>
-          </ul>
-        </div>
-      </div>
-    </nav>
-    <!-- FIM NAVBAR -->
+   <!-- Incluir a Navbar -->
+{% include 'navbar.html' %}
 
     <!-- CONTEÚDO PRINCIPAL -->
     <div class="container mt-5">

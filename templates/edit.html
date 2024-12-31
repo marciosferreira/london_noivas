@@ -7,6 +7,8 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style_edit.css') }}" />
   </head>
   <body>
+
+
     <!-- Exibir mensagens flash -->
     {% with messages = get_flashed_messages(with_categories=true) %} {% if messages %}
     <ul class="flashes">
@@ -22,6 +24,35 @@
 
 
       <form method="POST" enctype="multipart/form-data">
+<!-- Radio Buttons para status -->
+<div class="form-group">
+  <label for="status-rented">
+    <input
+      type="radio"
+      id="status-rented"
+      name="status"
+      value="rented"
+      {% if dress.status == "rented" %} checked {% endif %}
+    />
+    Alugado
+  </label>
+  <label for="status-returned">
+    <input
+      type="radio"
+      id="status-returned"
+      name="status"
+      value="returned"
+      {% if dress.status == "returned" %} checked {% endif %}
+    />
+    Devolvido
+  </label>
+</div>
+
+
+
+
+
+        <label for="description">Descrição:</label>
         <textarea  id="description" name="description" rows="3" value="{{dress.description}}" required>{{dress.description}}</textarea>
 
 
@@ -57,6 +88,14 @@
 <label for="comments">Comentários:</label>
 <textarea id="comments" name="comments" rows="3" value="{{dress.comments}}">{{dress.comments}}</textarea>
 
+
+{% if "returned" in request.url %}
+  <label for="dev_date">Devolvido em:</label>
+  <input type="date" id="dev_date" name="dev_date" value="{{ dress.dev_date }}" required />
+{% endif %}
+
+
+
         <label>Foto Atual:</label>
         {% if dress.image_url and dress.image_url != "" %}
         <img src="{{ dress.image_url }}" alt="Imagem do vestido" />
@@ -70,5 +109,11 @@
         <button type="submit">Salvar</button>
       </form>
     </div>
+
+
+
+
+
+
   </body>
 </html>
