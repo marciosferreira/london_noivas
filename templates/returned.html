@@ -364,8 +364,8 @@
 
 
 
-  <!-- Botão disponivel  -->
-  <a href="{{ url_for('rent', dress_id=dress.dress_id) }}" class="btn btn-warning btn-sm" title="Arquivar aluguel e tornar disponível">
+   <!-- Botão disponível (ícone de seta para cima) -->
+   <a href="{{ url_for('mark_available', dress_id=dress.dress_id) }}" class="btn btn-warning btn-sm" title="Tornar disponível">
     <!-- Ícone de seta para cima (“bi-arrow-up”) -->
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-up" viewBox="0 0 16 16">
       <path

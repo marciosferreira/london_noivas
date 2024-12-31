@@ -1,16 +1,17 @@
 import os
-import uuid
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from urllib.parse import urlparse
 import boto3
 from werkzeug.utils import secure_filename
-import socket
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
 from flask import request, url_for
 from datetime import datetime
-from datetime import datetime, timezone
+from datetime import datetime
 import pytz
+import uuid
+import boto3
+from urllib.parse import urlparse
 
 # Define o fuso horário de Manaus
 manaus_tz = pytz.timezone("America/Manaus")
@@ -398,7 +399,7 @@ def history():
     response = table.scan(
         FilterExpression="#status = :status_archived",
         ExpressionAttributeNames={"#status": "status"},
-        ExpressionAttributeValues={":status_archived": "archived"},
+        ExpressionAttributeValues={":status_archived": "historic"},
     )
     items = response.get("Items", [])
 
@@ -719,18 +720,33 @@ def copy_image_in_s3(original_url):
     from urllib.parse import urlparse
     import uuid
 
+    # Inicializa o cliente S3
     s3 = boto3.client("s3")
+
+    # Analisa a URL
     parsed_url = urlparse(original_url)
+    if not parsed_url.netloc or not parsed_url.path:
+        raise ValueError(f"URL inválida: {original_url}")
+
+    # Extrai o nome do bucket e a chave original
     bucket_name = parsed_url.netloc.split(".")[0]
     original_key = parsed_url.path.lstrip("/")
+
+    # Verifica se o bucket_name é válido
+    if not bucket_name:
+        raise ValueError("O nome do bucket é inválido ou está vazio.")
+
+    # Cria uma nova chave para o arquivo copiado
     new_key = f"copies/{uuid.uuid4()}_{original_key.split('/')[-1]}"
 
+    # Realiza a cópia do objeto
     s3.copy_object(
         CopySource={"Bucket": bucket_name, "Key": original_key},
         Bucket=bucket_name,
         Key=new_key,
     )
 
+    # Retorna a URL da nova cópia
     return f"https://{bucket_name}.s3.amazonaws.com/{new_key}"
 
 
@@ -1151,42 +1167,6 @@ def mark_returned(dress_id):
         ExpressionAttributeValues={":s": "returned", ":d": dev_date},
     )
 
-    """next_page = request.args.get("next", url_for("index"))
-
-    response = table.get_item(Key={"dress_id": dress_id})
-    item = response.get("Item")
-    if not item:
-        flash("Vestido não encontrado.", "error")
-        return redirect(url_for("returned"))
-
-    # Copiar a imagem no AWS S3
-    if item.get("image_url"):
-        new_image_url = copy_image_in_s3(item["image_url"])  # Implementar esta função
-    else:
-        new_image_url = ""
-
-    # Buscar item existente
-    response = table.get_item(Key={"dress_id": dress_id})
-    item = response.get("Item")
-    if not item:
-        flash("Vestido não encontrado.", "error")
-        return redirect(url_for(index))
-
-    # Gerar um novo ID único
-    new_dress_id = str(uuid.uuid4())
-
-    # Adicionar o novo vestido ao DynamoDB
-    table.put_item(
-        Item={
-            "dress_id": new_dress_id,
-            "description": item.get("description"),
-            "comments": item.get("comments"),
-            "valor": item.get("valor"),
-            "image_url": new_image_url,
-            "status": "available",
-        }
-    )
-    """
     flash("Vestido devolvido com sucesso.", "success")
     return redirect(url_for("index"))
 
@@ -1195,23 +1175,40 @@ def mark_returned(dress_id):
 def mark_archived(dress_id):
     if not session.get("logged_in"):
         return redirect(url_for("login"))
-    # Atualiza status para 'archived'
-    table.update_item(
-        Key={"dress_id": dress_id},
-        UpdateExpression="set #status = :s",
-        ExpressionAttributeNames={"#status": "status"},
-        ExpressionAttributeValues={":s": "archived"},
-    )
 
-    # next_page = request.args.get("next", url_for("index"))
-
+    # Obter o item completo do DynamoDB
     response = table.get_item(Key={"dress_id": dress_id})
     item = response.get("Item")
+
     if not item:
         flash("Vestido não encontrado.", "error")
         return redirect(url_for("returned"))
 
-    flash("Vestido arquivado com sucesso.", "success")
+    # Criar uma cópia do item antes de qualquer modificação
+    new_dress_id = str(uuid.uuid4())
+    copied_item = item.copy()  # Copiar todos os campos do item original
+    copied_item["dress_id"] = new_dress_id
+    copied_item["original_id"] = dress_id
+    copied_item["status"] = "historic"
+
+    # Copiar imagem no S3 e atualizar a URL na cópia
+    if "image_url" in copied_item:
+        copied_item["image_url"] = copy_image_in_s3(copied_item["image_url"])
+
+    # Salvar o novo item no DynamoDB
+    table.put_item(Item=copied_item)
+
+    # Campos permitidos no item original
+    allowed_fields = {"dress_id", "description", "image_url", "valor"}
+
+    # Filtrar o item original para manter apenas os campos permitidos
+    filtered_item = {key: value for key, value in item.items() if key in allowed_fields}
+    filtered_item["status"] = "archived"
+
+    # Atualizar o item original no DynamoDB
+    table.put_item(Item=filtered_item)
+
+    flash("Vestido arquivado com sucesso e cópia histórica criada.", "success")
     return redirect(url_for("returned"))
 
 
@@ -1219,23 +1216,40 @@ def mark_archived(dress_id):
 def mark_available(dress_id):
     if not session.get("logged_in"):
         return redirect(url_for("login"))
-    # Atualiza status para 'archived'
-    table.update_item(
-        Key={"dress_id": dress_id},
-        UpdateExpression="set #status = :s",
-        ExpressionAttributeNames={"#status": "status"},
-        ExpressionAttributeValues={":s": "available"},
-    )
 
-    # next_page = request.args.get("next", url_for("index"))
-
+    # Obter o item completo do DynamoDB
     response = table.get_item(Key={"dress_id": dress_id})
     item = response.get("Item")
+
     if not item:
         flash("Vestido não encontrado.", "error")
         return redirect(url_for("returned"))
 
-    flash("Vestido está disponível agora.", "success")
+    # Criar uma cópia do item antes de qualquer modificação
+    new_dress_id = str(uuid.uuid4())
+    copied_item = item.copy()  # Copiar todos os campos do item original
+    copied_item["dress_id"] = new_dress_id
+    copied_item["original_id"] = dress_id
+    copied_item["status"] = "historic"
+
+    # Copiar imagem no S3 e atualizar a URL na cópia
+    if "image_url" in copied_item:
+        copied_item["image_url"] = copy_image_in_s3(copied_item["image_url"])
+
+    # Salvar o novo item no DynamoDB
+    table.put_item(Item=copied_item)
+
+    # Campos permitidos no item original
+    allowed_fields = {"dress_id", "description", "image_url", "valor"}
+
+    # Filtrar o item original para manter apenas os campos permitidos
+    filtered_item = {key: value for key, value in item.items() if key in allowed_fields}
+    filtered_item["status"] = "available"
+
+    # Atualizar o item original no DynamoDB
+    table.put_item(Item=filtered_item)
+
+    flash("Vestido está disponível agora e cópia histórica criada.", "success")
     return redirect(url_for("archive"))
 
 
