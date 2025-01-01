@@ -1203,6 +1203,9 @@ def mark_archived(dress_id):
     if not session.get("logged_in"):
         return redirect(url_for("login"))
 
+    # Recuperar a página de origem (next)
+    next_page = request.args.get("next", url_for("index"))
+
     # Obter o item completo do DynamoDB
     response = table.get_item(Key={"dress_id": dress_id})
     item = response.get("Item")
@@ -1239,7 +1242,7 @@ def mark_archived(dress_id):
         "Item <a href='/archive'>arquivado</a> e registrado no <a href='/history'>histórico</a>.",
         "success",
     )
-    return redirect(url_for("returned"))
+    return redirect(next_page)
 
 
 @app.route("/mark_available/<dress_id>", methods=["GET", "POST"])

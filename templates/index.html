@@ -318,10 +318,14 @@
   Editar
 </a>
 
-<!-- Botão Disponível -->
-<a href="{{ url_for('mark_returned', dress_id=dress.dress_id, next=request.url) }}" class="action-button success" title="Devolvido">
+<!-- Botão Disponível com Confirmação -->
+<a href="{{ url_for('mark_returned', dress_id=dress.dress_id, next=request.url) }}"
+   class="action-button success"
+   title="Devolvido"
+   onclick="return confirm('Tem certeza de que deseja marcar este item como devolvido?');">
   Devolvido
 </a>
+
 
 
 
