@@ -209,7 +209,6 @@ def aplicar_filtro(
     if dev_date:
         filtered_items = [dress for dress in filtered_items]
 
-    print(filtered_items)
     return filtered_items
 
 
@@ -287,6 +286,7 @@ def index():
         page=page,
         total_pages=total_pages,
         current_filter=filtro,
+        title="Vestidos Alugados",
         add_route=url_for("add"),
         next_url=request.url,
     )
@@ -362,6 +362,7 @@ def returned():
         page=page,
         total_pages=total_pages,
         current_filter=filtro,
+        title="Vestidos Devolvidos",
         add_route=url_for("add"),
         next_url=request.url,
     )
@@ -436,6 +437,7 @@ def history():
         page=page,
         total_pages=total_pages,
         current_filter=filtro,
+        title="Histórico",
         add_route=url_for("add"),
         next_url=request.url,
     )
@@ -661,7 +663,11 @@ def add():
             "returned": "Devolvidos",
             "historic": "Histórico",
         }
-        flash(f"Vestido adicionado em {status_map[status]}.", "success")
+
+        flash(
+            f"Vestido adicionado em <a href='{status}'>{status_map[status]}</a>.",
+            "success",
+        )
         # Redirecionar para a página de origem
         return redirect(next_page)
 
@@ -850,8 +856,6 @@ def edit(dress_id):
     if not item:
         flash("Vestido não encontrado.", "error")
         return redirect(url_for("index"))
-
-    print(item)
 
     if request.method == "POST":
         status = request.form.get("status")
@@ -1188,7 +1192,7 @@ def mark_returned(dress_id):
     # flash("Vestido devolvido com sucesso.", "success")
 
     flash(
-        "Item <a href='/returned'>retornado</a> com sucesso.",
+        "Item <a href='/returned'>devolvido</a> com sucesso.",
         "success",
     )
     return redirect(url_for("index"))
@@ -1215,7 +1219,7 @@ def mark_archived(dress_id):
     copied_item["status"] = "historic"
 
     # Copiar imagem no S3 e atualizar a URL na cópia
-    if copied_item["image_url"] is not "":
+    if copied_item["image_url"] != "":
         copied_item["image_url"] = copy_image_in_s3(copied_item["image_url"])
 
     # Salvar o novo item no DynamoDB

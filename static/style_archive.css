@@ -141,3 +141,84 @@ h1.h3 {
   vertical-align: middle; /* Alinha melhor o SVG */
   margin-right: 0; /* Remove margem à direita, se quiser */
 }
+
+/* Botões de ação */
+.action-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 0.9rem; /* Tamanho reduzido do texto */
+  text-decoration: none;
+  color: white;
+  border-radius: 25px;
+  padding: 5px 15px; /* Reduz o padding para manter o tamanho compacto */
+  transition: all 0.3s ease;
+  cursor: pointer;
+  border: 2px solid transparent;
+}
+
+.action-button:hover {
+  opacity: 0.9;
+}
+
+.action-button.danger {
+  background-color: #dc3545;
+  border-color: #dc3545;
+}
+
+.action-button.danger:hover {
+  background-color: white;
+  color: #dc3545;
+}
+
+.action-button.success {
+  background-color: #28a745;
+  border-color: #28a745;
+}
+
+.action-button.success:hover {
+  background-color: white;
+  color: #28a745;
+}
+
+.action-button.warning {
+  background-color: #ffc107;
+  border-color: #ffc107;
+}
+
+.action-button.warning:hover {
+  background-color: white;
+  color: #ffc107;
+}
+
+.action-button.info {
+  background-color: #17a2b8;
+  border-color: #17a2b8;
+}
+
+.action-button.info:hover {
+  background-color: white;
+  color: #17a2b8;
+}
+
+/* Container para botões de ação */
+.d-flex {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px; /* Reduz o espaçamento entre os botões */
+}
+
+@media (max-width: 576px) {
+  .action-button {
+    flex: 1 1 auto; /* Botões ocupam largura proporcional no mobile */
+    text-align: center;
+  }
+}
+
+/* Alinhamento responsivo para botões */
+@media (max-width: 576px) {
+  .d-flex.justify-content-between .d-flex {
+    justify-content: flex-end; /* Alinha os botões à direita */
+  }
+}

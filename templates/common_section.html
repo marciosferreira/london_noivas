@@ -8,14 +8,14 @@
     <a href="#" class="custom-button" id="filter-toggle" onclick="toggleFilters(event)">Filtros</a>
 
     <!-- Botão de Adicionar -->
-    <a href="{{ url_for('add_small', next=request.url) }}" class="custom-button">Adicionar</a>
+    <a href="{{ add_route }}?next={{ request.url }}" class="custom-button">Adicionar</a>
   </div>
 </div>
 
 <!-- Seção de Filtros -->
 <div id="filter-section" class="d-none mt-3">
   <div class="p-3 border rounded">
-    <form method="GET" action="/available">
+    <form method="GET" action="">
       <div class="mb-3">
         <label for="description" class="form-label">Descrição:</label>
         <input type="text" class="form-control" id="description" name="description" />

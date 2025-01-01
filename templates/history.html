@@ -247,42 +247,22 @@
 
               <td data-label="Ações">
                 <!-- Botão Excluir -->
-                <form
-                  method="POST"
-                  action="{{ url_for('delete', dress_id=dress.dress_id, next=request.url) }}"
-                  style="display: inline"
-                >
-                  <button
-                    type="submit"
-                    class="btn btn-danger btn-sm"
-                    onclick="return confirm('Tem certeza de que deseja deletar este item?');"
-                    title="Excluir"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="16"
-                      height="16"
-                      fill="currentColor"
-                      class="bi bi-trash"
-                      viewBox="0 0 16 16"
-                    >
-                      <path
-                        d="M5.5 5.5A.5.5 0 0 1 6
-                           5h4a.5.5 0 0 1 .5.5v7a.5.5
-                           0 0 1-.5.5H6a.5.5 0 0
-                           1-.5-.5v-7z"
-                      />
-                      <path
-                        d="M14.5 3a1 1 0 0 1-1
-                           1H13l-1 9a2 2 0 0
-                           1-2 2H6a2 2 0 0
-                           1-2-2l-1-9h-.5a1 1
-                           0 0 1 0-2h3.5l1-1h3l1
-                           1h3.5a1 1 0 0 1 1 1z"
-                      />
-                    </svg>
-                  </button>
-                </form>
+
+
+
+
+
+                <!-- Botão Deletar -->
+  <form method="POST" action="{{ url_for('delete', dress_id=dress.dress_id, next=request.url) }}" style="display: inline;">
+    <button
+      type="submit"
+      class="action-button danger"
+      onclick="return confirm('Tem certeza de que deseja deletar este item?');"
+      title="Deletar"
+    >
+      Deletar
+    </button>
+  </form>
 
 
 
