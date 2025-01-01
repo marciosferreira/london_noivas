@@ -89,10 +89,45 @@
 <textarea id="comments" name="comments" rows="3" value="{{dress.comments}}">{{dress.comments}}</textarea>
 
 
-{% if "returned" in request.url %}
+<!-- Campo de Data -->
+<div id="dev-date-container" style="display: none;">
   <label for="dev_date">Devolvido em:</label>
-  <input type="date" id="dev_date" name="dev_date" value="{{ dress.dev_date }}" required />
-{% endif %}
+  <input
+    type="date"
+    id="dev_date"
+    name="dev_date"
+    value="{{ dress.dev_date }}"
+  />
+</div>
+
+<script>
+  // Função para atualizar a exibição e obrigatoriedade do campo de data
+  function updateDevDateField() {
+    const returnedRadio = document.getElementById('status-returned');
+    const devDateContainer = document.getElementById('dev-date-container');
+    const devDateInput = document.getElementById('dev_date');
+
+    // Verifica se o status é "returned"
+    if (returnedRadio.checked) {
+      devDateContainer.style.display = 'block'; // Mostra o campo
+      devDateInput.required = true;            // Torna obrigatório
+    } else {
+      devDateContainer.style.display = 'none'; // Esconde o campo
+      devDateInput.required = false;           // Remove obrigatoriedade
+    }
+  }
+
+  // Adiciona eventos aos botões de rádio
+  const radioButtons = document.querySelectorAll('input[name="status"]');
+  radioButtons.forEach((radio) => {
+    radio.addEventListener('change', updateDevDateField);
+  });
+
+  // Atualiza a exibição inicial com base no valor atual do status
+  window.onload = function () {
+    updateDevDateField();
+  };
+</script>
 
 
 

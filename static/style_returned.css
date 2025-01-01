@@ -117,20 +117,6 @@ body.returned {
   }
 }
 
-/* ---------------------------------------
-   BOTOES, FILTRO E OUTROS AJUSTES
---------------------------------------- */
-/* Botão de filtro em formato redondo */
-#filter-toggle {
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  padding: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
 /* Filtro oculto inicialmente */
 #filter-section {
   margin-top: 1rem;

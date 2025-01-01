@@ -18,36 +18,19 @@
 
         <!-- Radio Buttons para status -->
         <div class="form-group">
-          <label for="status-rented">
+          <label>
             <input type="radio" id="status-rented" name="status" value="rented" />
             Alugado
           </label>
-          <label for="status-returned">
+          <label>
             <input type="radio" id="status-returned" name="status" value="returned" />
             Devolvido
           </label>
+          <label>
+            <input type="radio" id="status-history" name="status" value="historic" />
+            Histórico
+          </label>
         </div>
-
-        <script>
-          // Função para verificar e ajustar a seleção inicial com base na URL
-          window.onload = function () {
-            // Obtém a URL atual
-            const currentUrl = window.location.href;
-
-            // Verifica se a URL contém 'returned'
-            if (currentUrl.includes('returned')) {
-              document.getElementById('status-returned').checked = true;
-            }
-            // Verifica se a URL contém 'rented'
-            else if (currentUrl.includes('rented')) {
-              document.getElementById('status-rented').checked = true;
-            }
-            // Caso nenhum seja especificado, pode definir um padrão (opcional)
-            else {
-              document.getElementById('status-rented').checked = true; // Define um padrão, se necessário
-            }
-          };
-        </script>
 
         <label for="description">Descrição:</label>
         <br />
@@ -103,6 +86,59 @@
         <label for="comments">Comentários:</label>
         <br />
         <textarea id="comments" name="comments" rows="4" cols="50"></textarea>
+
+        <!-- Campo de Data -->
+        <div id="dev-date-container" style="display: none">
+          <br />
+          <label for="dev_date">Devolvido em:</label>
+          <input type="date" id="dev_date" name="dev_date" />
+          <br />
+          <br />
+        </div>
+
+        <script>
+          // Função para verificar e ajustar a visibilidade e atributos do campo de data
+          function updateDevDateField() {
+            const returnedRadio = document.getElementById('status-returned');
+            const historicRadio = document.getElementById('status-history');
+            const devDateContainer = document.getElementById('dev-date-container');
+            const devDateInput = document.getElementById('dev_date');
+
+            // Verifica se "returned" ou "historic" estão selecionados
+            if (returnedRadio.checked || historicRadio.checked) {
+              devDateContainer.style.display = 'block'; // Mostra o campo
+              devDateInput.required = true; // Torna obrigatório
+            } else {
+              devDateContainer.style.display = 'none'; // Esconde o campo
+              devDateInput.required = false; // Remove obrigatoriedade
+            }
+          }
+
+          // Adiciona evento para cada botão de rádio
+          const radioButtons = document.querySelectorAll('input[name="status"]');
+          radioButtons.forEach((radio) => {
+            radio.addEventListener('change', updateDevDateField);
+          });
+
+          // Verifica e ajusta a seleção inicial com base na URL
+          window.onload = function () {
+            const currentUrl = window.location.href;
+
+            // Define o botão de rádio com base na URL
+            if (currentUrl.includes('returned')) {
+              document.getElementById('status-returned').checked = true;
+            } else if (currentUrl.includes('rented')) {
+              document.getElementById('status-rented').checked = true;
+            } else if (currentUrl.includes('history')) {
+              document.getElementById('status-history').checked = true;
+            } else {
+              document.getElementById('status-rented').checked = true; // Define padrão
+            }
+
+            // Atualiza o campo de data com base na seleção inicial
+            updateDevDateField();
+          };
+        </script>
 
         <label>Foto:</label>
         <br />

@@ -287,6 +287,8 @@ def index():
         page=page,
         total_pages=total_pages,
         current_filter=filtro,
+        add_route=url_for("add"),
+        next_url=request.url,
     )
 
 
@@ -346,8 +348,6 @@ def returned():
         dev_date=dev_date,
     )
 
-    print(filtered_items)
-
     # Paginação
     # print(filtered_items)
     total_items = len(filtered_items)
@@ -362,6 +362,8 @@ def returned():
         page=page,
         total_pages=total_pages,
         current_filter=filtro,
+        add_route=url_for("add"),
+        next_url=request.url,
     )
 
 
@@ -434,6 +436,8 @@ def history():
         page=page,
         total_pages=total_pages,
         current_filter=filtro,
+        add_route=url_for("add"),
+        next_url=request.url,
     )
 
 
@@ -506,6 +510,9 @@ def available():
         page=page,
         total_pages=total_pages,
         current_filter=filtro,
+        title="Vestidos Disponíveis",
+        add_route=url_for("add_small"),
+        next_url=request.url,
     )
 
 
@@ -578,6 +585,9 @@ def archive():
         page=page,
         total_pages=total_pages,
         current_filter=filtro,
+        title="Arquivo",
+        add_route=url_for("add_small"),
+        next_url=request.url,
     )
 
 
@@ -606,7 +616,7 @@ def add():
         image_file = request.files.get("image_file")
 
         # Validar se o status foi escolhido
-        if status not in ["rented", "returned"]:
+        if status not in ["rented", "returned", "historic"]:
             flash("Por favor, selecione o status do vestido.", "error")
             return render_template("add.html", next=next_page)
 
@@ -645,8 +655,13 @@ def add():
                 "status": status,  # Adiciona o status selecionado
             }
         )
-
-        flash("Vestido adicionado com sucesso.", "success")
+        # Dicionário para mapear os valores a nomes associados
+        status_map = {
+            "rented": "Alugados",
+            "returned": "Devolvidos",
+            "historic": "Histórico",
+        }
+        flash(f"Vestido adicionado em {status_map[status]}.", "success")
         # Redirecionar para a página de origem
         return redirect(next_page)
 
@@ -1001,7 +1016,10 @@ def rent(dress_id):
             },
         )
 
-        flash("Vestido alugado com sucesso.", "success")
+        flash(
+            "Item <a href='/'>alugado</a> com sucesso!",
+            "success",
+        )
         return redirect(url_for("available"))
 
     # Preparar dados para o template
@@ -1167,7 +1185,12 @@ def mark_returned(dress_id):
         ExpressionAttributeValues={":s": "returned", ":d": dev_date},
     )
 
-    flash("Vestido devolvido com sucesso.", "success")
+    # flash("Vestido devolvido com sucesso.", "success")
+
+    flash(
+        "Item <a href='/returned'>retornado</a> com sucesso.",
+        "success",
+    )
     return redirect(url_for("index"))
 
 
@@ -1192,7 +1215,7 @@ def mark_archived(dress_id):
     copied_item["status"] = "historic"
 
     # Copiar imagem no S3 e atualizar a URL na cópia
-    if "image_url" in copied_item:
+    if copied_item["image_url"] is not "":
         copied_item["image_url"] = copy_image_in_s3(copied_item["image_url"])
 
     # Salvar o novo item no DynamoDB
@@ -1208,7 +1231,10 @@ def mark_archived(dress_id):
     # Atualizar o item original no DynamoDB
     table.put_item(Item=filtered_item)
 
-    flash("Vestido arquivado com sucesso e cópia histórica criada.", "success")
+    flash(
+        "Item <a href='/archive'>arquivado</a> e registrado no <a href='/history'>histórico</a>.",
+        "success",
+    )
     return redirect(url_for("returned"))
 
 
@@ -1237,7 +1263,7 @@ def mark_available(dress_id):
             ExpressionAttributeValues={":s": "available"},
         )
         flash(
-            "Item marcado com disponível. Clique <a href='/available'>aqui</a> para ver",
+            "Item marcado com <a href='/available'>disponível</a>.",
             "success",
         )
         return redirect(url_for("archive"))
@@ -1250,7 +1276,7 @@ def mark_available(dress_id):
     copied_item["status"] = "historic"
 
     # Copiar imagem no S3 e atualizar a URL na cópia
-    if "image_url" in copied_item:
+    if copied_item["image_url"] is not "":
         copied_item["image_url"] = copy_image_in_s3(copied_item["image_url"])
 
     # Salvar o novo item no DynamoDB
@@ -1266,8 +1292,14 @@ def mark_available(dress_id):
     # Atualizar o item original no DynamoDB
     table.put_item(Item=filtered_item)
 
-    flash("Vestido está disponível agora e cópia histórica criada.", "success")
-    return redirect(url_for("archive"))
+    # flash("Vestido está disponível agora e cópia histórica criada.", "success")
+
+    flash(
+        "Item <a href='/available'>disponível</a> e registrado no <a href='/history'>histórico</a>.",
+        "success",
+    )
+
+    return redirect(url_for("returned"))
 
 
 @app.route("/mark_rented/<dress_id>", methods=["POST"])
