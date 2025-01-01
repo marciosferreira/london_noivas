@@ -257,7 +257,7 @@
 
 
 <!-- Início de Botões de Ação -->
-<div class="d-flex flex-wrap gap-2">
+<div class="d-flex flex-wrap gap-2 justify-content-center align-items-center">
 
 
   <!-- Botão Deletar -->
@@ -272,20 +272,29 @@
     </button>
   </form>
 
-  <!-- Botão DIsponível -->
-  <a href="{{ url_for('mark_available', dress_id=dress.dress_id, next=request.url) }}" class="action-button success" title="Disponível">
-    Disponível
-  </a>
+
 
   <!-- Botão Editar -->
   <a href="{{ url_for('edit', dress_id=dress.dress_id, next=request.url) }}" class="action-button warning" title="Editar">
     Editar
   </a>
 
+
   <!-- Botão Arquivar -->
   <a href="{{ url_for('mark_archived', dress_id=dress.dress_id, next=request.url) }}" class="action-button info" title="Arquivar">
     Arquivar
   </a>
+
+
+
+
+  <!-- Botão DIsponível -->
+  <a href="{{ url_for('mark_available', dress_id=dress.dress_id, next=request.url) }}" class="action-button success" title="Disponível">
+    Disponível
+  </a>
+
+
+
 </div>
 <!-- Fim de Botões de Ação -->
 

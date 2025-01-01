@@ -86,6 +86,7 @@
 
               <td data-label="Ações">
 
+<div class="d-flex flex-wrap gap-2 justify-content-center align-items-center">
 
   <!-- Botão Deletar -->
   <form method="POST" action="{{ url_for('delete', dress_id=dress.dress_id, next=request.url) }}" style="display: inline;">
@@ -99,15 +100,19 @@
     </button>
   </form>
 
-  <!-- Botão DIsponível -->
-  <a href="{{ url_for('mark_available', dress_id=dress.dress_id, next=request.url) }}" class="action-button success" title="Disponível">
-    Disponível
-  </a>
+
 
   <!-- Botão Editar -->
   <a href="{{ url_for('edit_small', dress_id=dress.dress_id, next=request.url) }}" class="action-button warning" title="Editar">
     Editar
   </a>
+
+
+<!-- Botão DIsponível -->
+<a href="{{ url_for('mark_available', dress_id=dress.dress_id, next=request.url) }}" class="action-button success" title="Disponível">
+  Disponível
+</a>
+</div>
 
 
 <!-- Fim de Botões de Ação -->

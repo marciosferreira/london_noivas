@@ -299,8 +299,8 @@
 
               <td data-label="Ações">
 
-
-<!-- Botão Deletar -->
+<div class="d-flex flex-wrap gap-2 justify-content-center align-items-center">
+  <!-- Botão Deletar -->
 <form method="POST" action="{{ url_for('delete', dress_id=dress.dress_id, next=request.url) }}" style="display: inline;">
   <button
     type="submit"
@@ -312,15 +312,21 @@
   </button>
 </form>
 
-<!-- Botão Disponível -->
-<a href="{{ url_for('mark_returned', dress_id=dress.dress_id, next=request.url) }}" class="action-button success" title="Devolvido">
-  Devolvido
-</a>
 
 <!-- Botão Editar -->
 <a href="{{ url_for('edit', dress_id=dress.dress_id, next=request.url) }}" class="action-button warning" title="Editar">
   Editar
 </a>
+
+<!-- Botão Disponível -->
+<a href="{{ url_for('mark_returned', dress_id=dress.dress_id, next=request.url) }}" class="action-button success" title="Devolvido">
+  Devolvido
+</a>
+
+
+
+</div>
+
 
 
 <!-- Fim de Botões de Ação -->
