@@ -30,7 +30,7 @@
     <!-- CONTEÚDO PRINCIPAL -->
     <div class="container my-4">
 
-      {% block content %}
+    {% block content %}
       {% include "common_section.html" with context %}
     {% endblock %}
 
@@ -92,95 +92,54 @@
               <td data-label="Valor">{{ dress.valor }}</td>
               <td data-label="Comentários" style="white-space: pre-wrap; text-align: left">{{ dress.comments }}</td>
 
+
+
+
+
+
               <td data-label="Ações">
-                <!-- Botão Deletar -->
-                <form method="POST" action="{{ url_for('delete', dress_id=dress.dress_id, next=request.url) }}" style="display: inline">
-                  <button
-                    type="submit"
-                    class="btn btn-danger btn-sm"
-                    onclick="return confirm('Tem certeza de que deseja deletar este item?');"
-                    title="Deletar"
-                  >
-                    <!-- Ícone de lixeira -->
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16">
-                      <path
-                        d="M5.5 5.5A.5.5 0
-                           0 1 6 5h4a.5.5
-                           0 0 1 .5.5v7a.5.5
-                           0 0 1-.5.5H6a.5.5
-                           0 0 1-.5-.5v-7z"
-                      />
-                      <path
-                        d="M14.5 3a1 1
-                           0 0 1-1
-                           1H13l-1 9a2 2
-                           0 0
-                           1-2 2H6a2 2
-                           0 0
-                           1-2-2l-1-9h-.5a1 1
-                           0 0 1 0-2h3.5l1-1h3l1
-                           1h3.5a1 1 0 0 1 1 1z"
-                      />
-                    </svg>
-                  </button>
-                </form>
 
-                <!-- Botão Alugar (ícone de seta para cima) -->
-                <a href="{{ url_for('rent', dress_id=dress.dress_id, rent='true') }}" class="btn btn-success btn-sm" title="Alugar">
-                  <!-- Ícone de seta para cima (“bi-arrow-up”) -->
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-up" viewBox="0 0 16 16">
-                    <path
-                      fill-rule="evenodd"
-                      d="M8 12a.5.5 0 0 0 .5-.5V3.707l2.147
-         2.146a.5.5 0 0 0 .708-.708l-3-3a.5.5
-         0 0 0-.708 0l-3 3a.5.5 0 1 0
-         .708.708L7.5 3.707V11.5A.5.5 0
-         0 0 8 12z"
-                    />
-                  </svg>
-                </a>
+<!-- Início de Botões de Ação -->
+<div class="d-flex flex-wrap gap-2">
+  <!-- Botão Deletar -->
+  <form method="POST" action="{{ url_for('delete', dress_id=dress.dress_id, next=request.url) }}" style="display: inline;">
+    <button
+      type="submit"
+      class="action-button danger"
+      onclick="return confirm('Tem certeza de que deseja deletar este item?');"
+      title="Deletar"
+    >
+      Deletar
+    </button>
+  </form>
 
-                <!-- Botão arquivar (ícone) -->
-                <a href="{{ url_for('edit_small', dress_id=dress.dress_id, next=request.url) }}" class="btn btn-warning btn-sm" title="Editar">
-                  <!-- Ícone de lápis quadrado (“bi-pencil-square”) -->
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil-square" viewBox="0 0 16 16">
-                    <path
-                      d="M15.502 1.94a.5.5
-       0 0 1 0 .706l-1.81
-       1.809-2.475-2.475
-       1.809-1.81a.5.5
-       0 0 1 .706 0l1.77
-       1.77zM11.04 3.555l2.475
-       2.475L6.708 12.836a.25.25
-       0 0 1-.121.066l-2
-       .5a.25.25 0 0
-       1-.31-.31l.5-2a.25.25
-       0 0 1 .066-.12l6.197-6.197z"
-                    />
-                    <path
-                      fill-rule="evenodd"
-                      d="M1 13.5a.5.5
-       0 0 1 .5-.5h9a.5.5
-       0 0 1 0 1h-9a.5.5
-       0 0 1-.5-.5z"
-                    />
-                  </svg>
-                </a>
+  <!-- Botão Alugar -->
+  <a href="{{ url_for('rent', dress_id=dress.dress_id, rent='true') }}" class="action-button success" title="Alugar">
+    Alugar
+  </a>
 
-                <!-- Botão Arquivar  -->
-                <a href="{{ url_for('mark_archived', dress_id=dress.dress_id, next=request.url) }}" class="btn btn-info btn-sm" title="Arquivar">
-                  <!-- Ícone de seta para cima (“bi-arrow-up”) -->
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-up" viewBox="0 0 16 16">
-                    <path
-                      fill-rule="evenodd"
-                      d="M8 12a.5.5 0 0 0 .5-.5V3.707l2.147
-2.146a.5.5 0 0 0 .708-.708l-3-3a.5.5
-0 0 0-.708 0l-3 3a.5.5 0 1 0
-.708.708L7.5 3.707V11.5A.5.5 0
-0 0 8 12z"
-                    />
-                  </svg>
-                </a>
+  <!-- Botão Editar -->
+  <a href="{{ url_for('edit_small', dress_id=dress.dress_id, next=request.url) }}" class="action-button warning" title="Editar">
+    Editar
+  </a>
+
+  <!-- Botão Arquivar -->
+  <a href="{{ url_for('mark_archived', dress_id=dress.dress_id, next=request.url) }}" class="action-button info" title="Arquivar">
+    Arquivar
+  </a>
+</div>
+<!-- Fim de Botões de Ação -->
+
+
+
+
+
+
+
+
+
+
+
               </td>
             </tr>
             {% endfor %}

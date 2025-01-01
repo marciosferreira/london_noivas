@@ -2,12 +2,13 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h1 class="h3 mb-0">{{ title }}</h1>
 
-  <div class="d-flex">
+  <!-- Container dos botões -->
+  <div class="d-flex flex-wrap gap-2 align-items-center justify-content-end w-100 w-sm-auto">
     <!-- Botão de Filtros -->
-    <a href="#" class="custom-button me-3" id="filter-toggle" onclick="toggleFilters(event)">Filtros</a>
+    <a href="#" class="custom-button" id="filter-toggle" onclick="toggleFilters(event)">Filtros</a>
 
-    <!-- Botão de Adicionar Item -->
-    <a href="{{ add_route }}?next={{ next_url }}" class="custom-button">Adicionar</a>
+    <!-- Botão de Adicionar -->
+    <a href="{{ url_for('add_small', next=request.url) }}" class="custom-button">Adicionar</a>
   </div>
 </div>
 
@@ -93,6 +94,17 @@
   /* Active para o botão */
   #filter-toggle:active {
     transform: scale(0.95); /* Reduz ligeiramente o tamanho ao clicar */
+  }
+
+  /* Alinhamento para dispositivos pequenos */
+  @media (max-width: 576px) {
+    .d-flex.justify-content-between > .d-flex {
+      justify-content: flex-end !important; /* Move os botões para a direita */
+    }
+
+    .flex-sm-nowrap {
+      flex-wrap: nowrap !important; /* Garante que os botões fiquem lado a lado */
+    }
   }
 </style>
 
