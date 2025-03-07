@@ -1,41 +1,321 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-br">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>London Noivas - Aluguel de Vestidos</title>
+    <title>Alugue QQC - Login/Cadastro</title>
     <link rel="stylesheet" href="/static/style_login.css" />
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}" />
+    <!-- Bootstrap CSS (necessário para estilizar os alertas corretamente) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
+
+    <style>
+      /* Adicione estes estilos ao seu CSS existente ou inclua diretamente aqui */
+      .tabs {
+        display: flex;
+        margin-bottom: 20px;
+      }
+
+      .tab {
+        flex: 1;
+        text-align: center;
+        padding: 10px;
+        cursor: pointer;
+        border-bottom: 2px solid #ddd;
+        transition: all 0.3s ease;
+      }
+
+      .tab.active {
+        border-bottom: 2px solid #ff4081;
+        font-weight: bold;
+      }
+
+      .form-container {
+        width: 100%;
+      }
+
+      #register-form,
+      #forgot-password-form,
+      #reset-password-form {
+        display: none;
+      }
+
+      .message {
+        background-color: #f8d7da;
+        color: #721c24;
+        padding: 10px;
+        border-radius: 5px;
+        margin-bottom: 15px;
+        text-align: center;
+      }
+
+      .success-message {
+        background-color: #d4edda;
+        color: #155724;
+      }
+
+      .forgot-password-link {
+        text-align: right;
+        margin-top: -10px;
+        margin-bottom: 15px;
+        font-size: 0.85em;
+      }
+
+      .forgot-password-link a {
+        color: #ff4081;
+        text-decoration: none;
+      }
+
+      .forgot-password-link a:hover {
+        text-decoration: underline;
+      }
+
+      .back-button {
+        font-size: 0.85em;
+        margin-top: 15px;
+        text-align: center;
+      }
+
+      .back-button a {
+        color: #666;
+        text-decoration: none;
+      }
+
+      .back-button a:hover {
+        text-decoration: underline;
+      }
+    </style>
   </head>
   <body class="login-page">
     <div class="login-container">
       <!-- Cabeçalho com título e logo -->
       <header class="login-header">
-        <img src="/static/icons/icon-512x512.png" alt="Vestido" class="login-logo" />
-        <h1>London Noivas</h1>
-        <p>Aluguel de Vestidos</p>
+        <img src="/static/icons/icon-512x512.png" alt="Bugigangas" class="login-logo" />
+        <h1>Alugue QQC</h1>
+        <p>Login/Cadastro</p>
       </header>
 
-      <!-- Formulário de Login -->
-      <div class="login-form">
-        <h2>Acesse sua conta</h2>
-        <form action="/login" method="POST">
-          <!-- Campo de usuário -->
-          <div class="form-group">
-            <label for="username">Usuário</label>
-            <input type="text" id="username" name="username" placeholder="Digite seu usuário" required />
-          </div>
+      <!-- Abas para alternar entre login e registro -->
+      <div class="tabs" id="main-tabs">
+        <div class="tab active" id="login-tab" onclick="showTab('login')">Acesse sua conta</div>
+        <div class="tab" id="register-tab" onclick="showTab('register')">Cadastre-se</div>
+      </div>
 
-          <!-- Campo de senha -->
-          <div class="form-group">
-            <label for="password">Senha</label>
-            <input type="password" id="password" name="password" placeholder="Digite sua senha" required />
-          </div>
+      <!-- Mensagens de erro ou sucesso -->
+      {% if error %}
+      <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        {{ error }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+      </div>
+      {% endif %} {% if message %}
+      <div class="alert alert-success alert-dismissible fade show" role="alert">
+        {{ message|safe }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+      </div>
+      {% endif %} {% with messages = get_flashed_messages(with_categories=true) %} {% if messages %} {% for category, message in messages %}
+      <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+        {{ message|safe }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+      </div>
+      {% endfor %} {% endif %} {% endwith %}
 
-          <!-- Botão de login -->
-          <button type="submit" class="btn">Entrar</button>
-        </form>
+      <div class="form-container">
+        <!-- Formulário de Login -->
+        <div class="login-form" id="login-form">
+          <form action="/login" method="POST">
+            <!-- Campo de e-mail -->
+            <div class="form-group">
+              <label for="email">E-mail</label>
+              <input type="email" id="email" name="email" placeholder="Digite seu e-mail" required />
+            </div>
+
+            <!-- Campo de senha -->
+            <div class="form-group">
+              <label for="password">Senha</label>
+              <input type="password" id="password" name="password" placeholder="Digite sua senha" required />
+            </div>
+
+            <div class="forgot-password-link">
+              <a href="#" onclick="showTab('forgot-password'); return false;">Esqueceu sua senha?</a>
+            </div>
+
+            <!-- Botão de login -->
+            <button type="submit" class="btn">Entrar</button>
+          </form>
+        </div>
+
+        <!-- Formulário de Registro -->
+        <div class="login-form" id="register-form">
+          <form action="/register" method="POST">
+            <!-- Campo de usuário -->
+            <div class="form-group">
+              <label for="reg-username">Usuário</label>
+              <input type="text" id="reg-username" name="username" placeholder="Escolha um nome de usuário" required />
+            </div>
+
+            <!-- Campo de email -->
+            <div class="form-group">
+              <label for="email">Email</label>
+              <input type="email" id="email" name="email" placeholder="Digite seu email" required />
+            </div>
+
+            <!-- Campo de senha -->
+            <div class="form-group">
+              <label for="reg-password">Senha</label>
+              <input type="password" id="reg-password" name="password" placeholder="Crie uma senha" required />
+            </div>
+
+            <!-- Campo de confirmação de senha -->
+            <div class="form-group">
+              <label for="confirm-password">Confirme a Senha</label>
+              <input type="password" id="confirm-password" name="confirm_password" placeholder="Digite a senha novamente" required />
+              <span id="password-error" style="color: red; font-size: 0.8em; display: none">As senhas não coincidem</span>
+            </div>
+
+            <!-- Botão de registro -->
+            <button type="submit" class="btn" id="register-btn">Cadastrar</button>
+          </form>
+        </div>
+
+        <!-- Formulário de Recuperação de Senha -->
+        <div class="login-form" id="forgot-password-form">
+          <h2>Recuperar Senha</h2>
+          <p>Digite seu email para receber um link de redefinição de senha.</p>
+          <form action="/forgot-password" method="POST">
+            <div class="form-group">
+              <label for="recovery-email">Email</label>
+              <input type="email" id="recovery-email" name="email" placeholder="Digite seu email cadastrado" required />
+            </div>
+            <button type="submit" class="btn">Enviar Link de Recuperação</button>
+          </form>
+          <div class="back-button">
+            <a href="#" onclick="showTab('login'); return false;">Voltar para o login</a>
+          </div>
+        </div>
+
+        <!-- Formulário de Redefinição de Senha (mostrado apenas quando acessado pelo link no email) -->
+        <div class="login-form" id="reset-password-form">
+          <h2>Redefinir Senha</h2>
+          <form action="/reset-password" method="POST">
+            <input type="hidden" id="reset-token" name="token" value="{{ token if token else '' }}" />
+            <div class="form-group">
+              <label for="new-password">Nova Senha</label>
+              <input type="password" id="new-password" name="new_password" placeholder="Digite sua nova senha" required />
+            </div>
+            <div class="form-group">
+              <label for="confirm-new-password">Confirme a Nova Senha</label>
+              <input type="password" id="confirm-new-password" name="confirm_new_password" placeholder="Digite a nova senha novamente" required />
+              <span id="reset-password-error" style="color: red; font-size: 0.8em; display: none">As senhas não coincidem</span>
+            </div>
+            <button type="submit" class="btn" id="reset-btn">Redefinir Senha</button>
+          </form>
+          <div class="back-button">
+            <a href="#" onclick="showTab('login'); return false;">Voltar para o login</a>
+          </div>
+        </div>
       </div>
     </div>
+
+    <script>
+      // No início do script, verifique se devemos mostrar registro ou reset
+      document.addEventListener('DOMContentLoaded', function() {
+        {% if register %}
+          showTab('register');
+        {% endif %}
+
+        {% if reset_password %}
+          showTab('reset-password');
+          document.getElementById('main-tabs').style.display = 'none';
+        {% endif %}
+      });
+
+      // Função para alternar entre as abas
+      function showTab(tabName) {
+        // Esconder todos os formulários
+        document.getElementById('login-form').style.display = 'none';
+        document.getElementById('register-form').style.display = 'none';
+        document.getElementById('forgot-password-form').style.display = 'none';
+        document.getElementById('reset-password-form').style.display = 'none';
+
+        // Remover classes ativas das abas
+        if (document.getElementById('login-tab')) {
+          document.getElementById('login-tab').classList.remove('active');
+        }
+        if (document.getElementById('register-tab')) {
+          document.getElementById('register-tab').classList.remove('active');
+        }
+
+        // Mostrar o formulário selecionado
+        if (tabName === 'login') {
+          document.getElementById('login-form').style.display = 'block';
+          document.getElementById('login-tab').classList.add('active');
+          document.getElementById('main-tabs').style.display = 'flex';
+        } else if (tabName === 'register') {
+          document.getElementById('register-form').style.display = 'block';
+          document.getElementById('register-tab').classList.add('active');
+          document.getElementById('main-tabs').style.display = 'flex';
+        } else if (tabName === 'forgot-password') {
+          document.getElementById('forgot-password-form').style.display = 'block';
+          document.getElementById('main-tabs').style.display = 'none';
+        } else if (tabName === 'reset-password') {
+          document.getElementById('reset-password-form').style.display = 'block';
+          document.getElementById('main-tabs').style.display = 'none';
+        }
+      }
+
+      // Verificar se as senhas coincidem no registro
+      document.getElementById('confirm-password').addEventListener('input', function () {
+        const password = document.getElementById('reg-password').value;
+        const confirmPassword = this.value;
+        const errorElement = document.getElementById('password-error');
+        const registerButton = document.getElementById('register-btn');
+
+        if (password !== confirmPassword) {
+          errorElement.style.display = 'block';
+          registerButton.disabled = true;
+        } else {
+          errorElement.style.display = 'none';
+          registerButton.disabled = false;
+        }
+      });
+
+      // Verificar se as senhas coincidem na redefinição
+      document.getElementById('confirm-new-password').addEventListener('input', function () {
+        const password = document.getElementById('new-password').value;
+        const confirmPassword = this.value;
+        const errorElement = document.getElementById('reset-password-error');
+        const resetButton = document.getElementById('reset-btn');
+
+        if (password !== confirmPassword) {
+          errorElement.style.display = 'block';
+          resetButton.disabled = true;
+        } else {
+          errorElement.style.display = 'none';
+          resetButton.disabled = false;
+        }
+      });
+
+      // Verificar se a URL tem parâmetros
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('register') === 'true') {
+        showTab('register');
+      }
+      if (urlParams.get('reset') === 'true') {
+        showTab('reset-password');
+      }
+    </script>
+
+    <script>
+      setTimeout(function () {
+        let alerts = document.querySelectorAll('.alert');
+        alerts.forEach((alert) => {
+          let bsAlert = new bootstrap.Alert(alert);
+          bsAlert.close();
+        });
+      }, 5000);
+    </script>
+
+    <!-- Bootstrap JS (necessário para funcionalidade do botão de fechar) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   </body>
 </html>

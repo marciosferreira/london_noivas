@@ -1,43 +1,34 @@
-import os
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from urllib.parse import urlparse
 import boto3
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
-from datetime import datetime, timedelta
+import datetime
 from flask import request, url_for
-from datetime import datetime
-from datetime import datetime
 import pytz
 import uuid
-import boto3
 from urllib.parse import urlparse
+from werkzeug.security import generate_password_hash, check_password_hash
+import uuid
+from boto3.dynamodb.conditions import Attr
+import os
+from flask import Flask, render_template, request, redirect, url_for, session
+from werkzeug.security import generate_password_hash, check_password_hash
+from functools import wraps
+from botocore.exceptions import ClientError
 
 # Define o fuso horário de Manaus
 manaus_tz = pytz.timezone("America/Manaus")
-
-
 load_dotenv()  # only for setting up the env as debug
-
-
 app = Flask(__name__)
-
 # Defina uma chave secreta forte e fixa
 app.secret_key = os.environ.get("SECRET_KEY", "chave-secreta-estatica-e-forte-london")
-
-# Garantir que o cookie de sessão seja válido para todo o domínio
-# app.config['SESSION_COOKIE_DOMAIN'] = 'http://127.0.0.1:5000/'
-# app.config['SESSION_COOKIE_PATH'] = '/'
-# app.config['SESSION_COOKIE_SECURE'] = True  # se estiver usando HTTPS
-# app.config['SESSION_COOKIE_SAMESITE'] = 'None'
-
 # Configurações AWS
 aws_region = "us-east-1"
 aws_access_key_id = os.getenv("AWS_ACCESS_KEY_ID")
 aws_secret_access_key = os.getenv("AWS_SECRET_ACCESS_KEY")
-
-dynamodb_table_name = "WeddingDresses"
-s3_bucket_name = "london-noivas-imagens"
+dynamodb_table_name = "alugueqqc_users"
+s3_bucket_name = "alugueqqc-images"
 
 dynamodb = boto3.resource(
     "dynamodb",
@@ -48,6 +39,10 @@ dynamodb = boto3.resource(
 
 table = dynamodb.Table(dynamodb_table_name)
 
+# Adicione uma nova tabela para usuários
+users_table_name = "alugueqqc_users"
+users_table = dynamodb.Table(users_table_name)
+
 s3 = boto3.client(
     "s3",
     region_name=aws_region,
@@ -55,10 +50,602 @@ s3 = boto3.client(
     aws_secret_access_key=aws_secret_access_key,
 )
 
+# Configuração AWS SES para envio de emails
+ses_client = boto3.client(
+    "ses",
+    region_name=aws_region,
+    aws_access_key_id=aws_access_key_id,
+    aws_secret_access_key=aws_secret_access_key,
+)
 
-# Usuário e senha fixos para exemplo
-USERNAME = "admin"
-PASSWORD = "1234"
+# Tabela para armazenar tokens de redefinição de senha
+reset_tokens_table_name = "RentqqcResetTokens"
+reset_tokens_table = dynamodb.Table(reset_tokens_table_name)
+
+
+# Função para enviar email de recuperação de senha
+def send_password_reset_email(email, username, reset_link):
+    SENDER = "nao_responda@alugueqqc.com.br"  # Deve ser um email verificado no SES
+    RECIPIENT = email
+    SUBJECT = "Alugue QQC - Recuperação de Senha"
+
+    # O corpo do email em HTML
+    BODY_HTML = f"""
+    <html>
+    <head></head>
+    <body>
+    <h1>Alugue QQC - Recuperação de Senha</h1>
+    <p>Olá {username},</p>
+    <p>Recebemos uma solicitação para redefinir sua senha. Se você não solicitou isso, por favor ignore este email.</p>
+    <p>Para redefinir sua senha, clique no link abaixo:</p>
+    <p><a href="{reset_link}">Redefinir minha senha</a></p>
+    <p>Este link é válido por 24 horas.</p>
+    <p>Atenciosamente,<br>Equipe Alugue QQC</p>
+    </body>
+    </html>
+    """
+
+    # O corpo do email em texto simples para clientes que não suportam HTML
+    BODY_TEXT = f"""
+    Alugue QQC - Recuperação de Senha
+
+    Olá {username},
+
+    Recebemos uma solicitação para redefinir sua senha. Se você não solicitou isso, por favor ignore este email.
+
+    Para redefinir sua senha, acesse o link:
+    {reset_link}
+
+    Este link é válido por 24 horas.
+
+    Atenciosamente,
+    Equipe Alugue QQC
+    """
+
+    try:
+        response = ses_client.send_email(
+            Source=SENDER,
+            Destination={
+                "ToAddresses": [
+                    RECIPIENT,
+                ],
+            },
+            Message={
+                "Subject": {"Data": SUBJECT, "Charset": "UTF-8"},
+                "Body": {
+                    "Text": {"Data": BODY_TEXT, "Charset": "UTF-8"},
+                    "Html": {"Data": BODY_HTML, "Charset": "UTF-8"},
+                },
+            },
+        )
+        return True
+    except ClientError as e:
+        print(f"Erro ao enviar email: {e}")
+        return False
+
+
+@app.route("/forgot-password", methods=["POST"])
+def forgot_password():
+    email = request.form.get("email")
+    if not email:
+        return render_template("login.html", error="Por favor, informe seu email")
+
+    if 1 == 1:
+        # Buscar o usuário pelo email no banco de dados
+        response = users_table.scan(
+            FilterExpression="email = :email",
+            ExpressionAttributeValues={":email": email},
+        )
+
+        if response.get("Items"):
+            user = response["Items"][0]
+            email = user["email"]
+            username = user["username"]
+
+            # Gerar token único para redefinição de senha
+            token = str(uuid.uuid4())
+            expires_at = (
+                datetime.datetime.now() + datetime.timedelta(hours=24)
+            ).isoformat()
+
+            # Salvar token no DynamoDB
+            reset_tokens_table.put_item(
+                Item={
+                    "token": token,
+                    "email": email,
+                    "username": username,
+                    "expires_at": expires_at,
+                    "used": False,
+                }
+            )
+
+            # Montar o link de redefinição de senha
+            reset_link = f"{request.host_url.rstrip('/')}/reset-password/{token}"
+
+            # Enviar email de recuperação de senha
+            send_password_reset_email(email, username, reset_link)
+
+            # Se a conta ainda não foi confirmada, reenviaremos o e-mail de confirmação também
+            if not user.get("email_confirmed", False):
+                email_token = secrets.token_urlsafe(16)
+
+                # Atualizar banco com um novo token de confirmação
+                users_table.update_item(
+                    Key={"email": email},
+                    UpdateExpression="SET email_token = :token",
+                    ExpressionAttributeValues={":token": email_token},
+                )
+
+                # Montar link de confirmação
+                confirm_url = url_for(
+                    "confirm_email", token=email_token, _external=True
+                )
+
+                # Enviar e-mail de confirmação novamente
+                send_confirmation_email(email, username, confirm_url)
+
+                flash(
+                    "Você solicitou redefiniçao de senha, mas ainda precisa confirmar seu e-mail!",
+                    "info",
+                )
+
+            return render_template(
+                "login.html",
+                message="Se este email estiver cadastrado, enviaremos instruções para redefinir sua senha.",
+            )
+
+        # Mesmo se o email não existir, retornamos a mesma mensagem por segurança
+        return render_template(
+            "login.html",
+            message="Se este email estiver cadastrado, enviaremos instruções para redefinir sua senha.",
+        )
+
+    """except Exception as e:
+        print(f"Erro ao processar recuperação de senha: {e}")
+        return render_template(
+            "login.html", error="Ocorreu um erro ao processar sua solicitação"
+        )"""
+
+
+# Rota para exibir a página de redefinição de senha
+@app.route("/reset-password/<token>", methods=["GET"])
+def reset_password_page(token):
+    try:
+        # Verificar se o token existe e é válido
+        response = reset_tokens_table.get_item(Key={"token": token})
+
+        if "Item" in response:
+            token_data = response["Item"]
+
+            # Verificar se o token já foi usado
+            if token_data.get("used", False):
+                return render_template(
+                    "login.html", error="Este link de redefinição já foi usado"
+                )
+
+            # Verificar se o token expirou
+
+            # delete miliseconds from string
+            expires_at_str = token_data["expires_at"]
+            if "." in expires_at_str:  # Se houver milissegundos, removemos
+                expires_at_str = expires_at_str.split(".")[0]
+            expires_at = datetime.datetime.fromisoformat(expires_at_str)
+
+            if datetime.datetime.now() > expires_at:
+                return render_template(
+                    "login.html", error="Este link de redefinição expirou"
+                )
+
+            # Token válido, mostrar página de redefinição
+            return render_template("login.html", reset_password=True, token=token)
+        else:
+            return render_template("login.html", error="Link de redefinição inválido")
+
+    except Exception as e:
+        print(f"Erro ao verificar token: {e}")
+        return render_template(
+            "login.html", error="Ocorreu um erro ao processar sua solicitação"
+        )
+
+
+# Rota para processar a redefinição de senha
+@app.route("/reset-password", methods=["POST"])
+def reset_password():
+    token = request.form.get("token")
+    new_password = request.form.get("new_password")
+    confirm_new_password = request.form.get("confirm_new_password")
+
+    if not token or not new_password or not confirm_new_password:
+        return render_template(
+            "login.html",
+            error="Todos os campos são obrigatórios",
+            reset_password=True,
+            token=token,
+        )
+
+    if new_password != confirm_new_password:
+        return render_template(
+            "login.html",
+            error="As senhas não coincidem",
+            reset_password=True,
+            token=token,
+        )
+
+    try:
+        # Verificar se o token existe e é válido
+        response = reset_tokens_table.get_item(Key={"token": token})
+
+        if "Item" in response:
+            token_data = response["Item"]
+
+            # Verificar se o token já foi usado
+            if token_data.get("used", False):
+                return render_template(
+                    "login.html", error="Este link de redefinição já foi usado"
+                )
+
+            # delete miliseconds from string
+            expires_at_str = token_data["expires_at"]
+            if "." in expires_at_str:  # Se houver milissegundos, removemos
+                expires_at_str = expires_at_str.split(".")[0]
+            expires_at = datetime.datetime.fromisoformat(expires_at_str)
+
+            # Verificar se o token expirou
+            if datetime.datetime.now() > expires_at:
+                return render_template(
+                    "login.html", error="Este link de redefinição expirou"
+                )
+
+            # Token válido, atualizar a senha
+            email = token_data["email"]
+            password_hash = generate_password_hash(new_password)
+
+            # Atualizar senha no banco de dados
+            users_table.update_item(
+                Key={"email": email},
+                UpdateExpression="set password_hash = :p, updated_at = :u",
+                ExpressionAttributeValues={
+                    ":p": password_hash,
+                    ":u": datetime.datetime.now().date().isoformat(),
+                },
+            )
+
+            # Marcar o token como usado
+            reset_tokens_table.update_item(
+                Key={"token": token},
+                UpdateExpression="set used = :u",
+                ExpressionAttributeValues={":u": True},
+            )
+
+            return render_template(
+                "login.html",
+                message="Senha redefinida com sucesso! Faça login com sua nova senha.",
+            )
+
+        else:
+            return render_template("login.html", error="Link de redefinição inválido")
+
+    except Exception as e:
+        print(f"Erro ao redefinir senha: {e}")
+        return render_template(
+            "login.html",
+            error="Ocorreu um erro ao processar sua solicitação",
+            reset_password=True,
+            token=token,
+        )
+
+
+from flask import flash, redirect, url_for
+
+from werkzeug.security import generate_password_hash
+from botocore.exceptions import ClientError
+
+
+import secrets
+from flask import url_for
+from werkzeug.security import generate_password_hash
+from botocore.exceptions import ClientError
+
+
+def send_confirmation_email(email, username, email_token):
+    SENDER = "nao_responda@alugueqqc.com.br"  # Deve ser um email verificado no SES
+    RECIPIENT = email
+    SUBJECT = "Alugue QQC - Confirmação de E-mail"
+
+    # Gerar a URL de confirmação
+    confirm_url = url_for("confirm_email", token=email_token, _external=True)
+
+    # Corpo do e-mail em HTML
+    BODY_HTML = f"""
+    <html>
+    <head></head>
+    <body>
+    <h1>Alugue QQC - Confirmação de E-mail</h1>
+    <p>Olá <strong>{username}</strong>,</p>
+    <p>Obrigado por se cadastrar no Alugue QQC!</p>
+    <p>Para ativar sua conta, clique no link abaixo:</p>
+    <p><a href="{confirm_url}" style="font-size:16px; font-weight:bold; color:#ffffff; background-color:#007bff; padding:10px 20px; text-decoration:none; border-radius:5px;">Confirmar Meu E-mail</a></p>
+    <p>Se o botão acima não funcionar, copie e cole o seguinte link no seu navegador:</p>
+    <p><a href="{confirm_url}">{confirm_url}</a></p>
+    <p>Atenciosamente,<br>Equipe Alugue QQC</p>
+    </body>
+    </html>
+    """
+
+    # Corpo do e-mail em texto puro (caso o cliente de e-mail não suporte HTML)
+    BODY_TEXT = f"""
+    Alugue QQC - Confirmação de E-mail
+
+    Olá {username},
+
+    Obrigado por se cadastrar no Alugue QQC!
+
+    Para ativar sua conta, clique no link abaixo:
+    {confirm_url}
+
+    Se você não se cadastrou no Alugue QQC, ignore este e-mail.
+
+    Atenciosamente,
+    Equipe Alugue QQC
+    """
+
+    try:
+        response = ses_client.send_email(
+            Source=SENDER,
+            Destination={"ToAddresses": [RECIPIENT]},
+            Message={
+                "Subject": {"Data": SUBJECT, "Charset": "UTF-8"},
+                "Body": {
+                    "Text": {"Data": BODY_TEXT, "Charset": "UTF-8"},  # Texto puro
+                    "Html": {"Data": BODY_HTML, "Charset": "UTF-8"},  # HTML formatado
+                },
+            },
+        )
+        print(f"E-mail de confirmação enviado para {email}: {response}")
+        return True
+    except Exception as e:
+        print(f"Erro ao enviar e-mail de confirmação: {e}")
+        return False
+
+
+def create_user(email, username, password, role="user"):
+    password_hash = generate_password_hash(password)
+    email_token = secrets.token_urlsafe(16)
+
+    try:
+        users_table.put_item(
+            Item={
+                "email": email,
+                "username": username,
+                "password_hash": password_hash,
+                "role": role,
+                "created_at": datetime.datetime.now().date().isoformat(),
+                "email_confirmed": False,
+                "email_token": email_token,
+                "last_email_sent": datetime.datetime.now().date().isoformat(),
+            },
+            ConditionExpression="attribute_not_exists(email)",
+        )
+
+        send_confirmation_email(email, username, email_token)
+        return True
+    except ClientError as e:
+        if e.response["Error"]["Code"] == "ConditionalCheckFailedException":
+            return False
+        raise
+
+
+@app.route("/resend_confirmation")
+def resend_confirmation():
+    email = request.args.get("email")
+
+    if not email:
+        flash("E-mail inválido.", "danger")
+        return redirect(url_for("login"))
+
+    try:
+        response = users_table.get_item(Key={"email": email})
+        if "Item" not in response:
+            flash("E-mail não encontrado.", "danger")
+            return redirect(url_for("login"))
+
+        user = response["Item"]
+
+        # Se já está confirmado, não precisa reenviar
+        if user.get("email_confirmed", False):
+            flash("Este e-mail já foi confirmado. Faça login.", "info")
+            return redirect(url_for("login"))
+
+        # Verificar tempo desde o último envio
+        last_email_sent = user.get("last_email_sent", None)
+        now = datetime.datetime.now()
+        cooldown_seconds = 180  # 5 minutos de cooldown
+
+        if last_email_sent:
+            last_email_sent_time = datetime.date.fromisoformat(last_email_sent)
+            seconds_since_last_email = (now - last_email_sent_time).total_seconds()
+
+            if seconds_since_last_email < cooldown_seconds:
+                flash(
+                    f"Você já solicitou um reenvio recentemente. Aguarde {int(cooldown_seconds - seconds_since_last_email)} segundos.",
+                    "warning",
+                )
+                return redirect(url_for("login"))
+
+        # Gerar um novo token e atualizar o banco
+        email_token = secrets.token_urlsafe(16)
+        users_table.update_item(
+            Key={"email": email},
+            UpdateExpression="SET email_token = :token, last_email_sent = :time",
+            ExpressionAttributeValues={":token": email_token, ":time": now.isoformat()},
+        )
+
+        # Reenviar e-mail
+        send_confirmation_email(email, user["username"], email_token)
+
+        flash("Um novo e-mail de confirmação foi enviado.", "success")
+        return redirect(url_for("login"))
+
+    except Exception as e:
+        print(f"Erro ao reenviar e-mail: {e}")
+        flash("Ocorreu um erro ao reenviar o e-mail. Tente novamente.", "danger")
+        return redirect(url_for("login"))
+
+
+@app.route("/confirm_email/<token>")
+def confirm_email(token):
+    try:
+        response = users_table.scan(
+            FilterExpression="email_token = :token",
+            ExpressionAttributeValues={":token": token},
+        )
+
+        if "Items" in response and response["Items"]:
+            user = response["Items"][0]
+            email = user["email"]
+
+            users_table.update_item(
+                Key={"email": email},
+                UpdateExpression="SET email_confirmed = :confirmed REMOVE email_token",
+                ExpressionAttributeValues={":confirmed": True},
+            )
+
+            flash(
+                "Seu e-mail foi confirmado com sucesso! Agora você pode fazer login.",
+                "success",
+            )
+            return redirect(url_for("login"))
+
+        else:
+            flash("Token inválido ou expirado.", "danger")
+            return redirect(url_for("login"))
+
+    except Exception as e:
+        print(f"Erro ao confirmar e-mail: {e}")
+        flash("Ocorreu um erro ao confirmar seu e-mail. Tente novamente.", "danger")
+        return redirect(url_for("login"))
+
+
+def get_all_users():
+    """Função para administradores recuperarem todos os usuários"""
+    try:
+        response = users_table.scan()
+        return response.get("Items", [])
+    except Exception as e:
+        print(f"Erro ao recuperar usuários: {e}")
+        return []
+
+
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    if request.method == "POST":
+        email = request.form.get("email")
+        username = request.form.get("username")
+        password = request.form.get("password")
+        confirm_password = request.form.get("confirm_password")
+
+        if not email or not password:
+            return render_template(
+                "login.html", error="Todos os campos são obrigatórios", register=True
+            )
+
+        if password != confirm_password:
+            return render_template(
+                "login.html", error="As senhas não coincidem", register=True
+            )
+
+        success = create_user(email, username, password)
+        if success:
+            return render_template(
+                "login.html",
+                message="Cadastro realizado com sucesso! Um e-mail de confirmação foi enviado. Confirme antes de fazer login.",
+            )
+        else:
+            return render_template(
+                "login.html",
+                error="Já existe um cadastro com esse e-mail!",
+                register=True,
+            )
+
+    return render_template("login.html", register=True)
+
+
+# Rota para administradores verem todos os usuários
+@app.route("/admin/users")
+def admin_users():
+    # Verificar se o usuário está logado e é admin
+    if "email" not in session:
+        return redirect(url_for("login"))
+
+    # Obter o papel do usuário atual
+    try:
+        response = users_table.get_item(Key={"username": session["username"]})
+        if "Item" not in response or response["Item"].get("role") != "admin":
+            # Redirecionar usuários não-admin
+            return redirect(url_for("index"))
+    except Exception as e:
+        print(f"Erro ao verificar permissões: {e}")
+        return redirect(url_for("index"))
+
+    # Recuperar todos os usuários
+    users = get_all_users()
+    return render_template("admin_users.html", users=users)
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        email = request.form.get("email")
+        password = request.form.get("password")
+
+        response = users_table.get_item(Key={"email": email})
+        if "Item" not in response:
+            flash("E-mail ou senha incorretos.", "danger")
+            return redirect(url_for("login"))
+
+        user = response["Item"]
+        stored_hash = user["password_hash"]
+
+        # Se o e-mail não estiver confirmado, mostrar opção de reenvio
+        if not user.get("email_confirmed", False):
+            resend_link = url_for("resend_confirmation", email=email)
+            flash(
+                "Sua conta ainda não foi confirmada. Por favor, confirme seu e-mail.",
+                "warning",
+            )
+            flash(
+                f"<a href='{resend_link}' class='btn btn-link'>Reenviar E-mail de Confirmação</a>",
+                "info",
+            )
+            return redirect(url_for("login"))
+
+        # Verificar senha
+        if check_password_hash(stored_hash, password):
+            session["logged_in"] = True
+            session["email"] = email
+            session["role"] = user.get("role", "user")
+            return redirect(url_for("index"))
+
+        flash("E-mail ou senha incorretos.", "danger")
+
+    return render_template("login.html")
+
+
+def verify_user(email, password):
+    try:
+        response = users_table.get_item(
+            Key={"email": email}
+        )  # Alterado de username para email
+
+        print(response)
+        if "Item" in response:
+            stored_hash = response["Item"]["password_hash"]
+            return check_password_hash(stored_hash, password), response["Item"].get(
+                "role", "user"
+            )
+    except Exception as e:
+        print(f"Erro ao verificar usuário: {e}")
+    return False, None
 
 
 def upload_image_to_s3(image_file, prefix="images"):
@@ -70,19 +657,6 @@ def upload_image_to_s3(image_file, prefix="images"):
         image_url = f"https://{s3_bucket_name}.s3.amazonaws.com/{s3_key}"
         return image_url
     return ""
-
-
-@app.route("/login", methods=["GET", "POST"])
-def login():
-    if request.method == "POST":
-        user = request.form.get("username")
-        pwd = request.form.get("password")
-        if user == USERNAME and pwd == PASSWORD:
-            session["logged_in"] = True
-            return redirect(url_for("index"))
-        else:
-            return render_template("login.html", error="Usuário ou senha incorretos")
-    return render_template("login.html")
 
 
 def aplicar_filtro(
@@ -100,26 +674,15 @@ def aplicar_filtro(
     formatted_dev_date=None,
     dev_date=None,
 ):
-    """
-    Filtra e processa a lista de itens de acordo com o filtro fornecido.
 
-    :param items: Lista de itens a serem filtrados
-    :param filtro: Filtro selecionado ("todos", "reservados", "retirados", "atrasados")
-    :param today: Data atual para comparação
-    :param client_name: Nome do cliente para filtro parcial
-    :param payment_status: Status de pagamento ("nao pago", "pago 50%", "pago 100%")
-    :param start_date: Data inicial para retirada
-    :param end_date: Data final para retirada
-    :param return_start_date: Data inicial para devolução
-    :param return_end_date: Data final para devolução
-    :return: Lista filtrada e processada de itens
-    """
     for dress in items:
         # Processar return_date
         return_date_str = dress.get("return_date")
         if return_date_str:
             try:
-                return_date = datetime.strptime(return_date_str, "%Y-%m-%d").date()
+                return_date = datetime.datetime.strptime(
+                    return_date_str, "%Y-%m-%d"
+                ).date()
                 dress["overdue"] = return_date < today
                 dress["return_date_formatted"] = return_date.strftime("%d-%m-%Y")
             except ValueError:
@@ -133,7 +696,9 @@ def aplicar_filtro(
         rental_date_str = dress.get("rental_date")
         if rental_date_str:
             try:
-                rental_date = datetime.strptime(rental_date_str, "%Y-%m-%d").date()
+                rental_date = datetime.datetime.strptime(
+                    rental_date_str, "%Y-%m-%d"
+                ).date()
                 dress["rental_date_formatted"] = rental_date.strftime("%d-%m-%Y")
                 dress["rental_date_obj"] = rental_date  # Para ordenação
             except ValueError:
@@ -148,7 +713,9 @@ def aplicar_filtro(
 
             try:
                 # Converte a string no formato "YYYY-MM-DD" para um objeto datetime
-                dev_date_obj = datetime.strptime(dress.get("dev_date"), "%Y-%m-%d")
+                dev_date_obj = datetime.datetime.strptime(
+                    dress.get("dev_date"), "%Y-%m-%d"
+                )
                 # Reformatar o objeto datetime para "DD-MM-YYYY"
                 dress["dev_date"] = dev_date_obj.strftime("%d-%m-%Y")
             except ValueError:
@@ -218,6 +785,7 @@ def index():
         return redirect(url_for("login"))
 
     # Parâmetros de paginação
+    username = session.get("username")
     page = int(request.args.get("page", 1))
     per_page = 5  # Número de itens por página
 
@@ -237,13 +805,15 @@ def index():
 
     # Converter intervalos de datas, se fornecidos
     if start_date:
-        start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
+        start_date = datetime.datetime.strptime(start_date, "%Y-%m-%d").date()
     if end_date:
-        end_date = datetime.strptime(end_date, "%Y-%m-%d").date()
+        end_date = datetime.datetime.strptime(end_date, "%Y-%m-%d").date()
     if return_start_date:
-        return_start_date = datetime.strptime(return_start_date, "%Y-%m-%d").date()
+        return_start_date = datetime.datetime.strptime(
+            return_start_date, "%Y-%m-%d"
+        ).date()
     if return_end_date:
-        return_end_date = datetime.strptime(return_end_date, "%Y-%m-%d").date()
+        return_end_date = datetime.datetime.strptime(return_end_date, "%Y-%m-%d").date()
 
     # Obter todos os registros "rented"
     response = table.scan(
@@ -254,7 +824,7 @@ def index():
     items = response.get("Items", [])
 
     # Data atual sem hora, para facilitar comparação
-    today = datetime.now().date()
+    today = datetime.datetime.now().date()
 
     # Aplicar filtro com todos os parâmetros
     filtered_items = aplicar_filtro(
@@ -286,7 +856,7 @@ def index():
         page=page,
         total_pages=total_pages,
         current_filter=filtro,
-        title="Vestidos Alugados",
+        title="Itens Alugados",
         add_route=url_for("add"),
         next_url=request.url,
     )
@@ -314,13 +884,15 @@ def returned():
 
     # Converter intervalos de datas, se fornecidos
     if start_date:
-        start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
+        start_date = datetime.datetime.strptime(start_date, "%Y-%m-%d").date()
     if end_date:
-        end_date = datetime.strptime(end_date, "%Y-%m-%d").date()
+        end_date = datetime.datetime.strptime(end_date, "%Y-%m-%d").date()
     if return_start_date:
-        return_start_date = datetime.strptime(return_start_date, "%Y-%m-%d").date()
+        return_start_date = datetime.datetime.strptime(
+            return_start_date, "%Y-%m-%d"
+        ).date()
     if return_end_date:
-        return_end_date = datetime.strptime(return_end_date, "%Y-%m-%d").date()
+        return_end_date = datetime.datetime.strptime(return_end_date, "%Y-%m-%d").date()
 
     # Obter todos os registros "returned"
     response = table.scan(
@@ -331,7 +903,7 @@ def returned():
     items = response.get("Items", [])
 
     # Data atual sem hora, para facilitar comparação
-    today = datetime.now().date()
+    today = datetime.datetime.now().date()
 
     # Aplicar filtro com todos os parâmetros
     filtered_items = aplicar_filtro(
@@ -362,7 +934,7 @@ def returned():
         page=page,
         total_pages=total_pages,
         current_filter=filtro,
-        title="Vestidos Devolvidos",
+        title="Itens Devolvidos",
         add_route=url_for("add"),
         next_url=request.url,
     )
@@ -390,13 +962,15 @@ def history():
 
     # Converter intervalos de datas, se fornecidos
     if start_date:
-        start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
+        start_date = datetime.datetime.strptime(start_date, "%Y-%m-%d").date()
     if end_date:
-        end_date = datetime.strptime(end_date, "%Y-%m-%d").date()
+        end_date = datetime.datetime.strptime(end_date, "%Y-%m-%d").date()
     if return_start_date:
-        return_start_date = datetime.strptime(return_start_date, "%Y-%m-%d").date()
+        return_start_date = datetime.datetime.strptime(
+            return_start_date, "%Y-%m-%d"
+        ).date()
     if return_end_date:
-        return_end_date = datetime.strptime(return_end_date, "%Y-%m-%d").date()
+        return_end_date = datetime.datetime.strptime(return_end_date, "%Y-%m-%d").date()
 
     # Obter todos os registros "archived"
     response = table.scan(
@@ -407,7 +981,7 @@ def history():
     items = response.get("Items", [])
 
     # Data atual sem hora, para facilitar comparação
-    today = datetime.now().date()
+    today = datetime.datetime.now().date()
 
     # Aplicar filtro com todos os parâmetros
     filtered_items = aplicar_filtro(
@@ -465,13 +1039,15 @@ def available():
 
     # Converter intervalos de datas, se fornecidos
     if start_date:
-        start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
+        start_date = datetime.datetime.strptime(start_date, "%Y-%m-%d").date()
     if end_date:
-        end_date = datetime.strptime(end_date, "%Y-%m-%d").date()
+        end_date = datetime.datetime.strptime(end_date, "%Y-%m-%d").date()
     if return_start_date:
-        return_start_date = datetime.strptime(return_start_date, "%Y-%m-%d").date()
+        return_start_date = datetime.datetime.strptime(
+            return_start_date, "%Y-%m-%d"
+        ).date()
     if return_end_date:
-        return_end_date = datetime.strptime(return_end_date, "%Y-%m-%d").date()
+        return_end_date = datetime.datetime.strptime(return_end_date, "%Y-%m-%d").date()
 
     # Obter todos os registros "available"
     response = table.scan(
@@ -482,7 +1058,7 @@ def available():
     items = response.get("Items", [])
 
     # Data atual sem hora, para facilitar comparação
-    today = datetime.now().date()
+    today = datetime.datetime.now().date()
 
     # Aplicar filtro com todos os parâmetros
     filtered_items = aplicar_filtro(
@@ -512,7 +1088,7 @@ def available():
         page=page,
         total_pages=total_pages,
         current_filter=filtro,
-        title="Vestidos Disponíveis",
+        title="Itens Disponíveis",
         add_route=url_for("add_small"),
         next_url=request.url,
     )
@@ -540,13 +1116,15 @@ def archive():
 
     # Converter intervalos de datas, se fornecidos
     if start_date:
-        start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
+        start_date = datetime.datetime.strptime(start_date, "%Y-%m-%d").date()
     if end_date:
-        end_date = datetime.strptime(end_date, "%Y-%m-%d").date()
+        end_date = datetime.datetime.strptime(end_date, "%Y-%m-%d").date()
     if return_start_date:
-        return_start_date = datetime.strptime(return_start_date, "%Y-%m-%d").date()
+        return_start_date = datetime.datetime.strptime(
+            return_start_date, "%Y-%m-%d"
+        ).date()
     if return_end_date:
-        return_end_date = datetime.strptime(return_end_date, "%Y-%m-%d").date()
+        return_end_date = datetime.datetime.strptime(return_end_date, "%Y-%m-%d").date()
 
     # Obter todos os registros "archived"
     response = table.scan(
@@ -557,7 +1135,7 @@ def archive():
     items = response.get("Items", [])
 
     # Data atual sem hora, para facilitar comparação
-    today = datetime.now().date()
+    today = datetime.datetime.now().date()
 
     # Aplicar filtro com todos os parâmetros
     filtered_items = aplicar_filtro(
@@ -624,8 +1202,8 @@ def add():
 
         # Validar e converter as datas
         try:
-            rental_date = datetime.strptime(rental_date_str, "%Y-%m-%d").date()
-            return_date = datetime.strptime(return_date_str, "%Y-%m-%d").date()
+            rental_date = datetime.datetime.strptime(rental_date_str, "%Y-%m-%d").date()
+            return_date = datetime.datetime.strptime(return_date_str, "%Y-%m-%d").date()
         except ValueError:
             flash("Formato de data inválido. Use AAAA-MM-DD.", "error")
             return render_template("add.html", next=next_page)
@@ -777,15 +1355,15 @@ def reports():
         return redirect(url_for("login"))
 
     # Valores padrão para data inicial e final (últimos 30 dias)
-    end_date = datetime.now().date()
-    start_date = end_date - timedelta(days=30)
+    end_date = datetime.datetime.now().date()
+    start_date = end_date - datetime.timedelta(days=30)
 
     if request.method == "POST":
         try:
-            start_date = datetime.strptime(
+            start_date = datetime.datetime.strptime(
                 request.form.get("start_date"), "%Y-%m-%d"
             ).date()
-            end_date = datetime.strptime(
+            end_date = datetime.datetime.strptime(
                 request.form.get("end_date"), "%Y-%m-%d"
             ).date()
         except ValueError:
@@ -810,7 +1388,9 @@ def reports():
     for dress in items:
         try:
             # Considerar apenas registros dentro do período
-            rental_date = datetime.strptime(dress.get("rental_date"), "%Y-%m-%d").date()
+            rental_date = datetime.datetime.strptime(
+                dress.get("rental_date"), "%Y-%m-%d"
+            ).date()
             if start_date <= rental_date <= end_date:
                 valor = float(dress.get("valor", 0))
                 pagamento = dress.get("pagamento", "").lower()
@@ -873,8 +1453,8 @@ def edit(dress_id):
 
         # Validar e converter as datas
         try:
-            rental_date = datetime.strptime(rental_date_str, "%Y-%m-%d").date()
-            return_date = datetime.strptime(return_date_str, "%Y-%m-%d").date()
+            rental_date = datetime.datetime.strptime(rental_date_str, "%Y-%m-%d").date()
+            return_date = datetime.datetime.strptime(return_date_str, "%Y-%m-%d").date()
             # dev_date = datetime.strptime(dev_date, "%Y-%m-%d").date()
 
         except ValueError:
@@ -973,8 +1553,8 @@ def rent(dress_id):
 
         # Validar e converter as datas
         try:
-            rental_date = datetime.strptime(rental_date_str, "%Y-%m-%d").date()
-            return_date = datetime.strptime(return_date_str, "%Y-%m-%d").date()
+            rental_date = datetime.datetime.strptime(rental_date_str, "%Y-%m-%d").date()
+            return_date = datetime.datetime.strptime(return_date_str, "%Y-%m-%d").date()
         except ValueError:
             flash("Formato de data inválido. Use AAAA-MM-DD.", "error")
             return render_template("edit.html")
@@ -1178,7 +1758,7 @@ def mark_returned(dress_id):
         return redirect(url_for("login"))
 
     # Obtém a data atual
-    dev_date = datetime.now(manaus_tz).strftime("%Y-%m-%d")
+    dev_date = datetime.datetime.now(manaus_tz).strftime("%Y-%m-%d")
 
     # Atualiza status para 'returned'
     # Atualiza status para 'returned' e insere data de devolução
@@ -1307,6 +1887,25 @@ def mark_available(dress_id):
     )
 
     return redirect(url_for("returned"))
+
+
+def verify_user(email, password):
+    try:
+        response = users_table.get_item(Key={"email": email})
+
+        if "Item" in response:
+            user = response["Item"]
+            stored_hash = user["password_hash"]
+
+            # Se o e-mail não estiver confirmado, bloquear login
+            if not user.get("email_confirmed", False):
+                return "Pendente", None  # Novo retorno indicando pendência
+
+            return check_password_hash(stored_hash, password), user.get("role", "user")
+
+    except Exception as e:
+        print(f"Erro ao verificar usuário: {e}")
+    return False, None
 
 
 @app.route("/mark_rented/<dress_id>", methods=["POST"])

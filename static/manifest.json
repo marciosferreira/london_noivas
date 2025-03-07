@@ -1,17 +1,17 @@
 {
-  "short_name": "Vestidos",
-  "name": "Gestão de Vestidos Alugados",
+  "short_name": "Alugue QQC",
+  "name": "Gestão de Itens Alugados",
   "icons": [
-      {
-          "src": "/static/icons/icon-192x192.png",
-          "type": "image/png",
-          "sizes": "192x192"
-      },
-      {
-          "src": "/static/icons/icon-512x512.png",
-          "type": "image/png",
-          "sizes": "512x512"
-      }
+    {
+      "src": "/static/icons/icon-192x192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/static/icons/icon-512x512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
   ],
   "start_url": "/",
   "background_color": "#ffffff",
