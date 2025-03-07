@@ -1,7 +1,12 @@
 <!-- NAVBAR -->
 <nav class="navbar navbar-expand-md navbar-dark bg-dark">
   <div class="container-fluid">
-    <a class="navbar-brand" href="{{ url_for('index') }}">Alugue QQC</a>
+    <a class="navbar-brand" href="{{ url_for('index') }}">
+      Alugue QQC {% if username %} -
+      <span class="text-warning">Bem-vindo, {{ username }}</span>
+      {% endif %}
+    </a>
+
     <!-- Botão hamburger para telas pequenas -->
     <button
       class="navbar-toggler"
@@ -48,6 +53,12 @@
 
             <li>
               <a class="dropdown-item {% if request.endpoint == 'history' %}active{% endif %}" href="{{ url_for('history') }}">Histórico</a>
+            </li>
+            <li>
+              <hr class="dropdown-divider" />
+            </li>
+            <li>
+              <a class="dropdown-item {% if request.endpoint == 'history' %}active{% endif %}" href="{{ url_for('adjustments') }}">Ajustes</a>
             </li>
             <li>
               <hr class="dropdown-divider" />

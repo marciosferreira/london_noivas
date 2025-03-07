@@ -605,6 +605,7 @@ def login():
 
         user = response["Item"]
         stored_hash = user["password_hash"]
+        username = user["username"]
 
         # Se o e-mail não estiver confirmado, mostrar opção de reenvio
         if not user.get("email_confirmed", False):
@@ -624,6 +625,7 @@ def login():
             session["logged_in"] = True
             session["email"] = email
             session["role"] = user.get("role", "user")
+            session["username"] = username
             return redirect(url_for("index"))
 
         flash("E-mail ou senha incorretos.", "danger")
@@ -861,6 +863,11 @@ def listar_itens(status, template, title):
     end = start + per_page
     paginated_items = filtered_items[start:end]
 
+    if template == "available.html":
+        add_template = "add_small"
+    else:
+        add_template = "add"
+
     return render_template(
         template,
         dresses=paginated_items,
@@ -868,7 +875,7 @@ def listar_itens(status, template, title):
         total_pages=total_pages,
         current_filter=filtro,
         title=title,
-        add_route=url_for("add"),
+        add_route=url_for(add_template),
         next_url=request.url,
     )
 
@@ -1089,6 +1096,12 @@ def reports():
     if not session.get("logged_in"):
         return redirect(url_for("login"))
 
+    # Obter o e-mail do usuário logado
+    user_email = session.get("email")
+    if not user_email:
+        print("Erro: Usuário não autenticado corretamente.")  # 🔍 Depuração
+        return redirect(url_for("login"))
+
     # Valores padrão para data inicial e final (últimos 30 dias)
     end_date = datetime.datetime.now().date()
     start_date = end_date - datetime.timedelta(days=30)
@@ -1112,8 +1125,12 @@ def reports():
                 end_date=end_date,
             )
 
-    # Obter todos os registros (independente do status)
-    response = table.scan()
+    # Obter apenas os registros do usuário logado
+    response = table.scan(
+        FilterExpression="#email = :user_email",
+        ExpressionAttributeNames={"#email": "email"},
+        ExpressionAttributeValues={":user_email": user_email},
+    )
     items = response.get("Items", [])
 
     # Inicializar os totais
@@ -1544,7 +1561,7 @@ def mark_archived(item_id):
     table.put_item(Item=copied_item)
 
     # Campos permitidos no item original
-    allowed_fields = {"item_id", "description", "image_url", "valor"}
+    allowed_fields = {"item_id", "description", "image_url", "valor", "email"}
 
     # Filtrar o item original para manter apenas os campos permitidos
     filtered_item = {key: value for key, value in item.items() if key in allowed_fields}
@@ -1605,7 +1622,7 @@ def mark_available(item_id):
     table.put_item(Item=copied_item)
 
     # Campos permitidos no item original
-    allowed_fields = {"item_id", "description", "image_url", "valor"}
+    allowed_fields = {"item_id", "description", "image_url", "valor", "email"}
 
     # Filtrar o item original para manter apenas os campos permitidos
     filtered_item = {key: value for key, value in item.items() if key in allowed_fields}
@@ -1613,8 +1630,6 @@ def mark_available(item_id):
 
     # Atualizar o item original no DynamoDB
     table.put_item(Item=filtered_item)
-
-    # flash("Vestido está disponível agora e cópia histórica criada.", "success")
 
     flash(
         "Item <a href='/available'>disponível</a> e registrado no <a href='/history'>histórico</a>.",
@@ -1661,6 +1676,163 @@ def mark_rented(item_id):
         "success",
     )
     return redirect(url_for("returned"))
+
+
+@app.route("/adjustments")
+def adjustments():
+    if not session.get("logged_in"):
+        return redirect(url_for("login"))
+
+    # Obter nome de usuário e e-mail logado
+    user_email = session.get("email")
+
+    # Buscar usuário pelo e-mail
+    response = users_table.get_item(Key={"email": user_email})
+
+    if "Item" not in response:
+        flash("Erro ao carregar dados do usuário.", "danger")
+        return redirect(url_for("login"))
+
+    user = response["Item"]
+    username = user.get("username", "Usuário Desconhecido")
+
+    return render_template("adjustments.html", username=username, email=user_email)
+
+
+# 📌 2️⃣ Rota para solicitar alteração de e-mail
+@app.route("/request-email-change", methods=["POST"])
+def request_email_change():
+    if not session.get("logged_in"):
+        return redirect(url_for("login"))
+
+    user_email = session.get("email")
+    new_email = request.form.get("new_email")
+
+    if not new_email:
+        flash("Por favor, insira um e-mail válido.", "danger")
+        return redirect(url_for("adjustments"))
+
+    # Gerar token de confirmação
+    email_token = secrets.token_urlsafe(16)
+
+    # Salvar token temporário no banco
+    users_table.update_item(
+        Key={"email": user_email},
+        UpdateExpression="SET pending_email = :new_email, email_token = :token",
+        ExpressionAttributeValues={":new_email": new_email, ":token": email_token},
+    )
+
+    # Enviar e-mail de confirmação
+    confirm_url = url_for("confirm_email_change", token=email_token, _external=True)
+
+    ses_client.send_email(
+        Source="nao_responda@alugueqqc.com.br",
+        Destination={"ToAddresses": [new_email]},
+        Message={
+            "Subject": {"Data": "Confirme seu novo e-mail"},
+            "Body": {
+                "Text": {
+                    "Data": f"Confirme seu e-mail clicando no link: {confirm_url}"
+                },
+                "Html": {
+                    "Data": f"""
+                    <html>
+                    <body>
+                        <p>Olá,</p>
+                        <p>Você solicitou a alteração do seu e-mail. Para confirmar, clique no botão abaixo:</p>
+                        <p><a href="{confirm_url}" style="padding: 10px; background-color: blue; color: white; text-decoration: none;">Confirmar Novo E-mail</a></p>
+                        <p>Se você não solicitou essa alteração, ignore este e-mail.</p>
+                    </body>
+                    </html>
+                """
+                },
+            },
+        },
+    )
+
+    flash("Um e-mail de confirmação foi enviado para o novo endereço.", "info")
+    return redirect(url_for("adjustments"))
+
+
+@app.route("/confirm-email-change/<token>")
+def confirm_email_change(token):
+    # Buscar usuário pelo token de confirmação
+    response = users_table.scan(
+        FilterExpression="email_token = :token",
+        ExpressionAttributeValues={":token": token},
+    )
+
+    if not response.get("Items"):
+        flash("Token inválido ou expirado.", "danger")
+        return redirect(url_for("login"))
+
+    user = response["Items"][0]
+    old_email = user["email"]
+    new_email = user.get("pending_email")
+
+    if not new_email:
+        flash("Erro ao processar a solicitação.", "danger")
+        return redirect(url_for("adjustments"))
+
+    try:
+        # 1️⃣ Copiar todos os itens do usuário antigo para o novo e-mail
+        items_response = table.scan(
+            FilterExpression="#email = :old_email",
+            ExpressionAttributeNames={"#email": "email"},
+            ExpressionAttributeValues={":old_email": old_email},
+        )
+
+        items = items_response.get("Items", [])
+
+        for item in items:
+            # Criar um novo item com o novo e-mail
+            new_item_data = {k: v for k, v in item.items() if k != "email"}
+
+            table.put_item(
+                Item={
+                    "email": new_email,  # Atualiza o e-mail do item
+                    **new_item_data,  # Copia os outros dados do item
+                }
+            )
+
+        # 2️⃣ Criar o novo usuário com o novo e-mail
+        new_user_data = {
+            k: v
+            for k, v in user.items()
+            if k not in ["email", "email_token", "pending_email"]
+        }
+
+        users_table.put_item(
+            Item={
+                "email": new_email,  # Novo e-mail como chave primária
+                **new_user_data,  # Copia os outros dados do usuário
+            }
+        )
+
+        # 3️⃣ Excluir todos os registros antigos SOMENTE APÓS A CÓPIA CONCLUIR
+        for item in items:
+            if "item_id" in item:  # Garantimos que estamos usando item_id corretamente
+                table.delete_item(Key={"email": old_email, "item_id": item["item_id"]})
+
+        # 4️⃣ Excluir o usuário antigo
+        users_table.delete_item(Key={"email": old_email})
+
+        # 5️⃣ Atualizar sessão com o novo e-mail
+        session["email"] = new_email
+
+        flash("Seu e-mail foi atualizado com sucesso!", "success")
+        return redirect(url_for("adjustments"))
+
+    except Exception as e:
+        print(f"Erro ao atualizar e-mail: {e}")
+        flash("Ocorreu um erro ao processar a solicitação.", "danger")
+        return redirect(url_for("adjustments"))
+
+
+@app.context_processor
+def inject_user():
+    username = session.get("username")
+    return dict(username=username)
 
 
 # Rota de Logout
