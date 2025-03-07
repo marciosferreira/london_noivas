@@ -1179,6 +1179,9 @@ def add():
     # Recuperar a página de origem (next)
     next_page = request.args.get("next", url_for("index"))
 
+    # Obter o e-mail do usuário logado da sessão
+    user_email = session.get("email")  # Pega o email salvo na sessão
+
     if request.method == "POST":
         # Capturar dados do formulário
         status = request.form.get(
@@ -1221,6 +1224,7 @@ def add():
         # Adicionar o novo vestido ao DynamoDB
         table.put_item(
             Item={
+                "email": user_email,
                 "dress_id": dress_id,
                 "description": description,
                 "client_name": client_name,
@@ -1260,6 +1264,9 @@ def add_small():
     # Recuperar a página de origem (next)
     next_page = request.args.get("next", url_for("index"))
 
+    # Obter o e-mail do usuário logado da sessão
+    user_email = session.get("email")  # Pega o email salvo na sessão
+
     if request.method == "POST":
         # Capturar dados do formulário
         status = "archived" if "archive" in next_page else "available"
@@ -1293,6 +1300,7 @@ def add_small():
         table.put_item(
             Item={
                 "dress_id": dress_id,
+                "email": user_email,
                 "description": description,
                 "client_name": client_name,
                 "client_tel": client_tel,
