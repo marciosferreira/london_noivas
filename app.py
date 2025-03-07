@@ -27,7 +27,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "chave-secreta-estatica-e-forte-lo
 aws_region = "us-east-1"
 aws_access_key_id = os.getenv("AWS_ACCESS_KEY_ID")
 aws_secret_access_key = os.getenv("AWS_SECRET_ACCESS_KEY")
-dynamodb_table_name = "alugueqqc_users"
+dynamodb_table_name = "alugueqqc_itens"
 s3_bucket_name = "alugueqqc-images"
 
 dynamodb = boto3.resource(
@@ -651,8 +651,8 @@ def verify_user(email, password):
 def upload_image_to_s3(image_file, prefix="images"):
     if image_file:
         filename = secure_filename(image_file.filename)
-        dress_id = str(uuid.uuid4())
-        s3_key = f"{prefix}/{dress_id}_{filename}"
+        item_id = str(uuid.uuid4())
+        s3_key = f"{prefix}/{item_id}_{filename}"
         s3.upload_fileobj(image_file, s3_bucket_name, s3_key)
         image_url = f"https://{s3_bucket_name}.s3.amazonaws.com/{s3_key}"
         return image_url
@@ -779,22 +779,26 @@ def aplicar_filtro(
     return filtered_items
 
 
-@app.route("/")
-def index():
+from flask import render_template, request, session, redirect, url_for
+import datetime
+
+
+def listar_itens(status, template, title):
     if not session.get("logged_in"):
         return redirect(url_for("login"))
 
-    # Parâmetros de paginação
-    username = session.get("username")
-    page = int(request.args.get("page", 1))
-    per_page = 5  # Número de itens por página
+    # Obter o e-mail do usuário logado
+    user_email = session.get("email")
+    if not user_email:
+        print("Erro: Usuário não autenticado corretamente.")  # 🔍 Depuração
+        return redirect(url_for("login"))
 
-    # Obter o filtro principal (default é "todos")
-    filtro = request.args.get(
-        "filter", "todos"
-    )  # "todos", "reservados", "retirados", "atrasados"
+    # Parâmetros de paginação
+    page = int(request.args.get("page", 1))
+    per_page = 5
 
     # Capturar parâmetros adicionais
+    filtro = request.args.get("filter", "todos")
     description = request.args.get("description")
     client_name = request.args.get("client_name")
     payment_status = request.args.get("payment")
@@ -804,29 +808,39 @@ def index():
     return_end_date = request.args.get("return_end_date")
 
     # Converter intervalos de datas, se fornecidos
-    if start_date:
-        start_date = datetime.datetime.strptime(start_date, "%Y-%m-%d").date()
-    if end_date:
-        end_date = datetime.datetime.strptime(end_date, "%Y-%m-%d").date()
-    if return_start_date:
-        return_start_date = datetime.datetime.strptime(
-            return_start_date, "%Y-%m-%d"
-        ).date()
-    if return_end_date:
-        return_end_date = datetime.datetime.strptime(return_end_date, "%Y-%m-%d").date()
+    def parse_date(date_str):
+        return (
+            datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
+            if date_str
+            else None
+        )
 
-    # Obter todos os registros "rented"
+    start_date = parse_date(start_date)
+    end_date = parse_date(end_date)
+    return_start_date = parse_date(return_start_date)
+    return_end_date = parse_date(return_end_date)
+
+    # Construir filtro do DynamoDB para status e email
+    filter_expression = "#email = :user_email"
+    expression_names = {"#email": "email"}
+    expression_values = {":user_email": user_email}
+
+    if status != "todos":
+        filter_expression += " AND #status = :status_filter"
+        expression_names["#status"] = "status"
+        expression_values[":status_filter"] = status
+
+    # Obter itens do banco filtrando por e-mail
     response = table.scan(
-        FilterExpression="attribute_not_exists(#status) OR #status = :status_rented",
-        ExpressionAttributeNames={"#status": "status"},
-        ExpressionAttributeValues={":status_rented": "rented"},
+        FilterExpression=filter_expression,
+        ExpressionAttributeNames=expression_names,
+        ExpressionAttributeValues=expression_values,
     )
-    items = response.get("Items", [])
 
-    # Data atual sem hora, para facilitar comparação
+    items = response.get("Items", [])
     today = datetime.datetime.now().date()
 
-    # Aplicar filtro com todos os parâmetros
+    # Aplicar filtros adicionais
     filtered_items = aplicar_filtro(
         items,
         filtro,
@@ -840,335 +854,48 @@ def index():
         return_end_date=return_end_date,
     )
 
-    # Ordenar apenas pela data de registro (data de aluguel mais antiga primeiro)
-    sorted_items = sorted(filtered_items, key=lambda x: x["rental_date_obj"])
-
     # Paginação
-    total_items = len(sorted_items)
+    total_items = len(filtered_items)
     total_pages = (total_items + per_page - 1) // per_page
     start = (page - 1) * per_page
     end = start + per_page
-    paginated_items = sorted_items[start:end]
+    paginated_items = filtered_items[start:end]
 
     return render_template(
-        "index.html",
+        template,
         dresses=paginated_items,
         page=page,
         total_pages=total_pages,
         current_filter=filtro,
-        title="Itens Alugados",
+        title=title,
         add_route=url_for("add"),
         next_url=request.url,
     )
+
+
+@app.route("/")
+def index():
+    return listar_itens("rented", "index.html", "Itens Alugados")
 
 
 @app.route("/returned")
 def returned():
-    if not session.get("logged_in"):
-        return redirect(url_for("login"))
-
-    # Parâmetros de paginação
-    page = int(request.args.get("page", 1))
-    per_page = 5  # Número de itens por página
-
-    # Capturar parâmetros adicionais
-    filtro = request.args.get("filter", "todos")  # Default é "todos"
-    description = request.args.get("description")
-    client_name = request.args.get("client_name")
-    payment_status = request.args.get("payment")
-    start_date = request.args.get("start_date")
-    end_date = request.args.get("end_date")
-    return_start_date = request.args.get("return_start_date")
-    return_end_date = request.args.get("return_end_date")
-    dev_date = request.args.get("dev_date")
-
-    # Converter intervalos de datas, se fornecidos
-    if start_date:
-        start_date = datetime.datetime.strptime(start_date, "%Y-%m-%d").date()
-    if end_date:
-        end_date = datetime.datetime.strptime(end_date, "%Y-%m-%d").date()
-    if return_start_date:
-        return_start_date = datetime.datetime.strptime(
-            return_start_date, "%Y-%m-%d"
-        ).date()
-    if return_end_date:
-        return_end_date = datetime.datetime.strptime(return_end_date, "%Y-%m-%d").date()
-
-    # Obter todos os registros "returned"
-    response = table.scan(
-        FilterExpression="#status = :status_returned",
-        ExpressionAttributeNames={"#status": "status"},
-        ExpressionAttributeValues={":status_returned": "returned"},
-    )
-    items = response.get("Items", [])
-
-    # Data atual sem hora, para facilitar comparação
-    today = datetime.datetime.now().date()
-
-    # Aplicar filtro com todos os parâmetros
-    filtered_items = aplicar_filtro(
-        items,
-        filtro,
-        today,
-        client_name=client_name,
-        description=description,
-        payment_status=payment_status,
-        start_date=start_date,
-        end_date=end_date,
-        return_start_date=return_start_date,
-        return_end_date=return_end_date,
-        dev_date=dev_date,
-    )
-
-    # Paginação
-    # print(filtered_items)
-    total_items = len(filtered_items)
-    total_pages = (total_items + per_page - 1) // per_page
-    start = (page - 1) * per_page
-    end = start + per_page
-    paginated_items = filtered_items[start:end]
-
-    return render_template(
-        "returned.html",
-        dresses=paginated_items,
-        page=page,
-        total_pages=total_pages,
-        current_filter=filtro,
-        title="Itens Devolvidos",
-        add_route=url_for("add"),
-        next_url=request.url,
-    )
+    return listar_itens("returned", "returned.html", "Itens Devolvidos")
 
 
 @app.route("/history")
 def history():
-    if not session.get("logged_in"):
-        return redirect(url_for("login"))
-
-    # Parâmetros de paginação
-    page = int(request.args.get("page", 1))
-    per_page = 5  # Número de itens por página
-
-    # Capturar parâmetros adicionais
-    filtro = request.args.get("filter", "todos")  # Default é "todos"
-    description = request.args.get("description")
-    client_name = request.args.get("client_name")
-    payment_status = request.args.get("payment")
-    start_date = request.args.get("start_date")
-    end_date = request.args.get("end_date")
-    return_start_date = request.args.get("return_start_date")
-    return_end_date = request.args.get("return_end_date")
-    dev_date = request.args.get("dev_date")
-
-    # Converter intervalos de datas, se fornecidos
-    if start_date:
-        start_date = datetime.datetime.strptime(start_date, "%Y-%m-%d").date()
-    if end_date:
-        end_date = datetime.datetime.strptime(end_date, "%Y-%m-%d").date()
-    if return_start_date:
-        return_start_date = datetime.datetime.strptime(
-            return_start_date, "%Y-%m-%d"
-        ).date()
-    if return_end_date:
-        return_end_date = datetime.datetime.strptime(return_end_date, "%Y-%m-%d").date()
-
-    # Obter todos os registros "archived"
-    response = table.scan(
-        FilterExpression="#status = :status_archived",
-        ExpressionAttributeNames={"#status": "status"},
-        ExpressionAttributeValues={":status_archived": "historic"},
-    )
-    items = response.get("Items", [])
-
-    # Data atual sem hora, para facilitar comparação
-    today = datetime.datetime.now().date()
-
-    # Aplicar filtro com todos os parâmetros
-    filtered_items = aplicar_filtro(
-        items,
-        filtro,
-        today,
-        client_name=client_name,
-        description=description,
-        payment_status=payment_status,
-        start_date=start_date,
-        end_date=end_date,
-        return_start_date=return_start_date,
-        return_end_date=return_end_date,
-        dev_date=dev_date,
-    )
-
-    # Paginação
-    total_items = len(filtered_items)
-    total_pages = (total_items + per_page - 1) // per_page
-    start = (page - 1) * per_page
-    end = start + per_page
-    paginated_items = filtered_items[start:end]
-
-    return render_template(
-        "history.html",
-        dresses=paginated_items,
-        page=page,
-        total_pages=total_pages,
-        current_filter=filtro,
-        title="Histórico",
-        add_route=url_for("add"),
-        next_url=request.url,
-    )
+    return listar_itens("historic", "history.html", "Histórico")
 
 
 @app.route("/available")
 def available():
-    if not session.get("logged_in"):
-        return redirect(url_for("login"))
-
-    # Parâmetros de paginação
-    page = int(request.args.get("page", 1))
-    per_page = 5  # Número de itens por página
-
-    # Capturar parâmetros adicionais
-    filtro = request.args.get("filter", "todos")  # Default é "todos"
-    description = request.args.get("description")
-    comments = request.args.get("comments")
-    client_name = request.args.get("client_name")
-    payment_status = request.args.get("payment")
-    start_date = request.args.get("start_date")
-    end_date = request.args.get("end_date")
-    return_start_date = request.args.get("return_start_date")
-    return_end_date = request.args.get("return_end_date")
-
-    # Converter intervalos de datas, se fornecidos
-    if start_date:
-        start_date = datetime.datetime.strptime(start_date, "%Y-%m-%d").date()
-    if end_date:
-        end_date = datetime.datetime.strptime(end_date, "%Y-%m-%d").date()
-    if return_start_date:
-        return_start_date = datetime.datetime.strptime(
-            return_start_date, "%Y-%m-%d"
-        ).date()
-    if return_end_date:
-        return_end_date = datetime.datetime.strptime(return_end_date, "%Y-%m-%d").date()
-
-    # Obter todos os registros "available"
-    response = table.scan(
-        FilterExpression="#status = :status_available",
-        ExpressionAttributeNames={"#status": "status"},
-        ExpressionAttributeValues={":status_available": "available"},
-    )
-    items = response.get("Items", [])
-
-    # Data atual sem hora, para facilitar comparação
-    today = datetime.datetime.now().date()
-
-    # Aplicar filtro com todos os parâmetros
-    filtered_items = aplicar_filtro(
-        items,
-        filtro,
-        today,
-        client_name=client_name,
-        description=description,
-        comments=comments,
-        payment_status=payment_status,
-        start_date=start_date,
-        end_date=end_date,
-        return_start_date=return_start_date,
-        return_end_date=return_end_date,
-    )
-
-    # Paginação
-    total_items = len(filtered_items)
-    total_pages = (total_items + per_page - 1) // per_page
-    start = (page - 1) * per_page
-    end = start + per_page
-    paginated_items = filtered_items[start:end]
-
-    return render_template(
-        "available.html",
-        dresses=paginated_items,
-        page=page,
-        total_pages=total_pages,
-        current_filter=filtro,
-        title="Itens Disponíveis",
-        add_route=url_for("add_small"),
-        next_url=request.url,
-    )
+    return listar_itens("available", "available.html", "Itens Disponíveis")
 
 
 @app.route("/archive")
 def archive():
-    if not session.get("logged_in"):
-        return redirect(url_for("login"))
-
-    # Parâmetros de paginação
-    page = int(request.args.get("page", 1))
-    per_page = 5  # Número de itens por página
-
-    # Capturar parâmetros adicionais
-    filtro = request.args.get("filter", "todos")  # Default é "todos"
-    description = request.args.get("description")
-    comments = request.args.get("comments")
-    client_name = request.args.get("client_name")
-    payment_status = request.args.get("payment")
-    start_date = request.args.get("start_date")
-    end_date = request.args.get("end_date")
-    return_start_date = request.args.get("return_start_date")
-    return_end_date = request.args.get("return_end_date")
-
-    # Converter intervalos de datas, se fornecidos
-    if start_date:
-        start_date = datetime.datetime.strptime(start_date, "%Y-%m-%d").date()
-    if end_date:
-        end_date = datetime.datetime.strptime(end_date, "%Y-%m-%d").date()
-    if return_start_date:
-        return_start_date = datetime.datetime.strptime(
-            return_start_date, "%Y-%m-%d"
-        ).date()
-    if return_end_date:
-        return_end_date = datetime.datetime.strptime(return_end_date, "%Y-%m-%d").date()
-
-    # Obter todos os registros "archived"
-    response = table.scan(
-        FilterExpression="#status = :status_archived",
-        ExpressionAttributeNames={"#status": "status"},
-        ExpressionAttributeValues={":status_archived": "archived"},
-    )
-    items = response.get("Items", [])
-
-    # Data atual sem hora, para facilitar comparação
-    today = datetime.datetime.now().date()
-
-    # Aplicar filtro com todos os parâmetros
-    filtered_items = aplicar_filtro(
-        items,
-        filtro,
-        today,
-        client_name=client_name,
-        description=description,
-        comments=comments,
-        payment_status=payment_status,
-        start_date=start_date,
-        end_date=end_date,
-        return_start_date=return_start_date,
-        return_end_date=return_end_date,
-    )
-
-    # Paginação
-    total_items = len(filtered_items)
-    total_pages = (total_items + per_page - 1) // per_page
-    start = (page - 1) * per_page
-    end = start + per_page
-    paginated_items = filtered_items[start:end]
-
-    return render_template(
-        "archive.html",
-        dresses=paginated_items,
-        page=page,
-        total_pages=total_pages,
-        current_filter=filtro,
-        title="Arquivo",
-        add_route=url_for("add_small"),
-        next_url=request.url,
-    )
+    return listar_itens("archived", "archive.html", "Arquivo")
 
 
 @app.route("/add", methods=["GET", "POST"])
@@ -1219,13 +946,13 @@ def add():
             )  # Implemente esta função conforme necessário
 
         # Gerar um ID único para o vestido (pode usar UUID)
-        dress_id = str(uuid.uuid4())
+        item_id = str(uuid.uuid4())
 
         # Adicionar o novo vestido ao DynamoDB
         table.put_item(
             Item={
                 "email": user_email,
-                "dress_id": dress_id,
+                "item_id": item_id,
                 "description": description,
                 "client_name": client_name,
                 "client_tel": client_tel,
@@ -1294,12 +1021,12 @@ def add_small():
             )  # Implemente esta função conforme necessário
 
         # Gerar um ID único para o vestido (pode usar UUID)
-        dress_id = str(uuid.uuid4())
+        item_id = str(uuid.uuid4())
 
         # Adicionar o novo vestido ao DynamoDB
         table.put_item(
             Item={
-                "dress_id": dress_id,
+                "item_id": item_id,
                 "email": user_email,
                 "description": description,
                 "client_name": client_name,
@@ -1430,8 +1157,8 @@ def reports():
     )
 
 
-@app.route("/edit/<dress_id>", methods=["GET", "POST"])
-def edit(dress_id):
+@app.route("/edit/<item_id>", methods=["GET", "POST"])
+def edit(item_id):
     if not session.get("logged_in"):
         return redirect(url_for("login"))
 
@@ -1439,7 +1166,7 @@ def edit(dress_id):
     next_page = request.args.get("next", url_for("index"))
 
     # Buscar item existente
-    response = table.get_item(Key={"dress_id": dress_id})
+    response = table.get_item(Key={"item_id": item_id})
     item = response.get("Item")
     if not item:
         flash("Vestido não encontrado.", "error")
@@ -1478,7 +1205,7 @@ def edit(dress_id):
 
         # Atualizar item no DynamoDB
         table.update_item(
-            Key={"dress_id": dress_id},
+            Key={"item_id": item_id},
             UpdateExpression="""
                 set rental_date = :r,
                     return_date = :rt,
@@ -1517,7 +1244,7 @@ def edit(dress_id):
 
     # Preparar dados para o template
     dress = {
-        "dress_id": item.get("dress_id"),
+        "item_id": item.get("item_id"),
         "description": item.get("description"),
         "client_name": item.get("client_name"),
         "client_tel": item.get("client_tel"),
@@ -1535,13 +1262,13 @@ def edit(dress_id):
     return render_template("edit.html", dress=dress)
 
 
-@app.route("/rent/<dress_id>", methods=["GET", "POST"])
-def rent(dress_id):
+@app.route("/rent/<item_id>", methods=["GET", "POST"])
+def rent(item_id):
     if not session.get("logged_in"):
         return redirect(url_for("login"))
 
     # Buscar item existente
-    response = table.get_item(Key={"dress_id": dress_id})
+    response = table.get_item(Key={"item_id": item_id})
     item = response.get("Item")
     if not item:
         flash("Vestido não encontrado.", "error")
@@ -1576,7 +1303,7 @@ def rent(dress_id):
 
         # Atualizar item no DynamoDB
         table.update_item(
-            Key={"dress_id": dress_id},
+            Key={"item_id": item_id},
             UpdateExpression="""
                 set rental_date = :r,
                     return_date = :rt,
@@ -1616,7 +1343,7 @@ def rent(dress_id):
 
     # Preparar dados para o template
     dress = {
-        "dress_id": item.get("dress_id"),
+        "item_id": item.get("item_id"),
         "description": item.get("description"),
         "client_name": item.get("client_name"),
         "client_tel": item.get("client_tel"),
@@ -1632,15 +1359,15 @@ def rent(dress_id):
     return render_template("rent.html", dress=dress)
 
 
-@app.route("/edit_small/<dress_id>", methods=["GET", "POST"])
-def edit_small(dress_id):
+@app.route("/edit_small/<item_id>", methods=["GET", "POST"])
+def edit_small(item_id):
     if not session.get("logged_in"):
         return redirect(url_for("login"))
 
     next_page = request.args.get("next", url_for("index"))
 
     # Buscar item existente
-    response = table.get_item(Key={"dress_id": dress_id})
+    response = table.get_item(Key={"item_id": item_id})
     item = response.get("Item")
     if not item:
         flash("Vestido não encontrado.", "error")
@@ -1667,7 +1394,7 @@ def edit_small(dress_id):
 
         # Atualizar item no DynamoDB
         table.update_item(
-            Key={"dress_id": dress_id},
+            Key={"item_id": item_id},
             UpdateExpression="""
                 set rental_date = :r,
                     return_date = :rt,
@@ -1701,7 +1428,7 @@ def edit_small(dress_id):
 
     # Preparar dados para o template
     dress = {
-        "dress_id": item.get("dress_id"),
+        "item_id": item.get("item_id"),
         "description": item.get("description"),
         "client_name": item.get("client_name"),
         "client_tel": item.get("client_tel"),
@@ -1717,8 +1444,8 @@ def edit_small(dress_id):
     return render_template("edit_small.html", dress=dress)
 
 
-@app.route("/delete/<dress_id>", methods=["POST"])
-def delete(dress_id):
+@app.route("/delete/<item_id>", methods=["POST"])
+def delete(item_id):
     if not session.get("logged_in"):
         return redirect(url_for("login"))
 
@@ -1727,7 +1454,7 @@ def delete(dress_id):
 
     try:
         # Obter o item antes de deletar
-        response = table.get_item(Key={"dress_id": dress_id})
+        response = table.get_item(Key={"item_id": item_id})
         item = response.get("Item")
         if item:
             image_url = item.get("image_url")
@@ -1742,7 +1469,7 @@ def delete(dress_id):
                 s3.delete_object(Bucket=s3_bucket_name, Key=object_key)
 
             # Apagar registro no DynamoDB
-            table.delete_item(Key={"dress_id": dress_id})
+            table.delete_item(Key={"item_id": item_id})
             flash("Item deletado com sucesso! ", "success")  # Mensagem de sucesso
         else:
             flash(
@@ -1760,8 +1487,8 @@ def delete(dress_id):
     return redirect(next_page)
 
 
-@app.route("/mark_returned/<dress_id>", methods=["GET", "POST"])
-def mark_returned(dress_id):
+@app.route("/mark_returned/<item_id>", methods=["GET", "POST"])
+def mark_returned(item_id):
     if not session.get("logged_in"):
         return redirect(url_for("login"))
 
@@ -1771,7 +1498,7 @@ def mark_returned(dress_id):
     # Atualiza status para 'returned'
     # Atualiza status para 'returned' e insere data de devolução
     table.update_item(
-        Key={"dress_id": dress_id},
+        Key={"item_id": item_id},
         UpdateExpression="set #status = :s, dev_date = :d",
         ExpressionAttributeNames={"#status": "status"},
         ExpressionAttributeValues={":s": "returned", ":d": dev_date},
@@ -1786,8 +1513,8 @@ def mark_returned(dress_id):
     return redirect(url_for("index"))
 
 
-@app.route("/mark_archived/<dress_id>", methods=["GET", "POST"])
-def mark_archived(dress_id):
+@app.route("/mark_archived/<item_id>", methods=["GET", "POST"])
+def mark_archived(item_id):
     if not session.get("logged_in"):
         return redirect(url_for("login"))
 
@@ -1795,7 +1522,7 @@ def mark_archived(dress_id):
     next_page = request.args.get("next", url_for("index"))
 
     # Obter o item completo do DynamoDB
-    response = table.get_item(Key={"dress_id": dress_id})
+    response = table.get_item(Key={"item_id": item_id})
     item = response.get("Item")
 
     if not item:
@@ -1805,8 +1532,8 @@ def mark_archived(dress_id):
     # Criar uma cópia do item antes de qualquer modificação
     new_dress_id = str(uuid.uuid4())
     copied_item = item.copy()  # Copiar todos os campos do item original
-    copied_item["dress_id"] = new_dress_id
-    copied_item["original_id"] = dress_id
+    copied_item["item_id"] = new_dress_id
+    copied_item["original_id"] = item_id
     copied_item["status"] = "historic"
 
     # Copiar imagem no S3 e atualizar a URL na cópia
@@ -1817,7 +1544,7 @@ def mark_archived(dress_id):
     table.put_item(Item=copied_item)
 
     # Campos permitidos no item original
-    allowed_fields = {"dress_id", "description", "image_url", "valor"}
+    allowed_fields = {"item_id", "description", "image_url", "valor"}
 
     # Filtrar o item original para manter apenas os campos permitidos
     filtered_item = {key: value for key, value in item.items() if key in allowed_fields}
@@ -1833,8 +1560,8 @@ def mark_archived(dress_id):
     return redirect(next_page)
 
 
-@app.route("/mark_available/<dress_id>", methods=["GET", "POST"])
-def mark_available(dress_id):
+@app.route("/mark_available/<item_id>", methods=["GET", "POST"])
+def mark_available(item_id):
     if not session.get("logged_in"):
         return redirect(url_for("login"))
 
@@ -1842,7 +1569,7 @@ def mark_available(dress_id):
     next_page = request.args.get("next", url_for("index"))
 
     # Obter o item completo do DynamoDB
-    response = table.get_item(Key={"dress_id": dress_id})
+    response = table.get_item(Key={"item_id": item_id})
     item = response.get("Item")
 
     if not item:
@@ -1852,7 +1579,7 @@ def mark_available(dress_id):
     if "archive" in next_page:
         # Atualiza status para 'returned' e insere data de devolução
         table.update_item(
-            Key={"dress_id": dress_id},
+            Key={"item_id": item_id},
             UpdateExpression="set #status = :s",
             ExpressionAttributeNames={"#status": "status"},
             ExpressionAttributeValues={":s": "available"},
@@ -1866,19 +1593,19 @@ def mark_available(dress_id):
     # Criar uma cópia do item antes de qualquer modificação
     new_dress_id = str(uuid.uuid4())
     copied_item = item.copy()  # Copiar todos os campos do item original
-    copied_item["dress_id"] = new_dress_id
-    copied_item["original_id"] = dress_id
+    copied_item["item_id"] = new_dress_id
+    copied_item["original_id"] = item_id
     copied_item["status"] = "historic"
 
     # Copiar imagem no S3 e atualizar a URL na cópia
-    if copied_item["image_url"] is not "":
+    if copied_item["image_url"] != "":
         copied_item["image_url"] = copy_image_in_s3(copied_item["image_url"])
 
     # Salvar o novo item no DynamoDB
     table.put_item(Item=copied_item)
 
     # Campos permitidos no item original
-    allowed_fields = {"dress_id", "description", "image_url", "valor"}
+    allowed_fields = {"item_id", "description", "image_url", "valor"}
 
     # Filtrar o item original para manter apenas os campos permitidos
     filtered_item = {key: value for key, value in item.items() if key in allowed_fields}
@@ -1916,13 +1643,13 @@ def verify_user(email, password):
     return False, None
 
 
-@app.route("/mark_rented/<dress_id>", methods=["POST"])
-def mark_rented(dress_id):
+@app.route("/mark_rented/<item_id>", methods=["POST"])
+def mark_rented(item_id):
     if not session.get("logged_in"):
         return redirect(url_for("login"))
     # Atualiza status para 'rented'
     table.update_item(
-        Key={"dress_id": dress_id},
+        Key={"item_id": item_id},
         UpdateExpression="set #status = :s",
         ExpressionAttributeNames={"#status": "status"},
         ExpressionAttributeValues={":s": "rented"},

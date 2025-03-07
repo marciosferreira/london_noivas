@@ -261,7 +261,7 @@
 
 
   <!-- Botão Deletar -->
-  <form method="POST" action="{{ url_for('delete', dress_id=dress.dress_id, next=request.url) }}" style="display: inline;">
+  <form method="POST" action="{{ url_for('delete', item_id=dress.item_id, next=request.url) }}" style="display: inline;">
     <button
       type="submit"
       class="action-button danger"
@@ -275,7 +275,7 @@
 
 
   <!-- Botão Editar -->
-  <a href="{{ url_for('edit', dress_id=dress.dress_id, next=request.url) }}" class="action-button warning" title="Editar">
+  <a href="{{ url_for('edit', item_id=dress.item_id, next=request.url) }}" class="action-button warning" title="Editar">
     Editar
   </a>
 
@@ -283,7 +283,7 @@
 
 
   <!-- Botão Arquivar com Confirmação -->
-<a href="{{ url_for('mark_archived', dress_id=dress.dress_id, next=request.url) }}"
+<a href="{{ url_for('mark_archived', item_id=dress.item_id, next=request.url) }}"
 class="action-button info"
 title="Arquivado"
 onclick="return confirm('Tem certeza de que deseja arquivar este item?');">
@@ -295,7 +295,7 @@ Arquivado
 
 
     <!-- Botão DIsponível com Confirmação -->
-<a href="{{ url_for('mark_available', dress_id=dress.dress_id, next=request.url) }}"
+<a href="{{ url_for('mark_available', item_id=dress.item_id, next=request.url) }}"
 class="action-button success"
 title="Disponível"
 onclick="return confirm('Tem certeza de que deseja disponibilizar este item?');">

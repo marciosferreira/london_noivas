@@ -301,7 +301,7 @@
 
 <div class="d-flex flex-wrap gap-2 justify-content-center align-items-center">
   <!-- Botão Deletar -->
-<form method="POST" action="{{ url_for('delete', dress_id=dress.dress_id, next=request.url) }}" style="display: inline;">
+<form method="POST" action="{{ url_for('delete', item_id=dress.item_id, next=request.url) }}" style="display: inline;">
   <button
     type="submit"
     class="action-button danger"
@@ -314,12 +314,12 @@
 
 
 <!-- Botão Editar -->
-<a href="{{ url_for('edit', dress_id=dress.dress_id, next=request.url) }}" class="action-button warning" title="Editar">
+<a href="{{ url_for('edit', item_id=dress.item_id, next=request.url) }}" class="action-button warning" title="Editar">
   Editar
 </a>
 
 <!-- Botão Disponível com Confirmação -->
-<a href="{{ url_for('mark_returned', dress_id=dress.dress_id, next=request.url) }}"
+<a href="{{ url_for('mark_returned', item_id=dress.item_id, next=request.url) }}"
    class="action-button success"
    title="Devolvido"
    onclick="return confirm('Tem certeza de que deseja marcar este item como devolvido?');">
