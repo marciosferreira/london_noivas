@@ -135,7 +135,7 @@
         {% if dress.image_url and dress.image_url != "" %}
         <img src="{{ dress.image_url }}" alt="Imagem do vestido" />
         {% else %}
-        <img src="{{ url_for('static', filename='dress-placeholder.png') }}" alt="Sem Imagem" />
+        <img src="{{ url_for('static', filename='item-placeholder.png') }}" alt="Sem Imagem" />
         {% endif %}
 
         <label for="image_file">Trocar a Foto:</label>

@@ -1209,12 +1209,20 @@ def reports():
                 end_date=end_date,
             )
 
-    # Obter apenas os registros do usuário logado e ignorar os deletados
-    response = itens_table.scan(
-        FilterExpression="#account_id = :account_id AND attribute_not_exists(#status) OR #status <> :deleted",
+    response = itens_table.query(
+        IndexName="account_id-index",  # Usando o GSI para buscar por account_id
+        KeyConditionExpression="#account_id = :account_id",
+        FilterExpression="#status IN (:rented, :returned, :archived, :history)",
         ExpressionAttributeNames={"#account_id": "account_id", "#status": "status"},
-        ExpressionAttributeValues={":account_id": account_id, ":deleted": "deleted"},
+        ExpressionAttributeValues={
+            ":account_id": account_id,
+            ":rented": "rented",
+            ":returned": "returned",
+            ":archived": "archived",
+            ":history": "history",
+        },
     )
+
     items = response.get("Items", [])
 
     # Inicializar os totais
@@ -2061,80 +2069,106 @@ def restore(item_id):
     next_page = request.args.get("next", url_for("trash"))
 
     try:
-        # Obter o item atual da rota
+        # 🔹 Obter o item atual (da rota)
         response = itens_table.get_item(Key={"item_id": item_id})
-        item = response.get("Item")
+        item_data = response.get("Item")
 
-        if not item:
+        if not item_data:
             flash("Item não encontrado.", "danger")
             return redirect(next_page)
 
-        # Obter o parent_item_id do item atual
-        parent_item_id = item.get("parent_item_id")
+        # 🔹 Obter o item original (parent_item_id)
+        parent_item_id = item_data.get("parent_item_id")
 
         if not parent_item_id:
             flash("Erro: O item atual não possui um parent_item_id válido.", "warning")
             return redirect(next_page)
 
-        # Buscar o item original no banco pelo parent_item_id
         parent_response = itens_table.get_item(Key={"item_id": parent_item_id})
-        parent_item = parent_response.get("Item")
+        parent_data = parent_response.get("Item")
 
-        if not parent_item:
+        if not parent_data:
             flash(
                 f"Erro: O item original (ID {parent_item_id}) não foi encontrado no banco.",
                 "warning",
             )
             return redirect(next_page)
 
-        # 🔹 Guardamos uma cópia do item original antes da atualização
-        original_data = parent_item.copy()
+        # 🔹 Armazenar os dados antes da troca
+        item_original_copy = item_data.copy()
+        parent_original_copy = parent_data.copy()
 
-        # Criar a expressão de atualização para sobrescrever os dados do item atual com os dados originais
-        update_expression = []
-        expression_values = {}
-        expression_attribute_names = {}  # Para evitar conflitos com palavras reservadas
+        # 🔹 Trocar os valores entre os dois itens (swap), exceto `item_id`
+        swap_data_item = {
+            key: value
+            for key, value in parent_original_copy.items()
+            if key != "item_id"
+        }
+        swap_data_parent = {
+            key: value for key, value in item_original_copy.items() if key != "item_id"
+        }
 
-        for key, value in original_data.items():
-            if key not in [
-                "item_id",
-                "parent_item_id",
-                "status",
-            ]:  # 🚨 Excluímos item_id, parent_item_id e status
-                alias = f":{key[:2]}"  # Criar alias para os valores
-                key_alias = (
-                    f"#{key}" if key in ["status"] else key
-                )  # Evitar conflito com palavras reservadas
+        # 🔹 Trocar os valores de `parent_item_id` corretamente
+        swap_data_item["parent_item_id"] = (
+            parent_item_id  # O item da rota recebe o item original
+        )
+        swap_data_parent["parent_item_id"] = (
+            item_id  # O item original recebe o item da rota
+        )
 
-                if key == "status":
-                    expression_attribute_names[key_alias] = "status"
+        # 🔹 Trocar os valores de `status`
+        swap_data_item["status"], swap_data_parent["status"] = (
+            item_original_copy["status"],
+            parent_original_copy["status"],
+        )
 
-                update_expression.append(f"{key_alias} = {alias}")
-                expression_values[alias] = value
-
-        # 🔹 Atualizar os campos deleted_by e edit_date
+        # 🔹 Atualizar `deleted_by` e `edit_date`
         username = session.get("username")
         edit_date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        swap_data_item["deleted_by"] = username
+        swap_data_item["edit_date"] = edit_date
+        swap_data_parent["deleted_by"] = username
+        swap_data_parent["edit_date"] = edit_date
 
-        update_expression.append("deleted_by = :deleted_by")
-        update_expression.append("edit_date = :edit_date")
-        expression_values[":deleted_by"] = username
-        expression_values[":edit_date"] = edit_date
+        # 🔹 Atualizar o item da rota (`item_id`) com os dados do item original
+        update_expression_item = []
+        expression_values_item = {}
+        expression_attribute_names_item = {"#status": "status"}  # Alias para status
 
-        # 🔹 Atualizar o item da rota (item_id) com os dados do item original, mantendo o status
+        for key, value in swap_data_item.items():
+            alias = f":val_{key}"  # Criar alias seguro
+            key_alias = f"#{key}" if key == "status" else key  # Usar alias para status
+
+            update_expression_item.append(f"{key_alias} = {alias}")
+            expression_values_item[alias] = value
+
         itens_table.update_item(
             Key={"item_id": item_id},
-            UpdateExpression="SET " + ", ".join(update_expression),
-            ExpressionAttributeNames=(
-                expression_attribute_names if expression_attribute_names else None
-            ),
-            ExpressionAttributeValues=expression_values,
+            UpdateExpression="SET " + ", ".join(update_expression_item),
+            ExpressionAttributeNames=expression_attribute_names_item,
+            ExpressionAttributeValues=expression_values_item,
         )
 
-        flash(
-            "Item atualizado com sucesso e agora contém as informações do item original!",
-            "success",
+        # 🔹 Atualizar o item original (`parent_item_id`) com os dados do item da rota
+        update_expression_parent = []
+        expression_values_parent = {}
+        expression_attribute_names_parent = {"#status": "status"}  # Alias para status
+
+        for key, value in swap_data_parent.items():
+            alias = f":val_{key}"  # Criar alias seguro
+            key_alias = f"#{key}" if key == "status" else key  # Usar alias para status
+
+            update_expression_parent.append(f"{key_alias} = {alias}")
+            expression_values_parent[alias] = value
+
+        itens_table.update_item(
+            Key={"item_id": parent_item_id},
+            UpdateExpression="SET " + ", ".join(update_expression_parent),
+            ExpressionAttributeNames=expression_attribute_names_parent,
+            ExpressionAttributeValues=expression_values_parent,
         )
+
+        flash("Item restaurado e os dados foram trocados com sucesso!", "success")
 
     except Exception as e:
         flash(f"Ocorreu um erro ao tentar restaurar o item: {str(e)}", "danger")
