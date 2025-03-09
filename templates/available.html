@@ -74,23 +74,23 @@
             </tr>
           </thead>
           <tbody>
-            {% for dress in dresses %}
+            {% for item in itens %}
             <tr>
               <td data-label="Imagem">
-                {% if dress.image_url and dress.image_url != "" %}
-                <img src="{{ dress.image_url }}" alt="Imagem do vestido" class="img-fluid dress-thumbnail" style="max-width: 100px" />
+                {% if item.image_url and item.image_url != "" %}
+                <img src="{{ item.image_url }}" alt="Imagem do vestido" class="img-fluid item-thumbnail" style="max-width: 100px" />
                 {% else %}
                 <img
-                  src="{{ url_for('static', filename='dress-placeholder.png') }}"
+                  src="{{ url_for('static', filename='item-placeholder.png') }}"
                   alt="Sem Imagem"
-                  class="img-fluid dress-thumbnail"
+                  class="img-fluid item-thumbnail"
                   style="max-width: 100px"
                 />
                 {% endif %}
               </td>
-              <td data-label="Descrição" style="white-space: pre-wrap; text-align: left">{{ dress.description }}</td>
-              <td data-label="Valor">{{ dress.valor }}</td>
-              <td data-label="Comentários" style="white-space: pre-wrap; text-align: left">{{ dress.comments }}</td>
+              <td data-label="Descrição" style="white-space: pre-wrap; text-align: left">{{ item.description }}</td>
+              <td data-label="Valor">{{ item.valor }}</td>
+              <td data-label="Comentários" style="white-space: pre-wrap; text-align: left">{{ item.comments }}</td>
 
 
 
@@ -102,7 +102,7 @@
 <!-- Início de Botões de Ação -->
 <div class="d-flex flex-wrap gap-2 justify-content-center align-items-center">
   <!-- Botão Deletar -->
-  <form method="POST" action="{{ url_for('delete', item_id=dress.item_id, next=request.url) }}" style="display: inline;">
+  <form method="POST" action="{{ url_for('delete', item_id=item.item_id, next=request.url) }}" style="display: inline;">
     <button
       type="submit"
       class="action-button danger"
@@ -117,11 +117,11 @@
 
 
     <!-- Botão Editar -->
-    <a href="{{ url_for('edit_small', item_id=dress.item_id, next=request.url) }}" class="action-button warning" title="Editar">
+    <a href="{{ url_for('edit_small', item_id=item.item_id, next=request.url) }}" class="action-button warning" title="Editar">
       Editar
     </a>
   <!-- Botão Alugar -->
-  <a href="{{ url_for('rent', item_id=dress.item_id, rent='true') }}" class="action-button success" title="Alugar">
+  <a href="{{ url_for('rent', item_id=item.item_id, rent='true') }}" class="action-button success" title="Alugar">
     Alugar
   </a>
 
@@ -129,7 +129,7 @@
 
 
   <!-- Botão Arquivar com Confirmação -->
-  <a href="{{ url_for('mark_archived', item_id=dress.item_id, next=request.url) }}"
+  <a href="{{ url_for('mark_archived', item_id=item.item_id, next=request.url) }}"
   class="action-button info"
   title="Arquivado"
   onclick="return confirm('Tem certeza de que deseja arquivar este item?');">
@@ -199,7 +199,7 @@
     <!-- Scripts personalizados -->
     <script>
       // Modal de imagem
-      const thumbnails = document.querySelectorAll('.dress-thumbnail');
+      const thumbnails = document.querySelectorAll('.item-thumbnail');
       const modalImg = document.getElementById('modalImg');
       const imageModal = new bootstrap.Modal(document.getElementById('imageModal'));
 

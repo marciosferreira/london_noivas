@@ -113,3 +113,114 @@ button.btn:hover {
     font-size: 18px; /* Botão maior em telas menores */
   }
 }
+
+/* Adicione estes estilos ao seu CSS existente ou inclua diretamente aqui */
+.tabs {
+  display: flex;
+  margin-bottom: 20px;
+}
+
+.tab {
+  flex: 1;
+  text-align: center;
+  padding: 10px;
+  cursor: pointer;
+  border-bottom: 2px solid #ddd;
+  transition: all 0.3s ease;
+}
+
+.tab.active {
+  border-bottom: 2px solid #ff4081;
+  font-weight: bold;
+}
+
+.form-container {
+  width: 100%;
+}
+
+#register-form,
+#forgot-password-form,
+#reset-password-form {
+  display: none;
+}
+
+.message {
+  background-color: #f8d7da;
+  color: #721c24;
+  padding: 10px;
+  border-radius: 5px;
+  margin-bottom: 15px;
+  text-align: center;
+}
+
+.success-message {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.forgot-password-link {
+  text-align: right;
+  margin-top: -10px;
+  margin-bottom: 15px;
+  font-size: 0.85em;
+}
+
+.forgot-password-link a {
+  color: #ff4081;
+  text-decoration: none;
+}
+
+.forgot-password-link a:hover {
+  text-decoration: underline;
+}
+
+.back-button {
+  font-size: 0.85em;
+  margin-top: 15px;
+  text-align: center;
+}
+
+.back-button a {
+  color: #666;
+  text-decoration: none;
+}
+
+.back-button a:hover {
+  text-decoration: underline;
+}
+
+html,
+body {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.login-container {
+  flex-grow: 1; /* Faz com que a caixa de login cresça e empurre o rodapé para baixo */
+}
+
+.footer {
+  text-align: center;
+  padding: 15px;
+  font-size: 0.9em;
+  color: #555;
+  background: #f8f9fa;
+  width: 100%;
+  position: relative;
+  bottom: 0;
+}
+
+.terms-container {
+  display: flex;
+  align-items: center;
+  gap: 5px; /* Espaço menor entre o checkbox e o texto */
+  font-size: 0.9em;
+}
+
+.terms-container input[type='checkbox'] {
+  width: 16px; /* Define um tamanho fixo menor */
+  height: 16px; /* Para manter a proporção correta */
+  margin: 0;
+  cursor: pointer;
+}

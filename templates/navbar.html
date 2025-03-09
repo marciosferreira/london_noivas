@@ -39,33 +39,45 @@
           <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Menu</a>
           <ul class="dropdown-menu dropdown-menu-end">
             <li>
-              <a class="dropdown-item {% if request.endpoint == 'reports' %}active{% endif %}" href="{{ url_for('reports') }}">Financeiro</a>
+              <a class="dropdown-item {% if request.endpoint == 'reports' %}active{% endif %}" href="{{ url_for('reports') }}">
+                Relatório Financeiro
+              </a>
             </li>
             <li>
               <hr class="dropdown-divider" />
             </li>
             <li>
-              <a class="dropdown-item {% if request.endpoint == 'archive' %}active{% endif %}" href="{{ url_for('archive') }}">Arquivo</a>
-            </li>
-            <li>
-              <hr class="dropdown-divider" />
-            </li>
-
-            <li>
-              <a class="dropdown-item {% if request.endpoint == 'history' %}active{% endif %}" href="{{ url_for('history') }}">Histórico</a>
-            </li>
-            <li>
-              <hr class="dropdown-divider" />
-            </li>
-            <li>
-              <a class="dropdown-item {% if request.endpoint == 'history' %}active{% endif %}" href="{{ url_for('adjustments') }}">Ajustes</a>
+              <a class="dropdown-item {% if request.endpoint == 'archive' %}active{% endif %}" href="{{ url_for('archive') }}">Itens arquivados</a>
             </li>
             <li>
               <hr class="dropdown-divider" />
             </li>
 
             <li>
-              <a class="dropdown-item text-danger" href="{{ url_for('logout') }}">Logout</a>
+              <a class="dropdown-item {% if request.endpoint == 'history' %}active{% endif %}" href="{{ url_for('history') }}">
+                Histórico de aluguéis
+              </a>
+            </li>
+            <li>
+              <hr class="dropdown-divider" />
+            </li>
+            <li>
+              <a class="dropdown-item {% if request.endpoint == 'adjustments' %}active{% endif %}" href="{{ url_for('adjustments') }}">
+                Ajustes da Conta
+              </a>
+            </li>
+            <li>
+              <hr class="dropdown-divider" />
+            </li>
+            <li>
+              <a class="dropdown-item {% if request.endpoint == 'trash' %}active{% endif %}" href="{{ url_for('trash') }}">Histórico de alterações</a>
+            </li>
+            <li>
+              <hr class="dropdown-divider" />
+            </li>
+
+            <li>
+              <a class="dropdown-item text-danger" href="{{ url_for('logout') }}">Sair</a>
             </li>
           </ul>
         </li>

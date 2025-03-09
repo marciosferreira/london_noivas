@@ -1,21 +1,34 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash
-from urllib.parse import urlparse
-import boto3
-from werkzeug.utils import secure_filename
-from dotenv import load_dotenv
-import datetime
-from flask import request, url_for
-import pytz
-import uuid
-from urllib.parse import urlparse
-from werkzeug.security import generate_password_hash, check_password_hash
-import uuid
-from boto3.dynamodb.conditions import Attr
 import os
-from flask import Flask, render_template, request, redirect, url_for, session
-from werkzeug.security import generate_password_hash, check_password_hash
-from functools import wraps
+import time
+import uuid
+import secrets
+import datetime
+import pytz
+
+# from functools import wraps
+from urllib.parse import urlparse
+
+import boto3
 from botocore.exceptions import ClientError
+
+# from boto3.dynamodb.conditions import Attr
+
+from dotenv import load_dotenv
+
+from flask import (
+    Flask,
+    render_template,
+    request,
+    redirect,
+    url_for,
+    session,
+    flash,
+    jsonify,
+)
+
+from werkzeug.utils import secure_filename
+from werkzeug.security import generate_password_hash, check_password_hash
+
 
 # Define o fuso horário de Manaus
 manaus_tz = pytz.timezone("America/Manaus")
@@ -37,7 +50,7 @@ dynamodb = boto3.resource(
     aws_secret_access_key=aws_secret_access_key,
 )
 
-table = dynamodb.Table(dynamodb_table_name)
+itens_table = dynamodb.Table(dynamodb_table_name)
 
 # Adicione uma nova tabela para usuários
 users_table_name = "alugueqqc_users"
@@ -130,121 +143,109 @@ def forgot_password():
     if not email:
         return render_template("login.html", error="Por favor, informe seu email")
 
-    if 1 == 1:
-        # Buscar o usuário pelo email no banco de dados
-        response = users_table.scan(
-            FilterExpression="email = :email",
-            ExpressionAttributeValues={":email": email},
+    # Buscar usuário pelo email no GSI
+    response = users_table.query(
+        IndexName="email-index",  # Usamos o GSI
+        KeyConditionExpression="email = :email",
+        ExpressionAttributeValues={":email": email},
+    )
+
+    if response.get("Items"):
+        user = response["Items"][0]
+        user_id = user["user_id"]
+        username = user["username"]
+
+        # Gerar token único para redefinição de senha
+        token = str(uuid.uuid4())
+
+        # Gerar timestamp UNIX para expiração (24h a partir de agora)
+        expires_at_unix = int(time.time()) + 24 * 3600
+
+        # Salvar token no DynamoDB
+        reset_tokens_table.put_item(
+            Item={
+                "token": token,
+                "user_id": user_id,
+                "expires_at_unix": expires_at_unix,  # Agora é um timestamp UNIX
+                "used": False,
+            }
         )
 
-        if response.get("Items"):
-            user = response["Items"][0]
-            email = user["email"]
-            username = user["username"]
+        # Montar o link de redefinição de senha
+        reset_link = f"{request.host_url.rstrip('/')}/reset-password/{token}"
 
-            # Gerar token único para redefinição de senha
-            token = str(uuid.uuid4())
-            expires_at = (
-                datetime.datetime.now() + datetime.timedelta(hours=24)
-            ).isoformat()
+        # Enviar email de recuperação de senha
+        send_password_reset_email(email, username, reset_link)
 
-            # Salvar token no DynamoDB
-            reset_tokens_table.put_item(
-                Item={
-                    "token": token,
-                    "email": email,
-                    "username": username,
-                    "expires_at": expires_at,
-                    "used": False,
-                }
+        # Se a conta ainda não foi confirmada, reenviaremos o e-mail de confirmação também
+        if not user.get("email_confirmed", False):
+            email_token = secrets.token_urlsafe(16)
+
+            # Atualizar banco com um novo token de confirmação
+            users_table.update_item(
+                Key={"user_id": user_id},
+                UpdateExpression="SET email_token = :token",
+                ExpressionAttributeValues={":token": email_token},
             )
 
-            # Montar o link de redefinição de senha
-            reset_link = f"{request.host_url.rstrip('/')}/reset-password/{token}"
+            # Montar link de confirmação
+            confirm_url = url_for("confirm_email", token=email_token, _external=True)
 
-            # Enviar email de recuperação de senha
-            send_password_reset_email(email, username, reset_link)
+            # Enviar e-mail de confirmação novamente
+            send_confirmation_email(email, username, confirm_url)
 
-            # Se a conta ainda não foi confirmada, reenviaremos o e-mail de confirmação também
-            if not user.get("email_confirmed", False):
-                email_token = secrets.token_urlsafe(16)
-
-                # Atualizar banco com um novo token de confirmação
-                users_table.update_item(
-                    Key={"email": email},
-                    UpdateExpression="SET email_token = :token",
-                    ExpressionAttributeValues={":token": email_token},
-                )
-
-                # Montar link de confirmação
-                confirm_url = url_for(
-                    "confirm_email", token=email_token, _external=True
-                )
-
-                # Enviar e-mail de confirmação novamente
-                send_confirmation_email(email, username, confirm_url)
-
-                flash(
-                    "Você solicitou redefiniçao de senha, mas ainda precisa confirmar seu e-mail!",
-                    "info",
-                )
-
-            return render_template(
-                "login.html",
-                message="Se este email estiver cadastrado, enviaremos instruções para redefinir sua senha.",
+            flash(
+                "Você solicitou redefinição de senha, mas ainda precisa confirmar seu e-mail!",
+                "info",
             )
 
-        # Mesmo se o email não existir, retornamos a mesma mensagem por segurança
         return render_template(
             "login.html",
             message="Se este email estiver cadastrado, enviaremos instruções para redefinir sua senha.",
         )
 
-    """except Exception as e:
-        print(f"Erro ao processar recuperação de senha: {e}")
-        return render_template(
-            "login.html", error="Ocorreu um erro ao processar sua solicitação"
-        )"""
+    # Mesmo se o email não existir, retornamos a mesma mensagem por segurança
+    return render_template(
+        "login.html",
+        message="Se este email estiver cadastrado, enviaremos instruções para redefinir sua senha.",
+    )
 
 
-# Rota para exibir a página de redefinição de senha
 @app.route("/reset-password/<token>", methods=["GET"])
 def reset_password_page(token):
     try:
-        # Verificar se o token existe e é válido
+        # Buscar token no DynamoDB
         response = reset_tokens_table.get_item(Key={"token": token})
 
-        if "Item" in response:
-            token_data = response["Item"]
+        # Se o token não existir, pode ter sido deletado pelo TTL
+        if "Item" not in response:
+            return render_template(
+                "login.html", error="Este link de redefinição é inválido ou expirou."
+            )
 
-            # Verificar se o token já foi usado
-            if token_data.get("used", False):
-                return render_template(
-                    "login.html", error="Este link de redefinição já foi usado"
-                )
+        token_data = response["Item"]
 
-            # Verificar se o token expirou
+        # Verificar se o token já foi usado
+        if token_data.get("used", False):
+            return render_template(
+                "login.html", error="Este link de redefinição já foi usado."
+            )
 
-            # delete miliseconds from string
-            expires_at_str = token_data["expires_at"]
-            if "." in expires_at_str:  # Se houver milissegundos, removemos
-                expires_at_str = expires_at_str.split(".")[0]
-            expires_at = datetime.datetime.fromisoformat(expires_at_str)
+        # Verificar se o token expirou (caso ainda esteja na tabela)
+        expires_at_unix = token_data.get("expires_at_unix")
 
-            if datetime.datetime.now() > expires_at:
-                return render_template(
-                    "login.html", error="Este link de redefinição expirou"
-                )
+        if expires_at_unix and time.time() > expires_at_unix:
+            return render_template(
+                "login.html", error="Este link de redefinição expirou."
+            )
 
-            # Token válido, mostrar página de redefinição
-            return render_template("login.html", reset_password=True, token=token)
-        else:
-            return render_template("login.html", error="Link de redefinição inválido")
+        # Token válido, mostrar página de redefinição
+        return render_template("reset_password.html", reset_password=True, token=token)
 
     except Exception as e:
         print(f"Erro ao verificar token: {e}")
         return render_template(
-            "login.html", error="Ocorreu um erro ao processar sua solicitação"
+            "login.html", error="Ocorreu um erro ao processar sua solicitação."
         )
 
 
@@ -284,9 +285,9 @@ def reset_password():
                     "login.html", error="Este link de redefinição já foi usado"
                 )
 
-            # delete miliseconds from string
+            # Remover milissegundos da data de expiração
             expires_at_str = token_data["expires_at"]
-            if "." in expires_at_str:  # Se houver milissegundos, removemos
+            if "." in expires_at_str:
                 expires_at_str = expires_at_str.split(".")[0]
             expires_at = datetime.datetime.fromisoformat(expires_at_str)
 
@@ -296,24 +297,24 @@ def reset_password():
                     "login.html", error="Este link de redefinição expirou"
                 )
 
-            # Token válido, atualizar a senha
-            email = token_data["email"]
+            # Token válido, obter user_id associado ao token
+            user_id = token_data["user_id"]  # 🔥 Agora usamos user_id, não email
             password_hash = generate_password_hash(new_password)
 
             # Atualizar senha no banco de dados
             users_table.update_item(
-                Key={"email": email},
-                UpdateExpression="set password_hash = :p, updated_at = :u",
+                Key={"user_id": user_id},  # 🔥 Atualizando pelo user_id
+                UpdateExpression="SET password_hash = :p, updated_at = :u",
                 ExpressionAttributeValues={
                     ":p": password_hash,
-                    ":u": datetime.datetime.now().date().isoformat(),
+                    ":u": datetime.datetime.now().isoformat(),
                 },
             )
 
             # Marcar o token como usado
             reset_tokens_table.update_item(
                 Key={"token": token},
-                UpdateExpression="set used = :u",
+                UpdateExpression="SET used = :u",
                 ExpressionAttributeValues={":u": True},
             )
 
@@ -335,18 +336,6 @@ def reset_password():
         )
 
 
-from flask import flash, redirect, url_for
-
-from werkzeug.security import generate_password_hash
-from botocore.exceptions import ClientError
-
-
-import secrets
-from flask import url_for
-from werkzeug.security import generate_password_hash
-from botocore.exceptions import ClientError
-
-
 def send_confirmation_email(email, username, email_token):
     SENDER = "nao_responda@alugueqqc.com.br"  # Deve ser um email verificado no SES
     RECIPIENT = email
@@ -360,7 +349,7 @@ def send_confirmation_email(email, username, email_token):
     <html>
     <head></head>
     <body>
-    <h1>Alugue QQC - Confirmação de E-mail</h1>
+    <h1>Confirmação de E-mail</h1>
     <p>Olá <strong>{username}</strong>,</p>
     <p>Obrigado por se cadastrar no Alugue QQC!</p>
     <p>Para ativar sua conta, clique no link abaixo:</p>
@@ -374,7 +363,7 @@ def send_confirmation_email(email, username, email_token):
 
     # Corpo do e-mail em texto puro (caso o cliente de e-mail não suporte HTML)
     BODY_TEXT = f"""
-    Alugue QQC - Confirmação de E-mail
+    Confirmação de E-mail
 
     Olá {username},
 
@@ -408,33 +397,6 @@ def send_confirmation_email(email, username, email_token):
         return False
 
 
-def create_user(email, username, password, role="user"):
-    password_hash = generate_password_hash(password)
-    email_token = secrets.token_urlsafe(16)
-
-    try:
-        users_table.put_item(
-            Item={
-                "email": email,
-                "username": username,
-                "password_hash": password_hash,
-                "role": role,
-                "created_at": datetime.datetime.now().date().isoformat(),
-                "email_confirmed": False,
-                "email_token": email_token,
-                "last_email_sent": datetime.datetime.now().date().isoformat(),
-            },
-            ConditionExpression="attribute_not_exists(email)",
-        )
-
-        send_confirmation_email(email, username, email_token)
-        return True
-    except ClientError as e:
-        if e.response["Error"]["Code"] == "ConditionalCheckFailedException":
-            return False
-        raise
-
-
 @app.route("/resend_confirmation")
 def resend_confirmation():
     email = request.args.get("email")
@@ -444,7 +406,11 @@ def resend_confirmation():
         return redirect(url_for("login"))
 
     try:
-        response = users_table.get_item(Key={"email": email})
+        response = users_table.query(
+            IndexName="email-index",  # Nome do GSI
+            KeyConditionExpression="email = :email",
+            ExpressionAttributeValues={":email": email},
+        )
         if "Item" not in response:
             flash("E-mail não encontrado.", "danger")
             return redirect(url_for("login"))
@@ -474,8 +440,25 @@ def resend_confirmation():
 
         # Gerar um novo token e atualizar o banco
         email_token = secrets.token_urlsafe(16)
+
+        # Primeiro, buscar o user_id pelo email no GSI
+        response = users_table.query(
+            IndexName="email-index",  # Nome do GSI
+            KeyConditionExpression="email = :email",
+            ExpressionAttributeValues={":email": email},
+        )
+
+        items = response.get("Items", [])
+        if not items:
+            raise ValueError("Usuário não encontrado para o email: " + email)
+
+        user_id = items[0]["user_id"]  # Obtendo o user_id correto
+
+        # Agora atualizar o email_token na tabela principal usando o user_id
         users_table.update_item(
-            Key={"email": email},
+            Key={
+                "user_id": user_id
+            },  # Alterado para user_id, que é a Partition Key correta
             UpdateExpression="SET email_token = :token, last_email_sent = :time",
             ExpressionAttributeValues={":token": email_token, ":time": now.isoformat()},
         )
@@ -495,17 +478,20 @@ def resend_confirmation():
 @app.route("/confirm_email/<token>")
 def confirm_email(token):
     try:
-        response = users_table.scan(
-            FilterExpression="email_token = :token",
+        # Buscar usuário pelo token no GSI
+        response = users_table.query(
+            IndexName="email_token-index",  # Nome do GSI
+            KeyConditionExpression="email_token = :token",
             ExpressionAttributeValues={":token": token},
         )
 
         if "Items" in response and response["Items"]:
             user = response["Items"][0]
-            email = user["email"]
+            user_id = user["user_id"]  # Obtendo o user_id correto
 
+            # Confirmar o email e remover o token
             users_table.update_item(
-                Key={"email": email},
+                Key={"user_id": user_id},
                 UpdateExpression="SET email_confirmed = :confirmed REMOVE email_token",
                 ExpressionAttributeValues={":confirmed": True},
             )
@@ -536,22 +522,91 @@ def get_all_users():
         return []
 
 
+@app.route("/change-password", methods=["POST"])
+def change_password():
+    if "email" not in session:
+        flash("Você precisa estar logado para alterar a senha.", "danger")
+        return redirect(url_for("login"))
+
+    user_id = session["user_id"]
+    current_password = request.form.get("current_password")
+    new_password = request.form.get("new_password")
+    confirm_new_password = request.form.get("confirm_new_password")
+
+    # Verificar se as senhas foram preenchidas corretamente
+    if not current_password or not new_password or not confirm_new_password:
+        flash("Todos os campos são obrigatórios.", "danger")
+        return redirect(url_for("adjustments"))
+
+    if len(new_password) < 8:
+        flash("A nova senha deve ter pelo menos 8 caracteres.", "danger")
+        return redirect(url_for("adjustments"))
+
+    if new_password != confirm_new_password:
+        flash("As novas senhas não coincidem.", "danger")
+        return redirect(url_for("adjustments"))
+
+    try:
+        # Buscar a senha do usuário no banco de dados
+        response = users_table.get_item(Key={"user_id": user_id})
+
+        if "Item" not in response:
+            flash("Usuário não encontrado.", "danger")
+            return redirect(url_for("adjustments"))
+
+        user = response["Item"]
+        stored_password_hash = user.get("password_hash")
+
+        # Verificar se a senha atual está correta
+        if not check_password_hash(stored_password_hash, current_password):
+            flash("Senha atual incorreta.", "danger")
+            return redirect(url_for("adjustments"))
+
+        # Gerar hash da nova senha
+        new_password_hash = generate_password_hash(new_password)
+
+        # Atualizar a senha no banco de dados
+        users_table.update_item(
+            Key={"user_id": user_id},
+            UpdateExpression="SET password_hash = :p, updated_at = :u",
+            ExpressionAttributeValues={
+                ":p": new_password_hash,
+                ":u": datetime.datetime.now().date().isoformat(),
+            },
+        )
+
+        flash("Senha alterada com sucesso!", "success")
+        return redirect(url_for("adjustments"))
+
+    except Exception as e:
+        print(f"Erro ao alterar a senha: {e}")
+        flash("Ocorreu um erro ao processar a alteração da senha.", "danger")
+        return redirect(url_for("adjustments"))
+
+
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
         email = request.form.get("email")
         username = request.form.get("username")
+        if len(username) < 3 or len(username) > 15:
+            flash("O nome de usuário deve ter entre 3 e 15 caracteres.", "danger")
+            return redirect("/register")
+
         password = request.form.get("password")
         confirm_password = request.form.get("confirm_password")
+
+        if len(password) < 8 or len(password) > 64:
+            flash("A senha deve ter entre 8 e 64 caracteres.", "danger")
+            return redirect("/register")
+
+        if password != confirm_password:
+            flash("As senhas não coincidem.", "danger")
+            return redirect("/register")
 
         if not email or not password:
             return render_template(
                 "login.html", error="Todos os campos são obrigatórios", register=True
-            )
-
-        if password != confirm_password:
-            return render_template(
-                "login.html", error="As senhas não coincidem", register=True
             )
 
         success = create_user(email, username, password)
@@ -568,6 +623,37 @@ def register():
             )
 
     return render_template("login.html", register=True)
+
+
+def create_user(email, username, password, role="admin"):
+    password_hash = generate_password_hash(password)
+    email_token = secrets.token_urlsafe(16)
+    user_id = str(uuid.uuid4())  # Gerando um ID único para o usuário
+    account_id = str(uuid.uuid4())  # Gerando um ID único para o usuário
+
+    try:
+        users_table.put_item(
+            Item={
+                "user_id": user_id,  # Chave primária única
+                "account_id": account_id,  # Chave primária única
+                "email": email,  # Indexável para buscas
+                "username": username,
+                "password_hash": password_hash,
+                "role": role,
+                "created_at": datetime.datetime.now().isoformat(),
+                "email_confirmed": False,
+                "email_token": email_token,
+                "last_email_sent": datetime.datetime.now().isoformat(),
+            },
+            ConditionExpression="attribute_not_exists(email)",  # Garantir que não há duplicação de email
+        )
+
+        send_confirmation_email(email, username, email_token)
+        return True
+    except ClientError as e:
+        if e.response["Error"]["Code"] == "ConditionalCheckFailedException":
+            return False
+        raise
 
 
 # Rota para administradores verem todos os usuários
@@ -598,7 +684,23 @@ def login():
         email = request.form.get("email")
         password = request.form.get("password")
 
-        response = users_table.get_item(Key={"email": email})
+        # Passo 1: Buscar o user_id pelo email no GSI
+        response = users_table.query(
+            IndexName="email-index",  # Nome do GSI
+            KeyConditionExpression="email = :email",
+            ExpressionAttributeValues={":email": email},
+        )
+
+        items = response.get("Items", [])
+        if not items:
+            flash("E-mail ou senha incorretos.", "danger")
+            return redirect(url_for("login"))
+
+        user_id = items[0]["user_id"]  # Obtendo o user_id correspondente ao email
+
+        # Passo 2: Buscar os dados completos do usuário na tabela principal
+        response = users_table.get_item(Key={"user_id": user_id})
+
         if "Item" not in response:
             flash("E-mail ou senha incorretos.", "danger")
             return redirect(url_for("login"))
@@ -606,6 +708,7 @@ def login():
         user = response["Item"]
         stored_hash = user["password_hash"]
         username = user["username"]
+        account_id = user["account_id"]
 
         # Se o e-mail não estiver confirmado, mostrar opção de reenvio
         if not user.get("email_confirmed", False):
@@ -626,28 +729,13 @@ def login():
             session["email"] = email
             session["role"] = user.get("role", "user")
             session["username"] = username
+            session["user_id"] = user_id
+            session["account_id"] = account_id
             return redirect(url_for("index"))
 
         flash("E-mail ou senha incorretos.", "danger")
 
     return render_template("login.html")
-
-
-def verify_user(email, password):
-    try:
-        response = users_table.get_item(
-            Key={"email": email}
-        )  # Alterado de username para email
-
-        print(response)
-        if "Item" in response:
-            stored_hash = response["Item"]["password_hash"]
-            return check_password_hash(stored_hash, password), response["Item"].get(
-                "role", "user"
-            )
-    except Exception as e:
-        print(f"Erro ao verificar usuário: {e}")
-    return False, None
 
 
 def upload_image_to_s3(image_file, prefix="images"):
@@ -781,17 +869,13 @@ def aplicar_filtro(
     return filtered_items
 
 
-from flask import render_template, request, session, redirect, url_for
-import datetime
-
-
-def listar_itens(status, template, title):
+def listar_itens(status_list, template, title):
     if not session.get("logged_in"):
         return redirect(url_for("login"))
 
-    # Obter o e-mail do usuário logado
-    user_email = session.get("email")
-    if not user_email:
+    # Obter o account_id do usuário logado
+    account_id = session.get("account_id")
+    if not account_id:
         print("Erro: Usuário não autenticado corretamente.")  # 🔍 Depuração
         return redirect(url_for("login"))
 
@@ -822,29 +906,23 @@ def listar_itens(status, template, title):
     return_start_date = parse_date(return_start_date)
     return_end_date = parse_date(return_end_date)
 
-    # Construir filtro do DynamoDB para status e email
-    filter_expression = "#email = :user_email"
-    expression_names = {"#email": "email"}
-    expression_values = {":user_email": user_email}
-
-    if status != "todos":
-        filter_expression += " AND #status = :status_filter"
-        expression_names["#status"] = "status"
-        expression_values[":status_filter"] = status
-
-    # Obter itens do banco filtrando por e-mail
-    response = table.scan(
-        FilterExpression=filter_expression,
-        ExpressionAttributeNames=expression_names,
-        ExpressionAttributeValues=expression_values,
+    # Fazer a consulta usando o GSI account_id-index
+    response = itens_table.query(
+        IndexName="account_id-index",  # Usando o GSI
+        KeyConditionExpression="#account_id = :account_id",
+        ExpressionAttributeNames={"#account_id": "account_id"},
+        ExpressionAttributeValues={":account_id": account_id},
     )
 
     items = response.get("Items", [])
     today = datetime.datetime.now().date()
 
-    # Aplicar filtros adicionais
+    # Aplicar filtros adicionais (ex: status, datas, etc.)
+    filtered_items = [item for item in items if item.get("status") in status_list]
+
+    # Aplicar filtros extras (datas, descrição, pagamento, etc.)
     filtered_items = aplicar_filtro(
-        items,
+        filtered_items,
         filtro,
         today,
         description=description,
@@ -870,7 +948,7 @@ def listar_itens(status, template, title):
 
     return render_template(
         template,
-        dresses=paginated_items,
+        itens=paginated_items,
         page=page,
         total_pages=total_pages,
         current_filter=filtro,
@@ -882,27 +960,32 @@ def listar_itens(status, template, title):
 
 @app.route("/")
 def index():
-    return listar_itens("rented", "index.html", "Itens Alugados")
+    return listar_itens(["rented"], "index.html", "Itens Alugados")
 
 
 @app.route("/returned")
 def returned():
-    return listar_itens("returned", "returned.html", "Itens Devolvidos")
+    return listar_itens(["returned"], "returned.html", "Itens Devolvidos")
 
 
 @app.route("/history")
 def history():
-    return listar_itens("historic", "history.html", "Histórico")
+    return listar_itens(["historic"], "history.html", "Histórico de Aluguéis")
 
 
 @app.route("/available")
 def available():
-    return listar_itens("available", "available.html", "Itens Disponíveis")
+    return listar_itens(["available"], "available.html", "Itens Disponíveis")
 
 
 @app.route("/archive")
 def archive():
-    return listar_itens("archived", "archive.html", "Arquivo")
+    return listar_itens(["archived"], "archive.html", "Itens Arquivados")
+
+
+@app.route("/trash")
+def trash():
+    return listar_itens(["deleted", "version"], "trash.html", "Histórico de alterações")
 
 
 @app.route("/add", methods=["GET", "POST"])
@@ -913,8 +996,9 @@ def add():
     # Recuperar a página de origem (next)
     next_page = request.args.get("next", url_for("index"))
 
-    # Obter o e-mail do usuário logado da sessão
-    user_email = session.get("email")  # Pega o email salvo na sessão
+    # Obter o user_id e account_id do usuário logado da sessão
+    user_id = session.get("user_id")
+    account_id = session.get("account_id")
 
     if request.method == "POST":
         # Capturar dados do formulário
@@ -934,7 +1018,7 @@ def add():
 
         # Validar se o status foi escolhido
         if status not in ["rented", "returned", "historic"]:
-            flash("Por favor, selecione o status do vestido.", "error")
+            flash("Por favor, selecione o status do item.", "danger")
             return render_template("add.html", next=next_page)
 
         # Validar e converter as datas
@@ -942,7 +1026,7 @@ def add():
             rental_date = datetime.datetime.strptime(rental_date_str, "%Y-%m-%d").date()
             return_date = datetime.datetime.strptime(return_date_str, "%Y-%m-%d").date()
         except ValueError:
-            flash("Formato de data inválido. Use AAAA-MM-DD.", "error")
+            flash("Formato de data inválido. Use AAAA-MM-DD.", "danger")
             return render_template("add.html", next=next_page)
 
         # Fazer upload da imagem, se houver
@@ -952,13 +1036,14 @@ def add():
                 image_file
             )  # Implemente esta função conforme necessário
 
-        # Gerar um ID único para o vestido (pode usar UUID)
+        # Gerar um ID único para o item
         item_id = str(uuid.uuid4())
 
-        # Adicionar o novo vestido ao DynamoDB
-        table.put_item(
+        # Adicionar o novo item ao DynamoDB
+        itens_table.put_item(
             Item={
-                "email": user_email,
+                "user_id": user_id,
+                "account_id": account_id,
                 "item_id": item_id,
                 "description": description,
                 "client_name": client_name,
@@ -981,7 +1066,7 @@ def add():
         }
 
         flash(
-            f"Vestido adicionado em <a href='{status}'>{status_map[status]}</a>.",
+            f"Item adicionado em <a href='{status}'>{status_map[status]}</a>.",
             "success",
         )
         # Redirecionar para a página de origem
@@ -998,8 +1083,9 @@ def add_small():
     # Recuperar a página de origem (next)
     next_page = request.args.get("next", url_for("index"))
 
-    # Obter o e-mail do usuário logado da sessão
-    user_email = session.get("email")  # Pega o email salvo na sessão
+    # Obter o user_id e account_id do usuário logado da sessão
+    user_id = session.get("user_id")
+    account_id = session.get("account_id")
 
     if request.method == "POST":
         # Capturar dados do formulário
@@ -1017,7 +1103,7 @@ def add_small():
 
         # Validar se o status foi escolhido
         if status not in ["rented", "returned", "available", "archived"]:
-            flash("Por favor, selecione o status do vestido.", "error")
+            flash("Por favor, selecione o status do item.", "danger")
             return render_template(next_page)
 
         # Fazer upload da imagem, se houver
@@ -1027,14 +1113,15 @@ def add_small():
                 image_file
             )  # Implemente esta função conforme necessário
 
-        # Gerar um ID único para o vestido (pode usar UUID)
+        # Gerar um ID único para o item (pode usar UUID)
         item_id = str(uuid.uuid4())
 
-        # Adicionar o novo vestido ao DynamoDB
-        table.put_item(
+        # Adicionar o novo item ao DynamoDB
+        itens_table.put_item(
             Item={
+                "user_id": user_id,
+                "account_id": account_id,
                 "item_id": item_id,
-                "email": user_email,
                 "description": description,
                 "client_name": client_name,
                 "client_tel": client_tel,
@@ -1049,7 +1136,7 @@ def add_small():
             }
         )
 
-        flash("Vestido adicionado com sucesso.", "success")
+        flash("Item adicionado com sucesso.", "success")
         # Redirecionar para a página de origem
         return redirect(next_page)
 
@@ -1057,9 +1144,6 @@ def add_small():
 
 
 def copy_image_in_s3(original_url):
-    import boto3
-    from urllib.parse import urlparse
-    import uuid
 
     # Inicializa o cliente S3
     s3 = boto3.client("s3")
@@ -1097,8 +1181,8 @@ def reports():
         return redirect(url_for("login"))
 
     # Obter o e-mail do usuário logado
-    user_email = session.get("email")
-    if not user_email:
+    account_id = session.get("account_id")
+    if not account_id:
         print("Erro: Usuário não autenticado corretamente.")  # 🔍 Depuração
         return redirect(url_for("login"))
 
@@ -1115,7 +1199,7 @@ def reports():
                 request.form.get("end_date"), "%Y-%m-%d"
             ).date()
         except ValueError:
-            flash("Formato de data inválido. Use AAAA-MM-DD.", "error")
+            flash("Formato de data inválido. Use AAAA-MM-DD.", "danger")
             return render_template(
                 "reports.html",
                 total_paid=0,
@@ -1125,11 +1209,11 @@ def reports():
                 end_date=end_date,
             )
 
-    # Obter apenas os registros do usuário logado
-    response = table.scan(
-        FilterExpression="#email = :user_email",
-        ExpressionAttributeNames={"#email": "email"},
-        ExpressionAttributeValues={":user_email": user_email},
+    # Obter apenas os registros do usuário logado e ignorar os deletados
+    response = itens_table.scan(
+        FilterExpression="#account_id = :account_id AND attribute_not_exists(#status) OR #status <> :deleted",
+        ExpressionAttributeNames={"#account_id": "account_id", "#status": "status"},
+        ExpressionAttributeValues={":account_id": account_id, ":deleted": "deleted"},
     )
     items = response.get("Items", [])
 
@@ -1179,84 +1263,99 @@ def edit(item_id):
     if not session.get("logged_in"):
         return redirect(url_for("login"))
 
-    # Recuperar a página de origem (next)
     next_page = request.args.get("next", url_for("index"))
 
     # Buscar item existente
-    response = table.get_item(Key={"item_id": item_id})
+    response = itens_table.get_item(Key={"item_id": item_id})
     item = response.get("Item")
+
     if not item:
-        flash("Vestido não encontrado.", "error")
+        flash("Item não encontrado.", "danger")
         return redirect(url_for("index"))
 
     if request.method == "POST":
-        status = request.form.get("status")
-        rental_date_str = request.form.get("rental_date")
-        return_date_str = request.form.get("return_date")
-        dev_date = request.form.get("dev_date")
-        description = request.form.get("description").strip()
-        client_name = request.form.get("client_name")
-        client_tel = request.form.get("client_tel")
-        retirado = "retirado" in request.form  # Verifica presença do checkbox
-        valor = request.form.get("valor")
-        pagamento = request.form.get("pagamento")
-        comments = request.form.get("comments").strip()
-        image_file = request.files.get("image_file")
-
-        # Validar e converter as datas
-        try:
-            rental_date = datetime.datetime.strptime(rental_date_str, "%Y-%m-%d").date()
-            return_date = datetime.datetime.strptime(return_date_str, "%Y-%m-%d").date()
-            # dev_date = datetime.strptime(dev_date, "%Y-%m-%d").date()
-
-        except ValueError:
-            flash("Formato de data inválido. Use AAAA-MM-DD.", "error")
-            return render_template("edit.html")
+        # Obter novos dados do formulário
+        new_data = {
+            "status": request.form.get("status") or None,
+            "rental_date": request.form.get("rental_date") or None,
+            "return_date": request.form.get("return_date") or None,
+            "dev_date": request.form.get("dev_date") or None,
+            "description": request.form.get("description", "").strip() or None,
+            "client_name": request.form.get("client_name") or None,
+            "client_tel": request.form.get("client_tel") or None,
+            "retirado": "retirado" in request.form,  # Checkbox
+            "valor": request.form.get("valor", "").strip() or None,
+            "pagamento": request.form.get("pagamento") or None,
+            "comments": request.form.get("comments", "").strip() or None,
+            "image_url": item.get(
+                "image_url", ""
+            ),  # Manter valor antigo se não houver upload
+        }
 
         # Fazer upload da imagem, se houver
-        new_image_url = item.get("image_url", "")
-        if image_file and image_file.filename != "":
-            new_image_url = upload_image_to_s3(
-                image_file
-            )  # Implemente esta função conforme necessário
+        image_file = request.files.get("image_file")
+        if image_file and image_file.filename:
+            new_data["image_url"] = upload_image_to_s3(image_file)
 
-        # Atualizar item no DynamoDB
-        table.update_item(
+        # Converter datas para o formato correto
+        if new_data["rental_date"] and isinstance(
+            new_data["rental_date"], datetime.date
+        ):
+            new_data["rental_date"] = new_data["rental_date"].strftime("%Y-%m-%d")
+
+        if new_data["return_date"] and isinstance(
+            new_data["return_date"], datetime.date
+        ):
+            new_data["return_date"] = new_data["return_date"].strftime("%Y-%m-%d")
+
+        if new_data["dev_date"] and isinstance(new_data["dev_date"], datetime.date):
+            new_data["dev_date"] = new_data["dev_date"].strftime("%Y-%m-%d")
+
+        # Comparar novos valores com os antigos
+        changes = {
+            key: value for key, value in new_data.items() if item.get(key) != value
+        }
+
+        if not changes:  # Se não houver mudanças, apenas exibir a mensagem e sair
+            flash("Nenhuma alteração foi feita.", "warning")
+            return redirect(next_page)
+
+        # Criar cópia do item somente se houver mudanças
+        new_item_id = str(uuid.uuid4())
+        edited_date = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+
+        copied_item = {
+            key: value
+            for key, value in item.items()
+            if key != "item_id" and value not in [None, ""]
+        }
+        copied_item["item_id"] = new_item_id
+        copied_item["parent_item_id"] = item.get("item_id", "")
+        copied_item["status"] = "version"
+        copied_item["edited_date"] = edited_date
+        copied_item["edited_by"] = session.get("username")
+        copied_item["previous_status"] = item.get("status")
+
+        # Salvar a cópia no DynamoDB
+        itens_table.put_item(Item=copied_item)
+
+        # Criar dinamicamente os updates para evitar erro com valores vazios
+        update_expression = []
+        expression_values = {}
+
+        for key, value in changes.items():
+            alias = f":{key[:2]}"  # Criar alias para valores
+            update_expression.append(f"{key} = {alias}")
+            expression_values[alias] = value
+
+        # Atualizar o item original apenas se houver mudanças
+        itens_table.update_item(
             Key={"item_id": item_id},
-            UpdateExpression="""
-                set rental_date = :r,
-                    return_date = :rt,
-                    comments = :c,
-                    image_url = :i,
-                    description = :dc,
-                    client_name = :cn,
-                    client_tel = :ct,
-                    retirado = :ret,
-                    valor = :val,
-                    pagamento = :pag,
-                    dev_date =:dd,
-                    #status = :st
-            """,
-            ExpressionAttributeNames={
-                "#status": "status"  # Define um alias para o atributo reservado
-            },
-            ExpressionAttributeValues={
-                ":r": rental_date.strftime("%Y-%m-%d"),
-                ":rt": return_date.strftime("%Y-%m-%d"),
-                ":c": comments,
-                ":i": new_image_url,
-                ":dc": description,
-                ":cn": client_name,
-                ":ct": client_tel,
-                ":ret": retirado,
-                ":val": valor,
-                ":pag": pagamento,
-                ":st": status,
-                ":dd": dev_date,
-            },
+            UpdateExpression="SET " + ", ".join(update_expression),
+            ExpressionAttributeValues=expression_values,
         )
 
-        flash("Vestido atualizado com sucesso.", "success")
+        flash("Item atualizado com sucesso.", "success")
         return redirect(next_page)
 
     # Preparar dados para o template
@@ -1279,16 +1378,107 @@ def edit(item_id):
     return render_template("edit.html", dress=dress)
 
 
+@app.route("/purge_deleted_items", methods=["GET", "POST"])
+def purge_deleted_items():
+    if not session.get("logged_in"):
+        return jsonify({"error": "Acesso não autorizado"}), 403
+
+    try:
+        # Obter a data atual e calcular o limite de 30 dias atrás
+        hoje = datetime.datetime.utcnow()
+        limite_data = hoje - datetime.timedelta(days=30)
+
+        # Buscar todos os itens com status "deleted"
+        response = itens_table.scan(
+            FilterExpression="#status = :deleted",
+            ExpressionAttributeNames={"#status": "status"},
+            ExpressionAttributeValues={":deleted": "deleted"},
+        )
+
+        itens_deletados = response.get("Items", [])
+        total_itens_removidos = 0
+        total_imagens_preservadas = 0
+
+        for item in itens_deletados:
+            deleted_date_str = item.get("deleted_date")
+            user_id = item.get("user_id")  # Chave primária para verificação
+            image_url = item.get("image_url")
+
+            if deleted_date_str:
+                try:
+                    # Converter string de data para objeto datetime
+                    deleted_date = datetime.datetime.strptime(
+                        deleted_date_str, "%d/%m/%Y %H:%M:%S"
+                    )
+
+                    # Verificar se passou dos 30 dias
+                    if deleted_date < limite_data:
+                        item_id = item["item_id"]
+
+                        # Se a imagem existe, verificar se ela é usada em outro item ativo
+                        deletar_imagem = True
+                        if (
+                            user_id
+                            and image_url
+                            and isinstance(image_url, str)
+                            and image_url.strip()
+                        ):
+                            # Buscar todos os itens com o mesmo user_id
+                            response_email = itens_table.scan(
+                                FilterExpression="user_id = :user_id",
+                                ExpressionAttributeValues={":user_id": user_id},
+                            )
+
+                            itens_com_mesmo_user_id = response_email.get("Items", [])
+
+                            # Verificar se a imagem está em uso por outro item que não está "deleted"
+                            for outro_item in itens_com_mesmo_user_id:
+                                if (
+                                    outro_item.get("image_url") == image_url
+                                    and outro_item.get("status") != "deleted"
+                                ):
+                                    deletar_imagem = False
+                                    total_imagens_preservadas += 1
+                                    break  # Se encontrou um ativo, não precisa verificar mais
+
+                        # Se não houver outro item ativo usando a mesma imagem, deletar do S3
+                        if (
+                            deletar_imagem
+                            and isinstance(image_url, str)
+                            and image_url.strip()
+                        ):
+                            parsed_url = urlparse(image_url)
+                            object_key = parsed_url.path.lstrip("/")
+                            s3.delete_object(Bucket=s3_bucket_name, Key=object_key)
+
+                        # Remover o item do DynamoDB
+                        itens_table.delete_item(Key={"item_id": item_id})
+                        total_itens_removidos += 1
+
+                except ValueError:
+                    print(f"Erro ao converter a data de exclusão: {deleted_date_str}")
+
+        return jsonify(
+            {
+                "message": f"{total_itens_removidos} itens foram excluídos definitivamente.",
+                "imagens_preservadas": total_imagens_preservadas,
+            }
+        )
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/rent/<item_id>", methods=["GET", "POST"])
 def rent(item_id):
     if not session.get("logged_in"):
         return redirect(url_for("login"))
 
     # Buscar item existente
-    response = table.get_item(Key={"item_id": item_id})
+    response = itens_table.get_item(Key={"item_id": item_id})
     item = response.get("Item")
     if not item:
-        flash("Vestido não encontrado.", "error")
+        flash("Item não encontrado.", "danger")
         return redirect(url_for("available"))
 
     if request.method == "POST":
@@ -1308,7 +1498,7 @@ def rent(item_id):
             rental_date = datetime.datetime.strptime(rental_date_str, "%Y-%m-%d").date()
             return_date = datetime.datetime.strptime(return_date_str, "%Y-%m-%d").date()
         except ValueError:
-            flash("Formato de data inválido. Use AAAA-MM-DD.", "error")
+            flash("Formato de data inválido. Use AAAA-MM-DD.", "danger")
             return render_template("edit.html")
 
         # Fazer upload da imagem, se houver
@@ -1319,7 +1509,7 @@ def rent(item_id):
             )  # Implemente esta função conforme necessário
 
         # Atualizar item no DynamoDB
-        table.update_item(
+        itens_table.update_item(
             Key={"item_id": item_id},
             UpdateExpression="""
                 set rental_date = :r,
@@ -1384,63 +1574,77 @@ def edit_small(item_id):
     next_page = request.args.get("next", url_for("index"))
 
     # Buscar item existente
-    response = table.get_item(Key={"item_id": item_id})
+    response = itens_table.get_item(Key={"item_id": item_id})
     item = response.get("Item")
     if not item:
-        flash("Vestido não encontrado.", "error")
+        flash("Item não encontrado.", "danger")
         return redirect(url_for("available"))
 
     if request.method == "POST":
-        rental_date_str = None
-        return_date_str = None
-        description = request.form.get("description").strip()
-        client_name = None
-        client_tel = None
-        retirado = None
-        valor = request.form.get("valor")
-        pagamento = None
-        comments = request.form.get("comments").strip()
-        image_file = request.files.get("image_file")
+        # Obter novos dados do formulário
+        new_data = {
+            "rental_date": request.form.get("rental_date") or None,
+            "return_date": request.form.get("return_date") or None,
+            "description": request.form.get("description", "").strip() or None,
+            "client_name": request.form.get("client_name") or None,
+            "client_tel": request.form.get("client_tel") or None,
+            "retirado": request.form.get("retirado") or None,
+            "valor": request.form.get("valor", "").strip() or None,
+            "pagamento": request.form.get("pagamento") or None,
+            "comments": request.form.get("comments", "").strip() or None,
+            "image_url": item.get("image_url", ""),  # Mantém o valor antigo por padrão
+        }
 
         # Fazer upload da imagem, se houver
-        new_image_url = item.get("image_url", "")
-        if image_file and image_file.filename != "":
-            new_image_url = upload_image_to_s3(
-                image_file
-            )  # Implemente esta função conforme necessário
+        image_file = request.files.get("image_file")
+        if image_file and image_file.filename:
+            new_data["image_url"] = upload_image_to_s3(image_file)
 
-        # Atualizar item no DynamoDB
-        table.update_item(
+        # Comparar novos valores com os antigos
+        changes = {
+            key: value for key, value in new_data.items() if item.get(key) != value
+        }
+
+        if not changes:  # Se não houver mudanças, exibir a mensagem e não salvar nada
+            flash("Nenhuma alteração foi feita.", "warning")
+            return redirect(next_page)
+
+        # Criar cópia do item somente se houver mudanças
+        new_item_id = str(uuid.uuid4())
+        edited_date = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+
+        copied_item = {
+            key: value
+            for key, value in item.items()
+            if key != "item_id" and value not in [None, ""]
+        }
+        copied_item["item_id"] = new_item_id
+        copied_item["parent_item_id"] = item.get("item_id", "")
+        copied_item["status"] = "version"
+        copied_item["edited_date"] = edited_date
+        copied_item["deleted_by"] = session.get("username")
+        copied_item["previous_status"] = item.get("status")
+
+        # Salvar a cópia no DynamoDB
+        itens_table.put_item(Item=copied_item)
+
+        # Criar dinamicamente os updates para evitar erro com valores vazios
+        update_expression = []
+        expression_values = {}
+
+        for key, value in changes.items():
+            alias = f":{key[:2]}"  # Criar alias para valores
+            update_expression.append(f"{key} = {alias}")
+            expression_values[alias] = value
+
+        # Atualizar apenas se houver mudanças
+        itens_table.update_item(
             Key={"item_id": item_id},
-            UpdateExpression="""
-                set rental_date = :r,
-                    return_date = :rt,
-                    comments = :c,
-                    image_url = :i,
-                    description = :dc,
-                    client_name = :cn,
-                    client_tel = :ct,
-                    retirado = :ret,
-                    valor = :val,
-                    pagamento = :pag
-            """,
-            ExpressionAttributeValues={
-                ":r": rental_date_str,
-                ":rt": return_date_str,
-                ":c": comments,
-                ":i": new_image_url,
-                ":dc": description,
-                ":cn": client_name,
-                ":ct": client_tel,
-                ":ret": retirado,
-                ":val": valor,
-                ":pag": pagamento,
-            },
+            UpdateExpression="SET " + ", ".join(update_expression),
+            ExpressionAttributeValues=expression_values,
         )
 
-        flash("Vestido atualizado com sucesso.", "success")
-        # Redirecionar de acordo com o status atual
-
+        flash("Item atualizado com sucesso.", "success")
         return redirect(next_page)
 
     # Preparar dados para o template
@@ -1466,40 +1670,54 @@ def delete(item_id):
     if not session.get("logged_in"):
         return redirect(url_for("login"))
 
-    # Recuperar a página de origem (next)
+    deleted_by = session.get("username")
     next_page = request.args.get("next", url_for("index"))
 
     try:
-        # Obter o item antes de deletar
-        response = table.get_item(Key={"item_id": item_id})
+        # Obter o item antes de modificar
+        response = itens_table.get_item(Key={"item_id": item_id})
         item = response.get("Item")
+
         if item:
-            image_url = item.get("image_url")
+            # Obter data e hora atuais no formato brasileiro
+            deleted_date = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
 
-            # Se existe image_url, tentar deletar o objeto no S3
-            if image_url and image_url.strip():
-                parsed_url = urlparse(image_url)
-                object_key = parsed_url.path.lstrip(
-                    "/"
-                )  # Extrair a chave do objeto no S3
-                # Deletar o objeto do S3
-                s3.delete_object(Bucket=s3_bucket_name, Key=object_key)
+            # Atualizar o status do item principal para "deleted"
+            itens_table.update_item(
+                Key={"item_id": item_id},
+                UpdateExpression="SET previous_status = #status, #status = :deleted, deleted_date = :deleted_date, deleted_by = :deleted_by",
+                ExpressionAttributeNames={
+                    "#status": "status"  # Alias para evitar conflito com palavra reservada
+                },
+                ExpressionAttributeValues={
+                    ":deleted": "deleted",
+                    ":deleted_date": deleted_date,
+                    ":deleted_by": deleted_by,
+                },
+            )
 
-            # Apagar registro no DynamoDB
-            table.delete_item(Key={"item_id": item_id})
-            flash("Item deletado com sucesso! ", "success")  # Mensagem de sucesso
-        else:
+            # Buscar e deletar todos os itens relacionados na tabela alugueqqc_itens
+            response = itens_table.query(
+                IndexName="parent_item_id-index",  # Nome do índice secundário global (GSI)
+                KeyConditionExpression="parent_item_id = :parent_id",
+                ExpressionAttributeValues={":parent_id": item_id},
+            )
+
+            related_items = response.get("Items", [])
+
+            for related_item in related_items:
+                itens_table.delete_item(Key={"item_id": related_item["item_id"]})
+
             flash(
-                "Vestido não encontrado.", "error"
-            )  # Mensagem de erro para vestido inexistente
+                "Item marcado como deletado. Ele ficará disponível na 'lixeira' por 30 dias, e seus itens relacionados foram removidos.",
+                "success",
+            )
+
+        else:
+            flash("Item não encontrado.", "danger")
 
     except Exception as e:
-        # Registrar ou tratar o erro aqui, se necessário
-        flash(
-            f"Ocorreu um erro ao tentar deletar o vestido: {str(e)}", "error"
-        )  # Mensagem de erro
-
-    # Redirecionar para a página anterior (index ou returned)
+        flash(f"Ocorreu um erro ao tentar deletar o item: {str(e)}", "danger")
 
     return redirect(next_page)
 
@@ -1514,14 +1732,12 @@ def mark_returned(item_id):
 
     # Atualiza status para 'returned'
     # Atualiza status para 'returned' e insere data de devolução
-    table.update_item(
+    itens_table.update_item(
         Key={"item_id": item_id},
         UpdateExpression="set #status = :s, dev_date = :d",
         ExpressionAttributeNames={"#status": "status"},
         ExpressionAttributeValues={":s": "returned", ":d": dev_date},
     )
-
-    # flash("Vestido devolvido com sucesso.", "success")
 
     flash(
         "Item <a href='/returned'>devolvido</a> com sucesso.",
@@ -1539,11 +1755,11 @@ def mark_archived(item_id):
     next_page = request.args.get("next", url_for("index"))
 
     # Obter o item completo do DynamoDB
-    response = table.get_item(Key={"item_id": item_id})
+    response = itens_table.get_item(Key={"item_id": item_id})
     item = response.get("Item")
 
     if not item:
-        flash("Vestido não encontrado.", "error")
+        flash("Item não encontrado.", "danger")
         return redirect(url_for("returned"))
 
     # Criar uma cópia do item antes de qualquer modificação
@@ -1558,17 +1774,17 @@ def mark_archived(item_id):
         copied_item["image_url"] = copy_image_in_s3(copied_item["image_url"])
 
     # Salvar o novo item no DynamoDB
-    table.put_item(Item=copied_item)
+    itens_table.put_item(Item=copied_item)
 
     # Campos permitidos no item original
-    allowed_fields = {"item_id", "description", "image_url", "valor", "email"}
+    allowed_fields = {"item_id", "description", "image_url", "valor", "user_id"}
 
     # Filtrar o item original para manter apenas os campos permitidos
     filtered_item = {key: value for key, value in item.items() if key in allowed_fields}
     filtered_item["status"] = "archived"
 
     # Atualizar o item original no DynamoDB
-    table.put_item(Item=filtered_item)
+    itens_table.put_item(Item=filtered_item)
 
     flash(
         "Item <a href='/archive'>arquivado</a> e registrado no <a href='/history'>histórico</a>.",
@@ -1586,16 +1802,16 @@ def mark_available(item_id):
     next_page = request.args.get("next", url_for("index"))
 
     # Obter o item completo do DynamoDB
-    response = table.get_item(Key={"item_id": item_id})
+    response = itens_table.get_item(Key={"item_id": item_id})
     item = response.get("Item")
 
     if not item:
-        flash("Vestido não encontrado.", "error")
+        flash("Item não encontrado.", "danger")
         return redirect(url_for("returned"))
 
     if "archive" in next_page:
         # Atualiza status para 'returned' e insere data de devolução
-        table.update_item(
+        itens_table.update_item(
             Key={"item_id": item_id},
             UpdateExpression="set #status = :s",
             ExpressionAttributeNames={"#status": "status"},
@@ -1619,17 +1835,17 @@ def mark_available(item_id):
         copied_item["image_url"] = copy_image_in_s3(copied_item["image_url"])
 
     # Salvar o novo item no DynamoDB
-    table.put_item(Item=copied_item)
+    itens_table.put_item(Item=copied_item)
 
     # Campos permitidos no item original
-    allowed_fields = {"item_id", "description", "image_url", "valor", "email"}
+    allowed_fields = {"item_id", "description", "image_url", "valor", "user_id"}
 
     # Filtrar o item original para manter apenas os campos permitidos
     filtered_item = {key: value for key, value in item.items() if key in allowed_fields}
     filtered_item["status"] = "available"
 
     # Atualizar o item original no DynamoDB
-    table.put_item(Item=filtered_item)
+    itens_table.put_item(Item=filtered_item)
 
     flash(
         "Item <a href='/available'>disponível</a> e registrado no <a href='/history'>histórico</a>.",
@@ -1639,9 +1855,9 @@ def mark_available(item_id):
     return redirect(url_for("returned"))
 
 
-def verify_user(email, password):
+"""def verify_user(email, password):
     try:
-        response = users_table.get_item(Key={"email": email})
+        response = users_table.get_item(Key={"user_id": user_id})
 
         if "Item" in response:
             user = response["Item"]
@@ -1655,7 +1871,7 @@ def verify_user(email, password):
 
     except Exception as e:
         print(f"Erro ao verificar usuário: {e}")
-    return False, None
+    return False, None"""
 
 
 @app.route("/mark_rented/<item_id>", methods=["POST"])
@@ -1663,7 +1879,7 @@ def mark_rented(item_id):
     if not session.get("logged_in"):
         return redirect(url_for("login"))
     # Atualiza status para 'rented'
-    table.update_item(
+    itens_table.update_item(
         Key={"item_id": item_id},
         UpdateExpression="set #status = :s",
         ExpressionAttributeNames={"#status": "status"},
@@ -1684,10 +1900,10 @@ def adjustments():
         return redirect(url_for("login"))
 
     # Obter nome de usuário e e-mail logado
-    user_email = session.get("email")
+    user_id = session.get("user_id")
 
     # Buscar usuário pelo e-mail
-    response = users_table.get_item(Key={"email": user_email})
+    response = users_table.get_item(Key={"user_id": user_id})
 
     if "Item" not in response:
         flash("Erro ao carregar dados do usuário.", "danger")
@@ -1695,11 +1911,12 @@ def adjustments():
 
     user = response["Item"]
     username = user.get("username", "Usuário Desconhecido")
+    user_email = user.get("email", "Usuário Desconhecido")
 
     return render_template("adjustments.html", username=username, email=user_email)
 
 
-# 📌 2️⃣ Rota para solicitar alteração de e-mail
+# Rota para solicitar alteração de e-mail
 @app.route("/request-email-change", methods=["POST"])
 def request_email_change():
     if not session.get("logged_in"):
@@ -1756,9 +1973,10 @@ def request_email_change():
 
 @app.route("/confirm-email-change/<token>")
 def confirm_email_change(token):
-    # Buscar usuário pelo token de confirmação
-    response = users_table.scan(
-        FilterExpression="email_token = :token",
+    # Buscar usuário pelo token de confirmação no GSI
+    response = users_table.query(
+        IndexName="EmailTokenIndex",  # Nome do GSI
+        KeyConditionExpression="email_token = :token",
         ExpressionAttributeValues={":token": token},
     )
 
@@ -1767,7 +1985,7 @@ def confirm_email_change(token):
         return redirect(url_for("login"))
 
     user = response["Items"][0]
-    old_email = user["email"]
+    user_id = user["user_id"]  # Obtendo user_id corretamente
     new_email = user.get("pending_email")
 
     if not new_email:
@@ -1775,49 +1993,14 @@ def confirm_email_change(token):
         return redirect(url_for("adjustments"))
 
     try:
-        # 1️⃣ Copiar todos os itens do usuário antigo para o novo e-mail
-        items_response = table.scan(
-            FilterExpression="#email = :old_email",
-            ExpressionAttributeNames={"#email": "email"},
-            ExpressionAttributeValues={":old_email": old_email},
+        # Atualizar o e-mail do usuário no DynamoDB
+        users_table.update_item(
+            Key={"user_id": user_id},  # Usando user_id como chave primária
+            UpdateExpression="SET email = :new_email REMOVE email_token, pending_email",
+            ExpressionAttributeValues={":new_email": new_email},
         )
 
-        items = items_response.get("Items", [])
-
-        for item in items:
-            # Criar um novo item com o novo e-mail
-            new_item_data = {k: v for k, v in item.items() if k != "email"}
-
-            table.put_item(
-                Item={
-                    "email": new_email,  # Atualiza o e-mail do item
-                    **new_item_data,  # Copia os outros dados do item
-                }
-            )
-
-        # 2️⃣ Criar o novo usuário com o novo e-mail
-        new_user_data = {
-            k: v
-            for k, v in user.items()
-            if k not in ["email", "email_token", "pending_email"]
-        }
-
-        users_table.put_item(
-            Item={
-                "email": new_email,  # Novo e-mail como chave primária
-                **new_user_data,  # Copia os outros dados do usuário
-            }
-        )
-
-        # 3️⃣ Excluir todos os registros antigos SOMENTE APÓS A CÓPIA CONCLUIR
-        for item in items:
-            if "item_id" in item:  # Garantimos que estamos usando item_id corretamente
-                table.delete_item(Key={"email": old_email, "item_id": item["item_id"]})
-
-        # 4️⃣ Excluir o usuário antigo
-        users_table.delete_item(Key={"email": old_email})
-
-        # 5️⃣ Atualizar sessão com o novo e-mail
+        # Atualizar sessão com o novo e-mail
         session["email"] = new_email
 
         flash("Seu e-mail foi atualizado com sucesso!", "success")
@@ -1829,10 +2012,180 @@ def confirm_email_change(token):
         return redirect(url_for("adjustments"))
 
 
+@app.route("/change-username", methods=["POST"])
+def change_username():
+    if "email" not in session:
+        flash("Você precisa estar logado para alterar o nome de usuário.", "danger")
+        return redirect(url_for("login"))
+
+    new_username = request.form.get("new_username", "").strip()
+
+    # Validação do tamanho do username
+    if len(new_username) < 3 or len(new_username) > 15:
+        flash("O nome de usuário deve ter entre 3 e 15 caracteres.", "danger")
+        return redirect(url_for("adjustments"))
+
+    user_id = session["user_id"]  # O user_id é a chave única no banco
+
+    try:
+        # Buscar o usuário pelo user_id
+        response = users_table.get_item(Key={"user_id": user_id})
+
+        if "Item" not in response:
+            flash("Usuário não encontrado.", "danger")
+            return redirect(url_for("adjustments"))
+
+        user = response["Item"]
+
+        # Atualizar o nome de usuário
+        users_table.update_item(
+            Key={"user_id": user_id},
+            UpdateExpression="SET username = :new_username",
+            ExpressionAttributeValues={":new_username": new_username},
+        )
+
+        flash("Nome de usuário atualizado com sucesso!", "success")
+        return redirect(url_for("adjustments"))
+
+    except Exception as e:
+        print(f"Erro ao atualizar nome de usuário: {e}")
+        flash("Ocorreu um erro ao atualizar o nome de usuário.", "danger")
+        return redirect(url_for("adjustments"))
+
+
+@app.route("/restore/<item_id>", methods=["POST"])
+def restore(item_id):
+    if not session.get("logged_in"):
+        return redirect(url_for("login"))
+
+    next_page = request.args.get("next", url_for("trash"))
+
+    try:
+        # Obter o item atual da rota
+        response = itens_table.get_item(Key={"item_id": item_id})
+        item = response.get("Item")
+
+        if not item:
+            flash("Item não encontrado.", "danger")
+            return redirect(next_page)
+
+        # Obter o parent_item_id do item atual
+        parent_item_id = item.get("parent_item_id")
+
+        if not parent_item_id:
+            flash("Erro: O item atual não possui um parent_item_id válido.", "warning")
+            return redirect(next_page)
+
+        # Buscar o item original no banco pelo parent_item_id
+        parent_response = itens_table.get_item(Key={"item_id": parent_item_id})
+        parent_item = parent_response.get("Item")
+
+        if not parent_item:
+            flash(
+                f"Erro: O item original (ID {parent_item_id}) não foi encontrado no banco.",
+                "warning",
+            )
+            return redirect(next_page)
+
+        # 🔹 Guardamos uma cópia do item original antes da atualização
+        original_data = parent_item.copy()
+
+        # Criar a expressão de atualização para sobrescrever os dados do item atual com os dados originais
+        update_expression = []
+        expression_values = {}
+        expression_attribute_names = {}  # Para evitar conflitos com palavras reservadas
+
+        for key, value in original_data.items():
+            if key not in [
+                "item_id",
+                "parent_item_id",
+                "status",
+            ]:  # 🚨 Excluímos item_id, parent_item_id e status
+                alias = f":{key[:2]}"  # Criar alias para os valores
+                key_alias = (
+                    f"#{key}" if key in ["status"] else key
+                )  # Evitar conflito com palavras reservadas
+
+                if key == "status":
+                    expression_attribute_names[key_alias] = "status"
+
+                update_expression.append(f"{key_alias} = {alias}")
+                expression_values[alias] = value
+
+        # 🔹 Atualizar os campos deleted_by e edit_date
+        username = session.get("username")
+        edit_date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        update_expression.append("deleted_by = :deleted_by")
+        update_expression.append("edit_date = :edit_date")
+        expression_values[":deleted_by"] = username
+        expression_values[":edit_date"] = edit_date
+
+        # 🔹 Atualizar o item da rota (item_id) com os dados do item original, mantendo o status
+        itens_table.update_item(
+            Key={"item_id": item_id},
+            UpdateExpression="SET " + ", ".join(update_expression),
+            ExpressionAttributeNames=(
+                expression_attribute_names if expression_attribute_names else None
+            ),
+            ExpressionAttributeValues=expression_values,
+        )
+
+        flash(
+            "Item atualizado com sucesso e agora contém as informações do item original!",
+            "success",
+        )
+
+    except Exception as e:
+        flash(f"Ocorreu um erro ao tentar restaurar o item: {str(e)}", "danger")
+
+    return redirect(next_page)
+
+
 @app.context_processor
 def inject_user():
     username = session.get("username")
     return dict(username=username)
+
+
+@app.route("/termos-de-uso")
+def termos_de_uso():
+    return render_template("termos_de_uso.html")
+
+
+@app.route("/contato", methods=["GET", "POST"])
+def contato():
+    if request.method == "POST":
+        nome = request.form.get("nome")
+        email = request.form.get("email")
+        mensagem = request.form.get("mensagem")
+
+        if not nome or not email or not mensagem:
+            flash("Todos os campos são obrigatórios.", "danger")
+            return redirect(url_for("contato"))
+
+        # Enviar e-mail via AWS SES
+        destinatario = "contato@alugueqqc.com.br"
+        assunto = f"Novo contato de {nome}"
+        corpo_email = f"Nome: {nome}\nE-mail: {email}\n\nMensagem:\n{mensagem}"
+
+        try:
+            response = ses_client.send_email(
+                Source=destinatario,
+                Destination={"ToAddresses": [destinatario]},
+                Message={
+                    "Subject": {"Data": assunto, "Charset": "UTF-8"},
+                    "Body": {"Text": {"Data": corpo_email, "Charset": "UTF-8"}},
+                },
+            )
+            flash("Mensagem enviada com sucesso!", "success")
+        except ClientError as e:
+            print(f"Erro ao enviar e-mail: {e}")
+            flash("Erro ao enviar a mensagem. Tente novamente mais tarde.", "danger")
+
+        return redirect(url_for("contato"))
+
+    return render_template("contato.html")
 
 
 # Rota de Logout

@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Itens Deletados</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style_trash.css') }}" />
+  </head>
+
+  <body class="trash">
+    <!-- Exibir mensagens flash -->
+    {% with messages = get_flashed_messages(with_categories=true) %} {% if messages %}
+    <div class="container mt-3">
+      {% for category, message in messages %}
+      <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+        {{ message | safe }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %} {% endwith %}
+
+    <!-- Incluir a Navbar -->
+    {% include 'navbar.html' %}
+
+    <!-- CONTEÚDO PRINCIPAL -->
+    <div class="container my-4">
+      <h1>Histórico de alterações (últimos 30 dias)</h1>
+
+      <!-- Tabela (limitada a 90%, que vira cards no mobile) -->
+      <div class="table-container mt-4">
+        <table class="table table-hover responsive-table align-middle rounded-table">
+          <thead>
+            <tr>
+              <th>Imagem</th>
+              <th>Descrição</th>
+              <th>Cliente</th>
+              <th>Telefone</th>
+              <th>Retirada Prevista</th>
+              <th>Devolução Prevista</th>
+              <th>Retirado?</th>
+              <th>Valor (R$)</th>
+              <th>Pago?</th>
+              <th>Comentários</th>
+              <th>Devolvido em</th>
+              <th>Data do evento</th>
+              <th>Tipo do evento</th>
+              <th>Status prévio</th>
+
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in itens %}
+            <tr>
+              <td data-label="Imagem">
+                {% if item.image_url and item.image_url != "" %}
+                <img src="{{ item.image_url }}" alt="Imagem do vestido" class="img-fluid item-thumbnail" style="max-width: 100px" />
+                {% else %}
+                <img
+                  src="{{ url_for('static', filename='item-placeholder.png') }}"
+                  alt="Sem Imagem"
+                  class="img-fluid item-thumbnail"
+                  style="max-width: 100px"
+                />
+                {% endif %}
+              </td>
+
+              <td data-label="Descrição" style="white-space: pre-wrap">{{ item.description }}</td>
+
+              <td data-label="Cliente">{{ item.client_name }}</td>
+              <td data-label="Telefone">{{ item.client_tel }}</td>
+              <td data-label="Retirada Prevista">{{ item.rental_date_formatted }}</td>
+              <td data-label="Devolução Prevista">{{ item.return_date_formatted }}</td>
+              <td data-label="Retirado">{% if item.retirado %}Sim{% else %}Não{% endif %}</td>
+              <td data-label="Valor">{{ item.valor }}</td>
+              <td data-label="Pagamento">{{ item.pagamento }}</td>
+              <td data-label="Comentários" style="white-space: pre-wrap">{{ item.comments }}</td>
+              <td data-label="Devolvido em">{{ item.dev_date }}</td>
+              <td data-label="Data do evento">{{ item.deleted_date }}</td>
+
+              <td data-label="Tipo do evento">
+                {% set status_map = {"deleted": "Exclusão", "version": "Alteração"} %}
+                {{ status_map.get(item.status, "Inválido") }}
+              </td>
+
+              <td data-label="Status">
+                {% set status_map = {"available": "Disponível", "rented": "Alugado", "returned": "Devolvido", "archived": "Arquivado", "historic": "Histórico"} %}
+                {{ status_map.get(item.previous_status, "Inválido") }}
+              </td>
+
+              <td data-label="Ações">
+                <form method="POST" action="{{ url_for('restore', item_id=item.item_id) }}" style="display: inline">
+                  <button type="submit" class="btn btn-success btn-sm" title="Restaurar Item">Restaurar</button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <!-- FIM CONTEÚDO PRINCIPAL -->
+
+
+   <!-- Paginação -->
+   <nav aria-label="Page navigation" class="mt-4">
+    <ul class="pagination justify-content-center">
+      {% set args = request.args.to_dict() %}
+      {% if page > 1 %}
+        <li class="page-item">
+          <a
+            class="page-link"
+            href="{{ url_for('trash', **dict(args, page=page-1)) }}"
+          >
+            Anterior
+          </a>
+        </li>
+      {% endif %}
+      {% for p in range(1, total_pages + 1) %}
+        <li class="page-item {% if p == page %}active{% endif %}">
+          <a
+            class="page-link"
+            href="{{ url_for('trash', **dict(args, page=p)) }}"
+          >
+            {{ p }}
+          </a>
+        </li>
+      {% endfor %}
+      {% if page < total_pages %}
+        <li class="page-item">
+          <a
+            class="page-link"
+            href="{{ url_for('trash', **dict(args, page=page+1)) }}"
+          >
+            Próxima
+          </a>
+        </li>
+      {% endif %}
+    </ul>
+  </nav>
+
+  <div style="height: 3rem;"></div>
+
+</div>
+
+
+
+
+
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- MODAL para imagem -->
+    <div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="imageModalLabel">Visualizar Imagem</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body text-center">
+            <img class="img-fluid" id="modalImg" alt="Imagem do Vestido" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Modal de imagem
+      const thumbnails = document.querySelectorAll('.item-thumbnail');
+      const modalImg = document.getElementById('modalImg');
+      const imageModal = new bootstrap.Modal(document.getElementById('imageModal'));
+
+      thumbnails.forEach((img) => {
+        img.addEventListener('click', () => {
+          modalImg.src = img.src;
+          imageModal.show();
+        });
+      });
+    </script>
+  </body>
+</html>

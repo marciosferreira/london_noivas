@@ -8,84 +8,8 @@
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}" />
     <!-- Bootstrap CSS (necessário para estilizar os alertas corretamente) -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
-
-    <style>
-      /* Adicione estes estilos ao seu CSS existente ou inclua diretamente aqui */
-      .tabs {
-        display: flex;
-        margin-bottom: 20px;
-      }
-
-      .tab {
-        flex: 1;
-        text-align: center;
-        padding: 10px;
-        cursor: pointer;
-        border-bottom: 2px solid #ddd;
-        transition: all 0.3s ease;
-      }
-
-      .tab.active {
-        border-bottom: 2px solid #ff4081;
-        font-weight: bold;
-      }
-
-      .form-container {
-        width: 100%;
-      }
-
-      #register-form,
-      #forgot-password-form,
-      #reset-password-form {
-        display: none;
-      }
-
-      .message {
-        background-color: #f8d7da;
-        color: #721c24;
-        padding: 10px;
-        border-radius: 5px;
-        margin-bottom: 15px;
-        text-align: center;
-      }
-
-      .success-message {
-        background-color: #d4edda;
-        color: #155724;
-      }
-
-      .forgot-password-link {
-        text-align: right;
-        margin-top: -10px;
-        margin-bottom: 15px;
-        font-size: 0.85em;
-      }
-
-      .forgot-password-link a {
-        color: #ff4081;
-        text-decoration: none;
-      }
-
-      .forgot-password-link a:hover {
-        text-decoration: underline;
-      }
-
-      .back-button {
-        font-size: 0.85em;
-        margin-top: 15px;
-        text-align: center;
-      }
-
-      .back-button a {
-        color: #666;
-        text-decoration: none;
-      }
-
-      .back-button a:hover {
-        text-decoration: underline;
-      }
-    </style>
   </head>
+
   <body class="login-page">
     <div class="login-container">
       <!-- Cabeçalho com título e logo -->
@@ -94,12 +18,6 @@
         <h1>Alugue QQC</h1>
         <p>Login/Cadastro</p>
       </header>
-
-      <!-- Abas para alternar entre login e registro -->
-      <div class="tabs" id="main-tabs">
-        <div class="tab active" id="login-tab" onclick="showTab('login')">Acesse sua conta</div>
-        <div class="tab" id="register-tab" onclick="showTab('register')">Cadastre-se</div>
-      </div>
 
       <!-- Mensagens de erro ou sucesso -->
       {% if error %}
@@ -118,6 +36,12 @@
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
       </div>
       {% endfor %} {% endif %} {% endwith %}
+
+      <!-- Abas para alternar entre login e registro -->
+      <div class="tabs" id="main-tabs">
+        <div class="tab active" id="login-tab" onclick="showTab('login')">Acesse sua conta</div>
+        <div class="tab" id="register-tab" onclick="showTab('register')">Cadastre-se</div>
+      </div>
 
       <div class="form-container">
         <!-- Formulário de Login -->
@@ -149,8 +73,8 @@
           <form action="/register" method="POST">
             <!-- Campo de usuário -->
             <div class="form-group">
-              <label for="reg-username">Usuário</label>
-              <input type="text" id="reg-username" name="username" placeholder="Escolha um nome de usuário" required />
+              <label for="reg-username">Nome de usuário</label>
+              <input type="text" id="reg-username" name="username" placeholder="Escolha um nome de usuário" required minlength="3" maxlength="15" />
             </div>
 
             <!-- Campo de email -->
@@ -162,18 +86,36 @@
             <!-- Campo de senha -->
             <div class="form-group">
               <label for="reg-password">Senha</label>
-              <input type="password" id="reg-password" name="password" placeholder="Crie uma senha" required />
+              <input type="password" id="reg-password" name="password" placeholder="Crie uma senha" required minlength="8" maxlength="64" />
             </div>
 
             <!-- Campo de confirmação de senha -->
             <div class="form-group">
               <label for="confirm-password">Confirme a Senha</label>
-              <input type="password" id="confirm-password" name="confirm_password" placeholder="Digite a senha novamente" required />
+              <input
+                type="password"
+                id="confirm-password"
+                name="confirm_password"
+                placeholder="Digite a senha novamente"
+                required
+                minlength="8"
+                maxlength="64"
+              />
               <span id="password-error" style="color: red; font-size: 0.8em; display: none">As senhas não coincidem</span>
             </div>
 
-            <!-- Botão de registro -->
-            <button type="submit" class="btn" id="register-btn">Cadastrar</button>
+            <!-- Checkbox para aceitar os termos -->
+            <div class="form-group terms-container">
+              <input type="checkbox" id="terms-checkbox" />
+              <label for="terms-checkbox">
+                Eu aceito os
+                <a href="/termos-de-uso" target="_blank">termos de uso</a>
+                .
+              </label>
+            </div>
+
+            <!-- Botão de registro (inicialmente desativado) -->
+            <button type="submit" class="btn" id="register-btn" disabled>Cadastrar</button>
           </form>
         </div>
 
@@ -315,7 +257,42 @@
       }, 5000);
     </script>
 
+    <script>
+      document.getElementById('reg-username').addEventListener('input', function () {
+        let input = this;
+        let maxLength = 15;
+        if (input.value.length > maxLength) {
+          input.value = input.value.slice(0, maxLength);
+        }
+      });
+    </script>
+
+    <script>
+      document.getElementById('reg-password').addEventListener('input', function () {
+        let maxLength = 64;
+        if (this.value.length > maxLength) {
+          this.value = this.value.slice(0, maxLength);
+        }
+      });
+
+      document.getElementById('confirm-password').addEventListener('input', function () {
+        let maxLength = 64;
+        if (this.value.length > maxLength) {
+          this.value = this.value.slice(0, maxLength);
+        }
+      });
+    </script>
+
+    <script>
+      document.getElementById('terms-checkbox').addEventListener('change', function () {
+        document.getElementById('register-btn').disabled = !this.checked;
+      });
+    </script>
+
     <!-- Bootstrap JS (necessário para funcionalidade do botão de fechar) -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Incluir o rodapé -->
+    {% include 'footer.html' %}
   </body>
 </html>

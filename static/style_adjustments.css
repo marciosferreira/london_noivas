@@ -1,0 +1,13 @@
+body.adjustments {
+  min-height: 100vh;
+
+  /* Exemplo de degradê linear */
+  background: linear-gradient(120deg, #f5e3a6 0%, #f3bbab 100%);
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+  background-size: cover;
+
+  font-family: Arial, sans-serif;
+  /* Se quiser a cor de fundo base adicional, pode manter ou remover:
+     background-color: #f8f9fa; */
+}
