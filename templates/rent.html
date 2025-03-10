@@ -22,7 +22,7 @@
       <form method="POST" enctype="multipart/form-data">
 
         <label for="description">Descrição:</label>
-        <input type="text" id="description" name="description" value="{{ dress.description }}" required />
+        <input type="text" id="description" name="description" value="{{ item.description }}" required />
 
         <label for="client_name">Nome do Cliente:</label>
         <input type="text" id="client_name" name="client_name" required />
@@ -44,21 +44,21 @@
         <input type="date" id="return_date" name="return_date" required />
 
         <label for="valor">Valor (R$):</label>
-        <input type="number" id="valor" name="valor" step="0.01" min="0" value="{{ dress.valor }}" required/>
+        <input type="number" id="valor" name="valor" step="0.01" min="0" value="{{ item.valor }}" required/>
 
         <label for="pagamento">Pagamento:</label>
 <select id="pagamento" name="pagamento">
-    <option value="Não pago" {% if dress.pagamento == "Não pago" or not dress.pagamento %}selected{% endif %}>Não pago</option>
-    <option value="Pago 50%" {% if dress.pagamento == "Pago 50%" %}selected{% endif %}>Pago 50%</option>
-    <option value="Pago 100%" {% if dress.pagamento == "Pago 100%" %}selected{% endif %}>Pago 100%</option>
+    <option value="Não pago" {% if item.pagamento == "Não pago" or not item.pagamento %}selected{% endif %}>Não pago</option>
+    <option value="Pago 50%" {% if item.pagamento == "Pago 50%" %}selected{% endif %}>Pago 50%</option>
+    <option value="Pago 100%" {% if item.pagamento == "Pago 100%" %}selected{% endif %}>Pago 100%</option>
 </select>
 
         <label for="comments">Comentários:</label>
-        <textarea id="comments" name="comments" rows="3">{{ dress.comments }}</textarea>
+        <textarea id="comments" name="comments" rows="3">{{ item.comments }}</textarea>
 
         <label>Foto Atual:</label>
-        {% if dress.image_url and dress.image_url != "" %}
-        <img src="{{ dress.image_url }}" alt="Imagem do vestido" />
+        {% if item.image_url and item.image_url != "" %}
+        <img src="{{ item.image_url }}" alt="Imagem do vestido" />
         {% else %}
         <img src="{{ url_for('static', filename='item-placeholder.png') }}" alt="Sem Imagem" />
         {% endif %}

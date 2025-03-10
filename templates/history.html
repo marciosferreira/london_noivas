@@ -205,45 +205,45 @@
             </tr>
           </thead>
           <tbody>
-            {% for dress in itens %}
+            {% for item in itens %}
             <tr>
               <td data-label="Imagem">
-                {% if dress.image_url and dress.image_url != "" %}
+                {% if item.image_url and item.image_url != "" %}
                   <img
-                    src="{{ dress.image_url }}"
+                    src="{{ item.image_url }}"
                     alt="Imagem do vestido"
-                    class="img-fluid dress-thumbnail"
+                    class="img-fluid item-thumbnail"
                     style="max-width: 100px;"
                   />
                 {% else %}
                   <img
-                    src="{{ url_for('static', filename='dress-placeholder.png') }}"
+                    src="{{ url_for('static', filename='item-placeholder.png') }}"
                     alt="Sem Imagem"
-                    class="img-fluid dress-thumbnail"
+                    class="img-fluid item-thumbnail"
                     style="max-width: 100px;"
                   />
                 {% endif %}
               </td>
 
-              <td data-label="Descrição" style="white-space: pre-wrap;">{{ dress.description }}</td>
+              <td data-label="Descrição" style="white-space: pre-wrap;">{{ item.description }}</td>
 
 
 
 
-                            <td data-label="Cliente">{{ dress.client_name }}</td>
-              <td data-label="Telefone">{{ dress.client_tel }}</td>
+                            <td data-label="Cliente">{{ item.client_name }}</td>
+              <td data-label="Telefone">{{ item.client_tel }}</td>
               <td data-label="Data de Retirada">
-                {{ dress.rental_date_formatted }}
+                {{ item.rental_date_formatted }}
               </td>
               <td data-label="Data de Devolução">
-                {{ dress.return_date_formatted }}
+                {{ item.return_date_formatted }}
               </td>
               <td data-label="Retirado">
-                {% if dress.retirado %}Sim{% else %}Não{% endif %}
+                {% if item.retirado %}Sim{% else %}Não{% endif %}
               </td>
-              <td data-label="Valor">{{ dress.valor }}</td>
-              <td data-label="Pagamento">{{ dress.pagamento }}</td>
-              <td data-label="Comentários" style="white-space: pre-wrap;">{{ dress.comments }}</td>
+              <td data-label="Valor">{{ item.valor }}</td>
+              <td data-label="Pagamento">{{ item.pagamento }}</td>
+              <td data-label="Comentários" style="white-space: pre-wrap;">{{ item.comments }}</td>
 
               <td data-label="Ações">
                 <!-- Botão Excluir -->
@@ -254,7 +254,7 @@
 
 
                 <!-- Botão Deletar -->
-  <form method="POST" action="{{ url_for('delete', item_id=dress.item_id, next=request.url) }}" style="display: inline;">
+  <form method="POST" action="{{ url_for('delete', item_id=item.item_id, next=request.url) }}" style="display: inline;">
     <button
       type="submit"
       class="action-button danger"
@@ -363,7 +363,7 @@
     <!-- Scripts personalizados -->
     <script>
       // Modal de imagem
-      const thumbnails = document.querySelectorAll(".dress-thumbnail");
+      const thumbnails = document.querySelectorAll(".item-thumbnail");
       const modalImg = document.getElementById("modalImg");
       const imageModal = new bootstrap.Modal(document.getElementById("imageModal"));
 

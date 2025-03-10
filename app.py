@@ -963,6 +963,11 @@ def index():
     return listar_itens(["rented"], "index.html", "Itens Alugados")
 
 
+@app.route("/rented")
+def rented():
+    return listar_itens(["rented"], "rented.html", "Itens Alugados")
+
+
 @app.route("/returned")
 def returned():
     return listar_itens(["returned"], "returned.html", "Itens Devolvidos")
@@ -1055,7 +1060,8 @@ def add():
                 "valor": valor,
                 "pagamento": pagamento,
                 "image_url": image_url,
-                "status": status,  # Adiciona o status selecionado
+                "status": status,
+                "previous_status": status,
             }
         )
         # Dicionário para mapear os valores a nomes associados
@@ -1383,7 +1389,7 @@ def edit(item_id):
         "status": item.get("status"),
     }
 
-    return render_template("edit.html", dress=dress)
+    return render_template("edit.html", item=item)
 
 
 @app.route("/purge_deleted_items", methods=["GET", "POST"])
@@ -1551,7 +1557,7 @@ def rent(item_id):
         )
 
         flash(
-            "Item <a href='/'>alugado</a> com sucesso!",
+            "Item <a href='/rented'>alugado</a> com sucesso!",
             "success",
         )
         return redirect(url_for("available"))
@@ -1627,6 +1633,7 @@ def edit_small(item_id):
             if key != "item_id" and value not in [None, ""]
         }
         copied_item["item_id"] = new_item_id
+        copied_item["previous_status"] = item.get("status")
         copied_item["parent_item_id"] = item.get("item_id", "")
         copied_item["status"] = "version"
         copied_item["edited_date"] = edited_date
@@ -1656,7 +1663,7 @@ def edit_small(item_id):
         return redirect(next_page)
 
     # Preparar dados para o template
-    dress = {
+    item = {
         "item_id": item.get("item_id"),
         "description": item.get("description"),
         "client_name": item.get("client_name"),
@@ -1670,7 +1677,7 @@ def edit_small(item_id):
         "pagamento": item.get("pagamento"),
     }
 
-    return render_template("edit_small.html", dress=dress)
+    return render_template("edit_small.html", item=item)
 
 
 @app.route("/delete/<item_id>", methods=["POST"])
@@ -1690,7 +1697,7 @@ def delete(item_id):
             # Obter data e hora atuais no formato brasileiro
             deleted_date = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
 
-            # Atualizar o status do item principal para "deleted"
+            # Atualizar o status do item para "deleted"
             itens_table.update_item(
                 Key={"item_id": item_id},
                 UpdateExpression="SET previous_status = #status, #status = :deleted, deleted_date = :deleted_date, deleted_by = :deleted_by",
@@ -1704,7 +1711,7 @@ def delete(item_id):
                 },
             )
 
-            # Buscar e deletar todos os itens relacionados na tabela alugueqqc_itens
+            """# Buscar e deletar todos os itens relacionados na tabela alugueqqc_itens
             response = itens_table.query(
                 IndexName="parent_item_id-index",  # Nome do índice secundário global (GSI)
                 KeyConditionExpression="parent_item_id = :parent_id",
@@ -1714,7 +1721,7 @@ def delete(item_id):
             related_items = response.get("Items", [])
 
             for related_item in related_items:
-                itens_table.delete_item(Key={"item_id": related_item["item_id"]})
+                itens_table.delete_item(Key={"item_id": related_item["item_id"]})"""
 
             flash(
                 "Item marcado como deletado. Ele ficará disponível na 'lixeira' por 30 dias, e seus itens relacionados foram removidos.",
@@ -2043,7 +2050,7 @@ def change_username():
             flash("Usuário não encontrado.", "danger")
             return redirect(url_for("adjustments"))
 
-        user = response["Item"]
+        # user = response["Item"]
 
         # Atualizar o nome de usuário
         users_table.update_item(
@@ -2061,8 +2068,74 @@ def change_username():
         return redirect(url_for("adjustments"))
 
 
-@app.route("/restore/<item_id>", methods=["POST"])
-def restore(item_id):
+@app.route("/verificar-item-pai", methods=["POST"])
+def verificar_item_pai():
+    """Verifica se o item pai do item_id informado existe no banco"""
+
+    item_id = request.json.get("item_id")
+
+    # 🔹 1️⃣ Buscar o item atual no banco
+    response = itens_table.get_item(Key={"item_id": item_id})
+    item_atual = response.get("Item")
+
+    if not item_atual:
+        return {"status": "erro", "mensagem": "Item não encontrado!"}
+
+    # 🔹 Extrair informações do item atual
+    parent_item_id = item_atual.get("parent_item_id")
+    item_status = item_atual.get("status")
+    previous_status = item_atual.get("previous_status", "unknown")
+
+    # 🔹 2️⃣ Se não há parent_item_id, não há item pai, então já vai para recriação
+    if not parent_item_id:
+        return {
+            "status": "pai_nao_existe",
+            "mensagem": "Esse item será reativado.",
+            "parent_item_id": None,
+            "previous_status": previous_status,
+        }
+
+    # 🔹 3️⃣ Buscar o item pai no banco de dados
+    response_pai = itens_table.get_item(Key={"item_id": parent_item_id})
+    item_pai = response_pai.get("Item")
+
+    # 🔹 4️⃣ Agora que temos os dados, fazemos as verificações:
+
+    # Se o item pai não existe, forçamos a recriação do item atual
+    if not item_pai:
+        return {
+            "status": "pai_nao_existe",
+            "mensagem": "O item pai não foi encontrado. Esse item será recriado.",
+            "parent_item_id": parent_item_id,
+            "previous_status": previous_status,
+        }
+
+    # Se o item pai está marcado como "deleted", também direcionamos para recriação
+    parent_status = item_pai.get("status")
+    if parent_status == "deleted":
+        return {
+            "status": "pai_nao_existe",
+            "mensagem": "O item pai estava deletado. Esse item será recriado.",
+            "parent_item_id": parent_item_id,
+            "previous_status": previous_status,
+        }
+
+    # Se o item pai está ativo, podemos restaurar a versão do item atual
+    return {
+        "status": "pai_existe",
+        "mensagem": "Essa versão será restaurada e a versão ativa virá para o histórico de alterações.",
+        "parent_item_id": parent_item_id,
+        "previous_status": previous_status,
+    }
+
+
+@app.route("/substituir-item", methods=["POST"])
+def substituir_item():
+    item_id = request.form.get("item_id")
+    parent_item_id = request.form.get("parent_item_id")
+    print("substituir")
+    print(item_id)
+    print(parent_item_id)
     if not session.get("logged_in"):
         return redirect(url_for("login"))
 
@@ -2077,17 +2150,21 @@ def restore(item_id):
             flash("Item não encontrado.", "danger")
             return redirect(next_page)
 
-        # 🔹 Obter o item original (parent_item_id)
-        parent_item_id = item_data.get("parent_item_id")
+        # obter dados do item corrente
+        item_status = item_data.get("status", "")
 
         if not parent_item_id:
             flash("Erro: O item atual não possui um parent_item_id válido.", "warning")
             return redirect(next_page)
+        if not item_status:
+            flash("Erro: O item atual não possui um item_status válido.", "warning")
+            return redirect(next_page)
 
+        # agora pega os dados do item pai do item corrente, se existir
         parent_response = itens_table.get_item(Key={"item_id": parent_item_id})
-        parent_data = parent_response.get("Item")
+        parent_item = parent_response.get("Item")
 
-        if not parent_data:
+        if not parent_item:
             flash(
                 f"Erro: O item original (ID {parent_item_id}) não foi encontrado no banco.",
                 "warning",
@@ -2096,7 +2173,7 @@ def restore(item_id):
 
         # 🔹 Armazenar os dados antes da troca
         item_original_copy = item_data.copy()
-        parent_original_copy = parent_data.copy()
+        parent_original_copy = parent_item.copy()
 
         # 🔹 Trocar os valores entre os dois itens (swap), exceto `item_id`
         swap_data_item = {
@@ -2168,12 +2245,45 @@ def restore(item_id):
             ExpressionAttributeValues=expression_values_parent,
         )
 
-        flash("Item restaurado e os dados foram trocados com sucesso!", "success")
+        flash(
+            f"Substituição do item {item_id} pelo pai {parent_item_id} realizada!",
+            "success",
+        )
+        return redirect(url_for("trash"))
 
     except Exception as e:
-        flash(f"Ocorreu um erro ao tentar restaurar o item: {str(e)}", "danger")
+        flash(f"Ocorreu um erro ao tentar substituir o item: {str(e)}", "danger")
 
-    return redirect(next_page)
+
+@app.route("/recriar-item", methods=["POST"])
+def recriar_item():
+    item_id = request.form.get("item_id")
+    parent_item_id = request.form.get("parent_item_id")
+    previous_status = request.form.get("previous_status")
+
+    print("PS")
+    print(previous_status)
+
+    print("recriar")
+    print(item_id)
+    print(parent_item_id)
+
+    itens_table.update_item(
+        Key={"item_id": item_id},  # 🔹 Chave primária do item
+        UpdateExpression="SET #status = :previous_status",
+        ExpressionAttributeNames={
+            "#status": "status"
+        },  # Alias para evitar palavra reservada
+        ExpressionAttributeValues={
+            ":previous_status": previous_status
+        },  # 🔹 Agora usa previous_status
+    )
+
+    flash(
+        f"Item {item_id} recriado.",
+        "success",
+    )
+    return redirect(url_for("trash"))
 
 
 @app.context_processor

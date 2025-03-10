@@ -1,0 +1,224 @@
+/* ---------------------------------------
+   HTML & BODY (100% ALTURA)
+--------------------------------------- */
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/*
+   Aplica o degradê (ou fundo) somente à página "available"
+   Ajuste livremente as cores do degradê, se quiser outro visual.
+*/
+body.rented {
+  min-height: 100vh;
+
+  /* Exemplo de degradê linear */
+  background: linear-gradient(120deg, #f5e3a6 0%, #f3bbab 100%);
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+  background-size: cover;
+
+  font-family: Arial, sans-serif;
+  /* Se quiser a cor de fundo base adicional, pode manter ou remover:
+     background-color: #f8f9fa; */
+}
+
+/* ---------------------------------------
+   RESET & BASE
+--------------------------------------- */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* ---------------------------------------
+   TABELA E CONTAINER
+--------------------------------------- */
+/* Container para limitar a tabela (ajuste max-width se quiser 90% em vez de 100%) */
+.table-container {
+  max-width: 100%;
+  margin: 0 auto; /* Centraliza se for menor que 100% */
+}
+
+/* Tabela responsiva + "cards" no mobile */
+.responsive-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+/* Classes do Bootstrap personalizadas, se quiser mudar cor de fundo */
+.table-danger {
+  background-color: #f8d7da !important;
+}
+.table-warning {
+  background-color: #fff3cd !important;
+}
+
+/* Borda arredondada na tabela */
+.table.rounded-table {
+  border-radius: 10px; /* Ajuste o valor conforme desejar */
+  overflow: hidden; /* Garante que o conteúdo também seja arredondado */
+  border: none;
+}
+
+/* Imagens miniatura */
+.dress-thumbnail {
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+.dress-thumbnail:hover {
+  transform: scale(1.03);
+}
+
+/* ---------------------------------------
+   RESPONSIVIDADE: "VIRAR CARDS" NO MOBILE
+--------------------------------------- */
+@media (max-width: 576px) {
+  /* Esconde o cabeçalho da tabela */
+  .responsive-table thead {
+    display: none;
+  }
+
+  /* Cada tr e td se comportam como "cards" empilhados */
+  .responsive-table,
+  .responsive-table tbody,
+  .responsive-table tr,
+  .responsive-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .responsive-table tr {
+    margin-bottom: 1rem;
+    border: 1px solid #dee2e6;
+    border-radius: 0.5rem;
+    padding: 0.5rem;
+    background-color: #fff;
+  }
+
+  .responsive-table td {
+    position: relative;
+    padding-left: 50%;
+    margin-bottom: 0.75rem;
+    text-align: left;
+    min-height: 2.5rem; /* Dá espaço mesmo se vazio */
+  }
+
+  /* Label do data-label como "título" antes do valor */
+  .responsive-table td::before {
+    content: attr(data-label) ': ';
+    position: absolute;
+    left: 1rem;
+    font-weight: bold;
+  }
+}
+
+/* ---------------------------------------
+   BOTOES, FILTRO E OUTROS AJUSTES
+--------------------------------------- */
+
+/* Filtro oculto inicialmente */
+#filter-section {
+  margin-top: 1rem;
+}
+
+/* Se desejar manter o estilo h1.h3 do index */
+h1.h3 {
+  font-weight: 600;
+}
+
+/* Alertas (espacinho entre eles) */
+.alert {
+  margin-bottom: 1rem;
+}
+
+/* Ícones nos botões (lixeira, lápis, etc.) */
+.btn.btn-sm svg {
+  vertical-align: middle; /* Alinha melhor o SVG */
+  margin-right: 0; /* Remove margem à direita, se quiser */
+}
+
+/* Botões de ação */
+.action-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 0.9rem; /* Tamanho reduzido do texto */
+  text-decoration: none;
+  color: white;
+  border-radius: 25px;
+  padding: 5px 15px; /* Reduz o padding para manter o tamanho compacto */
+  transition: all 0.3s ease;
+  cursor: pointer;
+  border: 2px solid transparent;
+}
+
+.action-button:hover {
+  opacity: 0.9;
+}
+
+.action-button.danger {
+  background-color: #dc3545;
+  border-color: #dc3545;
+}
+
+.action-button.danger:hover {
+  background-color: white;
+  color: #dc3545;
+}
+
+.action-button.success {
+  background-color: #28a745;
+  border-color: #28a745;
+}
+
+.action-button.success:hover {
+  background-color: white;
+  color: #28a745;
+}
+
+.action-button.warning {
+  background-color: #ffc107;
+  border-color: #ffc107;
+}
+
+.action-button.warning:hover {
+  background-color: white;
+  color: #ffc107;
+}
+
+.action-button.info {
+  background-color: #17a2b8;
+  border-color: #17a2b8;
+}
+
+.action-button.info:hover {
+  background-color: white;
+  color: #17a2b8;
+}
+
+/* Container para botões de ação */
+.d-flex {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px; /* Reduz o espaçamento entre os botões */
+}
+
+@media (max-width: 576px) {
+  .action-button {
+    flex: 1 1 auto; /* Botões ocupam largura proporcional no mobile */
+    text-align: center;
+  }
+}
+
+/* Alinhamento responsivo para botões */
+@media (max-width: 576px) {
+  .d-flex.justify-content-between .d-flex {
+    justify-content: flex-end; /* Alinha os botões à direita */
+  }
+}

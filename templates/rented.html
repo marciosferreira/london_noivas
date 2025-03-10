@@ -22,11 +22,11 @@
     <!-- Seu CSS customizado -->
     <link
       rel="stylesheet"
-      href="{{ url_for('static', filename='style_main.css') }}"
+      href="{{ url_for('static', filename='style_rented.css') }}"
     />
   </head>
 
-  <body class="index_page">
+  <body class="rented">
     <!-- Exibir mensagens flash (caso haja) -->
     {% with messages = get_flashed_messages(with_categories=true) %} {% if messages %}
     <div class="container mt-3">

@@ -32,7 +32,7 @@
       id="status-rented"
       name="status"
       value="rented"
-      {% if dress.status == "rented" %} checked {% endif %}
+      {% if item.status == "rented" %} checked {% endif %}
     />
     Alugado
   </label>
@@ -42,7 +42,7 @@
       id="status-returned"
       name="status"
       value="returned"
-      {% if dress.status == "returned" %} checked {% endif %}
+      {% if item.status == "returned" %} checked {% endif %}
     />
     Devolvido
   </label>
@@ -53,40 +53,40 @@
 
 
         <label for="description">Descrição:</label>
-        <textarea  id="description" name="description" rows="3" value="{{dress.description}}" required>{{dress.description}}</textarea>
+        <textarea  id="description" name="description" rows="3" value="{{item.description}}" required>{{item.description}}</textarea>
 
 
         <label for="client_name">Nome do Cliente:</label>
-        <input type="text" id="client_name" name="client_name" value="{{ dress.client_name }}" required />
+        <input type="text" id="client_name" name="client_name" value="{{ item.client_name }}" required />
 
         <label for="client_tel">Telefone do Cliente:</label>
-        <input type="text" id="client_tel" name="client_tel" value="{{ dress.client_tel }}" required />
+        <input type="text" id="client_tel" name="client_tel" value="{{ item.client_tel }}" required />
 
         <label for="rental_date">Data de Retirada:</label>
-        <input type="date" id="rental_date" name="rental_date" value="{{ dress.rental_date }}" required />
+        <input type="date" id="rental_date" name="rental_date" value="{{ item.rental_date }}" required />
 
         <div class="form-group">
           <label for="retirado">
-            <input type="checkbox" id="retirado" name="retirado" value="True" {% if dress.retirado %}checked{% endif %} />
+            <input type="checkbox" id="retirado" name="retirado" value="True" {% if item.retirado %}checked{% endif %} />
             Retirado
           </label>
         </div>
 
         <label for="return_date">Data de Devolução:</label>
-        <input type="date" id="return_date" name="return_date" value="{{ dress.return_date }}" required />
+        <input type="date" id="return_date" name="return_date" value="{{ item.return_date }}" required />
 
         <label for="valor">Valor (R$):</label>
-        <input type="number" id="valor" name="valor" step="0.01" min="0" value="{{ dress.valor }}" required/>
+        <input type="number" id="valor" name="valor" step="0.01" min="0" value="{{ item.valor }}" required/>
 
         <label for="pagamento">Pagamento:</label>
 <select id="pagamento" name="pagamento">
-    <option value="Não pago" {% if dress.pagamento == "Não pago" or not dress.pagamento %}selected{% endif %}>Não pago</option>
-    <option value="Pago 50%" {% if dress.pagamento == "Pago 50%" %}selected{% endif %}>Pago 50%</option>
-    <option value="Pago 100%" {% if dress.pagamento == "Pago 100%" %}selected{% endif %}>Pago 100%</option>
+    <option value="Não pago" {% if item.pagamento == "Não pago" or not item.pagamento %}selected{% endif %}>Não pago</option>
+    <option value="Pago 50%" {% if item.pagamento == "Pago 50%" %}selected{% endif %}>Pago 50%</option>
+    <option value="Pago 100%" {% if item.pagamento == "Pago 100%" %}selected{% endif %}>Pago 100%</option>
 </select>
 
 <label for="comments">Comentários:</label>
-<textarea id="comments" name="comments" rows="3" value="{{dress.comments}}">{{dress.comments}}</textarea>
+<textarea id="comments" name="comments" rows="3" value="{{item.comments}}">{{item.comments}}</textarea>
 
 
 <!-- Campo de Data -->
@@ -96,7 +96,7 @@
     type="date"
     id="dev_date"
     name="dev_date"
-    value="{{ dress.dev_date }}"
+    value="{{ item.dev_date }}"
   />
 </div>
 
@@ -132,8 +132,8 @@
 
 
         <label>Foto Atual:</label>
-        {% if dress.image_url and dress.image_url != "" %}
-        <img src="{{ dress.image_url }}" alt="Imagem do vestido" />
+        {% if item.image_url and item.image_url != "" %}
+        <img src="{{ item.image_url }}" alt="Imagem do vestido" />
         {% else %}
         <img src="{{ url_for('static', filename='item-placeholder.png') }}" alt="Sem Imagem" />
         {% endif %}

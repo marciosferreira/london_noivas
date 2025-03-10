@@ -94,11 +94,62 @@
                 {{ status_map.get(item.previous_status, "Inválido") }}
               </td>
 
-              <td data-label="Ações">
-                <form method="POST" action="{{ url_for('restore', item_id=item.item_id) }}" style="display: inline">
-                  <button type="submit" class="btn btn-success btn-sm" title="Restaurar Item">Restaurar</button>
-                </form>
-              </td>
+
+
+
+
+<!-- Botão de Restaurar -->
+<td data-label="Ações">
+  <button type="button" class="btn btn-success btn-sm" title="Restaurar Item"
+      onclick="verificarItemPai('{{ item.item_id }}')">
+      Restaurar
+  </button>
+</td>
+
+<!-- Formulários Ocultos -->
+<form id="form-substituir" method="POST" action="{{ url_for('substituir_item') }}">
+  <input type="hidden" name="item_id" id="substituir_item_id">
+  <input type="hidden" name="parent_item_id" id="substituir_parent_item_id">
+  <input type="hidden" name="previous_status" id="substituir_previous_status"> <!-- 🔹 Novo campo -->
+</form>
+
+<form id="form-recriar" method="POST" action="{{ url_for('recriar_item') }}">
+  <input type="hidden" name="item_id" id="recriar_item_id">
+  <input type="hidden" name="parent_item_id" id="recriar_parent_item_id">
+  <input type="hidden" name="previous_status" id="recriar_previous_status"> <!-- 🔹 Novo campo -->
+</form>
+
+<!-- Modal de Confirmação -->
+<div id="modal" class="modal fade" tabindex="-1">
+  <div class="modal-dialog">
+      <div class="modal-content">
+          <div class="modal-header">
+              <h5 class="modal-title">Confirmação</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+              <p id="mensagem-modal"></p>
+          </div>
+          <div class="modal-footer">
+              <button id="confirmar-btn" class="btn btn-primary"></button>
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          </div>
+      </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
             </tr>
             {% endfor %}
           </tbody>
@@ -172,18 +223,67 @@
       </div>
     </div>
 
-    <script>
-      // Modal de imagem
-      const thumbnails = document.querySelectorAll('.item-thumbnail');
-      const modalImg = document.getElementById('modalImg');
-      const imageModal = new bootstrap.Modal(document.getElementById('imageModal'));
+    <!-- Modal de Confirmação -->
+<div id="modal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 20px; background: white; border: 1px solid black;">
+  <p id="mensagem-modal"></p>
+  <button id="confirmar-btn"></button>
+  <button onclick="fecharModal()">Cancelar</button>
+</div>
 
-      thumbnails.forEach((img) => {
-        img.addEventListener('click', () => {
-          modalImg.src = img.src;
-          imageModal.show();
-        });
+
+<script>
+  function verificarItemPai(itemId) {
+      fetch('/verificar-item-pai', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ item_id: itemId })
+      })
+      .then(response => response.json())
+      .then(data => {
+          if (data.status === "pai_existe") {
+              prepararModal(data.mensagem, "Substituir", "substituir", itemId, data.parent_item_id, data.previous_status);
+          } else if (data.status === "pai_nao_existe") {
+              prepararModal(data.mensagem, "Recriar", "recriar", itemId, data.parent_item_id, data.previous_status);
+          } else {
+              alert(data.mensagem);
+          }
       });
-    </script>
+  }
+
+  function prepararModal(mensagem, textoBotao, acao, itemId, parentItemId, previousStatus) {
+      document.getElementById("mensagem-modal").innerText = mensagem;
+      document.getElementById("confirmar-btn").innerText = textoBotao;
+
+      // **Adicionando a lógica correta para preencher os formulários ocultos**
+      document.getElementById("confirmar-btn").onclick = function() {
+          enviarFormulario(acao, itemId, parentItemId, previousStatus);
+      };
+
+      var modal = new bootstrap.Modal(document.getElementById("modal"));
+      modal.show();
+  }
+
+  function enviarFormulario(acao, itemId, parentItemId, previousStatus) {
+      if (acao === "substituir") {
+          document.getElementById("substituir_item_id").value = itemId;
+          document.getElementById("substituir_parent_item_id").value = parentItemId;
+          document.getElementById("substituir_previous_status").value = previousStatus;
+          document.getElementById("form-substituir").submit();
+      } else {
+          document.getElementById("recriar_item_id").value = itemId;
+          document.getElementById("recriar_parent_item_id").value = parentItemId;
+          document.getElementById("recriar_previous_status").value = previousStatus;
+          document.getElementById("form-recriar").submit();
+      }
+  }
+</script>
+
+
+
+
+
+
+
+
   </body>
 </html>

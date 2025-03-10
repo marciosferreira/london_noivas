@@ -31,7 +31,7 @@
           <a class="nav-link {% if request.endpoint == 'available' %}active{% endif %}" href="{{ url_for('available') }}">Ver Disponíveis</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link {% if request.endpoint == 'index' %}active{% endif %}" href="{{ url_for('index') }}">Ver Alugados</a>
+          <a class="nav-link {% if request.endpoint == 'index' %}active{% endif %}" href="{{ url_for('rented') }}">Ver Alugados</a>
         </li>
 
         <!-- Dropdown para Financeiro, Logout, arquivo, histórico -->
