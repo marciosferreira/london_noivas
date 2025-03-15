@@ -15,7 +15,7 @@
     <div class="container mt-3">
       {% for category, message in messages %}
       <div class="alert alert-{% if category == 'error' %}danger{% else %}{{ category }}{% endif %} alert-dismissible fade show" role="alert">
-        {{ message }}
+        {{ message|safe}}
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
       </div>
       {% endfor %}

@@ -9,11 +9,14 @@
   <body>
     <!-- Exibir mensagens flash -->
     {% with messages = get_flashed_messages(with_categories=true) %} {% if messages %}
-    <ul class="flashes">
+    <div class="container mt-3">
       {% for category, message in messages %}
-      <li class="flash {{ category }}">{{ message }}</li>
+      <div class="alert alert-{% if category == 'error' %}danger{% else %}{{ category }}{% endif %} alert-dismissible fade show" role="alert">
+        {{ message|safe}}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+      </div>
       {% endfor %}
-    </ul>
+    </div>
     {% endif %} {% endwith %}
 
     <div class="form-container">
