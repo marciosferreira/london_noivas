@@ -1,0 +1,29 @@
+/* Centraliza o logo dentro da navbar */
+.navbar-brand {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%; /* Ocupa a largura total da navbar */
+  text-align: center;
+  margin: auto; /* Garante centralização */
+}
+
+/* Ajuste do tamanho do logo na navbar */
+.logo {
+  height: 120px; /* Define um tamanho equilibrado */
+  width: auto; /* Mantém a proporção correta */
+  max-width: 100%;
+}
+
+/* Ajuste para dispositivos menores */
+@media (max-width: 768px) {
+  .logo {
+    height: 100px; /* Reduz o tamanho do logo em telas menores */
+  }
+}
+
+@media (max-width: 576px) {
+  .logo {
+    height: 80px; /* Reduz ainda mais para dispositivos pequenos */
+  }
+}

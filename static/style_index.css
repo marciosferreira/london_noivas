@@ -1,0 +1,76 @@
+body {
+  background-color: #f7e6d5; /* Cor pastel suave */
+  padding-top: 150px; /* Reduzido para evitar espaçamento excessivo */
+}
+
+/* Ajuste para a seção hero */
+.hero {
+  height: auto;
+  min-height: 0vh; /* Reduzi um pouco para aproximar da seção abaixo */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 30px 20px; /* Diminui padding para reduzir o espaço extra */
+}
+
+/* Ajuste do botão para não criar espaço extra */
+.hero .btn-primary {
+  margin-bottom: 20px; /* Pequeno espaço antes da próxima seção */
+}
+
+/* Ajuste para a seção de recursos (subir mais perto do botão) */
+.features {
+  padding-top: 0px;
+  padding-bottom: 40px; /* Mantém um bom espaçamento inferior */
+  margin-top: -30px; /* Ajuste fino para subir ainda mais */
+}
+
+/* Responsivo: Ajuste para telas menores */
+@media (max-width: 768px) {
+  .features {
+    margin-top: -20px; /* Reduz o espaço no mobile */
+  }
+}
+
+/* Ajuste das imagens */
+.feature-img {
+  max-width: 100px; /* Reduz um pouco o tamanho no desktop */
+  height: auto;
+}
+
+/* Ajuste para centralizar a seção */
+.features .row {
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+}
+
+.btn-primary {
+  font-size: 1.2rem;
+  padding: 10px 20px;
+}
+
+.modal-content {
+  border-radius: 10px;
+}
+
+/* Ajuste para a seção de recursos (subir mais perto do botão) */
+.features {
+  padding-top: 10px; /* Reduz o espaço entre o botão e as imagens */
+  padding-bottom: 60px; /* Mantém um bom espaçamento inferior */
+  margin-top: -60px; /* Ajuste fino para subir ainda mais */
+}
+
+/* Responsivo: Ajuste para telas menores */
+@media (max-width: 768px) {
+  .features {
+    margin-top: -30px; /* Reduz o espaço no mobile */
+  }
+}
+
+/* Ajuste das imagens */
+.feature-img {
+  max-width: 120px; /* Reduz o tamanho da imagem no mobile */
+}

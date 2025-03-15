@@ -1,331 +1,131 @@
 <!DOCTYPE html>
 <html lang="pt-br">
   <head>
-    <meta charset="UTF-8" />
-    <title>Itens Alugados</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='style_index.css') }}" />
 
-        <!-- gont awesome  -->
-    <link
-  rel="stylesheet"
-  href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
-  integrity="sha384-<hash aqui>"
-  crossorigin="anonymous"
-/>
+    <body style="background-color: #f7e6d5;">
+
+    <!-- Importa o Header -->
+    {% include 'header.html' %}
+
+
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Alugue QQC - Apresentação</title>
 
     <!-- Bootstrap CSS -->
-    <link
-      rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
-    />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
 
-    <!-- Seu CSS customizado -->
-    <link
-      rel="stylesheet"
-      href="{{ url_for('static', filename='style_main.css') }}"
-    />
   </head>
-
-  <body class="index_page">
-     <!-- Exibir mensagens flash -->
-     {% with messages = get_flashed_messages(with_categories=true) %} {% if messages %}
-     <div class="container mt-3">
-       {% for category, message in messages %}
-       <div class="alert alert-{% if category == 'error' %}danger{% else %}{{ category }}{% endif %} alert-dismissible fade show" role="alert">
-         {{ message|safe}}
-         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
-       </div>
-       {% endfor %}
-     </div>
-     {% endif %} {% endwith %}
+  <body>
 
 
-
-<!-- Incluir a Navbar -->
-{% include 'navbar.html' %}
-
-    <!-- CONTEÚDO PRINCIPAL -->
-    <div class="container my-4">
+<!-- Envolve todo o conteúdo dentro de um wrapper -->
+<div class="wrapper">
+  {% block content %}
+  <!-- O conteúdo das páginas individuais será inserido aqui -->
 
 
-        {% block content %}
-      {% include "common_section.html" with context %}
-    {% endblock %}
+ <!-- Seção de destaque -->
+ <section class="hero">
+  <h1>Alugue QQC</h1>
+  <h1>Gerenciamento de aluguéis de itens diversos</h1>
+  <p>Alugue seus itens de forma simples e segura.</p>
+  <button class="btn btn-primary mt-3" data-bs-toggle="modal" data-bs-target="#loginModal">Entrar ou Cadastrar</button>
+</section>
 
+<!-- Modal de Login/Cadastro -->
+<div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="loginModalLabel">Entrar ou Cadastrar</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body">
+        <ul class="nav nav-tabs" id="loginTabs">
+          <li class="nav-item">
+            <a class="nav-link active" id="tab-login" onclick="showTab('login')">Login</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" id="tab-register" onclick="showTab('register')">Cadastro</a>
+          </li>
+        </ul>
 
-      <!-- Seção de filtros (inicialmente oculta) -->
-      <div id="filter-section" class="d-none">
-        <div class="p-3">
-          <form method="GET" action="/">
-            <div class="row g-3">
-              <!-- Filtro de status (radio) -->
-              <div class="col-auto">
-                <h5>Filtrar por status:</h5>
-                <div class="form-check">
-                  <input
-                    class="form-check-input"
-                    type="radio"
-                    name="filter"
-                    id="filter-todos"
-                    value="todos"
-                    {% if current_filter == 'todos' %}checked{% endif %}
-                  />
-                  <label class="form-check-label" for="filter-todos">
-                    Todos
-                  </label>
-                </div>
-                <div class="form-check">
-                  <input
-                    class="form-check-input"
-                    type="radio"
-                    name="filter"
-                    id="filter-reservados"
-                    value="reservados"
-                    {% if current_filter == 'reservados' %}checked{% endif %}
-                  />
-                  <label class="form-check-label" for="filter-reservados">
-                    Reservados
-                  </label>
-                </div>
-                <div class="form-check">
-                  <input
-                    class="form-check-input"
-                    type="radio"
-                    name="filter"
-                    id="filter-retirados"
-                    value="retirados"
-                    {% if current_filter == 'retirados' %}checked{% endif %}
-                  />
-                  <label class="form-check-label" for="filter-retirados">
-                    Retirados
-                  </label>
-                </div>
-                <div class="form-check">
-                  <input
-                    class="form-check-input"
-                    type="radio"
-                    name="filter"
-                    id="filter-atrasados"
-                    value="atrasados"
-                    {% if current_filter == 'atrasados' %}checked{% endif %}
-                  />
-                  <label class="form-check-label" for="filter-atrasados">
-                    Devolução atrasada
-                  </label>
-                </div>
+        <div class="mt-3">
+          <!-- Formulário de Login -->
+          <div id="login-form">
+            <form action="/login" method="POST">
+              <div class="mb-3">
+                <label for="login-email" class="form-label">E-mail</label>
+                <input type="email" class="form-control" id="login-email" name="email" required />
+              </div>
+              <div class="mb-3">
+                <label for="login-password" class="form-label">Senha</label>
+                <input type="password" class="form-control" id="login-password" name="password" required />
+              </div>
+              <button type="submit" class="btn btn-primary w-100">Entrar</button>
+              <div class="text-center mt-2">
+                <a href="#" onclick="showTab('forgot-password'); return false;">Esqueci minha senha</a>
+              </div>
+            </form>
+          </div>
+
+          <!-- Formulário de Cadastro -->
+          <div id="register-form" style="display: none">
+            <form action="/register" method="POST">
+              <div class="mb-3">
+                <label for="register-username" class="form-label">Nome de Usuário</label>
+                <input type="text" class="form-control" id="register-username" name="username" required minlength="3" maxlength="15" />
+              </div>
+              <div class="mb-3">
+                <label for="register-email" class="form-label">E-mail</label>
+                <input type="email" class="form-control" id="register-email" name="email" required />
+              </div>
+              <div class="mb-3">
+                <label for="register-password" class="form-label">Senha</label>
+                <input type="password" class="form-control" id="register-password" name="password" required minlength="8" />
               </div>
 
-              <!-- Descrição -->
-              <div class="col-auto">
-                <label for="description" class="form-label">Descrição:</label>
-                <input
-                  type="text"
-                  class="form-control"
-                  id="description"
-                  name="description"
-                  value="{{ request.args.get('description', '') }}"
-                />
-              </div>
-
-              <!-- Comentários -->
-              <div class="col-auto">
-                <label for="comments" class="form-label">Comentários:</label>
-                <input
-                  type="text"
-                  class="form-control"
-                  id="comments"
-                  name="comments"
-                  value="{{ request.args.get('comments', '') }}"
-                />
-              </div>
-
-              <!-- Nome do cliente -->
-              <div class="col-auto">
-                <label for="client-name" class="form-label">Nome do Cliente:</label>
-                <input
-                  type="text"
-                  class="form-control"
-                  id="client-name"
-                  name="client_name"
-                  value="{{ request.args.get('client_name', '') }}"
-                />
-              </div>
-
-              <!-- Pagamento -->
-              <div class="col-auto">
-                <label for="payment-status" class="form-label">Pagamento:</label>
-                <select class="form-select" id="payment-status" name="payment">
-                  <option value="">Todos</option>
-                  <option
-                    value="Não pago"
-                    {% if request.args.get('payment') == 'Não pago' %}selected{% endif %}
-                  >
-                    Não Pago
-                  </option>
-                  <option
-                    value="Pago 50%"
-                    {% if request.args.get('payment') == 'Pago 50%' %}selected{% endif %}
-                  >
-                    Pago 50%
-                  </option>
-                  <option
-                    value="Pago 100%"
-                    {% if request.args.get('payment') == 'Pago 100%' %}selected{% endif %}
-                  >
-                    Pago 100%
-                  </option>
-                </select>
-              </div>
-
-              <!-- FORÇA a quebra de linha -->
-              <div class="w-100"></div>
-
-
-              <!-- Datas de retirada -->
-              <div class="col-auto">
-                <label for="start-date" class="form-label">
-                  Retir. prevista (de):
+              <!-- Checkbox para aceitar os termos -->
+              <div class="form-group terms-container">
+                <input type="checkbox" id="terms-checkbox" />
+                <label for="terms-checkbox">
+                  Eu aceito os
+                  <a href="/termos-de-uso" target="_blank">termos de uso</a>
+                  .
                 </label>
-                <input
-                  type="date"
-                  class="form-control"
-                  id="start-date"
-                  name="start_date"
-                  value="{{ request.args.get('start_date', '') }}"
-                />
-              </div>
-              <div class="col-auto">
-                <label for="end-date" class="form-label">
-                  Retir. prevista (até):
-                </label>
-                <input
-                  type="date"
-                  class="form-control"
-                  id="end-date"
-                  name="end_date"
-                  value="{{ request.args.get('end_date', '') }}"
-                />
               </div>
 
-              <!-- Datas de devolução -->
-              <div class="col-auto">
-                <label for="return-start-date" class="form-label">
-                  Devol. prevista (de):
-                </label>
-                <input
-                  type="date"
-                  class="form-control"
-                  id="return-start-date"
-                  name="return_start_date"
-                  value="{{ request.args.get('return_start_date', '') }}"
-                />
-              </div>
-              <div class="col-auto">
-                <label for="return-end-date" class="form-label">
-                  Devol. prevista (até):
-                </label>
-                <input
-                  type="date"
-                  class="form-control"
-                  id="return-end-date"
-                  name="return_end_date"
-                  value="{{ request.args.get('return_end_date', '') }}"
-                />
-              </div>
-            </div>
+              <button type="submit" class="btn btn-success w-100" id="register-btn" disabled>Cadastrar</button>
+            </form>
+          </div>
 
-            <div class="mt-3">
-              <button type="submit" class="btn btn-primary">
-                Aplicar Filtros
-              </button>
-            </div>
-          </form>
+
+
+
+
+
+          <!-- Formulário de Recuperação de Senha -->
+          <div id="forgot-password-form" style="display: none">
+            <h5>Recuperar Senha</h5>
+            <p>Digite seu e-mail para receber um link de redefinição de senha.</p>
+            <form action="/forgot-password" method="POST">
+              <div class="mb-3">
+                <label for="recovery-email" class="form-label">E-mail</label>
+                <input type="email" class="form-control" id="recovery-email" name="email" required />
+              </div>
+              <button type="submit" class="btn btn-warning w-100">Enviar Link</button>
+            </form>
+          </div>
         </div>
       </div>
-      <!-- Fim da seção de filtros -->
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+      </div>
+    </div>
+  </div>
 
-      <!-- Tabela (limitada a 90%) -->
-      <div class="table-container mt-4">
-        <table class="table table-hover responsive-table align-middle rounded-table">
-          <thead>
-            <tr>
-              <th>Imagem</th>
-              <th>Descrição</th>
-              <th>Cliente</th>
-              <th>Telefone</th>
-              <th>Retirada prevista</th>
-              <th>Devolução Prevista</th>
-              <th>Retirado?</th>
-              <th>Valor (R$)</th>
-              <th>Pago?</th>
-              <th>Comentários</th>
-              <th>Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for item in itens %}
-            <tr
-              class="
-                {% if item.overdue %}table-danger{% elif item.retirado %}table-warning{% endif %}
-              "
-            >
-              <td data-label="Imagem">
-                {% if item.image_url and item.image_url != "" %}
-                  <img
-                    src="{{ item.image_url }}"
-                    alt="Imagem do vestido"
-                    class="img-fluid item-thumbnail"
-                    style="max-width: 100px;"
-                  />
-                {% else %}
-                  <img
-                    src="{{ url_for('static', filename='item-placeholder.png') }}"
-                    alt="Sem Imagem"
-                    class="img-fluid item-thumbnail"
-                    style="max-width: 100px;"
-                  />
-                {% endif %}
-              </td>
-              <td data-label="Descrição" style="white-space: pre-wrap; text-align: left;">{{item.description}}</td>
-              <td data-label="Cliente">{{ item.client_name }}</td>
-              <td data-label="Telefone">{{ item.client_tel }}</td>
-              <td data-label="Retirada Prevista">{{ item.rental_date_formatted }}</td>
-              <td data-label="Devolução Prevista">{{ item.return_date_formatted }}</td>
-              <td data-label="Retirado">
-                {% if item.retirado %}Sim{% else %}Não{% endif %}
-              </td>
-              <td data-label="Valor">{{ item.valor }}</td>
-              <td data-label="Pagamento">{{ item.pagamento }}</td>
-              <td data-label="Comentários" style="white-space: pre-wrap; text-align: left;">{{item.comments}}</td>
-
-              <td data-label="Ações">
-
-<div class="d-flex flex-wrap gap-2 justify-content-center align-items-center">
-  <!-- Botão Deletar -->
-<form method="POST" action="{{ url_for('delete', item_id=item.item_id, next=request.url) }}" style="display: inline;">
-  <button
-    type="submit"
-    class="action-button danger"
-    onclick="return confirm('Tem certeza de que deseja deletar este item?');"
-    title="Deletar"
-  >
-    Deletar
-  </button>
-</form>
-
-
-<!-- Botão Editar -->
-<a href="{{ url_for('edit', item_id=item.item_id, next=request.url) }}" class="action-button warning" title="Editar">
-  Editar
-</a>
-
-<!-- Botão Disponível com Confirmação -->
-<a href="{{ url_for('mark_returned', item_id=item.item_id, next=request.url) }}"
-   class="action-button success"
-   title="Devolvido"
-   onclick="return confirm('Tem certeza de que deseja marcar este item como devolvido?');">
-  Devolvido
-</a>
 
 
 
@@ -334,111 +134,61 @@
 
 
 
-<!-- Fim de Botões de Ação -->
+
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+  function showTab(tab) {
+    document.getElementById('login-form').style.display = tab === 'login' ? 'block' : 'none';
+    document.getElementById('register-form').style.display = tab === 'register' ? 'block' : 'none';
+    document.getElementById('forgot-password-form').style.display = tab === 'forgot-password' ? 'block' : 'none';
+
+    document.getElementById('tab-login').classList.toggle('active', tab === 'login');
+    document.getElementById('tab-register').classList.toggle('active', tab === 'register');
+    document.getElementById('tab-forgot-password').classList.toggle('active', tab === 'forgot-password');
+  }
+
+  document.getElementById('terms-checkbox').addEventListener('change', function () {
+    document.getElementById('register-btn').disabled = !this.checked;
+  });
+</script>
 
 
 
 
 
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-
-      <!-- Paginação -->
-      <nav aria-label="Page navigation" class="mt-4">
-        <ul class="pagination justify-content-center">
-          {% set args = request.args.to_dict() %}
-          {% if page > 1 %}
-            <li class="page-item">
-              <a
-                class="page-link"
-                href="{{ url_for('index', **dict(args, page=page-1)) }}"
-              >
-                Anterior
-              </a>
-            </li>
-          {% endif %}
-          {% for p in range(1, total_pages + 1) %}
-            <li class="page-item {% if p == page %}active{% endif %}">
-              <a
-                class="page-link"
-                href="{{ url_for('index', **dict(args, page=p)) }}"
-              >
-                {{ p }}
-              </a>
-            </li>
-          {% endfor %}
-          {% if page < total_pages %}
-            <li class="page-item">
-              <a
-                class="page-link"
-                href="{{ url_for('index', **dict(args, page=page+1)) }}"
-              >
-                Próxima
-              </a>
-            </li>
-          {% endif %}
-        </ul>
-      </nav>
-
-      <div style="height: 3rem;"></div>
-
+<!-- Seção com 3 colunas -->
+<section class="features container text-center mt-5">
+  <div class="row">
+    <div class="col-md-4">
+      <img src="https://cdn-icons-png.flaticon.com/512/4208/4208423.png" alt="Grátis até 30 itens" class="feature-img">
+      <h3 class="mt-3">Grátis até 30 itens</h3>
     </div>
-    <!-- FIM CONTEÚDO PRINCIPAL -->
-
-    <!-- MODAL para imagem -->
-    <div
-      class="modal fade"
-      id="imageModal"
-      tabindex="-1"
-      aria-labelledby="imageModalLabel"
-      aria-hidden="true"
-    >
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="imageModalLabel">Visualizar Imagem</h5>
-            <button
-              type="button"
-              class="btn-close"
-              data-bs-dismiss="modal"
-              aria-label="Close"
-            ></button>
-          </div>
-          <div class="modal-body text-center">
-            <img class="img-fluid" id="modalImg" alt="Imagem do Vestido" />
-          </div>
-        </div>
-      </div>
+    <div class="col-md-4">
+      <img src="https://cdn-icons-png.flaticon.com/512/747/747376.png" alt="Fácil de usar" class="feature-img">
+      <h3 class="mt-3">Fácil de usar</h3>
     </div>
-
-    <!-- Bootstrap JS -->
-    <script
-      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"
-    ></script>
-
-    <!-- Scripts personalizados -->
-    <script>
-      // Modal de imagem
-      const thumbnails = document.querySelectorAll(".item-thumbnail");
-      const modalImg = document.getElementById("modalImg");
-      const imageModal = new bootstrap.Modal(document.getElementById("imageModal"));
-
-      thumbnails.forEach((img) => {
-        img.addEventListener("click", () => {
-          modalImg.src = img.src;
-          imageModal.show();
-        });
-      });
-
-      // Toggle de filtros
-      const filterToggle = document.getElementById("filter-toggle");
-      const filterSection = document.getElementById("filter-section");
+    <div class="col-md-4">
+      <img src="https://cdn-icons-png.flaticon.com/512/3063/3063407.png" alt="Segurança garantida" class="feature-img">
+      <h3 class="mt-3">Segurança garantida</h3>
+    </div>
+  </div>
+</section>
 
 
-    </script>
-  </body>
+
+
+  {% endblock %}
+</div>
+
+<!-- Importa o Footer -->
+{% include 'footer.html' %}
+
+
+
+
+
+
 </html>

@@ -1,15 +1,33 @@
+/* Definir altura mínima para o body e html */
+html,
+body {
+  height: 100%;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Criar um contêiner principal que ocupa todo o espaço disponível */
+.wrapper {
+  flex: 1; /* Faz com que o conteúdo ocupe todo o espaço antes do rodapé */
+}
+
+/* Rodapé fixo ao final da página */
 .footer {
+  width: 100%;
+  padding: 15px 0;
+  background: #343a40; /* Cor escura para contraste */
+  color: #f8f9fa; /* Texto claro para destaque */
   text-align: center;
-  padding: 15px;
   font-size: 0.9em;
-  color: #555;
-  background: #f8f9fa;
-  margin-top: 20px;
+  position: relative;
+  bottom: 0;
 }
 
 .footer a {
-  color: #007bff;
+  color: #f8f9fa; /* Mantém os links visíveis */
   text-decoration: none;
+  margin: 0 10px;
 }
 
 .footer a:hover {

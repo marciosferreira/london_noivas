@@ -71,10 +71,12 @@ init_auth_routes(app, users_table, reset_tokens_table)
 init_item_routes(app, itens_table, s3, s3_bucket_name)
 init_status_routes(app, itens_table, manaus_tz)
 
+
 # Static pages
 @app.route("/termos-de-uso")
 def termos_de_uso():
     return render_template("termos_de_uso.html")
+
 
 @app.route("/contato", methods=["GET", "POST"])
 def contato():
@@ -109,6 +111,12 @@ def contato():
         return redirect(url_for("contato"))
 
     return render_template("contato.html")
+
+
+@app.route("/")
+def index():
+    return render_template("index.html")  # Renderiza a página inicial
+
 
 if __name__ == "__main__":
     # Determina se está no localhost

@@ -1,10 +1,15 @@
-<!-- CSS específico para a página "available" -->
+<!-- Importando a folha de estilo do rodapé -->
 <link rel="stylesheet" href="{{ url_for('static', filename='style_footer.css') }}" />
-<!-- Rodapé -->
+
+<!-- Rodapé fixo ao final da página -->
 <footer class="footer">
-  <p>
-    <a href="/termos-de-uso" target="_blank">Termos de Uso</a>
-    |
-    <a href="/contato" target="_blank">Contato</a>
-  </p>
+  <div class="container">
+      <p>
+          <a href="/termos-de-uso" target="_blank">Termos de Uso</a>
+          |
+          <a href="/contato" target="_blank">Contato</a>
+          |
+      </p>
+  </div>
 </footer>
+</body>

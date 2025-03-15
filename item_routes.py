@@ -24,9 +24,6 @@ from utils import upload_image_to_s3, aplicar_filtro, copy_image_in_s3
 
 
 def init_item_routes(app, itens_table, s3, s3_bucket_name):
-    @app.route("/")
-    def index():
-        return listar_itens(["rented"], "index.html", "Itens Alugados", itens_table)
 
     @app.route("/rented")
     def rented():
