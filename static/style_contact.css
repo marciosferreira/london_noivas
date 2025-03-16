@@ -5,11 +5,10 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center; /* Centraliza verticalmente */
-  min-height: 100vh; /* Garante que ocupa a tela toda */
+  justify-content: flex-start;
+  min-height: 100vh;
   margin: 0;
-  padding: 0;
-  padding-top: 30px; /* Ajuste conforme necessário para evitar sobreposição */
+  padding-top: 80px; /* Garante que não fique colado no topo */
 }
 
 /* Container do formulário */
@@ -21,11 +20,7 @@ body {
   border-radius: 8px;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
   text-align: center;
-  margin: auto; /* Centraliza automaticamente */
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%); /* Centraliza na tela */
+  margin: 50px auto; /* Isso centraliza o formulário horizontalmente */
 }
 
 /* Títulos */
@@ -96,5 +91,6 @@ button:hover {
 @media (max-width: 768px) {
   .contact-form {
     width: 95%; /* Em telas menores, expande um pouco mais */
+    margin: 30px auto; /* Ajusta a margem superior */
   }
 }
