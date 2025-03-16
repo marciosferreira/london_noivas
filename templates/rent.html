@@ -1,23 +1,15 @@
 <!DOCTYPE html>
 <html lang="pt-br">
   <head>
+        <!-- Importa o Header -->
+        {% include 'header.html' %}
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Alugar Item</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style_rent.css') }}" />
   </head>
   <body>
-      <!-- Exibir mensagens flash -->
-      {% with messages = get_flashed_messages(with_categories=true) %} {% if messages %}
-      <div class="container mt-3">
-        {% for category, message in messages %}
-        <div class="alert alert-{% if category == 'error' %}danger{% else %}{{ category }}{% endif %} alert-dismissible fade show" role="alert">
-          {{ message|safe}}
-          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
-        </div>
-        {% endfor %}
-      </div>
-      {% endif %} {% endwith %}
+
 
     <div class="form-container">
       <h1>Alugar vestido</h1>

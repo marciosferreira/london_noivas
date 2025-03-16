@@ -11,25 +11,14 @@
     <!-- CSS específico para relatórios -->
     <link rel="stylesheet" href="{{ url_for('static', filename='style_reports.css') }}" />
   </head>
+
   <body class="reports">
-     <!-- Exibir mensagens flash -->
-     {% with messages = get_flashed_messages(with_categories=true) %} {% if messages %}
-     <div class="container mt-3">
-       {% for category, message in messages %}
-       <div class="alert alert-{% if category == 'error' %}danger{% else %}{{ category }}{% endif %} alert-dismissible fade show" role="alert">
-         {{ message|safe }}
-         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
-       </div>
-       {% endfor %}
-     </div>
-     {% endif %} {% endwith %}
+    <!-- Importa o Header (agora na posição correta) -->
+    {% include 'header.html' %}
 
-   <!-- Incluir a Navbar -->
-{% include 'navbar.html' %}
-
-    <!-- CONTEÚDO PRINCIPAL -->
-    <div class="container mt-5">
-      <!-- Título -->
+    <!-- Wrapper para garantir espaçamento correto -->
+    <div class="wrapper container mt-5">
+      <!-- CONTEÚDO PRINCIPAL -->
       <h1 class="text-center text-dark-blue">Relatórios de Recebimentos (R$)</h1>
 
       <!-- Formulário para seleção de datas -->
@@ -50,9 +39,9 @@
       </form>
 
       <!-- Exibir total pago e a receber -->
-      <div class="card mx-auto" style="max-width: 400px">
+      <div class="card mx-auto mt-4 shadow-sm" style="max-width: 400px">
         <div class="card-body">
-          <h5 class="card-title">Resumo Financeiro</h5>
+          <h5 class="card-title text-center">Resumo Financeiro</h5>
           <p class="card-text">
             Total Recebido:
             <strong>R$ {{ "%.2f"|format(total_paid) }}</strong>
@@ -66,16 +55,20 @@
             <strong>Total Geral:</strong>
             <span style="font-size: 1.2em">R$ {{ "%.2f"|format(total_general) }}</span>
           </p>
-          <p class="card-text">
-            <small class="text-muted">
+          <p class="card-text text-muted">
+            <small>
               Período: {{ start_date.strftime("%d/%m/%Y") }} a {{ end_date.strftime("%d/%m/%Y") }} ({{ (end_date - start_date).days }} dias)
             </small>
           </p>
         </div>
       </div>
+    </div>
 
+    <!-- Espaçamento extra para evitar que o footer fique colado -->
+    <div class="spacer" style="height: 50px"></div>
 
-    <!-- FIM CONTEÚDO PRINCIPAL -->
+    <!-- Importa o Footer -->
+    {% include 'footer.html' %}
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

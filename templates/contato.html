@@ -3,46 +3,43 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Contato - Alugue QQC</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style_contato.css') }}" />
+    <title>Alugue QQC - Contato</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style_contact.css') }}" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
   </head>
-  <body>
+
+  <body class="contact-page">
+    {% include 'header.html' %}
+
+    <!-- Conteúdo principal -->
     <div class="container">
-      <h1>Fale Conosco</h1>
-      <p>Tem dúvidas ou precisa de suporte?</p>
-      <p>Use o formulário de contato ou envie email para contato@alugueqqc.com.br</p>
+      <h1 class="text-center mt-4">Fale Conosco</h1>
+      <p class="text-center">Tem dúvidas? Preencha o formulário abaixo e entraremos em contato.</p>
 
-      <!-- Exibir mensagens flash -->
-      {% with messages = get_flashed_messages(with_categories=true) %} {% if messages %}
-      <div class="container mt-3">
-        {% for category, message in messages %}
-        <div class="alert alert-{% if category == 'error' %}danger{% else %}{{ category }}{% endif %} alert-dismissible fade show" role="alert">
-          {{ message|safe}}
-          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
-        </div>
-        {% endfor %}
+      <div class="contact-form">
+        <form action="/enviar-contato" method="POST">
+          <div class="form-group">
+            <label for="name">Nome</label>
+            <input type="text" id="name" name="name" placeholder="Seu nome" required />
+          </div>
+
+          <div class="form-group">
+            <label for="email">E-mail</label>
+            <input type="email" id="email" name="email" placeholder="seuemail@email.com" required />
+          </div>
+
+          <div class="form-group">
+            <label for="message">Mensagem</label>
+            <textarea id="message" name="message" placeholder="Digite sua mensagem" rows="4" required></textarea>
+          </div>
+
+          <button type="submit" class="btn btn-primary">Enviar Mensagem</button>
+        </form>
       </div>
-      {% endif %} {% endwith %}
-
-      <!-- Formulário de Contato -->
-      <form action="{{ url_for('contato') }}" method="POST">
-        <div class="form-group">
-          <label for="nome">Nome</label>
-          <input type="text" id="nome" name="nome" required />
-        </div>
-
-        <div class="form-group">
-          <label for="email">E-mail</label>
-          <input type="email" id="email" name="email" required />
-        </div>
-
-        <div class="form-group">
-          <label for="mensagem">Mensagem</label>
-          <textarea id="mensagem" name="mensagem" rows="4" required></textarea>
-        </div>
-
-        <button type="submit" class="btn">Enviar Mensagem</button>
-      </form>
     </div>
+
+    {% include 'footer.html' %}
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   </body>
 </html>

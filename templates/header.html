@@ -3,14 +3,87 @@
 <header class="header">
   <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
     <div class="container">
-      <!-- Logo do site -->
-      <a class="navbar-brand" href="/">
+      <!-- Logo -->
+      <a class="navbar-brand d-flex align-items-center" href="{{ url_for('index') }}">
         <img src="{{ url_for('static', filename='icons/icon-512x512.png') }}" alt="Logo" class="logo" />
+        <span class="ms-2">Alugue QQC</span>
       </a>
 
-      <div class="collapse navbar-collapse" id="navbarNav">
-        <ul class="navbar-nav ms-auto"></ul>
+      <!-- Botão hamburguer para telas pequenas -->
+      <button
+        class="navbar-toggler"
+        type="button"
+        data-bs-toggle="collapse"
+        data-bs-target="#navbarNav"
+        aria-controls="navbarNav"
+        aria-expanded="false"
+        aria-label="Toggle navigation"
+      >
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <!-- Menu principal -->
+      <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+        <ul class="navbar-nav">
+          <li class="nav-item">
+            <a class="nav-link {% if request.endpoint == 'returned' %}active{% endif %}" href="{{ url_for('returned') }}">Ver Devolvidos</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link {% if request.endpoint == 'available' %}active{% endif %}" href="{{ url_for('available') }}">Ver Disponíveis</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link {% if request.endpoint == 'rented' %}active{% endif %}" href="{{ url_for('rented') }}">Ver Alugados</a>
+          </li>
+
+          <!-- Dropdown Menu -->
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" id="menuDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">Menu</a>
+            <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end">
+              <li>
+                <a class="dropdown-item {% if request.endpoint == 'reports' %}active{% endif %}" href="{{ url_for('reports') }}">
+                  Relatório Financeiro
+                </a>
+              </li>
+
+              <li>
+                <a class="dropdown-item {% if request.endpoint == 'archive' %}active{% endif %}" href="{{ url_for('archive') }}">Itens Arquivados</a>
+              </li>
+              <li>
+                <a class="dropdown-item {% if request.endpoint == 'history' %}active{% endif %}" href="{{ url_for('history') }} ">
+                  Histórico de Aluguéis
+                </a>
+              </li>
+              <li>
+                <a class="dropdown-item {% if request.endpoint == 'adjustments' %}active{% endif %}" href="{{ url_for('adjustments') }}">
+                  Ajustes da Conta
+                </a>
+              </li>
+              <li>
+                <a class="dropdown-item {% if request.endpoint == 'trash' %}active{% endif %}" href="{{ url_for('trash') }}">
+                  Histórico de Alterações
+                </a>
+              </li>
+
+              {% if session.get('user_id') %}
+              <li><hr class="dropdown-divider" /></li>
+              <li><a class="dropdown-item text-danger" href="{{ url_for('logout') }}">Sair</a></li>
+              {% endif %}
+            </ul>
+          </li>
+        </ul>
       </div>
     </div>
   </nav>
 </header>
+<br />
+<!-- Exibir mensagens flash -->
+{% with messages = get_flashed_messages(with_categories=true) %} {% if messages %}
+<div class="container mt-8">
+  {% for category, message in messages %}
+  <div class="alert alert-{% if category == 'error' %}danger{% else %}{{ category }}{% endif %} alert-dismissible fade show" role="alert">
+    {{ message|safe}}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+  </div>
+  {% endfor %}
+</div>
+{% endif %} {% endwith %}

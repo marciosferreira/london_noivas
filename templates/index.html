@@ -1,194 +1,119 @@
 <!DOCTYPE html>
 <html lang="pt-br">
   <head>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style_index.css') }}" />
-
-    <body style="background-color: #f7e6d5;">
-
-    <!-- Importa o Header -->
-    {% include 'header.html' %}
-
-
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Alugue QQC - Apresentação</title>
 
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
-
+    <link rel="stylesheet" href="{{ url_for('static', filename='style_index.css') }}" />
   </head>
   <body>
+    <!-- Importa o Header DENTRO do body -->
+    {% include 'header.html' %}
 
+    <!-- Envolve todo o conteúdo dentro de um wrapper -->
+    <div class="wrapper">
+      {% block content %}
 
-<!-- Envolve todo o conteúdo dentro de um wrapper -->
-<div class="wrapper">
-  {% block content %}
-  <!-- O conteúdo das páginas individuais será inserido aqui -->
+      <!-- Seção de destaque -->
+      <section class="hero">
+        <h1>Alugue QQC</h1>
+        <h1>Gerenciador de aluguéis de itens diversos</h1>
+        <p>Alugue seus itens de forma simples e segura</p>
+        <button class="btn btn-primary mt-3" data-bs-toggle="modal" data-bs-target="#loginModal">Entrar ou Cadastrar</button>
+      </section>
 
+      <!-- Modal de Login/Cadastro -->
+      <div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="loginModalLabel">Entrar ou Cadastrar</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+              <ul class="nav nav-tabs" id="loginTabs">
+                <li class="nav-item">
+                  <a class="nav-link active" id="tab-login" onclick="showTab('login')">Login</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" id="tab-register" onclick="showTab('register')">Cadastro</a>
+                </li>
+              </ul>
 
- <!-- Seção de destaque -->
- <section class="hero">
-  <h1>Alugue QQC</h1>
-  <h1>Gerenciamento de aluguéis de itens diversos</h1>
-  <p>Alugue seus itens de forma simples e segura.</p>
-  <button class="btn btn-primary mt-3" data-bs-toggle="modal" data-bs-target="#loginModal">Entrar ou Cadastrar</button>
-</section>
+              <div class="mt-3">
+                <!-- Formulário de Login -->
+                <div id="login-form">
+                  <form action="/login" method="POST">
+                    <div class="mb-3">
+                      <label for="login-email" class="form-label">E-mail</label>
+                      <input type="email" class="form-control" id="login-email" name="email" required />
+                    </div>
+                    <div class="mb-3">
+                      <label for="login-password" class="form-label">Senha</label>
+                      <input type="password" class="form-control" id="login-password" name="password" required />
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Entrar</button>
+                    <div class="text-center mt-2">
+                      <a href="#" onclick="showTab('forgot-password'); return false;">Esqueci minha senha</a>
+                    </div>
+                  </form>
+                </div>
 
-<!-- Modal de Login/Cadastro -->
-<div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="loginModalLabel">Entrar ou Cadastrar</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
-      </div>
-      <div class="modal-body">
-        <ul class="nav nav-tabs" id="loginTabs">
-          <li class="nav-item">
-            <a class="nav-link active" id="tab-login" onclick="showTab('login')">Login</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" id="tab-register" onclick="showTab('register')">Cadastro</a>
-          </li>
-        </ul>
-
-        <div class="mt-3">
-          <!-- Formulário de Login -->
-          <div id="login-form">
-            <form action="/login" method="POST">
-              <div class="mb-3">
-                <label for="login-email" class="form-label">E-mail</label>
-                <input type="email" class="form-control" id="login-email" name="email" required />
+                <!-- Formulário de Cadastro -->
+                <div id="register-form" style="display: none">
+                  <form action="/register" method="POST">
+                    <div class="mb-3">
+                      <label for="register-username" class="form-label">Nome de Usuário</label>
+                      <input type="text" class="form-control" id="register-username" name="username" required minlength="3" maxlength="15" />
+                    </div>
+                    <div class="mb-3">
+                      <label for="register-email" class="form-label">E-mail</label>
+                      <input type="email" class="form-control" id="register-email" name="email" required />
+                    </div>
+                    <div class="mb-3">
+                      <label for="register-password" class="form-label">Senha</label>
+                      <input type="password" class="form-control" id="register-password" name="password" required minlength="8" />
+                    </div>
+                    <button type="submit" class="btn btn-success w-100">Cadastrar</button>
+                  </form>
+                </div>
               </div>
-              <div class="mb-3">
-                <label for="login-password" class="form-label">Senha</label>
-                <input type="password" class="form-control" id="login-password" name="password" required />
-              </div>
-              <button type="submit" class="btn btn-primary w-100">Entrar</button>
-              <div class="text-center mt-2">
-                <a href="#" onclick="showTab('forgot-password'); return false;">Esqueci minha senha</a>
-              </div>
-            </form>
-          </div>
-
-          <!-- Formulário de Cadastro -->
-          <div id="register-form" style="display: none">
-            <form action="/register" method="POST">
-              <div class="mb-3">
-                <label for="register-username" class="form-label">Nome de Usuário</label>
-                <input type="text" class="form-control" id="register-username" name="username" required minlength="3" maxlength="15" />
-              </div>
-              <div class="mb-3">
-                <label for="register-email" class="form-label">E-mail</label>
-                <input type="email" class="form-control" id="register-email" name="email" required />
-              </div>
-              <div class="mb-3">
-                <label for="register-password" class="form-label">Senha</label>
-                <input type="password" class="form-control" id="register-password" name="password" required minlength="8" />
-              </div>
-
-              <!-- Checkbox para aceitar os termos -->
-              <div class="form-group terms-container">
-                <input type="checkbox" id="terms-checkbox" />
-                <label for="terms-checkbox">
-                  Eu aceito os
-                  <a href="/termos-de-uso" target="_blank">termos de uso</a>
-                  .
-                </label>
-              </div>
-
-              <button type="submit" class="btn btn-success w-100" id="register-btn" disabled>Cadastrar</button>
-            </form>
-          </div>
-
-
-
-
-
-
-          <!-- Formulário de Recuperação de Senha -->
-          <div id="forgot-password-form" style="display: none">
-            <h5>Recuperar Senha</h5>
-            <p>Digite seu e-mail para receber um link de redefinição de senha.</p>
-            <form action="/forgot-password" method="POST">
-              <div class="mb-3">
-                <label for="recovery-email" class="form-label">E-mail</label>
-                <input type="email" class="form-control" id="recovery-email" name="email" required />
-              </div>
-              <button type="submit" class="btn btn-warning w-100">Enviar Link</button>
-            </form>
+            </div>
           </div>
         </div>
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+
+      {% endblock %}
+    </div>
+
+    <!-- Seção com 3 colunas -->
+    <section class="features container text-center mt-5">
+      <div class="row">
+        <div class="col-12 col-sm-6 col-md-4 d-flex flex-column align-items-center feature-box">
+          <img src="https://cdn-icons-png.flaticon.com/128/8781/8781533.png" alt="Grátis até 30 itens" class="feature-img" />
+          <h3 class="mt-3">Grátis até 30 itens</h3>
+          <p class="feature-text">Teste o sistema sem compromisso</p>
+        </div>
+        <div class="col-12 col-sm-6 col-md-4 d-flex flex-column align-items-center feature-box">
+          <img src="https://cdn-icons-png.flaticon.com/128/2954/2954893.png" alt="Fácil de usar" class="feature-img" />
+          <h3 class="mt-3">Controle total</h3>
+          <p class="feature-text">Controle status e datas de devolução.</p>
+        </div>
+        <div class="col-12 col-sm-6 col-md-4 d-flex flex-column align-items-center feature-box">
+          <img src="https://cdn-icons-png.flaticon.com/128/1161/1161388.png" alt="Segurança garantida" class="feature-img" />
+          <h3 class="mt-3">Segurança garantida</h3>
+          <p class="feature-text">Sistema seguro contra perda de dados</p>
+        </div>
       </div>
-    </div>
-  </div>
+    </section>
 
+    <!-- Importa o Footer -->
+    {% include 'footer.html' %}
 
-
-
-
-</div>
-
-
-
-
-
-<!-- Bootstrap JS -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
-<script>
-  function showTab(tab) {
-    document.getElementById('login-form').style.display = tab === 'login' ? 'block' : 'none';
-    document.getElementById('register-form').style.display = tab === 'register' ? 'block' : 'none';
-    document.getElementById('forgot-password-form').style.display = tab === 'forgot-password' ? 'block' : 'none';
-
-    document.getElementById('tab-login').classList.toggle('active', tab === 'login');
-    document.getElementById('tab-register').classList.toggle('active', tab === 'register');
-    document.getElementById('tab-forgot-password').classList.toggle('active', tab === 'forgot-password');
-  }
-
-  document.getElementById('terms-checkbox').addEventListener('change', function () {
-    document.getElementById('register-btn').disabled = !this.checked;
-  });
-</script>
-
-
-
-
-
-<!-- Seção com 3 colunas -->
-<section class="features container text-center mt-5">
-  <div class="row">
-    <div class="col-md-4">
-      <img src="https://cdn-icons-png.flaticon.com/512/4208/4208423.png" alt="Grátis até 30 itens" class="feature-img">
-      <h3 class="mt-3">Grátis até 30 itens</h3>
-    </div>
-    <div class="col-md-4">
-      <img src="https://cdn-icons-png.flaticon.com/512/747/747376.png" alt="Fácil de usar" class="feature-img">
-      <h3 class="mt-3">Fácil de usar</h3>
-    </div>
-    <div class="col-md-4">
-      <img src="https://cdn-icons-png.flaticon.com/512/3063/3063407.png" alt="Segurança garantida" class="feature-img">
-      <h3 class="mt-3">Segurança garantida</h3>
-    </div>
-  </div>
-</section>
-
-
-
-
-  {% endblock %}
-</div>
-
-<!-- Importa o Footer -->
-{% include 'footer.html' %}
-
-
-
-
-
-
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
 </html>

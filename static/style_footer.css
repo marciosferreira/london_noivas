@@ -12,20 +12,21 @@ body {
   flex: 1; /* Faz com que o conteúdo ocupe todo o espaço antes do rodapé */
 }
 
-/* Rodapé fixo ao final da página */
 .footer {
-  width: 100%;
-  padding: 15px 0;
-  background: #343a40; /* Cor escura para contraste */
-  color: #f8f9fa; /* Texto claro para destaque */
-  text-align: center;
+  width: 100%; /* Garante que ocupe toda a largura da tela */
+  text-align: center; /* Centraliza o conteúdo */
+  padding: 15px;
   font-size: 0.9em;
+  color: #555;
+  background: #343a40; /* Cor preta, igual ao header */
   position: relative;
   bottom: 0;
+  left: 0; /* Alinha corretamente */
+  margin-top: 40px; /* Aumente o valor se precisar de mais espaço */
 }
 
 .footer a {
-  color: #f8f9fa; /* Mantém os links visíveis */
+  color: #f8f9fa; /* Links brancos */
   text-decoration: none;
   margin: 0 10px;
 }

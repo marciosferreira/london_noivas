@@ -4,17 +4,21 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Termos de Uso - Alugue QQC</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='style_terms.css') }}" />
   </head>
-
   <body>
-    <div class="container">
+    <!-- Importa o Header -->
+    {% include 'header.html' %}
+
+    <div class="terms-container">
       <h1>Termos de Uso</h1>
 
       <h2>1. Introdução</h2>
       <p>
-        Bem-vindo(a) ao Alugue QQC, um serviço de gerenciamento de aluguel de itens fornecido na nuvem. Ao utilizar nossa Plataforma, você concorda
-        com os seguintes Termos de Uso. Caso não concorde com qualquer parte destes termos, não utilize nosso serviço.
+        Bem-vindo(a) ao
+        <strong>Alugue QQC</strong>
+        , um serviço de gerenciamento de aluguel de itens fornecido na nuvem. Ao utilizar nossa Plataforma, você concorda com os seguintes Termos de
+        Uso. Caso não concorde com qualquer parte destes termos, não utilize nosso serviço.
       </p>
 
       <h2>2. Escopo do Serviço</h2>
@@ -55,12 +59,14 @@
 
       <h2>8. Contato</h2>
       <p>
-        Para dúvidas ou suporte, entre em contato pelo nosso canal oficial
+        Para dúvidas ou suporte, entre em contato pelo nosso canal oficial:
         <a href="mailto:contato@alugueqqc.com.br">contato@alugueqqc.com.br</a>
         .
       </p>
 
       <p>Ao utilizar a Plataforma, você declara ter lido, compreendido e aceitado integralmente estes Termos de Uso.</p>
     </div>
+    <!-- Importa o Footer -->
+    {% include 'footer.html' %}
   </body>
 </html>

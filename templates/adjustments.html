@@ -9,21 +9,10 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="{{ url_for('static', filename='style_adjustments.css') }}" />
   </head>
-  <body class="adjustments">
-    <!-- Exibir mensagens flash -->
-    {% with messages = get_flashed_messages(with_categories=true) %} {% if messages %}
-    <div class="container mt-3">
-      {% for category, message in messages %}
-      <div class="alert alert-{% if category == 'error' %}danger{% else %}{{ category }}{% endif %} alert-dismissible fade show" role="alert">
-        {{ message|safe}}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
-      </div>
-      {% endfor %}
-    </div>
-    {% endif %} {% endwith %}
 
-    <!-- Navbar -->
-    {% include 'navbar.html' %}
+  <body class="adjustments">
+    <!-- Importa o Header -->
+    {% include 'header.html' %}
 
     <div class="container mt-5">
       <h1 class="text-center text-dark-blue">Ajustes da Conta</h1>
@@ -83,10 +72,14 @@
         </div>
       </div>
     </div>
+
     <div style="height: 50px"></div>
     <!-- Espaçamento extra no final -->
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Importa o Footer -->
+    {% include 'footer.html' %}
   </body>
 </html>

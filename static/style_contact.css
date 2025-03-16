@@ -1,0 +1,100 @@
+/* Ajuste global do body */
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f7e6d5; /* Cor pastel */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center; /* Centraliza verticalmente */
+  min-height: 100vh; /* Garante que ocupa a tela toda */
+  margin: 0;
+  padding: 0;
+  padding-top: 30px; /* Ajuste conforme necessário para evitar sobreposição */
+}
+
+/* Container do formulário */
+.contact-form {
+  background: #fff;
+  width: 90%; /* Ocupa 90% da largura da tela */
+  max-width: 500px; /* Limita a largura para não ficar gigante */
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  margin: auto; /* Centraliza automaticamente */
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%); /* Centraliza na tela */
+}
+
+/* Títulos */
+h1 {
+  color: #333;
+}
+
+p {
+  color: #555;
+  font-size: 1rem;
+}
+
+/* Estilizando os inputs */
+.form-group {
+  margin-bottom: 15px;
+  text-align: left;
+}
+
+.form-group label {
+  font-weight: bold;
+  display: block;
+  margin-bottom: 5px;
+}
+
+.form-group input,
+.form-group textarea {
+  width: 100%;
+  padding: 10px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  box-sizing: border-box;
+}
+
+.form-group textarea {
+  resize: none; /* Impede que o usuário redimensione a caixa de texto */
+}
+
+/* Estilo do botão */
+button {
+  width: 100%;
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 12px;
+  border-radius: 5px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #0056b3;
+}
+
+/* Ajuste do rodapé para ficar sempre no final */
+.footer {
+  width: 100%;
+  text-align: center;
+  padding: 15px;
+  font-size: 0.9em;
+  color: #555;
+  background: #f8f9fa;
+  margin-top: auto;
+  position: relative;
+}
+
+/* Responsividade: Ajustes para telas menores */
+@media (max-width: 768px) {
+  .contact-form {
+    width: 95%; /* Em telas menores, expande um pouco mais */
+  }
+}

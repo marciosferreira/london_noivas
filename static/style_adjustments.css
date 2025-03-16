@@ -1,3 +1,18 @@
+/* ---------------------------------------
+   HTML & BODY (100% ALTURA)
+--------------------------------------- */
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  padding-top: 30px; /* Ajuste conforme necessário para evitar sobreposição */
+}
+
+/*
+   Aplica o degradê (ou fundo) somente à página "available"
+   Ajuste livremente as cores do degradê, se quiser outro visual.
+*/
 body.adjustments {
   min-height: 100vh;
 
@@ -10,4 +25,13 @@ body.adjustments {
   font-family: Arial, sans-serif;
   /* Se quiser a cor de fundo base adicional, pode manter ou remover:
      background-color: #f8f9fa; */
+}
+
+/* ---------------------------------------
+   RESET & BASE
+--------------------------------------- */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }

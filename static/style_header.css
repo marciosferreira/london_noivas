@@ -1,29 +1,36 @@
-/* Centraliza o logo dentro da navbar */
-.navbar-brand {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 100%; /* Ocupa a largura total da navbar */
-  text-align: center;
-  margin: auto; /* Garante centralização */
+/* Estilos gerais do header */
+.header {
+  width: 100%;
+  position: fixed;
+  top: 0;
+  z-index: 1000;
 }
 
-/* Ajuste do tamanho do logo na navbar */
+/* Navbar principal */
+.navbar {
+  background-color: #343a40; /* Cor escura moderna */
+  padding: 12px 20px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Estiliza a logo */
 .logo {
-  height: 120px; /* Define um tamanho equilibrado */
-  width: auto; /* Mantém a proporção correta */
-  max-width: 100%;
+  height: 50px; /* Ajuste ideal para tamanho pequeno */
+  width: auto;
+  border-radius: 8px; /* Deixa a logo com bordas arredondadas */
+  transition: transform 0.3s ease-in-out;
 }
 
-/* Ajuste para dispositivos menores */
-@media (max-width: 768px) {
-  .logo {
-    height: 100px; /* Reduz o tamanho do logo em telas menores */
-  }
+.logo:hover {
+  transform: scale(1.1); /* Efeito de leve aumento ao passar o mouse */
 }
 
-@media (max-width: 576px) {
-  .logo {
-    height: 80px; /* Reduz ainda mais para dispositivos pequenos */
-  }
+/* Ajuste do nome ao lado da logo */
+.navbar-brand {
+  font-size: 1.4rem;
+  font-weight: bold;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  text-decoration: none;
 }

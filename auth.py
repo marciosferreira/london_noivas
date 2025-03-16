@@ -435,7 +435,7 @@ def init_auth_routes(app, users_table, reset_tokens_table):
     # Change password
     @app.route("/change-password", methods=["POST"])
     def change_password():
-        if "email" not in session:
+        if not session.get("logged_in"):
             flash("Você precisa estar logado para alterar a senha.", "danger")
             return redirect(url_for("login"))
 
@@ -497,7 +497,7 @@ def init_auth_routes(app, users_table, reset_tokens_table):
     # Change username
     @app.route("/change-username", methods=["POST"])
     def change_username():
-        if "email" not in session:
+        if not session.get("logged_in"):
             flash("Você precisa estar logado para alterar o nome de usuário.", "danger")
             return redirect(url_for("login"))
 
@@ -644,13 +644,17 @@ def init_auth_routes(app, users_table, reset_tokens_table):
             flash("Ocorreu um erro ao processar a solicitação.", "danger")
             return redirect(url_for("adjustments"))
 
-    # Logout route
     @app.route("/logout")
     def logout():
-        session.clear()
-        return redirect(url_for("login"))
+        # Armazena mensagens flash antes de limpar a sessão
+        flash("Você saiu com sucesso!", "success")
 
-    # User profile settings
+        session.pop("logged_in", None)
+
+        # Redireciona para a página inicial
+        return redirect(url_for("index"))
+        # User profile settings
+
     @app.route("/adjustments")
     def adjustments():
         if not session.get("logged_in"):

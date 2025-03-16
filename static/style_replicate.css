@@ -8,6 +8,7 @@ body {
   justify-content: center;
   align-items: center;
   min-height: 100vh;
+  padding-top: 30px; /* Ajuste conforme necessário para evitar sobreposição */
 }
 
 /* Contêiner do Formulário */

@@ -73,9 +73,9 @@ init_status_routes(app, itens_table, manaus_tz)
 
 
 # Static pages
-@app.route("/termos-de-uso")
-def termos_de_uso():
-    return render_template("termos_de_uso.html")
+@app.route("/terms")
+def terms():
+    return render_template("terms.html")
 
 
 @app.route("/contato", methods=["GET", "POST"])
