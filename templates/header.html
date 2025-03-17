@@ -34,6 +34,9 @@
           <li class="nav-item">
             <a class="nav-link {% if request.endpoint == 'rented' %}active{% endif %}" href="{{ url_for('rented') }}">Ver Alugados</a>
           </li>
+          <li class="nav-item">
+            <a class="nav-link {% if request.endpoint == 'rented' %}active{% endif %}" href="{{ url_for('all_itens') }}">Ver Todos</a>
+          </li>
 
           <!-- Dropdown Menu -->
           <li class="nav-item dropdown">
@@ -59,9 +62,7 @@
                 </a>
               </li>
               <li>
-                <a class="dropdown-item {% if request.endpoint == 'trash' %}active{% endif %}" href="{{ url_for('trash') }}">
-                  Histórico de Alterações
-                </a>
+                <a class="dropdown-item {% if request.endpoint == 'trash' %}active{% endif %}" href="{{ url_for('trash') }}">Lixeira</a>
               </li>
 
               {% if session.get('user_id') %}

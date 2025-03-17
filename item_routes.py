@@ -49,6 +49,15 @@ def init_item_routes(app, itens_table, s3, s3_bucket_name):
             ["available"], "available.html", "Itens Disponíveis", itens_table
         )
 
+    @app.route("/all_itens")
+    def all_itens():
+        return listar_itens(
+            ["rented", "returned", "available", "archive"],
+            "all_itens.html",
+            "Todos os status",
+            itens_table,
+        )
+
     @app.route("/archive")
     def archive():
         return listar_itens(
