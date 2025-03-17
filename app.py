@@ -81,9 +81,13 @@ def terms():
 @app.route("/contato", methods=["GET", "POST"])
 def contato():
     if request.method == "POST":
-        nome = request.form.get("nome")
+        nome = request.form.get("name")
         email = request.form.get("email")
-        mensagem = request.form.get("mensagem")
+        mensagem = request.form.get("message")
+
+        print(nome)
+        print(email)
+        print(mensagem)
 
         if not nome or not email or not mensagem:
             flash("Todos os campos são obrigatórios.", "danger")

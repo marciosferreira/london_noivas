@@ -32,8 +32,11 @@ def init_auth_routes(app, users_table, reset_tokens_table):
             confirm_password = request.form.get("confirm_password")
 
             if len(password) < 8 or len(password) > 64:
-                flash("A senha deve ter entre 8 e 64 caracteres.", "danger")
-                return redirect("/register")
+                flash(
+                    "A nova senha deve ter mais que 8 e menos que 64 caracteres.",
+                    "danger",
+                )
+                return redirect(url_for("adjustments"))
 
             if password != confirm_password:
                 flash("As senhas não coincidem.", "danger")
@@ -64,6 +67,9 @@ def init_auth_routes(app, users_table, reset_tokens_table):
     # Login route
     @app.route("/login", methods=["GET", "POST"])
     def login():
+        if session.get("logged_in"):  # Verifica se o usuário já está logado
+            flash("Você já está logado!", "info")
+            return redirect(url_for("index"))  # Redireciona para outra página
         if request.method == "POST":
             email = request.form.get("email")
             password = request.form.get("password")
@@ -313,6 +319,7 @@ def init_auth_routes(app, users_table, reset_tokens_table):
     def reset_password_page(token):
         try:
             # Buscar token no DynamoDB
+
             response = reset_tokens_table.get_item(Key={"token": token})
 
             # Se o token não existir, pode ter sido deletado pelo TTL
@@ -339,9 +346,7 @@ def init_auth_routes(app, users_table, reset_tokens_table):
                 )
 
             # Token válido, mostrar página de redefinição
-            return render_template(
-                "reset_password.html", reset_password=True, token=token
-            )
+            return render_template("login.html", reset_password=True, token=token)
 
         except Exception as e:
             print(f"Erro ao verificar token: {e}")
@@ -371,6 +376,12 @@ def init_auth_routes(app, users_table, reset_tokens_table):
                 reset_password=True,
                 token=token,
             )
+
+        if len(new_password) < 8 or len(new_password) > 64:
+            flash(
+                "A nova senha deve ter mais que 8 e menos que 64 caracteres.", "danger"
+            )
+            return redirect(request.referrer)
 
         try:
             # Verificar se o token existe e é válido
@@ -449,8 +460,10 @@ def init_auth_routes(app, users_table, reset_tokens_table):
             flash("Todos os campos são obrigatórios.", "danger")
             return redirect(url_for("adjustments"))
 
-        if len(new_password) < 8:
-            flash("A nova senha deve ter pelo menos 8 caracteres.", "danger")
+        if len(new_password) < 8 or len(new_password) > 64:
+            flash(
+                "A nova senha deve ter mais que 8 e menos que 64 caracteres.", "danger"
+            )
             return redirect(url_for("adjustments"))
 
         if new_password != confirm_new_password:
