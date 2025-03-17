@@ -1,26 +1,22 @@
-/* Ajuste global do body */
-body {
+body.contact {
   font-family: Arial, sans-serif;
-  background-color: #f7e6d5; /* Cor pastel */
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
+  background: linear-gradient(120deg, #f5e3a6 0%, #f3bbab 100%);
+  display: block; /* 🔹 Evita centralização da navbar */
   min-height: 100vh;
   margin: 0;
-  padding-top: 80px; /* Garante que não fique colado no topo */
+  padding-top: 60px; /* 🔹 Evita que a navbar cubra conteúdo */
 }
 
-/* Container do formulário */
 .contact-form {
   background: #fff;
-  width: 90%; /* Ocupa 90% da largura da tela */
-  max-width: 500px; /* Limita a largura para não ficar gigante */
+  width: 90%;
+  max-width: 500px;
   padding: 20px;
   border-radius: 8px;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
   text-align: center;
-  margin: 50px auto; /* Isso centraliza o formulário horizontalmente */
+  margin: 50px auto; /* 🔹 Centraliza apenas o formulário */
+  display: block; /* 🔹 Garante que o formulário não afete a navbar */
 }
 
 /* Títulos */
@@ -59,9 +55,9 @@ p {
   resize: none; /* Impede que o usuário redimensione a caixa de texto */
 }
 
-/* Estilo do botão */
-button {
-  width: 100%;
+/* 🔹 Restringe o estilo apenas para botões dentro do .contact-form */
+.contact-form button {
+  width: 100%; /* 🔹 Mantém o botão grande apenas no formulário */
   background: #007bff;
   color: white;
   border: none;
@@ -71,20 +67,12 @@ button {
   cursor: pointer;
 }
 
-button:hover {
+.contact-form button:hover {
   background: #0056b3;
 }
 
-/* Ajuste do rodapé para ficar sempre no final */
-.footer {
-  width: 100%;
-  text-align: center;
-  padding: 15px;
-  font-size: 0.9em;
-  color: #555;
-  background: #f8f9fa;
-  margin-top: auto;
-  position: relative;
+button:hover {
+  background: #0056b3;
 }
 
 /* Responsividade: Ajustes para telas menores */
@@ -92,5 +80,15 @@ button:hover {
   .contact-form {
     width: 95%; /* Em telas menores, expande um pouco mais */
     margin: 30px auto; /* Ajusta a margem superior */
+  }
+}
+
+@media (max-width: 768px) {
+  .navbar {
+    width: 100%;
+    display: flex;
+    justify-content: space-between; /* 🔹 Mantém alinhamento correto */
+    align-items: center;
+    padding: 10px 20px;
   }
 }

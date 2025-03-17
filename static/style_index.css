@@ -1,6 +1,6 @@
 /* Define o fundo do body para todas as páginas */
 body {
-  background-color: #f7e6d5 !important; /* Força a cor de fundo */
+  background: linear-gradient(120deg, #f5e3a6 0%, #f3bbab 100%);
   margin: 0;
   padding: 0;
   padding-top: 80px; /* Ajuste conforme necessário para evitar sobreposição */
