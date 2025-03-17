@@ -86,46 +86,97 @@
               </td>
 
 
+             <!-- <pre>{{ item | tojson(indent=2) }}</pre> -->
 
 
 <!-- Botão de Restaurar -->
 <td data-label="Ações">
   <button type="button" class="btn btn-success btn-sm" title="Restaurar Item"
-      onclick="restaurarItem('{{ item.item_id }}', '{{ item.status }}')">
+      onclick='restaurarItem({{ item | tojson }})'>
       Restaurar
   </button>
 </td>
 
+
+
 <!-- Formulário Dinâmico -->
 <form id="form-restore" method="POST">
-  <input type="hidden" name="item_id" id="restore_item_id">
+  <input type="hidden" name="item_data" id="restore_item_data">
 </form>
 
 <script>
-  function restaurarItem(itemId, itemStatus) {
-      let form = document.getElementById("form-restore");
-      let inputItemId = document.getElementById("restore_item_id");
-      let mensagem = "";
+  // 🔹 Mapeamento de status para português
+  const statusMap = {
+      "rented": "Alugado",
+      "returned": "Devolvido",
+      "historic": "Histórico",
+      "available": "Disponível",
+      "deleted": "Deletado",
+      "version": "Versão",
+      "archived": "Arquivado"
+  };
 
-      // Definir a mensagem do alerta com base no status
-      if (itemStatus === "deleted") {
-          form.action = "{{ url_for('restore_deleted_item') }}";
-          mensagem = "Este item foi excluído. Deseja restaurá-lo?";
-      } else if (itemStatus === "version") {
-          form.action = "{{ url_for('restore_version_item') }}";
-          mensagem = "Este item é uma versão anterior. Deseja restaurá-la e mover a versão atual para o histórico?";
-      } else {
+  function definirMensagemEConfirmar(itemData, parentData, mensagem, form) {
+      if (!["deleted", "version"].includes(itemData.status)) {
           alert("Status inválido para restauração.");
           return;
       }
 
-      // Exibir alerta de confirmação
+      form.action = itemData.status === "deleted"
+          ? "{{ url_for('restore_deleted_item') }}"
+          : "{{ url_for('restore_version_item') }}";
+
       if (confirm(mensagem)) {
-          inputItemId.value = itemId;
+          // 🔹 Serializar os dados como JSON antes de enviar via POST
+          document.getElementById("restore_item_data").value = JSON.stringify(itemData);
           form.submit();
       }
   }
+
+  function restaurarItem(itemData) {
+      let form = document.getElementById("form-restore");
+
+      // 🔹 Traduzir `previous_status` antes de exibir na mensagem
+      let previousStatusTranslated = statusMap[itemData.previous_status] || "Indefinido";
+
+      // 🔹 Se não for do tipo "version", restauramos direto sem consultar o parent
+      if (itemData.status !== "version") {
+          definirMensagemEConfirmar(itemData, {}, `Restaurar este item pai para o status anterior: ${previousStatusTranslated}?`, form);
+          return;
+      }
+
+      // 🔹 Buscar o status do parent_item_id
+      fetch("/query", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ table: "ItensTable", key: "item_id", value: itemData.parent_item_id })
+      })
+      .then(response => response.json())
+      .then(parentData => {
+          if (parentData.status === "not_found" || !parentData.data) {
+              alert("Item pai não encontrado.");
+              return;
+          }
+
+          // 🔹 Traduzir status do item pai antes de exibir
+          let parentStatusTranslated = statusMap[parentData.data.status] || "Indefinido";
+
+          let mensagem = parentData.data.status === "deleted"
+              ? `Esta é uma versão de um item pai deletado. Restaurar esta versão para o status: ${previousStatusTranslated}?`
+              : `Há um item pai desta versão com o status: ${parentStatusTranslated}. Deseja substituir o item pai com esta versão?`;
+
+          definirMensagemEConfirmar(itemData, parentData.data, mensagem, form);
+      })
+      .catch(error => {
+          alert("Erro ao consultar o banco de dados.");
+          console.error(error);
+      });
+  }
 </script>
+
+
+
+
 
 
 

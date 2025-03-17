@@ -167,92 +167,89 @@
     </div>
 
     <script>
-      // No início do script, verifique se devemos mostrar registro ou reset
-      document.addEventListener('DOMContentLoaded', function() {
-        {% if register %}
+        // No início do script, verifique se devemos mostrar registro ou reset
+        document.addEventListener('DOMContentLoaded', function() {
+          {% if register %}
+            showTab('register');
+          {% endif %}
+
+          {% if reset_password %}
+            showTab('reset-password');
+            document.getElementById('main-tabs').style.display = 'none';
+          {% endif %}
+        });
+        function showTab(tabName) {
+          // Esconder todos os formulários
+          document.getElementById('login-form').style.display = 'none';
+          document.getElementById('register-form').style.display = 'none';
+          document.getElementById('forgot-password-form').style.display = 'none';
+          document.getElementById('reset-password-form').style.display = 'none';
+
+          // Remover classes ativas das abas
+          document.getElementById('login-tab')?.classList.remove('active');
+          document.getElementById('register-tab')?.classList.remove('active');
+
+          // Mostrar o formulário selecionado e ajustar espaçamento
+          if (tabName === 'login') {
+              document.getElementById('login-form').style.display = 'block';
+              document.getElementById('login-tab').classList.add('active');
+              document.getElementById('main-tabs').style.display = 'flex';
+          } else if (tabName === 'register') {
+              let registerForm = document.getElementById('register-form');
+              registerForm.style.display = 'block';
+              registerForm.classList.add('active'); // Garante o espaçamento correto
+              document.getElementById('register-tab').classList.add('active');
+              document.getElementById('main-tabs').style.display = 'flex';
+          } else if (tabName === 'forgot-password') {
+              document.getElementById('forgot-password-form').style.display = 'block';
+              document.getElementById('main-tabs').style.display = 'none';
+          } else if (tabName === 'reset-password') {
+              document.getElementById('reset-password-form').style.display = 'block';
+              document.getElementById('main-tabs').style.display = 'none';
+          }
+      }
+
+
+        // Verificar se as senhas coincidem no registro
+        document.getElementById('confirm-password').addEventListener('input', function () {
+          const password = document.getElementById('reg-password').value;
+          const confirmPassword = this.value;
+          const errorElement = document.getElementById('password-error');
+          const registerButton = document.getElementById('register-btn');
+
+          if (password !== confirmPassword) {
+            errorElement.style.display = 'block';
+            registerButton.disabled = true;
+          } else {
+            errorElement.style.display = 'none';
+            registerButton.disabled = false;
+          }
+        });
+
+        // Verificar se as senhas coincidem na redefinição
+        document.getElementById('confirm-new-password').addEventListener('input', function () {
+          const password = document.getElementById('new-password').value;
+          const confirmPassword = this.value;
+          const errorElement = document.getElementById('reset-password-error');
+          const resetButton = document.getElementById('reset-btn');
+
+          if (password !== confirmPassword) {
+            errorElement.style.display = 'block';
+            resetButton.disabled = true;
+          } else {
+            errorElement.style.display = 'none';
+            resetButton.disabled = false;
+          }
+        });
+
+        // Verificar se a URL tem parâmetros
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('register') === 'true') {
           showTab('register');
-        {% endif %}
-
-        {% if reset_password %}
+        }
+        if (urlParams.get('reset') === 'true') {
           showTab('reset-password');
-          document.getElementById('main-tabs').style.display = 'none';
-        {% endif %}
-      });
-
-      // Função para alternar entre as abas
-      function showTab(tabName) {
-        // Esconder todos os formulários
-        document.getElementById('login-form').style.display = 'none';
-        document.getElementById('register-form').style.display = 'none';
-        document.getElementById('forgot-password-form').style.display = 'none';
-        document.getElementById('reset-password-form').style.display = 'none';
-
-        // Remover classes ativas das abas
-        if (document.getElementById('login-tab')) {
-          document.getElementById('login-tab').classList.remove('active');
         }
-        if (document.getElementById('register-tab')) {
-          document.getElementById('register-tab').classList.remove('active');
-        }
-
-        // Mostrar o formulário selecionado
-        if (tabName === 'login') {
-          document.getElementById('login-form').style.display = 'block';
-          document.getElementById('login-tab').classList.add('active');
-          document.getElementById('main-tabs').style.display = 'flex';
-        } else if (tabName === 'register') {
-          document.getElementById('register-form').style.display = 'block';
-          document.getElementById('register-tab').classList.add('active');
-          document.getElementById('main-tabs').style.display = 'flex';
-        } else if (tabName === 'forgot-password') {
-          document.getElementById('forgot-password-form').style.display = 'block';
-          document.getElementById('main-tabs').style.display = 'none';
-        } else if (tabName === 'reset-password') {
-          document.getElementById('reset-password-form').style.display = 'block';
-          document.getElementById('main-tabs').style.display = 'none';
-        }
-      }
-
-      // Verificar se as senhas coincidem no registro
-      document.getElementById('confirm-password').addEventListener('input', function () {
-        const password = document.getElementById('reg-password').value;
-        const confirmPassword = this.value;
-        const errorElement = document.getElementById('password-error');
-        const registerButton = document.getElementById('register-btn');
-
-        if (password !== confirmPassword) {
-          errorElement.style.display = 'block';
-          registerButton.disabled = true;
-        } else {
-          errorElement.style.display = 'none';
-          registerButton.disabled = false;
-        }
-      });
-
-      // Verificar se as senhas coincidem na redefinição
-      document.getElementById('confirm-new-password').addEventListener('input', function () {
-        const password = document.getElementById('new-password').value;
-        const confirmPassword = this.value;
-        const errorElement = document.getElementById('reset-password-error');
-        const resetButton = document.getElementById('reset-btn');
-
-        if (password !== confirmPassword) {
-          errorElement.style.display = 'block';
-          resetButton.disabled = true;
-        } else {
-          errorElement.style.display = 'none';
-          resetButton.disabled = false;
-        }
-      });
-
-      // Verificar se a URL tem parâmetros
-      const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.get('register') === 'true') {
-        showTab('register');
-      }
-      if (urlParams.get('reset') === 'true') {
-        showTab('reset-password');
-      }
     </script>
 
     <script>

@@ -11,6 +11,8 @@ from flask import (
     flash,
     jsonify,
 )
+import json
+
 
 ALLOWED_EXTENSIONS = {"jpeg", "jpg", "png", "gif", "webp"}
 
@@ -724,30 +726,22 @@ def init_item_routes(app, itens_table, s3, s3_bucket_name):
         if not session.get("logged_in"):
             return redirect(url_for("login"))
 
-        item_id = request.form.get("item_id")
         next_page = request.args.get("next", url_for("trash"))
 
         try:
-            # 🔹 Obter o item atual no banco (item versão)
-            response = itens_table.get_item(Key={"item_id": item_id})
-            item_data = response.get("Item")
+            # 🔹 Pegar os dados do formulário e converter de JSON para dicionário
+            item_data = request.form.get("item_data")
 
             if not item_data:
-                flash("Item não encontrado.", "danger")
-                return redirect(next_page)
+                flash("Erro: Nenhum dado do item foi recebido.", "danger")
+                return redirect(url_for("trash"))
 
-            # 🔹 Verificar se o item é uma versão
-            current_status = item_data.get("status")
+            item = json.loads(item_data)
 
-            if current_status != "version":
-                flash("Este item não é uma versão para restauração.", "danger")
-                return redirect(next_page)
-
-            # 🔹 Obter o item pai
-            parent_item_id = item_data.get("parent_item_id")
-            if not parent_item_id:
-                flash("Item não possui um item pai associado.", "danger")
-                return redirect(next_page)
+            item_id = item.get("item_id")
+            parent_item_id = item.get("parent_item_id")
+            current_status = item.get("status")
+            previous_status = item.get("previous_status")
 
             parent_response = itens_table.get_item(Key={"item_id": parent_item_id})
             parent_data = parent_response.get("Item")
@@ -761,7 +755,6 @@ def init_item_routes(app, itens_table, s3, s3_bucket_name):
 
             # Se o item pai estiver deletado, restauramos o status
             if parent_status == "deleted":
-                previous_status = parent_data.get("previous_status", "available")
                 itens_table.update_item(
                     Key={"item_id": parent_item_id},
                     UpdateExpression="SET #status = :prev_status",
@@ -772,7 +765,7 @@ def init_item_routes(app, itens_table, s3, s3_bucket_name):
             # 🔹 Trocar todos os campos, exceto item_id, previous_status e status
             swap_fields = [
                 field
-                for field in item_data.keys()
+                for field in item.keys()
                 if field
                 not in {"item_id", "previous_status", "status", "parent_item_id"}
             ]
@@ -786,9 +779,8 @@ def init_item_routes(app, itens_table, s3, s3_bucket_name):
                 update_expression_parent.append(f"{field} = :v_{field}")
                 update_expression_version.append(f"{field} = :p_{field}")
 
-                expression_values_parent[f":v_{field}"] = item_data.get(field, "")
+                expression_values_parent[f":v_{field}"] = item.get(field, "")
                 expression_values_version[f":p_{field}"] = parent_data.get(field, "")
-
             # 🔹 Atualizar o item pai com os valores do item versão
             itens_table.update_item(
                 Key={"item_id": parent_item_id},
@@ -803,16 +795,18 @@ def init_item_routes(app, itens_table, s3, s3_bucket_name):
                 ExpressionAttributeValues=expression_values_version,
             )
 
-            if parent_status == "deleted":
-                flash(
-                    "O item pai estava deletado e foi restaurado para seu status anterior. Além disso, todos os campos foram trocados.",
-                    "success",
-                )
-            else:
-                flash(
-                    "Item versão restaurado com sucesso. Todos os campos foram trocados.",
-                    "success",
-                )
+            status_map = {
+                "rented": "Alugados",
+                "returned": "Devolvidos",
+                "historic": "Histórico",
+                "available": "Disponíveis",
+                "archived": "Arquivados",
+            }
+
+            flash(
+                f"Item restaurado para <a href='{previous_status}'>{status_map[previous_status]}</a>.",
+                "success",
+            )
 
             return redirect(next_page)
 
@@ -820,43 +814,50 @@ def init_item_routes(app, itens_table, s3, s3_bucket_name):
             flash(f"Erro ao restaurar a versão do item: {str(e)}", "danger")
             return redirect(next_page)
 
-    # Para restaurar itens deletados, apenas mudamos seu status para o anterior
     @app.route("/restore_deleted_item", methods=["POST"])
     def restore_deleted_item():
         if not session.get("logged_in"):
             return redirect(url_for("login"))
 
-        item_id = request.form.get("item_id")
+        try:
+            item_data = request.form.get("item_data")
 
-        # 🔹 Buscar o item no banco de dados para obter o previous_status
-        response = itens_table.get_item(Key={"item_id": item_id})
-        item = response.get("Item")
+            if not item_data:
+                flash("Erro: Nenhum dado do item foi recebido.", "danger")
+                return redirect(url_for("trash"))
 
-        if not item:
-            flash(f"Erro: Item {item_id} não encontrado.", "danger")
+            item = json.loads(item_data)
+
+            item_id = item.get("item_id")
+            previous_status = item.get("previous_status")
+
+            # 🔹 Atualizar o status do item no banco
+            itens_table.update_item(
+                Key={"item_id": item_id},
+                UpdateExpression="SET #status = :previous_status",
+                ExpressionAttributeNames={"#status": "status"},
+                ExpressionAttributeValues={":previous_status": previous_status},
+            )
+
+            # flash(f"Item {item_id} restaurado para {previous_status}.", "success")
+            # Dicionário para mapear os valores a nomes associados
+            status_map = {
+                "rented": "Alugados",
+                "returned": "Devolvidos",
+                "historic": "Histórico",
+                "available": "Disponíveis",
+                "archived": "Arquivados",
+            }
+
+            flash(
+                f"Item restaurado para <a href='{previous_status}'>{status_map[previous_status]}</a>.",
+                "success",
+            )
             return redirect(url_for("trash"))
 
-        # 🔹 Obter o previous_status salvo no banco
-        previous_status = item.get("previous_status")
-        if not previous_status:
-            flash(f"Erro: O item {item_id} não tem um status anterior salvo.", "danger")
+        except Exception as e:
+            flash(f"Erro ao restaurar item: {str(e)}", "danger")
             return redirect(url_for("trash"))
-
-        # 🔹 Atualizar o status do item para o previous_status
-        itens_table.update_item(
-            Key={"item_id": item_id},
-            UpdateExpression="SET #status = :previous_status",
-            ExpressionAttributeNames={
-                "#status": "status"
-            },  # Evita conflito com palavra reservada
-            ExpressionAttributeValues={":previous_status": previous_status},
-        )
-
-        flash(
-            f"Item restaurado com sucesso para o status '{previous_status}'.",
-            "success",
-        )
-        return redirect(url_for("trash"))
 
     @app.route("/reports", methods=["GET", "POST"])
     def reports():
@@ -947,6 +948,28 @@ def init_item_routes(app, itens_table, s3, s3_bucket_name):
             start_date=start_date,
             end_date=end_date,
         )
+
+    @app.route("/query", methods=["POST"])
+    def query_database():
+        """Consulta genérica no DynamoDB para uso em AJAX"""
+        key_name = request.json.get("key")  # Nome do campo a ser buscado
+        key_value = request.json.get("value")  # Valor do campo a ser buscado
+        # 🔹 Buscar o item no banco de dados para obter o previous_status
+        response = itens_table.get_item(Key={key_name: key_value})
+        item_data = response.get("Item")
+
+        if not item_data:
+            return (
+                jsonify(
+                    {
+                        "status": "not_found",
+                        "message": f"Nenhum item encontrado para {key_name} = {key_value}",
+                    }
+                ),
+                404,
+            )
+
+        return jsonify({"status": "found", "data": item_data})
 
 
 def listar_itens(status_list, template, title, itens_table):

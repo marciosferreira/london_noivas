@@ -1,13 +1,24 @@
-/* Estilo global */
+/* Ajuste global do body */
 body {
   font-family: Arial, sans-serif;
   margin: 0;
   padding: 0;
-  background-color: #f8f9fa; /* Fundo cinza claro */
+  background-color: #f8f9fa;
   display: flex;
-  justify-content: center;
-  align-items: center;
+  justify-content: flex-start; /* Evita centralizar verticalmente */
+  align-items: center; /* Mantém a centralização horizontal */
   height: 100vh;
+  padding-top: 50px;
+}
+
+/* Garante que os formulários ocupem exatamente o mesmo espaço */
+#login-form,
+#register-form,
+#forgot-password-form,
+#reset-password-form {
+  width: 100%;
+  min-width: 300px; /* Define um mínimo para evitar ajustes */
+  max-width: 350px; /* Mantém um tamanho fixo */
 }
 
 /* Contêiner principal da página de login */
@@ -19,6 +30,17 @@ body {
   border-radius: 10px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); /* Sombra suave */
   text-align: center;
+}
+
+/* Ajuste para evitar que o formulário de registro fique colado no topo */
+#register-form {
+  display: none;
+  margin-top: 20px; /* Pequeno espaço inicial */
+}
+
+#register-form.active {
+  display: block;
+  margin-top: 50px; /* Dá mais espaço quando está ativo */
 }
 
 /* Cabeçalho do login */
