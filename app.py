@@ -122,6 +122,14 @@ def index():
     return render_template("index.html")  # Renderiza a página inicial
 
 
+from flask import send_from_directory
+
+
+@app.route("/ads.txt")
+def ads_txt():
+    return send_from_directory("static", "ads.txt")
+
+
 if __name__ == "__main__":
     # Determina se está no localhost
     debug_mode = os.getenv("debug_env", "false").lower() == "true"
