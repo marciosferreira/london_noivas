@@ -29,7 +29,7 @@
 
 
       {% block content %}
-      {% include "common_section.html" with context %}
+      {% include "filter_section.html" with context %}
     {% endblock %}
 
 
@@ -249,7 +249,7 @@
 
 
   <!-- Botão Deletar -->
-  <form method="POST" action="{{ url_for('delete', item_id=item.item_id, next=request.url) }}" style="display: inline;">
+  <form method="POST" action="{{ url_for('delete_transaction', transaction_id=item.transaction_id, next=request.url) }}" style="display: inline;">
     <button
       type="submit"
       class="action-button danger"
@@ -263,32 +263,18 @@
 
 
   <!-- Botão Editar -->
-  <a href="{{ url_for('edit', item_id=item.item_id, next=request.url) }}" class="action-button warning" title="Editar">
+  <a href="{{ url_for('edit_transaction', transaction_id=item.transaction_id, next=request.url) }}" class="action-button warning" title="Editar">
     Editar
   </a>
 
 
 
 
-  <!-- Botão Arquivar com Confirmação -->
-<a href="{{ url_for('mark_archived', item_id=item.item_id, next=request.url) }}"
-class="action-button info"
-title="Arquivado"
-onclick="return confirm('Tem certeza de que deseja arquivar este item?');">
-Arquivado
-</a>
 
 
 
 
 
-    <!-- Botão DIsponível com Confirmação -->
-<a href="{{ url_for('mark_available', item_id=item.item_id, next=request.url) }}"
-class="action-button success"
-title="Disponível"
-onclick="return confirm('Tem certeza de que deseja disponibilizar este item?');">
-Disponível
-</a>
 
 
 

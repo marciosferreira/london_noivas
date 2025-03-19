@@ -9,28 +9,12 @@
   </head>
   <body>
     <div class="form-container">
-      <h1>Inserir Novo Vestido</h1>
+      <h1>Inserir Novo Item</h1>
       <!-- Link "Sair sem Finalizar" -->
       <a href="{{ next }}" class="cancel-link">Sair sem Finalizar</a>
       <form method="POST" enctype="multipart/form-data">
         <!-- Campo oculto para preservar a página de origem -->
         <input type="hidden" name="next" value="{{ next }}" />
-
-        <!-- Radio Buttons para status -->
-        <div class="form-group">
-          <label>
-            <input type="radio" id="status-rented" name="status" value="rented" />
-            Alugado
-          </label>
-          <label>
-            <input type="radio" id="status-returned" name="status" value="returned" />
-            Devolvido
-          </label>
-          <label>
-            <input type="radio" id="status-history" name="status" value="historic" />
-            Histórico
-          </label>
-        </div>
 
         <label for="description">Descrição:</label>
         <br />
@@ -38,107 +22,9 @@
         <br />
         <br />
 
-        <label>Nome do Cliente:</label>
-        <br />
-        <input type="text" name="client_name" required />
-        <br />
-        <br />
-
-        <label>Telefone do Cliente:</label>
-        <br />
-        <input type="text" name="client_tel" required />
-        <br />
-        <br />
-
-        <label>Data de Retirada:</label>
-        <br />
-        <input type="date" name="rental_date" required />
-        <br />
-        <br />
-
-        <div class="form-group">
-          <label for="retirado">
-            <input type="checkbox" id="retirado" name="retirado" value="True" />
-            Retirado
-          </label>
-        </div>
-
-        <label>Data de Devolução:</label>
-        <br />
-        <input type="date" name="return_date" required />
-        <br />
-        <br />
-
-        <label for="valor">Valor (R$):</label>
-        <input type="number" id="valor" name="valor" step="0.01" min="0" required />
-        <br />
-        <br />
-
-        <label for="pagamento">Pagamento:</label>
-        <select id="pagamento" name="pagamento">
-          <option value="Não pago">Não pago</option>
-          <option value="Pago 50%">Pago 50%</option>
-          <option value="Pago 100%">Pago 100%</option>
-        </select>
-        <br />
-        <br />
-
         <label for="comments">Comentários:</label>
         <br />
         <textarea id="comments" name="comments" rows="4" cols="50"></textarea>
-
-        <!-- Campo de Data -->
-        <div id="dev-date-container" style="display: none">
-          <br />
-          <label for="dev_date">Devolvido em:</label>
-          <input type="date" id="dev_date" name="dev_date" />
-          <br />
-          <br />
-        </div>
-
-        <script>
-          // Função para verificar e ajustar a visibilidade e atributos do campo de data
-          function updateDevDateField() {
-            const returnedRadio = document.getElementById('status-returned');
-            const historicRadio = document.getElementById('status-history');
-            const devDateContainer = document.getElementById('dev-date-container');
-            const devDateInput = document.getElementById('dev_date');
-
-            // Verifica se "returned" ou "historic" estão selecionados
-            if (returnedRadio.checked || historicRadio.checked) {
-              devDateContainer.style.display = 'block'; // Mostra o campo
-              devDateInput.required = true; // Torna obrigatório
-            } else {
-              devDateContainer.style.display = 'none'; // Esconde o campo
-              devDateInput.required = false; // Remove obrigatoriedade
-            }
-          }
-
-          // Adiciona evento para cada botão de rádio
-          const radioButtons = document.querySelectorAll('input[name="status"]');
-          radioButtons.forEach((radio) => {
-            radio.addEventListener('change', updateDevDateField);
-          });
-
-          // Verifica e ajusta a seleção inicial com base na URL
-          window.onload = function () {
-            const currentUrl = window.location.href;
-
-            // Define o botão de rádio com base na URL
-            if (currentUrl.includes('returned')) {
-              document.getElementById('status-returned').checked = true;
-            } else if (currentUrl.includes('rented')) {
-              document.getElementById('status-rented').checked = true;
-            } else if (currentUrl.includes('history')) {
-              document.getElementById('status-history').checked = true;
-            } else {
-              document.getElementById('status-rented').checked = true; // Define padrão
-            }
-
-            // Atualiza o campo de data com base na seleção inicial
-            updateDevDateField();
-          };
-        </script>
 
         <label>Foto:</label>
         <br />
@@ -149,17 +35,5 @@
         <button type="submit">Inserir</button>
       </form>
     </div>
-
-    <script>
-      // Função para tornar os checkboxes mutuamente exclusivos
-      function toggleCheckbox(activeId, inactiveId) {
-        const activeCheckbox = document.getElementById(activeId);
-        const inactiveCheckbox = document.getElementById(inactiveId);
-
-        if (activeCheckbox.checked) {
-          inactiveCheckbox.checked = false;
-        }
-      }
-    </script>
   </body>
 </html>

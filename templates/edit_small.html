@@ -26,9 +26,6 @@
       <form method="POST" enctype="multipart/form-data">
         <textarea id="description" name="description" rows="3" required>{{item.description}}</textarea>
 
-        <label for="valor">Valor (R$):</label>
-        <input type="number" id="valor" name="valor" step="0.01" min="0" value="{{ item.valor }}" required />
-
         <label for="comments">Comentários:</label>
         <textarea id="comments" name="comments" rows="3" value="{{item.comments}}">{{item.comments}}</textarea>
 

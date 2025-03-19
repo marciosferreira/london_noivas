@@ -1,0 +1,119 @@
+<!-- Título e Botões Principais -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3 mb-0">{{ title }}</h1>
+
+  <!-- Container dos botões -->
+  <div class="d-flex flex-wrap gap-2 align-items-center justify-content-end w-100 w-sm-auto">
+    <!-- Botão de Filtros -->
+    <a href="#" class="custom-button" id="filter-toggle" onclick="toggleFilters(event)">Filtros</a>
+
+    <!-- Seção de Filtros -->
+    <div id="filter-section" class="d-none mt-3">
+      <div class="p-3 border rounded">
+        <form method="GET" action="">
+          <div class="mb-3">
+            <label for="description" class="form-label">Descrição:</label>
+            <input type="text" class="form-control" id="description" name="description" />
+
+            <label for="comments" class="form-label mt-2">Comentários:</label>
+            <input type="text" class="form-control" id="comments" name="comments" />
+          </div>
+
+          <button type="submit" class="btn btn-primary">Aplicar Filtros</button>
+        </form>
+      </div>
+    </div>
+    <!-- Estilos Personalizados -->
+    <style>
+      .custom-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 1rem;
+        text-decoration: none;
+        color: white;
+        background-color: #007bff;
+        border: 2px solid #007bff;
+        border-radius: 25px;
+        padding: 10px 20px;
+        transition: all 0.3s ease;
+        cursor: pointer;
+      }
+
+      .custom-button:hover {
+        background-color: white;
+        color: #007bff;
+      }
+
+      .custom-button:active {
+        transform: scale(0.95);
+      }
+
+      .custom-button:focus {
+        outline: none;
+        box-shadow: 0 0 5px #007bff;
+      }
+
+      /* Garantir altura uniforme para ambos os botões */
+      .custom-button {
+        height: 50px;
+        line-height: 1;
+      }
+
+      /* Espaçamento consistente entre botões */
+      .custom-button + .custom-button {
+        margin-left: 10px;
+      }
+
+      /* Botão de filtro com estilo consistente */
+      #filter-toggle {
+        border-radius: 25px; /* Bordas arredondadas, mas não círculo completo */
+        padding: 10px 20px; /* Adiciona espaçamento interno horizontal e vertical */
+        display: inline-flex;
+        align-items: center; /* Centraliza verticalmente o conteúdo */
+        justify-content: center; /* Centraliza horizontalmente o conteúdo */
+        background-color: #007bff; /* Fundo azul */
+        color: white; /* Texto branco */
+        border: 2px solid #007bff; /* Borda azul */
+        cursor: pointer; /* Aparece como botão clicável */
+        transition: all 0.3s ease;
+      }
+
+      /* Hover para o botão */
+      #filter-toggle:hover {
+        background-color: white; /* Fundo branco ao passar o mouse */
+        color: #007bff; /* Texto azul ao passar o mouse */
+      }
+
+      /* Active para o botão */
+      #filter-toggle:active {
+        transform: scale(0.95); /* Reduz ligeiramente o tamanho ao clicar */
+      }
+
+      /* Alinhamento para dispositivos pequenos */
+      @media (max-width: 576px) {
+        .d-flex.justify-content-between > .d-flex {
+          justify-content: flex-end !important; /* Move os botões para a direita */
+        }
+
+        .flex-sm-nowrap {
+          flex-wrap: nowrap !important; /* Garante que os botões fiquem lado a lado */
+        }
+      }
+    </style>
+
+    <!-- Script de Toggle -->
+    <script>
+      function toggleFilters(event) {
+        event.preventDefault();
+        const filterSection = document.getElementById('filter-section');
+        if (filterSection) {
+          filterSection.classList.toggle('d-none');
+        } else {
+          console.warn('Elemento de filtros não encontrado.');
+        }
+      }
+    </script>
+  </div>
+</div>

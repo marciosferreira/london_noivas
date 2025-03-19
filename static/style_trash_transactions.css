@@ -13,7 +13,7 @@ body {
    Aplica o degradê (ou fundo) somente à página "available"
    Ajuste livremente as cores do degradê, se quiser outro visual.
 */
-body.history {
+body.trash_transactions {
   min-height: 100vh;
 
   /* Exemplo de degradê linear */
@@ -117,11 +117,6 @@ body.history {
     font-weight: bold;
   }
 }
-
-/* ---------------------------------------
-   BOTOES, FILTRO E OUTROS AJUSTES
---------------------------------------- */
-/* Botão de filtro em formato redondo */
 
 /* Filtro oculto inicialmente */
 #filter-section {

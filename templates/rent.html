@@ -11,12 +11,9 @@
 
 
     <div class="form-container">
-      <h1>Alugar vestido</h1>
-      <a href="{{ url_for('available') }}" class="cancel-link">Sair sem Finalizar</a>
+      <h1>Alugar item</h1>
+      <a href="{{ url_for('inventario') }}" class="cancel-link">Sair sem Finalizar</a>
       <form method="POST" enctype="multipart/form-data">
-
-        <label for="description">Descrição:</label>
-        <input type="text" id="description" name="description" value="{{ item.description }}" required />
 
         <label for="client_name">Nome do Cliente:</label>
         <input type="text" id="client_name" name="client_name" required />
@@ -49,16 +46,6 @@
 
         <label for="comments">Comentários:</label>
         <textarea id="comments" name="comments" rows="3">{{ item.comments }}</textarea>
-
-        <label>Foto Atual:</label>
-        {% if item.image_url and item.image_url != "" %}
-        <img src="{{ item.image_url }}" alt="Imagem do vestido" />
-        {% else %}
-        <img src="{{ url_for('static', filename='item-placeholder.png') }}" alt="Sem Imagem" />
-        {% endif %}
-
-        <label for="image_file">Trocar a Foto:</label>
-        <input type="file" id="image_file" name="image_file" accept="image/*;capture=camera" />
 
         <button type="submit">Salvar</button>
       </form>

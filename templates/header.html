@@ -29,13 +29,11 @@
             <a class="nav-link {% if request.endpoint == 'returned' %}active{% endif %}" href="{{ url_for('returned') }}">Ver Devolvidos</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link {% if request.endpoint == 'available' %}active{% endif %}" href="{{ url_for('available') }}">Ver Disponíveis</a>
-          </li>
-          <li class="nav-item">
             <a class="nav-link {% if request.endpoint == 'rented' %}active{% endif %}" href="{{ url_for('rented') }}">Ver Alugados</a>
           </li>
+
           <li class="nav-item">
-            <a class="nav-link {% if request.endpoint == 'rented' %}active{% endif %}" href="{{ url_for('all_itens') }}">Ver Todos</a>
+            <a class="nav-link {% if request.endpoint == 'rented' %}active{% endif %}" href="{{ url_for('inventario') }}">Inventário</a>
           </li>
 
           <!-- Dropdown Menu -->
@@ -51,18 +49,25 @@
               <li>
                 <a class="dropdown-item {% if request.endpoint == 'archive' %}active{% endif %}" href="{{ url_for('archive') }}">Itens Arquivados</a>
               </li>
-              <li>
-                <a class="dropdown-item {% if request.endpoint == 'history' %}active{% endif %}" href="{{ url_for('history') }} ">
-                  Histórico de Aluguéis
-                </a>
-              </li>
+
               <li>
                 <a class="dropdown-item {% if request.endpoint == 'adjustments' %}active{% endif %}" href="{{ url_for('adjustments') }}">
                   Ajustes da Conta
                 </a>
               </li>
               <li>
-                <a class="dropdown-item {% if request.endpoint == 'trash' %}active{% endif %}" href="{{ url_for('trash') }}">Lixeira</a>
+                <a class="dropdown-item {% if request.endpoint == 'trash_itens' %}active{% endif %}" href="{{ url_for('trash_itens') }}">
+                  Lixeira de itens
+                </a>
+              </li>
+
+              <li>
+                <a
+                  class="dropdown-item {% if request.endpoint == 'trash_transactions' %}active{% endif %}"
+                  href="{{ url_for('trash_transactions') }}"
+                >
+                  Lixeira de transações
+                </a>
               </li>
 
               {% if session.get('user_id') %}

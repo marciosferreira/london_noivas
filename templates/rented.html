@@ -4,7 +4,7 @@
         <!-- Importa o Header -->
         {% include 'header.html' %}
     <meta charset="UTF-8" />
-    <title>Itens Alugados</title>
+    <title>Aluguéis</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
         <!-- gont awesome  -->
@@ -39,7 +39,7 @@
 
 
         {% block content %}
-      {% include "common_section.html" with context %}
+      {% include "filter_section.html" with context %}
     {% endblock %}
 
 
@@ -254,6 +254,9 @@
           </thead>
           <tbody>
             {% for item in itens %}
+
+            <pre>{{ item | tojson(indent=2) }}</pre>
+
             <tr
               class="
                 {% if item.overdue %}table-danger{% elif item.retirado %}table-warning{% endif %}
@@ -292,7 +295,7 @@
 
 <div class="d-flex flex-wrap gap-2 justify-content-center align-items-center">
   <!-- Botão Deletar -->
-<form method="POST" action="{{ url_for('delete', item_id=item.item_id, next=request.url) }}" style="display: inline;">
+<form method="POST" action="{{ url_for('delete_transaction', transaction_id=item.transaction_id, next=request.url) }}" style="display: inline;">
   <button
     type="submit"
     class="action-button danger"
@@ -305,12 +308,12 @@
 
 
 <!-- Botão Editar -->
-<a href="{{ url_for('edit', item_id=item.item_id, next=request.url) }}" class="action-button warning" title="Editar">
+<a href="{{ url_for('edit_transaction', transaction_id=item.transaction_id, next=request.url) }}" class="action-button warning" title="Editar">
   Editar
 </a>
 
 <!-- Botão Disponível com Confirmação -->
-<a href="{{ url_for('mark_returned', item_id=item.item_id, next=request.url) }}"
+<a href="{{ url_for('mark_returned', transaction_id=item.transaction_id, next=request.url) }}"
    class="action-button success"
    title="Devolvido"
    onclick="return confirm('Tem certeza de que deseja marcar este item como devolvido?');">
@@ -345,7 +348,7 @@
             <li class="page-item">
               <a
                 class="page-link"
-                href="{{ url_for('index', **dict(args, page=page-1)) }}"
+                href="{{ url_for('rented', **dict(args, page=page-1)) }}"
               >
                 Anterior
               </a>
@@ -355,7 +358,7 @@
             <li class="page-item {% if p == page %}active{% endif %}">
               <a
                 class="page-link"
-                href="{{ url_for('index', **dict(args, page=p)) }}"
+                href="{{ url_for('rented', **dict(args, page=p)) }}"
               >
                 {{ p }}
               </a>
@@ -365,7 +368,7 @@
             <li class="page-item">
               <a
                 class="page-link"
-                href="{{ url_for('index', **dict(args, page=page+1)) }}"
+                href="{{ url_for('rented', **dict(args, page=page+1)) }}"
               >
                 Próxima
               </a>

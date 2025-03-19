@@ -4,59 +4,18 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Editar Registro</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style_edit.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='style_edit_transaction.css') }}" />
   </head>
   <body>
 
 
-      <!-- Exibir mensagens flash -->
-      {% with messages = get_flashed_messages(with_categories=true) %} {% if messages %}
-      <div class="container mt-3">
-        {% for category, message in messages %}
-        <div class="alert alert-{% if category == 'error' %}danger{% else %}{{ category }}{% endif %} alert-dismissible fade show" role="alert">
-          {{ message|safe}}
-          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
-        </div>
-        {% endfor %}
-      </div>
-      {% endif %} {% endwith %}
 
     <div class="form-container">
-      <h1>Editar Vestido</h1>
+      <h1>Editar transação</h1>
       <a href="{{ request.args.get('next', url_for('index')) }}" class="cancel-link">Sair sem Finalizar</a>
 
 
       <form method="POST" enctype="multipart/form-data">
-<!-- Radio Buttons para status -->
-<div class="form-group">
-  <label for="status-rented">
-    <input
-      type="radio"
-      id="status-rented"
-      name="status"
-      value="rented"
-      {% if item.status == "rented" %} checked {% endif %}
-    />
-    Alugado
-  </label>
-  <label for="status-returned">
-    <input
-      type="radio"
-      id="status-returned"
-      name="status"
-      value="returned"
-      {% if item.status == "returned" %} checked {% endif %}
-    />
-    Devolvido
-  </label>
-</div>
-
-
-
-
-
-        <label for="description">Descrição:</label>
-        <textarea  id="description" name="description" rows="3" value="{{item.description}}" required>{{item.description}}</textarea>
 
 
         <label for="client_name">Nome do Cliente:</label>
@@ -141,8 +100,7 @@
         <img src="{{ url_for('static', filename='item-placeholder.png') }}" alt="Sem Imagem" />
         {% endif %}
 
-        <label for="image_file">Trocar a Foto:</label>
-        <input type="file" id="image_file" name="image_file" accept="image/*;capture=camera" />
+
 
         <button type="submit">Salvar</button>
       </form>

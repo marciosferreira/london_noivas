@@ -13,7 +13,7 @@ body {
    Aplica o degradê (ou fundo) somente à página "available"
    Ajuste livremente as cores do degradê, se quiser outro visual.
 */
-body.all_itens {
+body.trash_itens {
   min-height: 100vh;
 
   /* Exemplo de degradê linear */
@@ -116,34 +116,6 @@ body.all_itens {
     left: 1rem;
     font-weight: bold;
   }
-}
-
-/* ---------------------------------------
-   BOTOES, FILTRO E OUTROS AJUSTES
---------------------------------------- */
-/* Botão de filtro com estilo consistente */
-#filter-toggle {
-  border-radius: 25px; /* Bordas arredondadas, mas não círculo completo */
-  padding: 10px 20px; /* Adiciona espaçamento interno horizontal e vertical */
-  display: inline-flex;
-  align-items: center; /* Centraliza verticalmente o conteúdo */
-  justify-content: center; /* Centraliza horizontalmente o conteúdo */
-  background-color: #007bff; /* Fundo azul */
-  color: white; /* Texto branco */
-  border: 2px solid #007bff; /* Borda azul */
-  cursor: pointer; /* Aparece como botão clicável */
-  transition: all 0.3s ease;
-}
-
-/* Hover para o botão */
-#filter-toggle:hover {
-  background-color: white; /* Fundo branco ao passar o mouse */
-  color: #007bff; /* Texto azul ao passar o mouse */
-}
-
-/* Active para o botão */
-#filter-toggle:active {
-  transform: scale(0.95); /* Reduz ligeiramente o tamanho ao clicar */
 }
 
 /* Filtro oculto inicialmente */

@@ -25,49 +25,60 @@ def allowed_file(filename):
 from utils import upload_image_to_s3, aplicar_filtro, copy_image_in_s3
 
 
-def init_item_routes(app, itens_table, s3, s3_bucket_name):
-
+def init_item_routes(
+    app, itens_table, s3, s3_bucket_name, transactions_table, clients_table
+):
     @app.route("/rented")
     def rented():
-        return listar_itens(["rented"], "rented.html", "Itens Alugados", itens_table)
+        return listar_itens_per_transaction(
+            ["rented"], "rented.html", "Aluguéis", transactions_table, itens_table
+        )
 
     @app.route("/returned")
     def returned():
-        return listar_itens(
-            ["returned"], "returned.html", "Itens Devolvidos", itens_table
-        )
-
-    @app.route("/history")
-    def history():
-        return listar_itens(
-            ["historic"], "history.html", "Histórico de Aluguéis", itens_table
-        )
-
-    @app.route("/available")
-    def available():
-        return listar_itens(
-            ["available"], "available.html", "Itens Disponíveis", itens_table
-        )
-
-    @app.route("/all_itens")
-    def all_itens():
-        return listar_itens(
-            ["rented", "returned", "available", "archive"],
-            "all_itens.html",
-            "Todos os status",
+        return listar_itens_per_transaction(
+            ["returned"],
+            "returned.html",
+            "Itens Devolvidos",
+            transactions_table,
             itens_table,
         )
 
     @app.route("/archive")
     def archive():
-        return listar_itens(
-            ["archived"], "archive.html", "Itens Arquivados", itens_table
+        return list_raw_itens(
+            ["archived"],
+            "archive.html",
+            "Itens Arquivados",
+            itens_table,
         )
 
-    @app.route("/trash")
-    def trash():
-        return listar_itens(
-            ["deleted", "version"], "trash.html", "Histórico de alterações", itens_table
+    @app.route("/trash_itens")
+    def trash_itens():
+        return list_raw_itens(
+            ["deleted", "version"],
+            "trash_itens.html",
+            "Histórico de alterações",
+            itens_table,
+        )
+
+    @app.route("/trash_transactions")
+    def trash_transactions():
+        return listar_itens_per_transaction(
+            ["deleted", "version"],
+            "trash_transactions.html",
+            "Lixeira de transações",
+            transactions_table,
+            itens_table,
+        )
+
+    @app.route("/inventario")
+    def inventario():
+        return list_raw_itens(
+            ["available"],
+            "inventario.html",
+            "Inventário",
+            itens_table,
         )
 
     @app.route("/add", methods=["GET", "POST"])
@@ -88,32 +99,9 @@ def init_item_routes(app, itens_table, s3, s3_bucket_name):
                 "status"
             )  # Captura o status: rented, returned, available
             description = request.form.get("description").strip()
-            client_name = request.form.get("client_name")
-            client_tel = request.form.get("client_tel")
-            rental_date_str = request.form.get("rental_date")
-            return_date_str = request.form.get("return_date")
-            retirado = "retirado" in request.form  # Verifica se o checkbox está marcado
-            valor = request.form.get("valor")
-            pagamento = request.form.get("pagamento")
             comments = request.form.get("comments").strip()
+
             image_file = request.files.get("image_file")
-
-            # Validar se o status foi escolhido
-            if status not in ["rented", "returned", "historic"]:
-                flash("Por favor, selecione o status do item.", "danger")
-                return render_template("add.html", next=next_page)
-
-            # Validar e converter as datas
-            try:
-                rental_date = datetime.datetime.strptime(
-                    rental_date_str, "%Y-%m-%d"
-                ).date()
-                return_date = datetime.datetime.strptime(
-                    return_date_str, "%Y-%m-%d"
-                ).date()
-            except ValueError:
-                flash("Formato de data inválido. Use AAAA-MM-DD.", "danger")
-                return render_template("add.html", next=next_page)
 
             # Validar e fazer upload da imagem, se houver
             image_url = ""
@@ -133,28 +121,15 @@ def init_item_routes(app, itens_table, s3, s3_bucket_name):
                     "account_id": account_id,
                     "item_id": item_id,
                     "description": description,
-                    "client_name": client_name,
-                    "client_tel": client_tel,
-                    "rental_date": rental_date.strftime("%Y-%m-%d"),
-                    "return_date": return_date.strftime("%Y-%m-%d"),
-                    "retirado": retirado,
                     "comments": comments,
-                    "valor": valor,
-                    "pagamento": pagamento,
                     "image_url": image_url,
-                    "status": status,
+                    "status": "available",
                     "previous_status": status,
                 }
             )
-            # Dicionário para mapear os valores a nomes associados
-            status_map = {
-                "rented": "Alugados",
-                "returned": "Devolvidos",
-                "historic": "Histórico",
-            }
 
             flash(
-                f"Item adicionado em <a href='{status}'>{status_map[status]}</a>.",
+                f"Item adicionado com sucesso! ",
                 "success",
             )
             if "image_not_allowed" in locals() and image_not_allowed:
@@ -168,7 +143,7 @@ def init_item_routes(app, itens_table, s3, s3_bucket_name):
         return render_template("add.html", next=next_page)
 
     @app.route("/add_small", methods=["GET", "POST"])
-    def add_small():
+    def add_smallxxxxxxxxx():
         if not session.get("logged_in"):
             return redirect(url_for("login"))
 
@@ -239,25 +214,24 @@ def init_item_routes(app, itens_table, s3, s3_bucket_name):
 
         return render_template("add_small.html", next=next_page)
 
-    @app.route("/edit/<item_id>", methods=["GET", "POST"])
-    def edit(item_id):
+    @app.route("/edit_transaction/<transaction_id>", methods=["GET", "POST"])
+    def edit_transaction(transaction_id):
         if not session.get("logged_in"):
             return redirect(url_for("login"))
 
         next_page = request.args.get("next", url_for("index"))
 
         # Buscar item existente
-        response = itens_table.get_item(Key={"item_id": item_id})
-        item = response.get("Item")
+        response = transactions_table.get_item(Key={"transaction_id": transaction_id})
+        transaction = response.get("Item")
 
-        if not item:
+        if not transaction:
             flash("Item não encontrado.", "danger")
-            return redirect(url_for("index"))
+            return redirect(next_page)
 
         if request.method == "POST":
             # Obter novos dados do formulário
             new_data = {
-                "status": request.form.get("status") or None,
                 "rental_date": request.form.get("rental_date") or None,
                 "return_date": request.form.get("return_date") or None,
                 "dev_date": request.form.get("dev_date") or None,
@@ -268,18 +242,7 @@ def init_item_routes(app, itens_table, s3, s3_bucket_name):
                 "valor": request.form.get("valor", "").strip() or None,
                 "pagamento": request.form.get("pagamento") or None,
                 "comments": request.form.get("comments", "").strip() or None,
-                "image_url": item.get(
-                    "image_url", ""
-                ),  # Manter valor antigo se não houver upload
             }
-
-            # Fazer upload da imagem, se houver
-            image_file = request.files.get("image_file")
-            if image_file and image_file.filename != "":
-                if allowed_file(image_file.filename):
-                    new_data["image_url"] = upload_image_to_s3(image_file)
-                else:
-                    image_not_allowed = True
 
             # Converter datas para o formato correto
             if new_data["rental_date"] and isinstance(
@@ -297,79 +260,66 @@ def init_item_routes(app, itens_table, s3, s3_bucket_name):
 
             # Comparar novos valores com os antigos
             changes = {
-                key: value for key, value in new_data.items() if item.get(key) != value
+                key: value
+                for key, value in new_data.items()
+                if transaction.get(key) != value
             }
 
             if not changes:  # Se não houver mudanças, apenas exibir a mensagem e sair
                 flash("Nenhuma alteração foi feita.", "warning")
-                if "image_not_allowed" in locals() and image_not_allowed:
-                    flash(
-                        "Extensão de arquivo não permitida para imagem. Use apenas JPEG, PNG, ou WEBP.",
-                        "danger",
-                    )
                 return redirect(next_page)
 
             # Criar cópia do item somente se houver mudanças
-            new_item_id = str(uuid.uuid4())
+            new_transaction_id = str(uuid.uuid4())
             edited_date = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
 
             copied_item = {
                 key: value
-                for key, value in item.items()
-                if key != "item_id" and value not in [None, ""]
+                for key, value in transaction.items()
+                if key != "transaction_id" and value not in [None, ""]
             }
-            copied_item["item_id"] = new_item_id
-            copied_item["parent_item_id"] = item.get("item_id", "")
+            copied_item["transaction_id"] = new_transaction_id
+            copied_item["parent_transaction_id"] = transaction.get("transaction_id", "")
             copied_item["status"] = "version"
             copied_item["edited_date"] = edited_date
             copied_item["edited_by"] = session.get("username")
-            copied_item["previous_status"] = item.get("status")
+            copied_item["previous_status"] = transaction.get("status")
 
             # Salvar a cópia no DynamoDB
-            itens_table.put_item(Item=copied_item)
+            transactions_table.put_item(Item=copied_item)
 
+            # agora vamos atualizar o item sendo editado
             # Criar dinamicamente os updates para evitar erro com valores vazios
             update_expression = []
             expression_values = {}
 
             for key, value in changes.items():
-                alias = f":{key[:2]}"  # Criar alias para valores
+                # Ignorar completamente o campo "status"
+                if key == "status":  # Ignorando 'status' na atualização
+                    continue
+
+                alias = f":{key[:2]}"  # Criar alias curto para valores
                 update_expression.append(f"{key} = {alias}")
                 expression_values[alias] = value
 
-            # Atualizar o item original apenas se houver mudanças
-            itens_table.update_item(
-                Key={"item_id": item_id},
-                UpdateExpression="SET " + ", ".join(update_expression),
-                ExpressionAttributeValues=expression_values,
-            )
+            # Se não houver nada para atualizar, evitar erro no DynamoDB
+            if not update_expression:
+                print("⚠️ Nenhuma atualização necessária, abortando update.")
+            else:
+                print("🔹 Atualizando com:", update_expression)
+                print("🔹 Valores:", expression_values)
+
+                transactions_table.update_item(
+                    Key={"transaction_id": transaction_id},
+                    UpdateExpression="SET " + ", ".join(update_expression),
+                    ExpressionAttributeValues=expression_values,
+                )
 
             flash("Item atualizado com sucesso.", "success")
-            if "image_not_allowed" in locals() and image_not_allowed:
-                flash(
-                    "Extensão de arquivo não permitida par imagem. Use apenas JPEG, PNG, ou WEBP.",
-                    "danger",
-                )
+
             return redirect(next_page)
 
-        # Preparar dados para o template
-        dress = {
-            "item_id": item.get("item_id"),
-            "description": item.get("description"),
-            "client_name": item.get("client_name"),
-            "client_tel": item.get("client_tel"),
-            "rental_date": item.get("rental_date"),
-            "return_date": item.get("return_date"),
-            "dev_date": item.get("dev_date"),
-            "comments": item.get("comments"),
-            "image_url": item.get("image_url"),
-            "retirado": item.get("retirado", False),
-            "valor": item.get("valor"),
-            "pagamento": item.get("pagamento"),
-            "status": item.get("status"),
-        }
-
-        return render_template("edit.html", item=item)
+        return render_template("edit_transaction.html", item=transaction)
 
     @app.route("/edit_small/<item_id>", methods=["GET", "POST"])
     def edit_small(item_id):
@@ -383,7 +333,7 @@ def init_item_routes(app, itens_table, s3, s3_bucket_name):
         item = response.get("Item")
         if not item:
             flash("Item não encontrado.", "danger")
-            return redirect(url_for("available"))
+            return redirect(url_for("inventario"))
 
         if request.method == "POST":
             # Obter novos dados do formulário
@@ -492,26 +442,25 @@ def init_item_routes(app, itens_table, s3, s3_bucket_name):
         if not session.get("logged_in"):
             return redirect(url_for("login"))
 
-        # Buscar item existente
+        # 🔹 Buscar o item existente na tabela alugueqqc_itens
         response = itens_table.get_item(Key={"item_id": item_id})
         item = response.get("Item")
+
         if not item:
             flash("Item não encontrado.", "danger")
-            return redirect(url_for("available"))
+            return redirect(url_for("inventario"))
 
         if request.method == "POST":
             rental_date_str = request.form.get("rental_date")
             return_date_str = request.form.get("return_date")
-            description = request.form.get("description")
-            client_name = request.form.get("client_name")
-            client_tel = request.form.get("client_tel")
-            retirado = "retirado" in request.form  # Verifica presença do checkbox
+            client_name = request.form.get("client_name").strip()
+            client_tel = request.form.get("client_tel").strip()
+            retirado = "retirado" in request.form  # Verifica checkbox
             valor = request.form.get("valor")
             pagamento = request.form.get("pagamento")
             comments = request.form.get("comments")
-            image_file = request.files.get("image_file")
 
-            # Validar e converter as datas
+            # 🔹 Validar e converter as datas
             try:
                 rental_date = datetime.datetime.strptime(
                     rental_date_str, "%Y-%m-%d"
@@ -521,74 +470,61 @@ def init_item_routes(app, itens_table, s3, s3_bucket_name):
                 ).date()
             except ValueError:
                 flash("Formato de data inválido. Use AAAA-MM-DD.", "danger")
-                return render_template("edit.html")
+                return render_template("rent.html", item=item)
 
-            # Fazer upload da imagem, se houver
-            new_image_url = ""
-            image_file = request.files.get("image_file")
-            if image_file and image_file.filename != "":
-                if allowed_file(image_file.filename):
-                    new_image_url = upload_image_to_s3(image_file)
-                else:
-                    image_not_allowed = True
-
-            # Atualizar item no DynamoDB
-            itens_table.update_item(
-                Key={"item_id": item_id},
-                UpdateExpression="""
-                    set rental_date = :r,
-                        return_date = :rt,
-                        comments = :c,
-                        image_url = :i,
-                        description = :dc,
-                        client_name = :cn,
-                        client_tel = :ct,
-                        retirado = :ret,
-                        valor = :val,
-                        pagamento = :pag,
-                        #status = :st
-                """,
-                ExpressionAttributeNames={
-                    "#status": "status"  # Define um alias para o atributo reservado
-                },
-                ExpressionAttributeValues={
-                    ":r": rental_date.strftime("%Y-%m-%d"),
-                    ":rt": return_date.strftime("%Y-%m-%d"),
-                    ":c": comments,
-                    ":i": new_image_url,
-                    ":dc": description,
-                    ":cn": client_name,
-                    ":ct": client_tel,
-                    ":ret": retirado,
-                    ":val": valor,
-                    ":pag": pagamento,
-                    ":st": "rented",
-                },
+            # 🔹 Verificar se o cliente já existe na tabela alugueqqc_clientes usando a GSI "client_name-index"
+            query_response = clients_table.query(
+                IndexName="client_name-index",
+                KeyConditionExpression="client_name = :cname",
+                ExpressionAttributeValues={":cname": client_name},
             )
 
-            flash(
-                "Item <a href='/rented'>alugado</a> com sucesso!",
-                "success",
+            cliente = query_response.get("Items")
+
+            if cliente:
+                # Cliente já existe, pegar o primeiro registro encontrado
+                cliente = cliente[0]
+                client_id = cliente["client_id"]
+            else:
+                # Cliente não encontrado, criar um novo
+                client_id = str(uuid.uuid4())
+
+                clients_table.put_item(
+                    Item={
+                        "client_id": client_id,
+                        "client_name": client_name,
+                        "client_tel": client_tel,
+                        "created_at": datetime.datetime.utcnow().strftime(
+                            "%Y-%m-%d %H:%M:%S"
+                        ),
+                    }
+                )
+
+            # 🔹 Criar uma transação na tabela alugueqqc_transactions
+            transaction_id = str(uuid.uuid4())
+
+            transactions_table.put_item(
+                Item={
+                    "transaction_id": transaction_id,
+                    "account_id": session.get("account_id"),
+                    "item_id": item_id,
+                    "client_id": client_id,
+                    "client_name": client_name,
+                    "rental_date": rental_date.strftime("%Y-%m-%d"),
+                    "return_date": return_date.strftime("%Y-%m-%d"),
+                    "comments": comments,
+                    "valor": valor,
+                    "pagamento": pagamento,
+                    "retirado": retirado,
+                    "status": "rented",
+                    "created_at": datetime.datetime.utcnow().strftime(
+                        "%Y-%m-%d %H:%M:%S"
+                    ),
+                }
             )
-            if "image_not_allowed" in locals() and image_not_allowed:
-                flash("Extensão  eimagem não permitida", "danger")
 
-            return redirect(url_for("available"))
-
-        # Preparar dados para o template
-        dress = {
-            "item_id": item.get("item_id"),
-            "description": item.get("description"),
-            "client_name": item.get("client_name"),
-            "client_tel": item.get("client_tel"),
-            "rental_date": item.get("rental_date"),
-            "return_date": item.get("return_date"),
-            "comments": item.get("comments"),
-            "image_url": item.get("image_url"),
-            "retirado": item.get("retirado", False),
-            "valor": item.get("valor"),
-            "pagamento": item.get("pagamento"),
-        }
+            flash("Item <a href='/rented'>alugado</a> com sucesso!", "success")
+            return redirect(url_for("inventario"))
 
         return render_template("rent.html", item=item)
 
@@ -732,10 +668,11 @@ def init_item_routes(app, itens_table, s3, s3_bucket_name):
 
     @app.route("/restore_version_item", methods=["POST"])
     def restore_version_item():
+        print("restore Version")
         if not session.get("logged_in"):
             return redirect(url_for("login"))
 
-        next_page = request.args.get("next", url_for("trash"))
+        next_page = request.args.get("next", url_for("trash_itens"))
 
         try:
             # 🔹 Pegar os dados do formulário e converter de JSON para dicionário
@@ -743,7 +680,7 @@ def init_item_routes(app, itens_table, s3, s3_bucket_name):
 
             if not item_data:
                 flash("Erro: Nenhum dado do item foi recebido.", "danger")
-                return redirect(url_for("trash"))
+                return redirect(url_for("trash_itens"))
 
             item = json.loads(item_data)
 
@@ -804,11 +741,19 @@ def init_item_routes(app, itens_table, s3, s3_bucket_name):
                 ExpressionAttributeValues=expression_values_version,
             )
 
+            print("before")
+            print(previous_status)
+            previous_status = (
+                "inventario" if previous_status == "available" else previous_status
+            )
+
+            print(previous_status)
+
             status_map = {
                 "rented": "Alugados",
                 "returned": "Devolvidos",
                 "historic": "Histórico",
-                "available": "Disponíveis",
+                "inventario": "Inventário",
                 "archived": "Arquivados",
             }
 
@@ -825,6 +770,7 @@ def init_item_routes(app, itens_table, s3, s3_bucket_name):
 
     @app.route("/restore_deleted_item", methods=["POST"])
     def restore_deleted_item():
+        print("restore deleted")
         if not session.get("logged_in"):
             return redirect(url_for("login"))
 
@@ -833,7 +779,7 @@ def init_item_routes(app, itens_table, s3, s3_bucket_name):
 
             if not item_data:
                 flash("Erro: Nenhum dado do item foi recebido.", "danger")
-                return redirect(url_for("trash"))
+                return redirect(url_for("trash_itens"))
 
             item = json.loads(item_data)
 
@@ -850,11 +796,15 @@ def init_item_routes(app, itens_table, s3, s3_bucket_name):
 
             # flash(f"Item {item_id} restaurado para {previous_status}.", "success")
             # Dicionário para mapear os valores a nomes associados
+            previous_status = (
+                "inventario" if previous_status == "available" else previous_status
+            )
+
             status_map = {
                 "rented": "Alugados",
                 "returned": "Devolvidos",
                 "historic": "Histórico",
-                "available": "Disponíveis",
+                "inventario": "Inventário",
                 "archived": "Arquivados",
             }
 
@@ -862,11 +812,178 @@ def init_item_routes(app, itens_table, s3, s3_bucket_name):
                 f"Item restaurado para <a href='{previous_status}'>{status_map[previous_status]}</a>.",
                 "success",
             )
-            return redirect(url_for("trash"))
+            return redirect(url_for("trash_itens"))
 
         except Exception as e:
             flash(f"Erro ao restaurar item: {str(e)}", "danger")
-            return redirect(url_for("trash"))
+            return redirect(url_for("trash_itens"))
+
+    @app.route("/restore_deleted_transaction", methods=["POST"])
+    def restore_deleted_transaction():
+        print("restore deleted transaction")
+        if not session.get("logged_in"):
+            return redirect(url_for("login"))
+
+        try:
+            transaction_data = request.form.get("transaction_data")
+
+            if not transaction_data:
+                flash("Erro: Nenhum dado do item foi recebido.", "danger")
+                return redirect(url_for("trash_transactions"))
+
+            transaction = json.loads(transaction_data)
+
+            transaction_id = transaction.get("transaction_id")
+            transaction_previous_status = transaction.get("transaction_previous_status")
+
+            # 🔹 Atualizar o status do item no banco
+            transactions_table.update_item(
+                Key={"transaction_id": transaction_id},
+                UpdateExpression="SET #status = :transaction_previous_status",
+                ExpressionAttributeNames={"#status": "status"},
+                ExpressionAttributeValues={
+                    ":transaction_previous_status": transaction_previous_status
+                },
+            )
+
+            status_map = {
+                "rented": "Alugados",
+                "returned": "Devolvidos",
+            }
+
+            flash(
+                f"Transação restaurada para <a href='{transaction_previous_status}'>{status_map[transaction_previous_status]}</a>.",
+                "success",
+            )
+            return redirect(url_for("trash_transactions"))
+
+        except Exception as e:
+            flash(f"Erro ao restaurar transaction: {str(e)}", "danger")
+            return redirect(url_for("trash_transactions"))
+
+    @app.route("/restore_version_transaction", methods=["POST"])
+    def restore_version_transaction():
+        print("restore_version_transaction")
+        if not session.get("logged_in"):
+            return redirect(url_for("login"))
+
+        next_page = request.args.get("next", url_for("trash_transactions"))
+
+        try:
+            # 🔹 Pegar os dados do formulário e converter de JSON para dicionário
+            transaction_data = request.form.get("transaction_data")
+
+            if not transaction_data:
+                flash("Erro: Nenhum dado do item foi recebido.", "danger")
+                return redirect(url_for("trash_transactions"))
+
+            transaction_data = json.loads(transaction_data)
+
+            # pega os dados originais da transaçao no banco, uma vez que os dados recebidos pelo form são misturados com iten_data
+            transaction_id = transaction_data.get("transaction_id")
+            transaction_response = transactions_table.get_item(
+                Key={"transaction_id": transaction_id}
+            )
+            transaction_data = transaction_response.get("Item")
+
+            parent_transaction_id = transaction_data.get("parent_transaction_id")
+            previous_status = transaction_data.get("previous_status")
+
+            parent_response = transactions_table.get_item(
+                Key={"transaction_id": parent_transaction_id}
+            )
+            parent_data = parent_response.get("Item")
+
+            if not parent_data:
+                flash("Item pai não encontrado.", "danger")
+                return redirect(next_page)
+            print("JJJJJJJJJJJJJJJJ")
+            print(transaction_data)
+
+            # 🔹 Verificar o status do item pai
+            parent_status = parent_data.get("status")
+
+            # Se o item pai estiver deletado, restauramos o status
+            if parent_status == "deleted":
+                transactions_table.update_item(
+                    Key={"transaction_id": parent_transaction_id},
+                    UpdateExpression="SET #status = :prev_status",
+                    ExpressionAttributeNames={"#status": "status"},
+                    ExpressionAttributeValues={":prev_status": previous_status},
+                )
+
+            # 🔹 Passo 1: Definir os campos que NÃO devem ser trocados (eles devem permanecer com seus valores originais)
+            not_allowed_fields = {
+                "status",
+                "previous_status",
+                "transaction_id",
+                "parent_transaction_id",
+            }  # 🔹 Você pode adicionar mais campos se necessário
+
+            # 🔹 Passo 2: Criar um dicionário contendo os campos a serem trocados (todos os outros)
+            parent_filtered = {
+                key: value
+                for key, value in parent_data.items()
+                if key not in not_allowed_fields
+            }
+            transaction_filtered = {
+                key: value
+                for key, value in transaction_data.items()
+                if key not in not_allowed_fields
+            }
+
+            # 🔹 Passo 3: Criar os novos itens para o banco
+            new_parent_item = {
+                **parent_filtered,  # 🔹 Os valores trocados
+                **{
+                    key: parent_data[key]
+                    for key in not_allowed_fields
+                    if key in parent_data
+                },  # 🔹 Mantém os valores originais
+                "transaction_id": parent_transaction_id,  # 🔹 ID original
+            }
+
+            new_transaction_item = {
+                **transaction_filtered,  # 🔹 Os valores trocados
+                **{
+                    key: transaction_data[key]
+                    for key in not_allowed_fields
+                    if key in transaction_data
+                },  # 🔹 Mantém os valores originais
+                "transaction_id": transaction_id,  # 🔹 ID original
+            }
+
+            # 🔹 Passo 4: Apagar os registros originais no banco
+            transactions_table.delete_item(
+                Key={"transaction_id": parent_transaction_id}
+            )
+            transactions_table.delete_item(Key={"transaction_id": transaction_id})
+
+            # 🔹 Passo 5: Inserir os novos registros no banco
+            transactions_table.put_item(Item=new_parent_item)
+            transactions_table.put_item(Item=new_transaction_item)
+
+            print("✅ Registros trocados com sucesso, mantendo os campos protegidos!")
+
+            previous_status = (
+                "inventario" if previous_status == "available" else previous_status
+            )
+
+            status_map = {
+                "rented": "Alugados",
+                "returned": "Devolvidos",
+            }
+
+            flash(
+                f"Item restaurado para <a href='{previous_status}'>{previous_status}</a>.",  # status_map[previous_status]
+                "success",
+            )
+
+            return redirect(next_page)
+
+        except Exception as e:
+            flash(f"Erro ao restaurar a versão do item: {str(e)}", "danger")
+            return redirect(next_page)
 
     @app.route("/reports", methods=["GET", "POST"])
     def reports():
@@ -963,8 +1080,24 @@ def init_item_routes(app, itens_table, s3, s3_bucket_name):
         """Consulta genérica no DynamoDB para uso em AJAX"""
         key_name = request.json.get("key")  # Nome do campo a ser buscado
         key_value = request.json.get("value")  # Valor do campo a ser buscado
+        key_type = request.json.get("type")  # Valor do campo a ser buscado
+
         # 🔹 Buscar o item no banco de dados para obter o previous_status
-        response = itens_table.get_item(Key={key_name: key_value})
+        # 🔹 Dicionário para mapear nomes de bancos para tabelas
+        db_tables = {
+            "itens_table": itens_table,
+            "transactions_table": transactions_table,
+        }
+        # 🔹 Pegar a tabela do banco dinamicamente
+        db_name = request.json.get("db_name")
+        db_table = db_tables.get(db_name)
+
+        print("nnnnnnnnn")
+        print(db_name)
+        print(key_name)
+        print(key_value)
+
+        response = db_table.get_item(Key={key_name: key_value})
         item_data = response.get("Item")
 
         if not item_data:
@@ -981,10 +1114,13 @@ def init_item_routes(app, itens_table, s3, s3_bucket_name):
         return jsonify({"status": "found", "data": item_data})
 
 
-def listar_itens(status_list, template, title, itens_table):
+def listar_itens_per_transaction(
+    status_list, template, title, transactions_table, itens_table
+):
     if not session.get("logged_in"):
         return redirect(url_for("login"))
 
+    print(status_list)
     # Obter o account_id do usuário logado
     account_id = session.get("account_id")
     if not account_id:
@@ -1018,7 +1154,143 @@ def listar_itens(status_list, template, title, itens_table):
     return_start_date = parse_date(return_start_date)
     return_end_date = parse_date(return_end_date)
 
-    # Fazer a consulta usando o GSI account_id-index
+    # 🔹 1º Passo: Consultar todas as transações do usuário (pelo account_id)
+    response_account = transactions_table.query(
+        IndexName="account_id-index",
+        KeyConditionExpression="#account_id = :account_id",
+        ExpressionAttributeNames={"#account_id": "account_id"},
+        ExpressionAttributeValues={":account_id": account_id},
+    )
+    transactions_account = response_account.get("Items", [])
+
+    if not transactions_account:
+        flash("Nenhum item encontrado com os filtros aplicados.", "warning")
+        return render_template(
+            template,
+            itens=[],
+            page=1,
+            total_pages=1,
+            current_filter=filtro,
+            title=title,
+        )
+
+    # 🔹 2º Passo: Consultar todas as transações com um dos status desejados (pelo transaction_status)
+    transactions_status = []
+    for iten_status in status_list:  # Consulta uma vez para cada status da lista
+        response_status = transactions_table.query(
+            IndexName="status-index",
+            KeyConditionExpression="#status = :status_value",
+            ExpressionAttributeNames={"#status": "status"},
+            ExpressionAttributeValues={":status_value": iten_status},
+        )
+        transactions_status.extend(response_status.get("Items", []))
+
+    if not transactions_status:
+        flash("Nenhum item encontrado com os filtros aplicados.", "warning")
+        return render_template(
+            template,
+            itens=[],
+            page=1,
+            total_pages=1,
+            current_filter=filtro,
+            title=title,
+        )
+
+    # 🔹 3º Passo: Filtrar os itens que aparecem em AMBAS as consultas (FORA do loop!)
+    filtered_transactions = {}
+
+    for txn in transactions_account:
+        if txn in transactions_status and "item_id" in txn:
+            item_id = txn["item_id"]
+            if item_id not in filtered_transactions:
+                filtered_transactions[item_id] = []
+            filtered_transactions[item_id].append(txn)
+
+    # 🔹 4º Passo: Buscar os itens na itens_table com base nos item_ids coletados
+    items = []
+    for item_id, txn_list in filtered_transactions.items():
+        item_response = itens_table.get_item(Key={"item_id": item_id})
+        item_data = item_response.get("Item")
+
+        if item_data:
+            for (
+                txn_data
+            ) in txn_list:  # 🔹 Agora iteramos sobre TODAS as transações desse item
+                item_copy = (
+                    item_data.copy()
+                )  # Criamos uma cópia do item original para cada transação
+                item_copy.update(
+                    {
+                        "transaction_id": txn_data.get("transaction_id"),
+                        "transaction_status": txn_data.get("status"),
+                        "transaction_previous_status": txn_data.get("previous_status"),
+                        "client_name": txn_data.get("client_name"),
+                        "parent_transaction_id": txn_data.get("parent_transaction_id"),
+                    }
+                )
+                items.append(item_copy)  # Adicionamos cada cópia individualmente!
+
+        today = datetime.datetime.now().date()
+
+        # 🔹 Aplicar filtros extras (datas, descrição, pagamento, etc.)
+        filtered_items = aplicar_filtro(
+            items,
+            filtro,
+            today,
+            description=description,
+            client_name=client_name,
+            payment_status=payment_status,
+            start_date=start_date,
+            end_date=end_date,
+            return_start_date=return_start_date,
+            return_end_date=return_end_date,
+        )
+
+        if not filtered_items:
+            flash("Nenhum item encontrado com os filtros aplicados.", "warning")
+            return render_template(
+                template,
+                itens=[],
+                page=1,
+                total_pages=1,
+                current_filter=filtro,
+                title=title,
+            )
+
+        # 🔹 Paginação
+        total_items = len(filtered_items)
+        total_pages = (total_items + per_page - 1) // per_page
+        start = (page - 1) * per_page
+        end = start + per_page
+        paginated_items = filtered_items[start:end]
+
+        return render_template(
+            template,
+            itens=paginated_items,
+            page=page,
+            total_pages=total_pages,
+            current_filter=filtro,
+            title=title,
+            add_route=url_for("trash_transactions"),
+            next_url=request.url,
+        )
+
+
+def list_raw_itens(status_list, template, title, itens_table):
+    if not session.get("logged_in"):
+        return redirect(url_for("login"))
+
+    # Obter o account_id do usuário logado
+    account_id = session.get("account_id")
+    if not account_id:
+        print("Erro: Usuário não autenticado corretamente.")  # 🔍 Depuração
+        return redirect(url_for("login"))
+
+    # Parâmetros de paginação
+    page = int(request.args.get("page", 1))
+    per_page = 5
+
+    # 🔹 Fazer a consulta usando o GSI "account_id-index"
     response = itens_table.query(
         IndexName="account_id-index",  # Usando o GSI
         KeyConditionExpression="#account_id = :account_id",
@@ -1027,44 +1299,35 @@ def listar_itens(status_list, template, title, itens_table):
     )
 
     items = response.get("Items", [])
-    today = datetime.datetime.now().date()
 
-    # Aplicar filtros adicionais (ex: status, datas, etc.)
+    # 🔹 Filtrar apenas os itens que possuem status dentro de status_list
     filtered_items = [item for item in items if item.get("status") in status_list]
 
-    # Aplicar filtros extras (datas, descrição, pagamento, etc.)
-    filtered_items = aplicar_filtro(
-        filtered_items,
-        filtro,
-        today,
-        description=description,
-        client_name=client_name,
-        payment_status=payment_status,
-        start_date=start_date,
-        end_date=end_date,
-        return_start_date=return_start_date,
-        return_end_date=return_end_date,
-    )
+    if not filtered_items:
+        flash("Nenhum item encontrado com os filtros aplicados.", "warning")
+        return render_template(
+            template,
+            itens=[],
+            page=1,
+            total_pages=1,
+            title=title,
+            add_route=url_for("add"),
+            next_url=request.url,
+        )
 
-    # Paginação
+    # 🔹 Paginação
     total_items = len(filtered_items)
     total_pages = (total_items + per_page - 1) // per_page
     start = (page - 1) * per_page
     end = start + per_page
     paginated_items = filtered_items[start:end]
 
-    if template == "available.html":
-        add_template = "add_small"
-    else:
-        add_template = "add"
-
     return render_template(
         template,
         itens=paginated_items,
         page=page,
         total_pages=total_pages,
-        current_filter=filtro,
         title=title,
-        add_route=url_for(add_template),
+        add_route=url_for("add"),
         next_url=request.url,
     )

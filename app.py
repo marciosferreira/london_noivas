@@ -20,7 +20,6 @@ load_dotenv()  # only for setting up the env as debug
 aws_region = "us-east-1"
 aws_access_key_id = os.getenv("AWS_ACCESS_KEY_ID")
 aws_secret_access_key = os.getenv("AWS_SECRET_ACCESS_KEY")
-dynamodb_table_name = "alugueqqc_itens"
 s3_bucket_name = "alugueqqc-images"
 
 # Initialize AWS resources
@@ -31,11 +30,13 @@ dynamodb = boto3.resource(
     aws_secret_access_key=aws_secret_access_key,
 )
 
-itens_table = dynamodb.Table(dynamodb_table_name)
 
-# Adicione uma nova tabela para usuários
-users_table_name = "alugueqqc_users"
-users_table = dynamodb.Table(users_table_name)
+itens_table = dynamodb.Table("alugueqqc_itens")
+users_table = dynamodb.Table("alugueqqc_users")
+transactions_table = dynamodb.Table("alugueqqc_transactions")
+clients_table = dynamodb.Table("alugueqqc_clients")
+reset_tokens_table = dynamodb.Table("RentqqcResetTokens")
+
 
 s3 = boto3.client(
     "s3",
@@ -52,9 +53,6 @@ ses_client = boto3.client(
     aws_secret_access_key=aws_secret_access_key,
 )
 
-# Tabela para armazenar tokens de redefinição de senha
-reset_tokens_table_name = "RentqqcResetTokens"
-reset_tokens_table = dynamodb.Table(reset_tokens_table_name)
 
 # Create Flask app
 app = Flask(__name__)
@@ -65,11 +63,19 @@ app.secret_key = os.environ.get("SECRET_KEY", "chave-secreta-estatica-e-forte-lo
 from auth import init_auth_routes
 from item_routes import init_item_routes
 from status_routes import init_status_routes
+from transaction_routes import init_transaction_routes
+
 
 # Initialize routes from modules
 init_auth_routes(app, users_table, reset_tokens_table)
-init_item_routes(app, itens_table, s3, s3_bucket_name)
-init_status_routes(app, itens_table, manaus_tz)
+init_item_routes(
+    app, itens_table, s3, s3_bucket_name, transactions_table, clients_table
+)
+init_status_routes(app, itens_table, transactions_table, manaus_tz)
+
+init_transaction_routes(
+    app, itens_table, s3, s3_bucket_name, transactions_table, clients_table
+)
 
 
 # Static pages
