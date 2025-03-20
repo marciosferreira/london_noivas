@@ -897,8 +897,6 @@ def init_item_routes(
             if not parent_data:
                 flash("Item pai não encontrado.", "danger")
                 return redirect(next_page)
-            print("JJJJJJJJJJJJJJJJ")
-            print(transaction_data)
 
             # 🔹 Verificar o status do item pai
             parent_status = parent_data.get("status")
@@ -965,17 +963,13 @@ def init_item_routes(
 
             print("✅ Registros trocados com sucesso, mantendo os campos protegidos!")
 
-            previous_status = (
-                "inventario" if previous_status == "available" else previous_status
-            )
-
             status_map = {
                 "rented": "Alugados",
                 "returned": "Devolvidos",
             }
 
             flash(
-                f"Item restaurado para <a href='{previous_status}'>{previous_status}</a>.",  # status_map[previous_status]
+                f"Item restaurado para <a href='{previous_status}'>{status_map[previous_status]}</a>.",  # status_map[previous_status]
                 "success",
             )
 
