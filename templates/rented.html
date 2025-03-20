@@ -33,11 +33,9 @@
               <th>Imagem</th>
               <th>Descrição</th>
               <th>Cliente</th>
-              <th>Telefone</th>
               <th>Retirada prevista</th>
               <th>Devolução Prevista</th>
               <th>Retirado?</th>
-              <th>Valor (R$)</th>
               <th>Pago?</th>
               <th>Comentários</th>
               <th>Ações</th>
@@ -71,12 +69,11 @@
 
               <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Descrição">
                 {{ item.description }}
-              </td>              <td data-label="Cliente">{{ item.client_name }}</td>
-              <td data-label="Telefone">{{ item.client_tel }}</td>
+              </td>
+              <td data-label="Cliente">{{ item.client_name }}</td>
               <td data-label="Retirada Prevista">{{ item.rental_date_formatted }}</td>
               <td data-label="Devolução Prevista">{{ item.return_date_formatted }}</td>
               <td data-label="Retirado">{% if item.retirado %}Sim{% else %}Não{% endif %}</td>
-              <td data-label="Valor">{{ item.valor }}</td>
               <td data-label="Pagamento">{{ item.pagamento }}</td>
               <td data-label="Comentários">{{ item.comments }}</td>
 
@@ -114,18 +111,12 @@
         <div class="modal-dialog modal-dialog-centered">
           <div class="modal-content">
             <div class="modal-header">
-              <h5 class="modal-title" id="infoModalLabel">Detalhes do Item</h5>
+              <h5 class="modal-title" id="infoModalLabel">Mais detalhes</h5>
               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-              <p><strong>Descrição:</strong> <span id="modalDescription"></span></p>
-              <p><strong>Cliente:</strong> <span id="modalClient"></span></p>
               <p><strong>Telefone:</strong> <span id="modalPhone"></span></p>
-              <p><strong>Retirada Prevista:</strong> <span id="modalRentalDate"></span></p>
-              <p><strong>Devolução Prevista:</strong> <span id="modalReturnDate"></span></p>
               <p><strong>Valor:</strong> <span id="modalValue"></span></p>
-              <p><strong>Pago?</strong> <span id="modalPayment"></span></p>
-              <p><strong>Comentários:</strong> <span id="modalComments"></span></p>
             </div>
           </div>
         </div>
@@ -152,17 +143,10 @@
       <script>
         document.addEventListener("DOMContentLoaded", function () {
           document.querySelectorAll(".open-modal").forEach(cell => {
-            cell.addEventListener("click", function () {
+            cell.addEventListener("mouseenter", function () {
               let item = JSON.parse(this.getAttribute("data-item"));
-              document.getElementById("modalDescription").textContent = item.description || "N/A";
-              document.getElementById("modalClient").textContent = item.client_name || "N/A";
               document.getElementById("modalPhone").textContent = item.client_tel || "N/A";
-              document.getElementById("modalRentalDate").textContent = item.rental_date_formatted || "N/A";
-              document.getElementById("modalReturnDate").textContent = item.return_date_formatted || "N/A";
               document.getElementById("modalValue").textContent = item.valor || "N/A";
-              document.getElementById("modalPayment").textContent = item.pagamento || "N/A";
-              document.getElementById("modalComments").textContent = item.comments || "N/A";
-
               let infoModal = new bootstrap.Modal(document.getElementById("infoModal"), { backdrop: 'static' });
               infoModal.show();
             });

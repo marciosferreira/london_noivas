@@ -223,3 +223,7 @@ h1.h3 {
     justify-content: flex-end; /* Alinha os botões à direita */
   }
 }
+
+.open-modal {
+  cursor: pointer;
+}

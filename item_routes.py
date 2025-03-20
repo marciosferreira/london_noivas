@@ -1219,7 +1219,11 @@ def listar_itens_per_transaction(
                         "transaction_status": txn_data.get("status"),
                         "transaction_previous_status": txn_data.get("previous_status"),
                         "client_name": txn_data.get("client_name"),
+                        "client_tel": txn_data.get("client_tel"),
                         "parent_transaction_id": txn_data.get("parent_transaction_id"),
+                        "rental_date": txn_data.get("rental_date"),
+                        "return_date": txn_data.get("return_date"),
+                        "pagamento": txn_data.get("pagamento"),
                     }
                 )
                 items.append(item_copy)  # Adicionamos cada cópia individualmente!
