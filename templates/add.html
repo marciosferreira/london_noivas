@@ -9,7 +9,13 @@
   </head>
   <body>
     <div class="form-container">
-      <h1>Inserir Novo Item</h1>
+      {% set destino = request.args.get("next", "") %} {% set ultima_parte = destino.strip('/').split('/')[-1] %}
+
+      <h1>
+        {% if ultima_parte == "archive" %} Inserir Novo Item em arquivo {% elif ultima_parte == "inventario" %} Inserir Novo Item em inventário {%
+        else %} Inserir Novo Item {% endif %}
+      </h1>
+
       <!-- Link "Sair sem Finalizar" -->
       <a href="{{ next }}" class="cancel-link">Sair sem Finalizar</a>
       <form method="POST" enctype="multipart/form-data">

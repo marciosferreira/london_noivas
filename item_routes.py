@@ -51,7 +51,7 @@ def init_item_routes(
     @app.route("/archive")
     def archive():
         return list_raw_itens(
-            ["archived"],
+            ["archive"],
             "archive.html",
             "Itens Arquivados",
             itens_table,
@@ -93,6 +93,11 @@ def init_item_routes(
         # Recuperar a página de origem (next)
         next_page = request.args.get("next", url_for("index"))
 
+        # Extrair a última parte da URL de next_page
+        origin = next_page.rstrip("/").split("/")[-1]
+        origin_status = "available" if origin == "inventario" else "archive"
+        print(origin_status)
+
         # Obter o user_id e account_id do usuário logado da sessão
         user_id = session.get("user_id")
         account_id = session.get("account_id")
@@ -129,7 +134,7 @@ def init_item_routes(
                     "description": description,
                     "comments": comments,
                     "image_url": image_url,
-                    "status": "available",
+                    "status": origin_status,
                     "previous_status": status,
                     "valor": valor,
                 }
@@ -1194,6 +1199,7 @@ def listar_itens_per_transaction(
                         "valor": txn_data.get("valor"),
                         "retirado": txn_data.get("retirado"),
                         "deleted_date": txn_data.get("deleted_date"),
+                        "edited_date": txn_data.get("edited_date"),
                     }
                 )
                 items.append(item_copy)  # Adicionamos cada cópia individualmente!
