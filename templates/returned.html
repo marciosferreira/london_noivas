@@ -1,10 +1,9 @@
 <!DOCTYPE html>
 <html lang="pt-br">
   <head>
-        <!-- Importa o Header -->
-        {% include 'header.html' %}
+    {% include 'header.html' %}
     <meta charset="UTF-8" />
-    <title>Itens Devolvidos</title>
+    <title>Transações iniciadas (itens alugados)</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <!-- Bootstrap CSS -->
@@ -13,7 +12,7 @@
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
     />
 
-    <!-- CSS (pode usar style_main.css unificado ou outro arquivo) -->
+    <!-- Seu CSS customizado -->
     <link
       rel="stylesheet"
       href="{{ url_for('static', filename='style_returned.css') }}"
@@ -21,234 +20,76 @@
   </head>
 
   <body class="returned">
-
-
-
-    <!-- CONTEÚDO PRINCIPAL -->
     <div class="container my-4">
-
-
       {% block content %}
-      {% include "filter_section.html" with context %}
-    {% endblock %}
+        {% include "filter_section.html" with context %}
+      {% endblock %}
 
-
-      <!-- Seção de filtros (inicialmente oculta) -->
-      <div id="filter-section" class="d-none">
-        <div class="p-3">
-          <form method="GET" action="/returned">
-            <div class="row g-3">
-              <!-- Descrição -->
-              <div class="col-auto">
-                <label for="description" class="form-label">Descrição:</label>
-                <input
-                  type="text"
-                  class="form-control"
-                  id="description"
-                  name="description"
-                  value="{{ request.args.get('description', '') }}"
-                />
-              </div>
-
-              <!-- Comentários -->
-              <div class="col-auto">
-                <label for="comments" class="form-label">Comentários:</label>
-                <input
-                  type="text"
-                  class="form-control"
-                  id="comments"
-                  name="comments"
-                  value="{{ request.args.get('comments', '') }}"
-                />
-              </div>
-
-              <!-- Nome do cliente -->
-              <div class="col-auto">
-                <label for="client-name" class="form-label">
-                  Nome do Cliente:
-                </label>
-                <input
-                  type="text"
-                  class="form-control"
-                  id="client-name"
-                  name="client_name"
-                  value="{{ request.args.get('client_name', '') }}"
-                />
-              </div>
-
-              <!-- Pagamento -->
-              <div class="col-auto">
-                <label for="payment-status" class="form-label">
-                  Pagamento:
-                </label>
-                <select
-                  class="form-select"
-                  id="payment-status"
-                  name="payment"
-                >
-                  <option value="">Todos</option>
-                  <option
-                    value="Não pago"
-                    {% if request.args.get('payment') == 'Não pago' %}selected{% endif %}
-                  >
-                    Não Pago
-                  </option>
-                  <option
-                    value="Pago 50%"
-                    {% if request.args.get('payment') == 'Pago 50%' %}selected{% endif %}
-                  >
-                    Pago 50%
-                  </option>
-                  <option
-                    value="Pago 100%"
-                    {% if request.args.get('payment') == 'Pago 100%' %}selected{% endif %}
-                  >
-                    Pago 100%
-                  </option>
-                </select>
-              </div>
-
-              <!-- FORÇA a quebra de linha (se desejar) -->
-              <div class="w-100"></div>
-
-              <!-- Data de retirada -->
-              <div class="col-auto">
-                <label for="start-date" class="form-label"
-                  >Retir. prevista (de):</label
-                >
-                <input
-                  type="date"
-                  class="form-control"
-                  id="start-date"
-                  name="start_date"
-                  value="{{ request.args.get('start_date', '') }}"
-                />
-              </div>
-              <div class="col-auto">
-                <label for="end-date" class="form-label"
-                  >Retir. prevista (até):</label
-                >
-                <input
-                  type="date"
-                  class="form-control"
-                  id="end-date"
-                  name="end_date"
-                  value="{{ request.args.get('end_date', '') }}"
-                />
-              </div>
-
-              <!-- Data de devolução -->
-              <div class="col-auto">
-                <label for="return-start-date" class="form-label"
-                  >Devol. prevista (de):</label
-                >
-                <input
-                  type="date"
-                  class="form-control"
-                  id="return-start-date"
-                  name="return_start_date"
-                  value="{{ request.args.get('return_start_date', '') }}"
-                />
-              </div>
-              <div class="col-auto">
-                <label for="return-end-date" class="form-label"
-                  >Devol. prevista (até):</label
-                >
-                <input
-                  type="date"
-                  class="form-control"
-                  id="return-end-date"
-                  name="return_end_date"
-                  value="{{ request.args.get('return_end_date', '') }}"
-                />
-              </div>
-            </div>
-
-            <div class="mt-3">
-              <button type="submit" class="btn btn-primary">
-                Aplicar Filtros
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-      <!-- Fim da seção de filtros -->
-
-      <!-- Tabela (limitada a 90%, que vira cards no mobile) -->
+      <!-- Tabela -->
       <div class="table-container mt-4">
         <table class="table table-hover responsive-table align-middle rounded-table">
           <thead>
             <tr>
               <th>Imagem</th>
-              <th>Descrição</th>
               <th>Cliente</th>
-              <th>Telefone</th>
-              <th>Retirada Prevista</th>
+              <th>Retirada prevista</th>
               <th>Devolução Prevista</th>
               <th>Retirado?</th>
-              <th>Valor (R$)</th>
               <th>Pago?</th>
-              <th>Comentários</th>
-              <th>Devolvido em</th>
+              <th>Observações</th>
               <th>Ações</th>
             </tr>
           </thead>
           <tbody>
             {% for item in itens %}
-            <tr>
-              <td data-label="Imagem">
-                {% if item.image_url and item.image_url != "" %}
-                  <img
-                    src="{{ item.image_url }}"
-                    alt="Imagem do vestido"
-                    class="img-fluid item-thumbnail"
-                    style="max-width: 100px;"
-                  />
-                {% else %}
-                  <img
-                    src="{{ url_for('static', filename='item-placeholder.png') }}"
-                    alt="Sem Imagem"
-                    class="img-fluid item-thumbnail"
-                    style="max-width: 100px;"
-                  />
-                {% endif %}
-              </td>
+              <tr> <!-- Adicione esta linha para cada item -->
+                <td data-label="Imagem">
+                  {% if item.image_url and item.image_url != "N/A" %}
+                    <img
+                      src="{{ item.image_url }}"
+                      alt="Imagem do vestido"
+                      class="img-fluid item-thumbnail"
+                      style="max-width: 100px; cursor: pointer;"
+                      onclick="event.stopPropagation(); showImageModal('{{ item.image_url }}')"
+                    />
+                  {% else %}
+                    <img
+                      src="{{ url_for('static', filename='item-placeholder.png') }}"
+                      alt="Sem Imagem"
+                      class="img-fluid item-thumbnail"
+                      style="max-width: 100px; cursor: pointer;"
+                      onclick="event.stopPropagation(); showImageModal('{{ url_for('static', filename='item-placeholder.png') }}')"
+                    />
+                  {% endif %}
+                </td>
 
-              <td data-label="Descrição" style="white-space: pre-wrap;">{{ item.description }}</td>
+                <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Cliente">
+                  {{ item.client_name | default('', true) | truncate(10, True) }}
+                </td>
 
+                <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Retirada Prevista">
+                  {{ item.rental_date_formatted }}
+                </td>
 
+                <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Devolução Prevista">
+                  {{ item.return_date_formatted }}
+                </td>
 
+                <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Retirado">
+                  {% if item.retirado %}Sim{% else %}Não{% endif %}
+                </td>
 
-                            <td data-label="Cliente">{{ item.client_name }}</td>
-              <td data-label="Telefone">{{ item.client_tel }}</td>
-              <td data-label="Retirada Prevista">
-                {{ item.rental_date_formatted }}
-              </td>
-              <td data-label="Devolução Prevista">
-                {{ item.return_date_formatted }}
-              </td>
-              <td data-label="Retirado">
-                {% if item.retirado %}Sim{% else %}Não{% endif %}
-              </td>
-              <td data-label="Valor">{{ item.valor }}</td>
-              <td data-label="Pagamento">{{ item.pagamento }}</td>
-              <td data-label="Comentários" style="white-space: pre-wrap;">{{ item.comments }}</td>
-              <td data-label="Devolvido em">
-                {{ item.dev_date }}
-            </td>
+                <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Pagamento">
+                  {{ item.pagamento }}
+                </td>
 
+                <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Observações">
+                  {{ item.comments | default('', true) | truncate(10, True) }}
+                </td>
 
-              <td data-label="Ações">
-                <!-- Botão Excluir -->
-
-
-
-
-<!-- Início de Botões de Ação -->
-<div class="d-flex flex-wrap gap-2 justify-content-center align-items-center">
-
-
-  <!-- Botão Deletar -->
+                <td data-label="Ações">
+                  <div class="d-flex flex-wrap gap-2 justify-content-center align-items-center">
+                    <!-- Botão Deletar -->
   <form method="POST" action="{{ url_for('delete_transaction', transaction_id=item.transaction_id, next=request.url) }}" style="display: inline;">
     <button
       type="submit"
@@ -280,117 +121,81 @@
 
 </div>
 <!-- Fim de Botões de Ação -->
-
-
-
-
-
-
-
-
-
-              </td>
-            </tr>
+                  </div>
+                </td>
+              </tr> <!-- Feche a linha aqui -->
             {% endfor %}
           </tbody>
         </table>
       </div>
 
-      <!-- Paginação -->
-      <nav aria-label="Page navigation" class="mt-4">
-        <ul class="pagination justify-content-center">
-          {% set args = request.args.to_dict() %}
-          {% if page > 1 %}
-            <li class="page-item">
-              <a
-                class="page-link"
-                href="{{ url_for('returned', **dict(args, page=page-1)) }}"
-              >
-                Anterior
-              </a>
-            </li>
-          {% endif %}
-          {% for p in range(1, total_pages + 1) %}
-            <li class="page-item {% if p == page %}active{% endif %}">
-              <a
-                class="page-link"
-                href="{{ url_for('returned', **dict(args, page=p)) }}"
-              >
-                {{ p }}
-              </a>
-            </li>
-          {% endfor %}
-          {% if page < total_pages %}
-            <li class="page-item">
-              <a
-                class="page-link"
-                href="{{ url_for('returned', **dict(args, page=page+1)) }}"
-              >
-                Próxima
-              </a>
-            </li>
-          {% endif %}
-        </ul>
-      </nav>
+      <!-- MODAL para mais informações -->
+      <div class="modal fade" id="infoModal" tabindex="-1" aria-labelledby="infoModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="infoModalLabel">Mais detalhes</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
 
-      <div style="height: 3rem;"></div>
+              <p><strong>Cliente:</strong> <span id="modalName"></span></p>
+              <p><strong>Descrição:</strong> <span id="modalDescription"></span></p>
+              <p><strong>Telefone:</strong> <span id="modalPhone"></span></p>
+              <p><strong>Valor(R$):</strong> <span id="modalValue"></span></p>
+              <p><strong>Observações:</strong> <span id="modalObs"></span></p>
 
-    </div>
-    <!-- FIM CONTEÚDO PRINCIPAL -->
-
-    <!-- MODAL para imagem -->
-    <div
-      class="modal fade"
-      id="imageModal"
-      tabindex="-1"
-      aria-labelledby="imageModalLabel"
-      aria-hidden="true"
-    >
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="imageModalLabel">Visualizar Imagem</h5>
-            <button
-              type="button"
-              class="btn-close"
-              data-bs-dismiss="modal"
-              aria-label="Close"
-            ></button>
-          </div>
-          <div class="modal-body text-center">
-            <img class="img-fluid" id="modalImg" alt="Imagem do Vestido" />
+            </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- Bootstrap JS -->
-    <script
-      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"
-    ></script>
+      <!-- MODAL para imagem -->
+      <div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="imageModalLabel">Visualizar Imagem</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+              <img class="img-fluid" id="modalImg" alt="Imagem do Item" />
+            </div>
+          </div>
+        </div>
+      </div>
 
-    <!-- Scripts personalizados -->
-    <script>
-      // Modal de imagem
-      const thumbnails = document.querySelectorAll(".item-thumbnail");
-      const modalImg = document.getElementById("modalImg");
-      const imageModal = new bootstrap.Modal(document.getElementById("imageModal"));
+      <!-- Bootstrap JS -->
+      <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-      thumbnails.forEach((img) => {
-        img.addEventListener("click", () => {
-          modalImg.src = img.src;
-          imageModal.show();
+      <script>
+        document.addEventListener("DOMContentLoaded", function () {
+          document.querySelectorAll(".open-modal").forEach(cell => {
+            cell.addEventListener("click", function () {
+              let item = JSON.parse(this.getAttribute("data-item"));
+              document.getElementById("modalName").textContent = item.client_name || "N/A";
+              document.getElementById("modalDescription").textContent = item.description || "N/A";
+              document.getElementById("modalPhone").textContent = item.client_tel || "N/A";
+              document.getElementById("modalValue").textContent = item.valor || "N/A";
+              document.getElementById("modalValue").textContent = item.valor || "N/A";
+              document.getElementById("modalObs").textContent = item.comments || "sem observações";
+              let infoModal = new bootstrap.Modal(document.getElementById("infoModal"), { backdrop: 'static' });
+              infoModal.show();
+            });
+          });
         });
-      });
 
-      // Toggle de filtros
-      const filterToggle = document.getElementById("filter-toggle");
-      const filterSection = document.getElementById("filter-section");
+        function showImageModal(imageSrc) {
+          document.getElementById("modalImg").src = imageSrc;
+          let imageModal = new bootstrap.Modal(document.getElementById("imageModal"), { backdrop: 'static' });
+          imageModal.show();
+        }
+      </script>
 
-    </script>
+
+
+
+
+      {% include 'footer.html' %}
   </body>
-
-<!-- Importa o Footer -->
-{% include 'footer.html' %}
-
 </html>

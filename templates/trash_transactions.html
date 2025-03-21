@@ -21,7 +21,7 @@
 
     <!-- CONTEÚDO PRINCIPAL -->
     <div class="container my-4">
-      <h1>Lixeira de transações (últimos 30 dias)</h1>
+      <h2>Lixeira de transações (últimos 30 dias)</h2>
 
       <!-- Tabela (limitada a 90%, que vira cards no mobile) -->
       <div class="table-container mt-4">
@@ -31,16 +31,8 @@
               <th>Imagem</th>
               <th>Descrição</th>
               <th>Cliente</th>
-              <th>Telefone</th>
-              <th>Retirada Prevista</th>
-              <th>Devolução Prevista</th>
-              <th>Retirado?</th>
-              <th>Valor (R$)</th>
-              <th>Pago?</th>
-              <th>Comentários</th>
-              <th>Devolvido em</th>
-              <th>Data do evento</th>
-              <th>Tipo de item</th>
+              <th>Data exclusão/edição</th>
+              <th>Tipo de evento</th>
               <th>Status prévio</th>
 
               <th>Ações</th>
@@ -48,11 +40,10 @@
           </thead>
           <tbody>
             {% for item in itens %}
-            <pre>{{ item | tojson(indent=2) }}</pre>
 
             <tr>
               <td data-label="Imagem">
-                {% if item.image_url and item.image_url != "" %}
+                {% if item.image_url and item.image_url != "N/A" %}
                 <img src="{{ item.image_url }}" alt="Imagem do vestido" class="img-fluid item-thumbnail" style="max-width: 100px" />
                 {% else %}
                 <img
@@ -67,24 +58,19 @@
               <td data-label="Descrição" style="white-space: pre-wrap">{{ item.description }}</td>
 
               <td data-label="Cliente">{{ item.client_name }}</td>
-              <td data-label="Telefone">{{ item.client_tel }}</td>
-              <td data-label="Retirada Prevista">{{ item.rental_date_formatted }}</td>
-              <td data-label="Devolução Prevista">{{ item.return_date_formatted }}</td>
-              <td data-label="Retirado">{% if item.retirado %}Sim{% else %}Não{% endif %}</td>
-              <td data-label="Valor">{{ item.valor }}</td>
-              <td data-label="Pagamento">{{ item.pagamento }}</td>
-              <td data-label="Comentários" style="white-space: pre-wrap">{{ item.comments }}</td>
-              <td data-label="Devolvido em">{{ item.dev_date }}</td>
-              <td data-label="Data do evento">{{ item.deleted_date }}</td>
+              <td data-label="Data exclusão/edição">{{ item.deleted_date }}</td>
 
-              <td data-label="Tipo do evento">
+
+
+
+              <td data-label="Tipo de evento">
                 {% set status_map = {"deleted": "Original", "version": "Versão"} %}
-                {{ status_map.get(item.status, "Inválido") }}
+                {{ status_map.get(item.transaction_status, "Inválido") }}
               </td>
 
               <td data-label="Status">
                 {% set status_map = {"available": "Disponível", "rented": "Alugado", "returned": "Devolvido", "archived": "Arquivado", "historic": "Histórico"} %}
-                {{ status_map.get(item.previous_status, "Inválido") }}
+                {{ status_map.get(item.transaction_previous_status, "Inválido") }}
               </td>
 
 
@@ -157,8 +143,6 @@ function restaurarItem(itemData) {
         return;
     }
 
-    console.log("🔹 Consultando parent_item_id:", itemData);
-
     fetch("/query", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -166,24 +150,22 @@ function restaurarItem(itemData) {
     })
     .then(response => response.json())
     .then(parentData => {
-        console.log("🔹 Resposta do servidor para item pai:", parentData);
-
         if (parentData.status === "not_found" || !parentData.data) {
-            alert("Item pai não encontrado.");
+            alert("Transação pai não encontrada.");
             return;
         }
 
         if (!parentData.data.status) {
-            console.error("❌ Erro: status do item pai está indefinido ou nulo!");
-            alert("Erro ao restaurar: status do item pai inválido.");
+            console.error("❌ Erro: status da transação pai está indefinido ou nulo!");
+            alert("Erro ao restaurar: status da transação pai inválido.");
             return;
         }
 
         let parentStatusTranslated = statusMap[parentData.data.status] || "Indefinido";
 
         let mensagem = parentData.data.status === "deleted"
-            ? `Esta é uma versão de um item pai deletado. Restaurar esta versão para o status: ${previousStatusTranslated}?`
-            : `Há um item pai desta versão com o status: ${parentStatusTranslated}. Deseja substituir o item pai com esta versão?`;
+            ? `Esta é uma versão de uma transação deletada. Restaurar esta versão para o status: ${previousStatusTranslated}?`
+            : `Há uma transação pai desta versão com o status: ${parentStatusTranslated}. Deseja substituir a transação pai com esta versão?`;
 
         definirMensagemEConfirmar(itemData, parentData.data, mensagem, form);
     })
@@ -229,7 +211,7 @@ function restaurarItem(itemData) {
         <li class="page-item">
           <a
             class="page-link"
-            href="{{ url_for('trash_itens', **dict(args, page=page-1)) }}"
+            href="{{ url_for('trash_transactions', **dict(args, page=page-1)) }}"
           >
             Anterior
           </a>
@@ -239,7 +221,7 @@ function restaurarItem(itemData) {
         <li class="page-item {% if p == page %}active{% endif %}">
           <a
             class="page-link"
-            href="{{ url_for('trash_itens', **dict(args, page=p)) }}"
+            href="{{ url_for('trash_transactions', **dict(args, page=p)) }}"
           >
             {{ p }}
           </a>
@@ -249,7 +231,7 @@ function restaurarItem(itemData) {
         <li class="page-item">
           <a
             class="page-link"
-            href="{{ url_for('trash_itens', **dict(args, page=page+1)) }}"
+            href="{{ url_for('trash_transactions', **dict(args, page=page+1)) }}"
           >
             Próxima
           </a>

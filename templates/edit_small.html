@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Editar Registro</title>
+    <title>Editar Item</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style_edit_small.css') }}" />
   </head>
   <body>
@@ -18,28 +18,61 @@
       {% endfor %}
     </div>
     {% endif %} {% endwith %}
-
+    <script>
+      console.log('Valor de item.image_url:', '{{ item.image_url }}');
+    </script>
     <div class="form-container">
-      <h1>Editar Vestido</h1>
+      <h1>Editar Item</h1>
       <a href="{{ request.args.get('next', url_for('index')) }}" class="cancel-link">Sair sem Finalizar</a>
 
       <form method="POST" enctype="multipart/form-data">
+        <label for="comments">Descrição:</label>
         <textarea id="description" name="description" rows="3" required>{{item.description}}</textarea>
 
-        <label for="comments">Comentários:</label>
+        <label for="comments">Comentários do item:</label>
         <textarea id="comments" name="comments" rows="3" value="{{item.comments}}">{{item.comments}}</textarea>
 
+        <label for="valor">Valor (R$):</label>
+        <input type="number" id="valor" name="valor" step="0.01" min="0" value="{{ item.valor }}" required />
+
+        {% set image_url = item.image_url if item.image_url and item.image_url != "N/A" else '' %}
+
         <label>Foto Atual:</label>
-        {% if item.image_url and item.image_url != "" %}
-        <img src="{{ item.image_url }}" alt="Imagem do vestido" />
+        {% set image_url = item.image_url if item.image_url and item.image_url != "N/A" else '' %} {% if image_url %}
+        <div id="image-container" style="margin-bottom: 10px">
+          <img id="item-image" src="{{ image_url }}" alt="Imagem do vestido" style="max-width: 150px; display: block" />
+
+          <!-- Campo de texto VISÍVEL para garantir que ele seja enviado -->
+          <input type="text" name="image_url" id="image-url-input" value="{{ image_url }}" style="opacity: 0; position: absolute; left: -9999px" />
+
+          <button type="button" onclick="removeImage()" id="remove-btn" style="margin-top: 5px; display: block">Excluir imagem</button>
+        </div>
         {% else %}
-        <img src="{{ url_for('static', filename='item-placeholder.png') }}" alt="Sem Imagem" />
+        <img src="{{ url_for('static', filename='item-placeholder.png') }}" alt="Sem Imagem" style="max-width: 150px" />
+        <input type="text" name="image_url" id="image-url-input" value="" style="opacity: 0; position: absolute; left: -9999px" />
         {% endif %}
 
-        <label for="image_file">Trocar a Foto:</label>
+        <label for="image_file">Trocar a Imagem:</label>
         <input type="file" id="image_file" name="image_file" accept="image/*;capture=camera" />
 
         <button type="submit">Salvar</button>
+
+        <script>
+          function removeImage() {
+            const imageInput = document.getElementById('image-url-input');
+            const imageElement = document.getElementById('item-image');
+            const removeButton = document.getElementById('remove-btn');
+
+            if (imageInput) {
+              imageInput.value = 'DELETE_IMAGE'; // Marcar para exclusão no backend
+              console.log('Imagem marcada para exclusão:', imageInput.value);
+            }
+
+            // Ocultar imagem e botão
+            if (imageElement) imageElement.style.display = 'none';
+            if (removeButton) removeButton.style.display = 'none';
+          }
+        </script>
       </form>
     </div>
   </body>

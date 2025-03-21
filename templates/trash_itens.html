@@ -21,7 +21,7 @@
 
     <!-- CONTEÚDO PRINCIPAL -->
     <div class="container my-4">
-      <h1>Lixeira de itens (últimos 30 dias)</h1>
+      <h2>Lixeira de itens (últimos 30 dias)</h2>
 
       <!-- Tabela (limitada a 90%, que vira cards no mobile) -->
       <div class="table-container mt-4">
@@ -30,16 +30,9 @@
             <tr>
               <th>Imagem</th>
               <th>Descrição</th>
-              <th>Cliente</th>
-              <th>Telefone</th>
-              <th>Retirada Prevista</th>
-              <th>Devolução Prevista</th>
-              <th>Retirado?</th>
               <th>Valor (R$)</th>
-              <th>Pago?</th>
               <th>Comentários</th>
-              <th>Devolvido em</th>
-              <th>Data do evento</th>
+              <th>Data exclusão/edição</th>
               <th>Tipo de item</th>
               <th>Status prévio</th>
 
@@ -50,7 +43,7 @@
             {% for item in itens %}
             <tr>
               <td data-label="Imagem">
-                {% if item.image_url and item.image_url != "" %}
+                {% if item.image_url and item.image_url != "N/A" %}
                 <img src="{{ item.image_url }}" alt="Imagem do vestido" class="img-fluid item-thumbnail" style="max-width: 100px" />
                 {% else %}
                 <img
@@ -64,15 +57,8 @@
 
               <td data-label="Descrição" style="white-space: pre-wrap">{{ item.description }}</td>
 
-              <td data-label="Cliente">{{ item.client_name }}</td>
-              <td data-label="Telefone">{{ item.client_tel }}</td>
-              <td data-label="Retirada Prevista">{{ item.rental_date_formatted }}</td>
-              <td data-label="Devolução Prevista">{{ item.return_date_formatted }}</td>
-              <td data-label="Retirado">{% if item.retirado %}Sim{% else %}Não{% endif %}</td>
               <td data-label="Valor">{{ item.valor }}</td>
-              <td data-label="Pagamento">{{ item.pagamento }}</td>
               <td data-label="Comentários" style="white-space: pre-wrap">{{ item.comments }}</td>
-              <td data-label="Devolvido em">{{ item.dev_date }}</td>
               <td data-label="Data do evento">{{ item.deleted_date }}</td>
 
               <td data-label="Tipo do evento">
@@ -110,7 +96,7 @@
       "rented": "Alugado",
       "returned": "Devolvido",
       "historic": "Histórico",
-      "available": "Disponível",
+      "available": "Inventário",
       "deleted": "Deletado",
       "version": "Versão",
       "archived": "Arquivado"

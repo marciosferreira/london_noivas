@@ -34,7 +34,7 @@
               <th>Imagem</th>
               <th>Descrição</th>
               <th>Valor</th>
-              <th>Comentários</th>
+              <th>Comentários do item</th>
               <th>Ações</th>
             </tr>
           </thead>
@@ -42,7 +42,7 @@
             {% for item in itens %}
             <tr>
               <td data-label="Imagem">
-                {% if item.image_url and item.image_url != "" %}
+                {% if item.image_url and item.image_url != "N/A" %}
                 <img src="{{ item.image_url }}" alt="Imagem do vestido" class="img-fluid item-thumbnail" style="max-width: 100px" />
                 {% else %}
                 <img
@@ -55,7 +55,7 @@
               </td>
               <td data-label="Descrição" style="white-space: pre-wrap; text-align: left">{{ item.description }}</td>
               <td data-label="Valor">{{ item.valor }}</td>
-              <td data-label="Comentários" style="white-space: pre-wrap; text-align: left">{{ item.comments }}</td>
+              <td data-label="Comentários do item" style="white-space: pre-wrap; text-align: left">{{ item.comments }}</td>
 
 
 

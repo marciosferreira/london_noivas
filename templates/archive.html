@@ -35,7 +35,7 @@
             {% for item in itens %}
             <tr>
               <td data-label="Imagem">
-                {% if item.image_url and item.image_url != "" %}
+                {% if item.image_url and item.image_url != "N/A" %}
                 <img src="{{ item.image_url }}" alt="Imagem do vestido" class="img-fluid item-thumbnail" style="max-width: 100px" />
                 {% else %}
                 <img

@@ -31,7 +31,11 @@ def init_item_routes(
     @app.route("/rented")
     def rented():
         return listar_itens_per_transaction(
-            ["rented"], "rented.html", "Aluguéis", transactions_table, itens_table
+            ["rented"],
+            "rented.html",
+            "Transações iniciadas (itens alugados)",
+            transactions_table,
+            itens_table,
         )
 
     @app.route("/returned")
@@ -39,7 +43,7 @@ def init_item_routes(
         return listar_itens_per_transaction(
             ["returned"],
             "returned.html",
-            "Itens Devolvidos",
+            "Transações encerradas (itens devolvidos)",
             transactions_table,
             itens_table,
         )
@@ -100,11 +104,13 @@ def init_item_routes(
             )  # Captura o status: rented, returned, available
             description = request.form.get("description").strip()
             comments = request.form.get("comments").strip()
+            valor = request.form.get("valor").strip()
+
+            image_url = "N/A"  # Define um valor padrão ou dinamo db não cria o campo
 
             image_file = request.files.get("image_file")
 
             # Validar e fazer upload da imagem, se houver
-            image_url = ""
             if image_file and image_file.filename != "":
                 if allowed_file(image_file.filename):
                     image_url = upload_image_to_s3(image_file)
@@ -125,6 +131,7 @@ def init_item_routes(
                     "image_url": image_url,
                     "status": "available",
                     "previous_status": status,
+                    "valor": valor,
                 }
             )
 
@@ -141,78 +148,6 @@ def init_item_routes(
             return redirect(next_page)
 
         return render_template("add.html", next=next_page)
-
-    @app.route("/add_small", methods=["GET", "POST"])
-    def add_smallxxxxxxxxx():
-        if not session.get("logged_in"):
-            return redirect(url_for("login"))
-
-        # Recuperar a página de origem (next)
-        next_page = request.args.get("next", url_for("index"))
-
-        # Obter o user_id e account_id do usuário logado da sessão
-        user_id = session.get("user_id")
-        account_id = session.get("account_id")
-
-        if request.method == "POST":
-            # Capturar dados do formulário
-            status = "archived" if "archive" in next_page else "available"
-            description = request.form.get("description").strip()
-            client_name = None
-            client_tel = None
-            rental_date_str = None
-            return_date_str = None
-            retirado = None  # Verifica se o checkbox está marcado
-            valor = request.form.get("valor")
-            pagamento = None
-            comments = request.form.get("comments")
-            image_file = request.files.get("image_file")
-
-            # Validar se o status foi escolhido
-            if status not in ["rented", "returned", "available", "archived"]:
-                flash("Por favor, selecione o status do item.", "danger")
-                return render_template(next_page)
-
-            image_url = ""
-            if image_file and image_file.filename != "":
-                if allowed_file(image_file.filename):
-                    image_url = upload_image_to_s3(image_file)
-                else:
-                    image_not_allowed = True
-
-            # Gerar um ID único para o item (pode usar UUID)
-            item_id = str(uuid.uuid4())
-
-            # Adicionar o novo item ao DynamoDB
-            itens_table.put_item(
-                Item={
-                    "user_id": user_id,
-                    "account_id": account_id,
-                    "item_id": item_id,
-                    "description": description,
-                    "client_name": client_name,
-                    "client_tel": client_tel,
-                    "rental_date": rental_date_str,
-                    "return_date": return_date_str,
-                    "retirado": retirado,
-                    "comments": comments,
-                    "valor": valor,
-                    "pagamento": pagamento,
-                    "image_url": image_url,
-                    "status": status,  # Adiciona o status selecionado
-                }
-            )
-
-            flash("Item adicionado com sucesso.", "success")
-            if "image_not_allowed" in locals() and image_not_allowed:
-                flash(
-                    "Extensão de arquivo não permitida para imagem. Use apenas JPEG, PNG e WEBP.",
-                    "danger",
-                )
-
-            return redirect(next_page)
-
-        return render_template("add_small.html", next=next_page)
 
     @app.route("/edit_transaction/<transaction_id>", methods=["GET", "POST"])
     def edit_transaction(transaction_id):
@@ -321,6 +256,35 @@ def init_item_routes(
 
         return render_template("edit_transaction.html", item=transaction)
 
+    def handle_image_upload(image_file, old_image_url):
+        """Faz upload da nova imagem e retorna a URL da nova imagem (sem deletar a antiga)."""
+        if image_file and image_file.filename:
+            if allowed_file(image_file.filename):
+                return upload_image_to_s3(
+                    image_file
+                )  # Faz o upload e retorna a nova URL
+            else:
+                flash(
+                    "Formato de arquivo não permitido. Use JPEG, PNG ou WEBP.", "danger"
+                )
+                return old_image_url  # Mantém a imagem antiga se a nova for inválida
+        return old_image_url  # Mantém a URL original se nenhuma nova imagem foi enviada
+
+    def process_form_data(request, item):
+        """Processa os dados do formulário e retorna um dicionário atualizado."""
+        return {
+            "rental_date": request.form.get("rental_date") or None,
+            "return_date": request.form.get("return_date") or None,
+            "description": request.form.get("description", "").strip() or None,
+            "client_name": request.form.get("client_name") or None,
+            "client_tel": request.form.get("client_tel") or None,
+            "retirado": request.form.get("retirado") or None,
+            "valor": request.form.get("valor", "").strip() or None,
+            "pagamento": request.form.get("pagamento") or None,
+            "comments": request.form.get("comments", "").strip() or None,
+            "image_url": item.get("image_url", ""),  # Mantém a URL original por padrão
+        }
+
     @app.route("/edit_small/<item_id>", methods=["GET", "POST"])
     def edit_small(item_id):
         if not session.get("logged_in"):
@@ -328,55 +292,46 @@ def init_item_routes(
 
         next_page = request.args.get("next", url_for("index"))
 
-        # Buscar item existente
+        # 🔹 Buscar item existente no DynamoDB
         response = itens_table.get_item(Key={"item_id": item_id})
         item = response.get("Item")
+
         if not item:
             flash("Item não encontrado.", "danger")
             return redirect(url_for("inventario"))
 
         if request.method == "POST":
-            # Obter novos dados do formulário
-            new_data = {
-                "rental_date": request.form.get("rental_date") or None,
-                "return_date": request.form.get("return_date") or None,
-                "description": request.form.get("description", "").strip() or None,
-                "client_name": request.form.get("client_name") or None,
-                "client_tel": request.form.get("client_tel") or None,
-                "retirado": request.form.get("retirado") or None,
-                "valor": request.form.get("valor", "").strip() or None,
-                "pagamento": request.form.get("pagamento") or None,
-                "comments": request.form.get("comments", "").strip() or None,
-                "image_url": item.get(
-                    "image_url", ""
-                ),  # Mantém o valor antigo por padrão
-            }
+            image_file = request.files.get(
+                "image_file"
+            )  # Arquivo da nova imagem (se houver)
+            image_url = request.form.get(
+                "image_url", ""
+            ).strip()  # Indicação de exclusão (se houver)
+            old_image_url = item.get("image_url", "N/A")
 
-            # Fazer upload da imagem, se houver
-            image_file = request.files.get("image_file")
-            if image_file and image_file.filename != "":
-                if allowed_file(image_file.filename):
-                    new_data["image_url"] = upload_image_to_s3(image_file)
-                else:
-                    image_not_allowed = True
+            print("Arquivo recebido:", image_file)
+            print("URL recebida:", image_url)
 
-            # Comparar novos valores com os antigos
+            # 🔹 Se o usuário clicou em "Excluir imagem", apenas atualizamos para "N/A" no banco
+            if image_url == "DELETE_IMAGE":
+                new_image_url = "N/A"
+            else:
+                # 🔹 Se o usuário anexou uma nova imagem, tratamos o upload (mas não deletamos a antiga)
+                new_image_url = handle_image_upload(image_file, old_image_url)
+
+            # 🔹 Processar os demais dados do formulário
+            new_data = process_form_data(request, item)
+            new_data["image_url"] = new_image_url
+
+            # 🔹 Comparar novos valores com os antigos para detectar mudanças
             changes = {
                 key: value for key, value in new_data.items() if item.get(key) != value
             }
-
-            if (
-                not changes
-            ):  # Se não houver mudanças, exibir a mensagem e não salvar nada
+            if not changes:
                 flash("Nenhuma alteração foi feita.", "warning")
-                if "image_not_allowed" in locals() and image_not_allowed:
-                    flash(
-                        "Extensão de arquivo não permitida para imagem. Use apenas JPEG, PNG, ou WEBP.",
-                        "danger",
-                    )
                 return redirect(next_page)
 
-            # Criar cópia do item somente se houver mudanças
+            # 🔹 Criar cópia do item antes de atualizar
             new_item_id = str(uuid.uuid4())
             edited_date = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
 
@@ -385,27 +340,25 @@ def init_item_routes(
                 for key, value in item.items()
                 if key != "item_id" and value not in [None, ""]
             }
-            copied_item["item_id"] = new_item_id
-            copied_item["previous_status"] = item.get("status")
-            copied_item["parent_item_id"] = item.get("item_id", "")
-            copied_item["status"] = "version"
-            copied_item["edited_date"] = edited_date
-            copied_item["deleted_by"] = session.get("username")
-            copied_item["previous_status"] = item.get("status")
+            copied_item.update(
+                {
+                    "item_id": new_item_id,
+                    "previous_status": item.get("status"),
+                    "parent_item_id": item.get("item_id", ""),
+                    "status": "version",
+                    "edited_date": edited_date,
+                    "deleted_by": session.get("username"),
+                }
+            )
 
-            # Salvar a cópia no DynamoDB
+            # 🔹 Salvar a cópia no DynamoDB
             itens_table.put_item(Item=copied_item)
 
-            # Criar dinamicamente os updates para evitar erro com valores vazios
-            update_expression = []
-            expression_values = {}
+            # 🔹 Criar expressão de atualização dinâmica
+            update_expression = [f"{key} = :{key[:2]}" for key in changes.keys()]
+            expression_values = {f":{key[:2]}": value for key, value in changes.items()}
 
-            for key, value in changes.items():
-                alias = f":{key[:2]}"  # Criar alias para valores
-                update_expression.append(f"{key} = {alias}")
-                expression_values[alias] = value
-
-            # Atualizar apenas se houver mudanças
+            # 🔹 Atualizar apenas se houver mudanças
             itens_table.update_item(
                 Key={"item_id": item_id},
                 UpdateExpression="SET " + ", ".join(update_expression),
@@ -413,14 +366,9 @@ def init_item_routes(
             )
 
             flash("Item atualizado com sucesso.", "success")
-            if "image_not_allowed" in locals() and image_not_allowed:
-                flash(
-                    "Extensão de arquivo não permitida para imagem. Use apenas JPEG, PNG, ou WEBP.",
-                    "danger",
-                )
             return redirect(next_page)
 
-        # Preparar dados para o template
+        # 🔹 Preparar dados para o template
         item = {
             "item_id": item.get("item_id"),
             "description": item.get("description"),
@@ -510,6 +458,7 @@ def init_item_routes(
                     "item_id": item_id,
                     "client_id": client_id,
                     "client_name": client_name,
+                    "client_tel": client_tel,
                     "rental_date": rental_date.strftime("%Y-%m-%d"),
                     "return_date": return_date.strftime("%Y-%m-%d"),
                     "comments": comments,
@@ -887,7 +836,7 @@ def init_item_routes(
             transaction_data = transaction_response.get("Item")
 
             parent_transaction_id = transaction_data.get("parent_transaction_id")
-            previous_status = transaction_data.get("previous_status")
+            previous_transaction_status = transaction_data.get("previous_status")
 
             parent_response = transactions_table.get_item(
                 Key={"transaction_id": parent_transaction_id}
@@ -895,7 +844,7 @@ def init_item_routes(
             parent_data = parent_response.get("Item")
 
             if not parent_data:
-                flash("Item pai não encontrado.", "danger")
+                flash("Transação pai não encontrada.", "danger")
                 return redirect(next_page)
 
             # 🔹 Verificar o status do item pai
@@ -903,63 +852,80 @@ def init_item_routes(
 
             # Se o item pai estiver deletado, restauramos o status
             if parent_status == "deleted":
+                print("Transaçao pai estava deletada. Restaurando...")
                 transactions_table.update_item(
                     Key={"transaction_id": parent_transaction_id},
                     UpdateExpression="SET #status = :prev_status",
                     ExpressionAttributeNames={"#status": "status"},
-                    ExpressionAttributeValues={":prev_status": previous_status},
+                    ExpressionAttributeValues={
+                        ":prev_status": previous_transaction_status
+                    },
                 )
 
-            # 🔹 Passo 1: Definir os campos que NÃO devem ser trocados (eles devem permanecer com seus valores originais)
-            not_allowed_fields = {
-                "status",
-                "previous_status",
-                "transaction_id",
-                "parent_transaction_id",
-            }  # 🔹 Você pode adicionar mais campos se necessário
+            # 🔹 Passo 1: Definir os campos que podem ser trocados
+            allowed_fields = {
+                "valor",
+                "client_name",
+                "client_tel",
+                "edited_by",
+            }  # Pode crescer no futuro
 
-            # 🔹 Passo 2: Criar um dicionário contendo os campos a serem trocados (todos os outros)
+            # 🔹 Passo 2: Criar dicionários contendo APENAS os campos que serão trocados
             parent_filtered = {
-                key: value
-                for key, value in parent_data.items()
-                if key not in not_allowed_fields
+                key: parent_data[key] for key in allowed_fields if key in parent_data
             }
             transaction_filtered = {
-                key: value
-                for key, value in transaction_data.items()
-                if key not in not_allowed_fields
+                key: transaction_data[key]
+                for key in allowed_fields
+                if key in transaction_data
             }
 
-            # 🔹 Passo 3: Criar os novos itens para o banco
-            new_parent_item = {
-                **parent_filtered,  # 🔹 Os valores trocados
-                **{
-                    key: parent_data[key]
-                    for key in not_allowed_fields
-                    if key in parent_data
-                },  # 🔹 Mantém os valores originais
-                "transaction_id": parent_transaction_id,  # 🔹 ID original
-            }
+            # 🔹 Função para atualizar um item no banco de dados
+            def update_transaction(transaction_id, new_values):
+                update_expression = "SET " + ", ".join(
+                    f"{k} = :{k}" for k in new_values.keys()
+                )
+                expression_values = {f":{k}": v for k, v in new_values.items()}
 
-            new_transaction_item = {
-                **transaction_filtered,  # 🔹 Os valores trocados
-                **{
-                    key: transaction_data[key]
-                    for key in not_allowed_fields
-                    if key in transaction_data
-                },  # 🔹 Mantém os valores originais
-                "transaction_id": transaction_id,  # 🔹 ID original
-            }
+                transactions_table.update_item(
+                    Key={"transaction_id": transaction_id},  # Mantemos a chave primária
+                    UpdateExpression=update_expression,
+                    ExpressionAttributeValues=expression_values,
+                )
 
-            # 🔹 Passo 4: Apagar os registros originais no banco
-            transactions_table.delete_item(
+            # 🔹 Passo 4: Atualizar os registros no banco, invertendo os valores
+            update_transaction(
+                parent_transaction_id, transaction_filtered
+            )  # Parent recebe valores de transaction
+            update_transaction(
+                transaction_id, parent_filtered
+            )  # Transaction recebe valores de parent
+
+            # 🔹 Passo 5: Verificar se os dados foram realmente trocados
+            updated_parent = transactions_table.get_item(
                 Key={"transaction_id": parent_transaction_id}
-            )
-            transactions_table.delete_item(Key={"transaction_id": transaction_id})
+            ).get("Item", {})
+            updated_transaction = transactions_table.get_item(
+                Key={"transaction_id": transaction_id}
+            ).get("Item", {})
 
-            # 🔹 Passo 5: Inserir os novos registros no banco
-            transactions_table.put_item(Item=new_parent_item)
-            transactions_table.put_item(Item=new_transaction_item)
+            print("✅ Após a troca de valores:")
+            print(f"Parent atualizado: {updated_parent}")
+            print(f"Transaction atualizado: {updated_transaction}")
+
+            # 🔹 Passo 6: Verificar se os novos registros foram criados corretamente
+            print(
+                "Novo parent_item inserido:",
+                transactions_table.get_item(
+                    Key={"transaction_id": f"new_{parent_transaction_id}"}
+                ),
+            )
+            print(
+                "Novo transaction_item inserido:",
+                transactions_table.get_item(
+                    Key={"transaction_id": f"new_{transaction_id}"}
+                ),
+            )
 
             print("✅ Registros trocados com sucesso, mantendo os campos protegidos!")
 
@@ -969,7 +935,7 @@ def init_item_routes(
             }
 
             flash(
-                f"Item restaurado para <a href='{previous_status}'>{status_map[previous_status]}</a>.",  # status_map[previous_status]
+                f"Item restaurado para <a href='{previous_transaction_status}'>{status_map[previous_transaction_status]}</a>.",  # status_map[previous_status]
                 "success",
             )
 
@@ -1224,6 +1190,10 @@ def listar_itens_per_transaction(
                         "rental_date": txn_data.get("rental_date"),
                         "return_date": txn_data.get("return_date"),
                         "pagamento": txn_data.get("pagamento"),
+                        "comments": txn_data.get("comments"),
+                        "valor": txn_data.get("valor"),
+                        "retirado": txn_data.get("retirado"),
+                        "deleted_date": txn_data.get("deleted_date"),
                     }
                 )
                 items.append(item_copy)  # Adicionamos cada cópia individualmente!
