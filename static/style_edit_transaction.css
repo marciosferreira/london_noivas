@@ -8,17 +8,21 @@ body {
   justify-content: center;
   align-items: center;
   min-height: 100vh;
+  background: linear-gradient(120deg, #f5e3a6 0%, #f3bbab 100%);
 }
 
 /* Contêiner do Formulário */
 .form-container {
   background-color: #ffffff;
-  width: 90%; /* Largura ajustada para dispositivos móveis */
-  max-width: 400px; /* Limita a largura em telas maiores */
+  width: 80%;
+  max-width: 400px;
   padding: 20px;
   border-radius: 10px;
-  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1); /* Sombra suave */
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
   text-align: center;
+
+  /* Novo: espaço em cima e embaixo */
+  margin: 40px auto;
 }
 
 /* Título */
