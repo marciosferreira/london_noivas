@@ -154,6 +154,8 @@ def init_item_routes(
 
         return render_template("add.html", next=next_page)
 
+    ######################################################################################################
+
     @app.route("/edit_transaction/<transaction_id>", methods=["GET", "POST"])
     def edit_transaction(transaction_id):
         if not session.get("logged_in"):
@@ -169,11 +171,43 @@ def init_item_routes(
             flash("Item não encontrado.", "danger")
             return redirect(next_page)
 
+        item_id = transaction.get("item_id")
+
+        # Consulta transações existentes para esse item com status "rented"
+        response = transactions_table.query(
+            IndexName="item_id-index",
+            KeyConditionExpression="item_id = :item_id_val",
+            ExpressionAttributeValues={":item_id_val": item_id},
+        )
+
+        all_transaction = response.get("Items", [])
+        reserved_ranges = []
+
+        for tx in all_transaction:
+            if (
+                tx.get("status") == "rented"
+                and tx.get("transaction_id") != transaction_id
+                and tx.get("rental_date")
+                and tx.get("return_date")
+            ):
+                reserved_ranges.append([tx["rental_date"], tx["return_date"]])
+
         if request.method == "POST":
-            # Obter novos dados do formulário
+            # Obter date do formulário
+            range_date = request.form.get("range_date")
+            rental_str, return_str = range_date.split(" - ")
+
+            # Passo 1: interpretar como %d/%m/%Y
+            rental_date = datetime.datetime.strptime(rental_str.strip(), "%d/%m/%Y")
+            return_date = datetime.datetime.strptime(return_str.strip(), "%d/%m/%Y")
+
+            # Passo 2: converter para %Y/%m/%d
+            rental_date = rental_date.strftime("%Y-%m-%d")
+            return_date = return_date.strftime("%Y-%m-%d")
+
             new_data = {
-                "rental_date": request.form.get("rental_date") or None,
-                "return_date": request.form.get("return_date") or None,
+                "rental_date": rental_date,
+                "return_date": return_date,
                 "dev_date": request.form.get("dev_date") or None,
                 "description": request.form.get("description", "").strip() or None,
                 "client_name": request.form.get("client_name") or None,
@@ -183,20 +217,6 @@ def init_item_routes(
                 "pagamento": request.form.get("pagamento") or None,
                 "comments": request.form.get("comments", "").strip() or None,
             }
-
-            # Converter datas para o formato correto
-            if new_data["rental_date"] and isinstance(
-                new_data["rental_date"], datetime.date
-            ):
-                new_data["rental_date"] = new_data["rental_date"].strftime("%Y-%m-%d")
-
-            if new_data["return_date"] and isinstance(
-                new_data["return_date"], datetime.date
-            ):
-                new_data["return_date"] = new_data["return_date"].strftime("%Y-%m-%d")
-
-            if new_data["dev_date"] and isinstance(new_data["dev_date"], datetime.date):
-                new_data["dev_date"] = new_data["dev_date"].strftime("%Y-%m-%d")
 
             # Comparar novos valores com os antigos
             changes = {
@@ -238,7 +258,7 @@ def init_item_routes(
                 if key == "status":  # Ignorando 'status' na atualização
                     continue
 
-                alias = f":{key[:2]}"  # Criar alias curto para valores
+                alias = f":{key[:3]}"  # Criar alias curto para valores
                 update_expression.append(f"{key} = {alias}")
                 expression_values[alias] = value
 
@@ -259,7 +279,23 @@ def init_item_routes(
 
             return redirect(next_page)
 
-        return render_template("edit_transaction.html", item=transaction)
+        # correct the date for the template easy date peaker
+        transaction_copy = transaction.copy()
+        start = datetime.datetime.strptime(
+            transaction["rental_date"].strip(), "%Y-%m-%d"
+        ).strftime("%d/%m/%Y")
+        end = datetime.datetime.strptime(
+            transaction["return_date"].strip(), "%Y-%m-%d"
+        ).strftime("%d/%m/%Y")
+        transaction_copy["range_date"] = f"{start} - {end}"
+
+        return render_template(
+            "edit_transaction.html",
+            item=transaction_copy,
+            reserved_ranges=reserved_ranges,
+        )
+
+    ############################################################################################################
 
     def handle_image_upload(image_file, old_image_url):
         """Faz upload da nova imagem e retorna a URL da nova imagem (sem deletar a antiga)."""
@@ -275,6 +311,8 @@ def init_item_routes(
                 return old_image_url  # Mantém a imagem antiga se a nova for inválida
         return old_image_url  # Mantém a URL original se nenhuma nova imagem foi enviada
 
+    ####################################################################################################
+
     def process_form_data(request, item):
         """Processa os dados do formulário e retorna um dicionário atualizado."""
         return {
@@ -289,6 +327,8 @@ def init_item_routes(
             "comments": request.form.get("comments", "").strip() or None,
             "image_url": item.get("image_url", ""),  # Mantém a URL original por padrão
         }
+
+    ########################################################################################################
 
     @app.route("/edit_small/<item_id>", methods=["GET", "POST"])
     def edit_small(item_id):
@@ -390,6 +430,7 @@ def init_item_routes(
 
         return render_template("edit_small.html", item=item)
 
+    ##################################################################################################
     @app.route("/rent/<item_id>", methods=["GET", "POST"])
     def rent(item_id):
         if not session.get("logged_in"):
@@ -403,9 +444,26 @@ def init_item_routes(
             flash("Item não encontrado.", "danger")
             return redirect(url_for("inventario"))
 
+        # Consulta transações existentes para esse item com status "rented"
+        response = transactions_table.query(
+            IndexName="item_id-index",
+            KeyConditionExpression="item_id = :item_id_val",
+            ExpressionAttributeValues={":item_id_val": item_id},
+        )
+
+        transaction = response.get("Items", [])
+        reserved_ranges = []
+
+        for tx in transaction:
+            if (
+                tx.get("status") == "rented"
+                and tx.get("rental_date")
+                and tx.get("return_date")
+            ):
+                reserved_ranges.append([tx["rental_date"], tx["return_date"]])
+
         if request.method == "POST":
-            rental_date_str = request.form.get("rental_date")
-            return_date_str = request.form.get("return_date")
+            range_date = request.form.get("range_date")
             client_name = request.form.get("client_name").strip()
             client_tel = request.form.get("client_tel").strip()
             retirado = "retirado" in request.form  # Verifica checkbox
@@ -413,17 +471,22 @@ def init_item_routes(
             pagamento = request.form.get("pagamento")
             comments = request.form.get("comments")
 
-            # 🔹 Validar e converter as datas
             try:
-                rental_date = datetime.datetime.strptime(
-                    rental_date_str, "%Y-%m-%d"
-                ).date()
-                return_date = datetime.datetime.strptime(
-                    return_date_str, "%Y-%m-%d"
-                ).date()
+                rental_str, return_str = range_date.split(" - ")
+
+                # Passo 1: interpretar como %d/%m/%Y
+                rental_date = datetime.datetime.strptime(rental_str.strip(), "%d/%m/%Y")
+                return_date = datetime.datetime.strptime(return_str.strip(), "%d/%m/%Y")
+
+                # Passo 2: converter para %Y/%m/%d
+                rental_date = rental_date.strftime("%Y-%m-%d")
+                return_date = return_date.strftime("%Y-%m-%d")
+
             except ValueError:
-                flash("Formato de data inválido. Use AAAA-MM-DD.", "danger")
-                return render_template("rent.html", item=item)
+                flash("Formato de data inválido. Use DD/MM/AAAA.", "danger")
+                return render_template(
+                    "rent.html", item=item, reserved_ranges=reserved_ranges
+                )
 
             # 🔹 Verificar se o cliente já existe na tabela alugueqqc_clientes usando a GSI "client_name-index"
             query_response = clients_table.query(
@@ -447,7 +510,7 @@ def init_item_routes(
                         "client_id": client_id,
                         "client_name": client_name,
                         "client_tel": client_tel,
-                        "created_at": datetime.datetime.utcnow().strftime(
+                        "created_at": datetime.datetime.now().strftime(
                             "%Y-%m-%d %H:%M:%S"
                         ),
                     }
@@ -464,23 +527,23 @@ def init_item_routes(
                     "client_id": client_id,
                     "client_name": client_name,
                     "client_tel": client_tel,
-                    "rental_date": rental_date.strftime("%Y-%m-%d"),
-                    "return_date": return_date.strftime("%Y-%m-%d"),
                     "comments": comments,
                     "valor": valor,
                     "pagamento": pagamento,
+                    "rental_date": rental_date,
+                    "return_date": return_date,
                     "retirado": retirado,
                     "status": "rented",
-                    "created_at": datetime.datetime.utcnow().strftime(
-                        "%Y-%m-%d %H:%M:%S"
-                    ),
+                    "created_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 }
             )
 
             flash("Item <a href='/rented'>alugado</a> com sucesso!", "success")
             return redirect(url_for("inventario"))
 
-        return render_template("rent.html", item=item)
+        return render_template("rent.html", item=item, reserved_ranges=reserved_ranges)
+
+    ###########################################################################################################
 
     @app.route("/delete/<item_id>", methods=["POST"])
     def delete(item_id):
@@ -620,6 +683,7 @@ def init_item_routes(
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
+    ##################################################################################################################
     @app.route("/restore_version_item", methods=["POST"])
     def restore_version_item():
         print("restore Version")
@@ -722,6 +786,7 @@ def init_item_routes(
             flash(f"Erro ao restaurar a versão do item: {str(e)}", "danger")
             return redirect(next_page)
 
+    ###################################################################################################
     @app.route("/restore_deleted_item", methods=["POST"])
     def restore_deleted_item():
         print("restore deleted")
@@ -771,6 +836,8 @@ def init_item_routes(
         except Exception as e:
             flash(f"Erro ao restaurar item: {str(e)}", "danger")
             return redirect(url_for("trash_itens"))
+
+    ############################################################################################################S
 
     @app.route("/restore_deleted_transaction", methods=["POST"])
     def restore_deleted_transaction():

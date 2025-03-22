@@ -162,3 +162,19 @@ input[type='date'],
 textarea {
   margin-bottom: 20px; /* Espaço entre os campos */
 }
+
+input.form-control {
+  width: 100%;
+  padding: 10px;
+  margin-top: 5px;
+  margin-bottom: 15px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 1rem;
+  box-sizing: border-box;
+}
+
+.campo-invalido {
+  border: 2px solid red;
+  background-color: #fff0f0;
+}

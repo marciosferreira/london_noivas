@@ -93,7 +93,7 @@ def init_status_routes(app, itens_table, transactions_table, manaus_tz):
         )
         return redirect(next_page)
 
-    @app.route("/mark_rented/<item_id>", methods=["POST"])
+    """@app.route("/mark_rented/<item_id>", methods=["POST"])
     def mark_rented(item_id):
         if not session.get("logged_in"):
             return redirect(url_for("login"))
@@ -110,7 +110,7 @@ def init_status_routes(app, itens_table, transactions_table, manaus_tz):
             "Item marcado com alugado. Clique <a href='/rented'>aqui</a> para ver",
             "success",
         )
-        return redirect(url_for("returned"))
+        return redirect(url_for("returned"))"""
 
     @app.route("/mark_available/<item_id>", methods=["GET", "POST"])
     def mark_available(item_id):

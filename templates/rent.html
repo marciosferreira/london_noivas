@@ -2,6 +2,9 @@
 <html lang="pt-br">
   <head>
 
+    <script src="https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.umd.min.js"></script>
+
+
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Alugar Item</title>
@@ -13,7 +16,7 @@
     <div class="form-container">
       <h1>Alugar item</h1>
       <a href="{{ url_for('inventario') }}" class="cancel-link">Sair sem Finalizar</a>
-      <form method="POST" enctype="multipart/form-data">
+      <form method="POST" enctype="multipart/form-data" id="form-rent">
 
         <label for="client_name">Nome do Cliente:</label>
         <input type="text" id="client_name" name="client_name" required />
@@ -21,8 +24,15 @@
         <label for="client_tel">Telefone do Cliente:</label>
         <input type="text" id="client_tel" name="client_tel" required />
 
-        <label for="rental_date">Data de Retirada:</label>
-        <input type="date" id="rental_date" name="rental_date" required />
+
+
+        <label for="datepicker">Defina as datas:</label>
+        <input id="datepicker" name="range_date" class="form-control" />
+
+
+
+
+
 
         <div class="form-group">
           <label for="retirado">
@@ -31,8 +41,6 @@
           </label>
         </div>
 
-        <label for="return_date">Data de Devolução:</label>
-        <input type="date" id="return_date" name="return_date" required />
 
         <label for="valor">Valor (R$):</label>
         <input type="number" id="valor" name="valor" step="0.01" min="0" value="{{ item.valor }}" required/>
@@ -52,3 +60,75 @@
     </div>
   </body>
 </html>
+
+<script>
+  const DateTime = easepick.DateTime;
+  const bookedDates = {{ reserved_ranges | tojson(indent=2) }}.map(d => {
+      if (d instanceof Array) {
+        const start = new DateTime(d[0], 'YYYY-MM-DD');
+        const end = new DateTime(d[1], 'YYYY-MM-DD');
+        return [start, end];
+      }
+      return new DateTime(d, 'YYYY-MM-DD');
+  });
+  const picker = new easepick.create({
+    element: document.getElementById('datepicker'),
+    css: [
+      'https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.css',
+      'https://easepick.com/css/demo_hotelcal.css',
+    ],
+    lang: 'pt-BR',
+    autoApply: false, // Exibe os botões "Aplicar" e "Cancelar"
+    plugins: ['RangePlugin', 'LockPlugin', 'AmpPlugin'],
+    AmpPlugin: {
+      resetButton: true,  // 👈 Isso ativa o botão "Limpar"
+    },
+    RangePlugin: {
+      tooltipNumber(num) {
+        return num;
+      },
+      locale: {
+        one: 'dia',
+        other: 'dias',
+      },
+    },
+    LockPlugin: {
+      minDate: new Date(),
+      minDays: 1,
+      inseparable: true,
+      filter(date, picked) {
+        if (picked.length === 1) {
+          const incl = date.isBefore(picked[0]) ? '[]' : '[]';
+          return !picked[0].isSame(date, 'day') && date.inArray(bookedDates, incl);
+        }
+        return date.inArray(bookedDates, '[]');
+      },
+    },
+    locale: {
+      cancel: 'Cancelar',
+      apply: 'Aplicar',
+      reset: 'Limpar',
+      one: 'dia',
+      other: 'dias',
+    },
+
+    format: 'DD/MM/YYYY',
+  });
+</script>
+
+
+
+<script>
+  document.getElementById('form-rent').addEventListener('submit', function (e) {
+    const dp = document.getElementById('datepicker');
+    if (!dp.value || dp.value.trim() === '') {
+      e.preventDefault(); // cancela o envio
+      alert('Por favor, selecione um intervalo de datas.');
+      dp.focus();
+    }
+  });
+</script>
+
+
+
+
