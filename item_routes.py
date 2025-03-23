@@ -86,6 +86,18 @@ def init_item_routes(
             itens_table,
         )
 
+    @app.route("/client_transactions/<client_id>/")
+    def client_transactions(client_id):
+        # Lógica aqui para buscar transações do cliente
+        return listar_itens_per_transaction(
+            ["rented", "returned"],
+            "client_transactions.html",
+            "Transações do cliente",
+            transactions_table,
+            itens_table,
+            client_id=client_id,
+        )
+
     @app.route("/add", methods=["GET", "POST"])
     def add():
         if not session.get("logged_in"):
@@ -1112,11 +1124,6 @@ def init_item_routes(
         db_name = request.json.get("db_name")
         db_table = db_tables.get(db_name)
 
-        print("nnnnnnnnn")
-        print(db_name)
-        print(key_name)
-        print(key_value)
-
         response = db_table.get_item(Key={key_name: key_value})
         item_data = response.get("Item")
 
@@ -1153,6 +1160,8 @@ def init_item_routes(
         suggestions = [
             {
                 "client_name": item.get("client_name"),
+                "client_cpf": item.get("client_cpf"),
+                "client_cnpj": item.get("client_cnpj"),
                 "client_tel": item.get("client_tel"),
                 "client_id": item.get("client_id"),
             }
@@ -1196,31 +1205,111 @@ def init_item_routes(
             return redirect(url_for("listar_clientes"))
 
         if request.method == "POST":
-            new_name = request.form.get("client_name").strip()
-            new_tel = request.form.get("client_tel").strip()
+            cliente["client_name"] = request.form.get("client_name", "").strip()
+            cliente["client_tel"] = request.form.get("client_tel", "").strip()
+            cliente["client_email"] = request.form.get("client_email", "").strip()
+            cliente["client_address"] = request.form.get("client_address", "").strip()
+            cliente["client_cpf"] = request.form.get("client_cpf", "").strip()
+            cliente["client_cnpj"] = request.form.get("client_cnpj", "").strip()
 
-            cliente["client_name"] = new_name
-            cliente["client_tel"] = new_tel
-
-            clients_table.put_item(Item=cliente)
-
-            flash("Cliente atualizado com sucesso!", "success")
-            return redirect(url_for("listar_clientes"))
+            try:
+                clients_table.put_item(Item=cliente)
+                flash("Cliente atualizado com sucesso!", "success")
+                return redirect(url_for("listar_clientes"))
+            except Exception as e:
+                print("Erro ao atualizar cliente:", e)
+                flash("Erro ao atualizar cliente. Tente novamente.", "danger")
+                return redirect(request.url)
 
         return render_template("editar_cliente.html", cliente=cliente)
 
+    @app.route("/clientes/adicionar", methods=["GET", "POST"])
+    def adicionar_cliente():
+        if not session.get("logged_in"):
+            return redirect(url_for("login"))
+
+        next_page = request.args.get("next", url_for("listar_clientes"))
+
+        if request.method == "POST":
+            client_name = request.form.get("client_name", "").strip()
+            client_tel = request.form.get("client_tel", "").strip()
+            client_email = request.form.get("client_email", "").strip()
+            client_address = request.form.get("client_address", "").strip()
+            client_cpf = request.form.get("client_cpf", "").strip()
+            client_cnpj = request.form.get("client_cnpj", "").strip()
+
+            if not client_name:
+                flash("O nome do cliente é obrigatório.", "error")
+                return redirect(request.url)
+
+            client_id = str(uuid.uuid4())
+            account_id = session.get("account_id")
+
+            new_client = {
+                "client_id": client_id,
+                "account_id": account_id,
+                "client_name": client_name,
+                "created_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            }
+
+            # Adiciona apenas se os campos tiverem valor
+            if client_tel:
+                new_client["client_tel"] = client_tel
+            if client_email:
+                new_client["client_email"] = client_email
+            if client_address:
+                new_client["client_address"] = client_address
+            if client_cpf:
+                new_client["client_cpf"] = client_cpf
+            if client_cnpj:
+                new_client["client_cnpj"] = client_cnpj
+
+            try:
+                clients_table.put_item(Item=new_client)
+                flash("Cliente adicionado com sucesso!", "success")
+                return redirect(next_page)
+            except Exception as e:
+                print("Erro ao adicionar cliente:", e)
+                flash("Erro ao salvar cliente. Tente novamente.", "error")
+                return redirect(request.url)
+
+        return render_template("add_client.html")
+
+    @app.route("/clientes/deletar/<client_id>", methods=["POST"])
+    def deletar_cliente(client_id):
+        if not session.get("logged_in"):
+            return redirect(url_for("login"))
+
+        try:
+            # Verifica se cliente existe
+            response = clients_table.get_item(Key={"client_id": client_id})
+            cliente = response.get("Item")
+
+            if not cliente:
+                flash("Cliente não encontrado.", "danger")
+                return redirect(url_for("listar_clientes"))
+
+            # Remove do DynamoDB
+            clients_table.delete_item(Key={"client_id": client_id})
+
+            flash("Cliente deletado com sucesso!", "success")
+        except Exception as e:
+            print("Erro ao deletar cliente:", e)
+            flash("Erro ao deletar cliente. Tente novamente.", "danger")
+
+        return redirect(url_for("listar_clientes"))
+
 
 def listar_itens_per_transaction(
-    status_list, template, title, transactions_table, itens_table
+    status_list, template, title, transactions_table, itens_table, client_id=None
 ):
     if not session.get("logged_in"):
         return redirect(url_for("login"))
 
-    print(status_list)
     # Obter o account_id do usuário logado
     account_id = session.get("account_id")
     if not account_id:
-        print("Erro: Usuário não autenticado corretamente.")  # 🔍 Depuração
+        print("Erro: Usuário não autenticado corretamente.")
         return redirect(url_for("login"))
 
     # Parâmetros de paginação
@@ -1291,6 +1380,27 @@ def listar_itens_per_transaction(
             current_filter=filtro,
             title=title,
         )
+
+    # 🔹 Filtrar por client_id se for fornecido
+    if client_id:
+        transactions_account = [
+            txn for txn in transactions_account if txn.get("client_id") == client_id
+        ]
+        transactions_status = [
+            txn for txn in transactions_status if txn.get("client_id") == client_id
+        ]
+
+        # 🚨 Verificar se ainda há transações após o filtro
+        if not transactions_account or not transactions_status:
+            flash("Nenhuma transação encontrada para este cliente.", "warning")
+            return render_template(
+                template,
+                itens=[],
+                page=1,
+                total_pages=1,
+                current_filter=filtro,
+                title=title,
+            )
 
     # 🔹 3º Passo: Filtrar os itens que aparecem em AMBAS as consultas (FORA do loop!)
     filtered_transactions = {}

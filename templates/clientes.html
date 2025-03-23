@@ -15,6 +15,37 @@
       <br />
       <h1 class="mb-4">Clientes Cadastrados</h1>
 
+
+
+
+      <!-- Botões Adicionar e Filtros -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2 class="h5 mb-0">Ações</h2>
+  <div class="d-flex flex-wrap gap-2 justify-content-end">
+    <a href="{{ url_for('adicionar_cliente') }}" class="btn btn-primary">Adicionar Cliente</a>
+    <a href="#" id="filter-toggle" class="btn btn-secondary">Filtros</a>
+
+
+
+
+
+  </div>
+</div>
+
+<!-- Seção de Filtros (inicialmente escondida) -->
+<div id="filter-section" class="d-none mb-4">
+  <form method="GET" action="{{ url_for('listar_clientes') }}">
+    <div class="p-3 border rounded">
+      <div class="mb-3">
+        <label for="search_name" class="form-label">Nome do Cliente:</label>
+        <input type="text" class="form-control" id="search_name" name="client_name" />
+      </div>
+      <button type="submit" class="btn btn-primary">Aplicar Filtros</button>
+    </div>
+  </form>
+</div>
+
+
       {% if clientes %}
       <ul class="list-group shadow-sm">
         {% for cliente in clientes %}
@@ -25,10 +56,20 @@
             <small class="text-secondary">Criado em: {{ cliente.created_at }}</small>
           </div>
 
-          <div class="mt-3 mt-md-0">
-            <a href="{{ url_for('editar_cliente', client_id=cliente.client_id) }}" class="btn btn-outline-primary btn-sm">
+          <div class="mt-3 d-flex flex-column align-items-start">
+            <a href="{{ url_for('editar_cliente', client_id=cliente.client_id) }}" class="btn btn-warning btn-sm mt-2">
               Editar
             </a>
+
+            <a href="{{ url_for('client_transactions', client_id=cliente.client_id) }}" class="btn btn-success btn-sm mt-2">
+              Transações
+            </a>
+
+            <form method="POST" action="{{ url_for('deletar_cliente', client_id=cliente.client_id) }}" onsubmit="return confirm('Tem certeza que deseja deletar este cliente? Esta ação não poderá ser desfeita.');">
+              <button type="submit" class="btn btn-danger btn-sm mt-2">Deletar</button>
+            </form>
+
+
           </div>
         </li>
 
@@ -44,3 +85,21 @@
     {% include 'footer.html' %}
   </body>
 </html>
+
+
+
+
+
+
+
+
+<script>
+  function toggleFilters(event) {
+    event.preventDefault();
+    const section = document.getElementById('filter-section');
+    section.classList.toggle('d-none');
+  }
+
+  document.getElementById('filter-toggle').addEventListener('click', toggleFilters);
+</script>
+

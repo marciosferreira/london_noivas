@@ -138,11 +138,13 @@
   });
 </script>
 
-
 <script>
   const clientInput = document.getElementById("client_name");
   const telInput = document.getElementById("client_tel");
   const idInput = document.getElementById("client_id");
+  const emailInput = document.getElementById("client_email");
+  const cpfInput = document.getElementById("client_cpf");
+  const cnpjInput = document.getElementById("client_cnpj");
   const suggestionsBox = document.getElementById("client_suggestions");
 
   clientInput.addEventListener("input", async () => {
@@ -157,15 +159,26 @@
 
     suggestionsBox.innerHTML = "";
     clients.forEach(client => {
+      const tel = client.client_tel ? `<div><small>📞 ${client.client_tel}</small></div>` : "";
+      const email = client.client_email ? `<div><small>📧 ${client.client_email}</small></div>` : "";
+      const cpf = client.client_cpf ? `<div><small>🆔 CPF: ${client.client_cpf}</small></div>` : "";
+      const cnpj = client.client_cnpj ? `<div><small>🏢 CNPJ: ${client.client_cnpj}</small></div>` : "";
+
       const div = document.createElement("div");
       div.className = "autocomplete-item";
-      div.innerHTML = `<strong>${client.client_name}</strong><small>${client.client_tel || ''}</small>`;
+      div.innerHTML = `<strong>${client.client_name}</strong>${tel}${email}${cpf}${cnpj}`;
+
       div.addEventListener("click", () => {
-        clientInput.value = client.client_name;
+        clientInput.value = client.client_name || "";
         telInput.value = client.client_tel || "";
         if (idInput) idInput.value = client.client_id || "";
+        if (emailInput) emailInput.value = client.client_email || "";
+        if (cpfInput) cpfInput.value = client.client_cpf || "";
+        if (cnpjInput) cnpjInput.value = client.client_cnpj || "";
+
         suggestionsBox.innerHTML = "";
       });
+
       suggestionsBox.appendChild(div);
     });
   });
@@ -175,8 +188,8 @@
       suggestionsBox.innerHTML = "";
     }
   });
-
 </script>
+
 
 
 

@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Editar Cliente</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style_edit_small.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='style_edit_client.css') }}" />
   </head>
   <body>
     <!-- Mensagens flash -->
@@ -21,14 +21,58 @@
 
     <div class="form-container">
       <h1>Editar Cliente</h1>
-      <a href="{{ request.args.get('next', url_for('listar_clientes')) }}" class="cancel-link">Sair sem Finalizar</a>
+      <a href="{{ request.args.get('next', url_for('listar_clientes')) }}" class="cancel-link">Cancelar</a>
 
       <form method="POST">
         <label for="client_name">Nome:</label>
-        <input type="text" id="client_name" name="client_name" value="{{ cliente.client_name }}" required />
+        <input type="text" id="client_name" name="client_name" value="{{ cliente.client_name }}" required class="form-control" />
 
         <label for="client_tel">Telefone:</label>
-        <input type="text" id="client_tel" name="client_tel" value="{{ cliente.client_tel }}" required />
+        <input
+          type="tel"
+          id="client_tel"
+          name="client_tel"
+          class="form-control"
+          placeholder="(xx) xxxxx-xxxx"
+          pattern="^\(?\d{2}\)?\s?\d{4,5}-\d{4}$"
+          title="Formato esperado: (11) 91234-5678"
+          value="{{ cliente.client_tel }}"
+        />
+
+        <label for="client_email">E-mail:</label>
+        <input
+          type="email"
+          id="client_email"
+          name="client_email"
+          class="form-control"
+          placeholder="exemplo@email.com"
+          value="{{ cliente.client_email }}"
+        />
+
+        <label for="client_address">Endereço:</label>
+        <input type="text" id="client_address" name="client_address" value="{{ cliente.client_address }}" class="form-control" />
+
+        <label for="client_cpf">CPF:</label>
+        <input
+          type="text"
+          id="client_cpf"
+          name="client_cpf"
+          maxlength="14"
+          placeholder="000.000.000-00"
+          value="{{ cliente.client_cpf }}"
+          class="form-control"
+        />
+
+        <label for="client_cnpj">CNPJ:</label>
+        <input
+          type="text"
+          id="client_cnpj"
+          name="client_cnpj"
+          maxlength="18"
+          placeholder="00.000.000/0000-00"
+          value="{{ cliente.client_cnpj }}"
+          class="form-control"
+        />
 
         <button type="submit">Salvar</button>
       </form>

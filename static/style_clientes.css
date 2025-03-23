@@ -11,3 +11,39 @@ body.clientes {
   /* Se quiser a cor de fundo base adicional, pode manter ou remover:
      background-color: #f8f9fa; */
 }
+
+
+
+<style>
+  .custom-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1rem;
+    text-decoration: none;
+    color: white;
+    background-color: #007bff;
+    border: 2px solid #007bff;
+    border-radius: 25px;
+    padding: 10px 20px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    height: 50px;
+    line-height: 1;
+  }
+
+  .custom-button:hover {
+    background-color: white;
+    color: #007bff;
+  }
+
+  .custom-button:active {
+    transform: scale(0.95);
+  }
+
+  #filter-toggle {
+    margin-left: 10px;
+  }
+</style>
+

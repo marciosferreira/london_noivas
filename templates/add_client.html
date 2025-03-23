@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Adicionar Cliente</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style_edit_small.css') }}" />
+  </head>
+  <body>
+    <!-- Mensagens flash -->
+    {% with messages = get_flashed_messages(with_categories=true) %} {% if messages %}
+    <div class="container mt-3">
+      {% for category, message in messages %}
+      <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+        {{ message|safe }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %} {% endwith %}
+
+    <div class="form-container">
+      <h1>Novo Cliente</h1>
+      <a href="{{ request.args.get('next', url_for('listar_clientes')) }}" class="cancel-link">Cancelar</a>
+
+      <form method="POST">
+        <label for="client_name">Nome:</label>
+        <input type="text" id="client_name" name="client_name" class="form-control" required />
+
+        <label for="client_tel">Telefone:</label>
+        <input
+          type="tel"
+          id="client_tel"
+          name="client_tel"
+          class="form-control"
+          placeholder="(xx) xxxxx-xxxx"
+          pattern="^\(?\d{2}\)?\s?\d{4,5}-\d{4}$"
+          title="Formato esperado: (11) 91234-5678"
+        />
+
+        <label for="client_email">E-mail:</label>
+        <input type="email" id="client_email" name="client_email" class="form-control" placeholder="exemplo@email.com" />
+
+        <label for="client_address">Endereço:</label>
+        <input type="text" id="client_address" name="client_address" class="form-control" />
+
+        <label for="client_cpf">CPF:</label>
+        <input type="text" id="client_cpf" name="client_cpf" maxlength="14" placeholder="000.000.000-00" class="form-control" />
+
+        <label for="client_cnpj">CNPJ:</label>
+        <input type="text" id="client_cnpj" name="client_cnpj" maxlength="18" placeholder="00.000.000/0000-00" class="form-control" />
+
+        <button type="submit">Salvar</button>
+      </form>
+    </div>
+  </body>
+</html>
+
+<script>
+  document.querySelector('form').addEventListener('submit', function (e) {
+    const cpf = document.getElementById('client_cpf').value.replace(/\D/g, '');
+    const cnpj = document.getElementById('client_cnpj').value.replace(/\D/g, '');
+
+    if (cpf && !validaCPF(cpf)) {
+      e.preventDefault();
+      alert('CPF inválido!');
+      return;
+    }
+
+    if (cnpj && !validaCNPJ(cnpj)) {
+      e.preventDefault();
+      alert('CNPJ inválido!');
+      return;
+    }
+  });
+
+  function validaCPF(cpf) {
+    if (cpf.length !== 11 || /^(\d)\1+$/.test(cpf)) return false;
+    let soma = 0,
+      resto;
+    for (let i = 1; i <= 9; i++) soma += parseInt(cpf[i - 1]) * (11 - i);
+    resto = (soma * 10) % 11;
+    if (resto === 10 || resto === 11) resto = 0;
+    if (resto !== parseInt(cpf[9])) return false;
+    soma = 0;
+    for (let i = 1; i <= 10; i++) soma += parseInt(cpf[i - 1]) * (12 - i);
+    resto = (soma * 10) % 11;
+    if (resto === 10 || resto === 11) resto = 0;
+    return resto === parseInt(cpf[10]);
+  }
+
+  function validaCNPJ(cnpj) {
+    if (cnpj.length !== 14 || /^(\d)\1+$/.test(cnpj)) return false;
+    let tamanho = cnpj.length - 2;
+    let numeros = cnpj.substring(0, tamanho);
+    let digitos = cnpj.substring(tamanho);
+    let soma = 0;
+    let pos = tamanho - 7;
+
+    for (let i = tamanho; i >= 1; i--) {
+      soma += parseInt(numeros.charAt(tamanho - i)) * pos--;
+      if (pos < 2) pos = 9;
+    }
+
+    let resultado = soma % 11 < 2 ? 0 : 11 - (soma % 11);
+    if (resultado != parseInt(digitos.charAt(0))) return false;
+
+    tamanho += 1;
+    numeros = cnpj.substring(0, tamanho);
+    soma = 0;
+    pos = tamanho - 7;
+    for (let i = tamanho; i >= 1; i--) {
+      soma += parseInt(numeros.charAt(tamanho - i)) * pos--;
+      if (pos < 2) pos = 9;
+    }
+
+    resultado = soma % 11 < 2 ? 0 : 11 - (soma % 11);
+    return resultado == parseInt(digitos.charAt(1));
+  }
+</script>
