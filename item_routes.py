@@ -1,6 +1,7 @@
 import datetime
 import uuid
 from urllib.parse import urlparse
+from boto3.dynamodb.conditions import Key
 
 from flask import (
     render_template,
@@ -465,6 +466,7 @@ def init_item_routes(
         if request.method == "POST":
             range_date = request.form.get("range_date")
             client_name = request.form.get("client_name").strip()
+            client_id = request.form.get("client_id")
             client_tel = request.form.get("client_tel").strip()
             retirado = "retirado" in request.form  # Verifica checkbox
             valor = request.form.get("valor")
@@ -487,34 +489,20 @@ def init_item_routes(
                 return render_template(
                     "rent.html", item=item, reserved_ranges=reserved_ranges
                 )
-
-            # 🔹 Verificar se o cliente já existe na tabela alugueqqc_clientes usando a GSI "client_name-index"
-            query_response = clients_table.query(
-                IndexName="client_name-index",
-                KeyConditionExpression="client_name = :cname",
-                ExpressionAttributeValues={":cname": client_name},
-            )
-
-            cliente = query_response.get("Items")
-
-            if cliente:
-                # Cliente já existe, pegar o primeiro registro encontrado
-                cliente = cliente[0]
-                client_id = cliente["client_id"]
-            else:
-                # Cliente não encontrado, criar um novo
+            print(client_id)
+            # Cliente não encontrado, criar um novo
+            if not client_id:
                 client_id = str(uuid.uuid4())
 
-                clients_table.put_item(
-                    Item={
-                        "client_id": client_id,
-                        "client_name": client_name,
-                        "client_tel": client_tel,
-                        "created_at": datetime.datetime.now().strftime(
-                            "%Y-%m-%d %H:%M:%S"
-                        ),
-                    }
-                )
+            clients_table.put_item(
+                Item={
+                    "client_id": client_id,
+                    "account_id": session.get("account_id"),
+                    "client_name": client_name,
+                    "client_tel": client_tel,
+                    "created_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                }
+            )
 
             # 🔹 Criar uma transação na tabela alugueqqc_transactions
             transaction_id = str(uuid.uuid4())
@@ -772,7 +760,7 @@ def init_item_routes(
                 "returned": "Devolvidos",
                 "historic": "Histórico",
                 "inventario": "Inventário",
-                "archived": "Arquivados",
+                "archive": "Arquivados",
             }
 
             flash(
@@ -824,7 +812,7 @@ def init_item_routes(
                 "returned": "Devolvidos",
                 "historic": "Histórico",
                 "inventario": "Inventário",
-                "archived": "Arquivados",
+                "archive": "Arquivados",
             }
 
             flash(
@@ -1051,35 +1039,33 @@ def init_item_routes(
                     end_date=end_date,
                 )
 
-        response = itens_table.query(
+        response = transactions_table.query(
             IndexName="account_id-index",  # Usando o GSI para buscar por account_id
             KeyConditionExpression="#account_id = :account_id",
-            FilterExpression="#status IN (:rented, :returned, :archived, :history)",
+            FilterExpression="#status IN (:rented, :returned)",
             ExpressionAttributeNames={"#account_id": "account_id", "#status": "status"},
             ExpressionAttributeValues={
                 ":account_id": account_id,
                 ":rented": "rented",
                 ":returned": "returned",
-                ":archived": "archived",
-                ":history": "history",
             },
         )
 
-        items = response.get("Items", [])
+        transactions = response.get("Items", [])
 
         # Inicializar os totais
         total_paid = 0  # Total recebido
         total_due = 0  # Total a receber
 
-        for dress in items:
+        for transaction in transactions:
             try:
                 # Considerar apenas registros dentro do período
                 rental_date = datetime.datetime.strptime(
-                    dress.get("rental_date"), "%Y-%m-%d"
+                    transaction.get("rental_date"), "%Y-%m-%d"
                 ).date()
                 if start_date <= rental_date <= end_date:
-                    valor = float(dress.get("valor", 0))
-                    pagamento = dress.get("pagamento", "").lower()
+                    valor = float(transaction.get("valor", 0))
+                    pagamento = transaction.get("pagamento", "").lower()
 
                     # Calcular o total recebido
                     if pagamento == "pago 100%":
@@ -1097,6 +1083,8 @@ def init_item_routes(
 
         # Total geral: recebido + a receber
         total_general = total_paid + total_due
+
+        flash("Relatório atualizado com sucesso!", "success")
 
         return render_template(
             "reports.html",
@@ -1144,6 +1132,82 @@ def init_item_routes(
             )
 
         return jsonify({"status": "found", "data": item_data})
+
+    @app.route("/autocomplete_clients")
+    def autocomplete_clients():
+        account_id = session.get("account_id")
+        term = request.args.get("term", "").strip()
+
+        print(term)
+
+        if not term:
+            return jsonify([])
+
+        response = clients_table.query(
+            IndexName="account_id-client_name-index",  # <-- nome do novo GSI
+            KeyConditionExpression=Key("account_id").eq(account_id)
+            & Key("client_name").begins_with(term),
+            Limit=5,
+        )
+
+        suggestions = [
+            {
+                "client_name": item.get("client_name"),
+                "client_tel": item.get("client_tel"),
+                "client_id": item.get("client_id"),
+            }
+            for item in response.get("Items", [])
+        ]
+
+        return jsonify(suggestions)
+
+    @app.route("/clients")
+    def listar_clientes():
+        # Verifica se o usuário está logado
+        if not session.get("logged_in"):
+            return redirect(url_for("login"))
+
+        # Obtém o account_id da sessão
+        account_id = session.get("account_id")
+        if not account_id:
+            return redirect(url_for("login"))
+
+        # Consulta os clientes com esse account_id no GSI
+        response = clients_table.query(
+            IndexName="account_id-index",  # GSI com partition key = account_id
+            KeyConditionExpression=Key("account_id").eq(account_id),
+        )
+
+        clientes = response.get("Items", [])
+
+        # Renderiza a página passando a lista de clientes
+        return render_template("clientes.html", clientes=clientes)
+
+    @app.route("/editar_cliente/<client_id>", methods=["GET", "POST"])
+    def editar_cliente(client_id):
+        if not session.get("logged_in"):
+            return redirect(url_for("login"))
+
+        response = clients_table.get_item(Key={"client_id": client_id})
+        cliente = response.get("Item")
+
+        if not cliente:
+            flash("Cliente não encontrado.", "danger")
+            return redirect(url_for("listar_clientes"))
+
+        if request.method == "POST":
+            new_name = request.form.get("client_name").strip()
+            new_tel = request.form.get("client_tel").strip()
+
+            cliente["client_name"] = new_name
+            cliente["client_tel"] = new_tel
+
+            clients_table.put_item(Item=cliente)
+
+            flash("Cliente atualizado com sucesso!", "success")
+            return redirect(url_for("listar_clientes"))
+
+        return render_template("editar_cliente.html", cliente=cliente)
 
 
 def listar_itens_per_transaction(

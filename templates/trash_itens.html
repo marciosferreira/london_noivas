@@ -67,7 +67,7 @@
               </td>
 
               <td data-label="Status">
-                {% set status_map = {"available": "Disponível", "rented": "Alugado", "returned": "Devolvido", "archived": "Arquivado", "historic": "Histórico"} %}
+                {% set status_map = {"available": "Disponível", "rented": "Alugado", "returned": "Devolvido", "archive": "Arquivado", "historic": "Histórico"} %}
                 {{ status_map.get(item.previous_status, "Inválido") }}
               </td>
 
@@ -99,7 +99,7 @@
       "available": "Inventário",
       "deleted": "Deletado",
       "version": "Versão",
-      "archived": "Arquivado"
+      "archive": "Arquivado"
   };
 
   function definirMensagemEConfirmar(itemData, parentData, mensagem, form) {

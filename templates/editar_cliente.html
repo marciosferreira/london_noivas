@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Editar Cliente</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style_edit_small.css') }}" />
+  </head>
+  <body>
+    <!-- Mensagens flash -->
+    {% with messages = get_flashed_messages(with_categories=true) %} {% if messages %}
+    <div class="container mt-3">
+      {% for category, message in messages %}
+      <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+        {{ message|safe }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %} {% endwith %}
+
+    <div class="form-container">
+      <h1>Editar Cliente</h1>
+      <a href="{{ request.args.get('next', url_for('listar_clientes')) }}" class="cancel-link">Sair sem Finalizar</a>
+
+      <form method="POST">
+        <label for="client_name">Nome:</label>
+        <input type="text" id="client_name" name="client_name" value="{{ cliente.client_name }}" required />
+
+        <label for="client_tel">Telefone:</label>
+        <input type="text" id="client_tel" name="client_tel" value="{{ cliente.client_tel }}" required />
+
+        <button type="submit">Salvar</button>
+      </form>
+    </div>
+  </body>
+</html>

@@ -19,7 +19,16 @@
       <form method="POST" enctype="multipart/form-data" id="form-rent">
 
         <label for="client_name">Nome do Cliente:</label>
-        <input type="text" id="client_name" name="client_name" required />
+        <div class="position-relative">
+          <input type="text" id="client_name" name="client_name" autocomplete="off" class="form-control" required />
+          <div id="client_suggestions" class="autocomplete-suggestions"></div>
+        </div>
+<br>
+
+<input type="hidden" name="client_id" id="client_id" />
+
+
+
 
         <label for="client_tel">Telefone do Cliente:</label>
         <input type="text" id="client_tel" name="client_tel" required />
@@ -128,6 +137,50 @@
     }
   });
 </script>
+
+
+<script>
+  const clientInput = document.getElementById("client_name");
+  const telInput = document.getElementById("client_tel");
+  const idInput = document.getElementById("client_id");
+  const suggestionsBox = document.getElementById("client_suggestions");
+
+  clientInput.addEventListener("input", async () => {
+    const term = clientInput.value.trim();
+    if (term.length < 2) {
+      suggestionsBox.innerHTML = "";
+      return;
+    }
+
+    const res = await fetch(`/autocomplete_clients?term=${encodeURIComponent(term)}`);
+    const clients = await res.json();
+
+    suggestionsBox.innerHTML = "";
+    clients.forEach(client => {
+      const div = document.createElement("div");
+      div.className = "autocomplete-item";
+      div.innerHTML = `<strong>${client.client_name}</strong><small>${client.client_tel || ''}</small>`;
+      div.addEventListener("click", () => {
+        clientInput.value = client.client_name;
+        telInput.value = client.client_tel || "";
+        if (idInput) idInput.value = client.client_id || "";
+        suggestionsBox.innerHTML = "";
+      });
+      suggestionsBox.appendChild(div);
+    });
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!clientInput.contains(e.target) && !suggestionsBox.contains(e.target)) {
+      suggestionsBox.innerHTML = "";
+    }
+  });
+
+</script>
+
+
+
+
 
 
 

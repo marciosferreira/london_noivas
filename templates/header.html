@@ -41,6 +41,11 @@
             <a class="nav-link dropdown-toggle" href="#" id="menuDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">Menu</a>
             <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end">
               <li>
+                <a class="dropdown-item {% if request.endpoint == 'listar_clients' %}active{% endif %}" href="{{ url_for('listar_clientes') }}">
+                  Clientes
+                </a>
+              </li>
+              <li>
                 <a class="dropdown-item {% if request.endpoint == 'reports' %}active{% endif %}" href="{{ url_for('reports') }}">
                   Relatório Financeiro
                 </a>

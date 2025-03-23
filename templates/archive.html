@@ -70,7 +70,12 @@
                   </a>
 
                   <!-- Botão DIsponível -->
-                  <a href="{{ url_for('mark_available', item_id=item.item_id, next=request.url) }}" class="action-button success" title="Disponível">
+                  <a
+                    href="{{ url_for('mark_available', item_id=item.item_id, next=request.url) }}"
+                    class="action-button success"
+                    title="Disponível"
+                    onclick="return confirm('Tem certeza que deseja tornar este item disponível novamente?');"
+                  >
                     Disponível
                   </a>
                 </div>
