@@ -28,7 +28,7 @@ body {
   margin-bottom: 10px;
 }
 
-/* Wrapper sem altura mínima desnecessária */
+/* Wrapper configurado para centralizar conteúdo */
 .wrapper {
   display: flex;
   flex-direction: column;
@@ -36,7 +36,8 @@ body {
   justify-content: flex-start;
   width: 100%;
   padding: 0;
-  margin: 0;
+  margin: 0 auto;
+  max-width: 100%;
 }
 
 .hero {
@@ -46,7 +47,10 @@ body {
   justify-content: center;
   align-items: center;
   text-align: center;
-  padding: 50px 20px; /* Aumentei o padding-top */
+  padding: 50px 20px; /* Padding para layout responsivo */
+  width: 100%;
+  max-width: 1200px; /* Limita a largura máxima */
+  margin: 0 auto; /* Centraliza na página */
 }
 
 .hero h1:first-of-type {
@@ -63,6 +67,10 @@ body {
   padding-top: 10px;
   padding-bottom: 40px;
   margin-top: -20px; /* Traz a seção mais perto */
+  width: 100%;
+  max-width: 1200px; /* Limita a largura máxima */
+  margin-left: auto;
+  margin-right: auto;
 }
 
 /* Centraliza os elementos na grid */

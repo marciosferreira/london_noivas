@@ -6,6 +6,8 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='style_rented.css') }}" />
 {% endblock %}
 
+{% block body_class %}rented{% endblock %}
+
 {% block content %}
 <div class="container my-4">
   {% include "filter_section.html" with context %}

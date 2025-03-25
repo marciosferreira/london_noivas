@@ -27,7 +27,7 @@
     ></script>
     {% endblock %}
   </head>
-  <body>
+  <body class="{% block body_class %}{% endblock %}">
     <!-- Header (not shown on login page) -->
     {% if request.endpoint != 'login' and request.endpoint != 'register' %}
     {% include 'header.html' %}

@@ -6,6 +6,8 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='style_inventario.css') }}" />
 {% endblock %}
 
+{% block body_class %}inventario{% endblock %}
+
 {% block content %}
 <div class="container my-4">
   {% include "add_filter_section.html" with context %}

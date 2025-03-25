@@ -6,6 +6,8 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='style_archive.css') }}" />
 {% endblock %}
 
+{% block body_class %}archive{% endblock %}
+
 {% block content %}
 <div class="container my-4">
   {% include "add_filter_section.html" %}

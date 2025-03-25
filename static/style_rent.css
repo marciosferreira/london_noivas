@@ -4,10 +4,12 @@ body {
   margin: 0;
   padding: 0;
   background: linear-gradient(120deg, #f5e3a6 0%, #f3bbab 100%);
-  display: flex;
-  justify-content: center;
-  align-items: center;
   min-height: 100vh;
+}
+
+/* Centraliza o formulário com espaço do topo */
+.form-container {
+  margin: 100px auto 50px; /* Espaço de 100px no topo, 50px no fundo */
 }
 
 /* Contêiner do Formulário */
