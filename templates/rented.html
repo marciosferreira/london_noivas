@@ -1,187 +1,110 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-  <head>
-    {% include 'header.html' %}
-    <meta charset="UTF-8" />
-    <title>Transações iniciadas (itens alugados)</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+{% extends "base.html" %}
 
-    <!-- Bootstrap CSS -->
-    <link
-      rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
-    />
+{% block title %}Transações iniciadas (itens alugados){% endblock %}
 
-    <!-- Seu CSS customizado -->
-    <link
-      rel="stylesheet"
-      href="{{ url_for('static', filename='style_rented.css') }}"
-    />
-  </head>
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='style_rented.css') }}" />
+{% endblock %}
 
-  <body class="rented">
-    <div class="container my-4">
-      {% block content %}
-        {% include "filter_section.html" with context %}
-      {% endblock %}
+{% block content %}
+<div class="container my-4">
+  {% include "filter_section.html" with context %}
 
-      <!-- Tabela -->
-      <div class="table-container mt-4">
-        <table class="table table-hover responsive-table align-middle rounded-table">
-          <thead>
-            <tr>
-              <th>Imagem</th>
-              <th>Cliente</th>
-              <th>Retirada prevista</th>
-              <th>Devolução Prevista</th>
-              <th>Retirado?</th>
-              <th>Pago?</th>
-              <th>Observações</th>
-              <th>Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for item in itens %}
-              <tr> <!-- Adicione esta linha para cada item -->
-                <td data-label="Imagem">
-                  {% if item.image_url and item.image_url != "N/A" %}
-                    <img
-                      src="{{ item.image_url }}"
-                      alt="Imagem do vestido"
-                      class="img-fluid item-thumbnail"
-                      style="max-width: 100px; cursor: pointer;"
-                      onclick="event.stopPropagation(); showImageModal('{{ item.image_url }}')"
-                    />
-                  {% else %}
-                    <img
-                      src="{{ url_for('static', filename='item-placeholder.png') }}"
-                      alt="Sem Imagem"
-                      class="img-fluid item-thumbnail"
-                      style="max-width: 100px; cursor: pointer;"
-                      onclick="event.stopPropagation(); showImageModal('{{ url_for('static', filename='item-placeholder.png') }}')"
-                    />
-                  {% endif %}
-                </td>
+  <!-- Tabela -->
+  <div class="table-container mt-4">
+    <table class="table table-hover responsive-table align-middle rounded-table">
+      <thead>
+        <tr>
+          <th>Imagem</th>
+          <th>Cliente</th>
+          <th>Retirada prevista</th>
+          <th>Devolução Prevista</th>
+          <th>Retirado?</th>
+          <th>Pago?</th>
+          <th>Observações</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in itens %}
+          <tr>
+            <td data-label="Imagem">
+              {% if item.image_url and item.image_url != "N/A" %}
+                <img
+                  src="{{ item.image_url }}"
+                  alt="Imagem do item"
+                  class="img-fluid item-thumbnail"
+                  style="max-width: 100px; cursor: pointer;"
+                />
+              {% else %}
+                <img
+                  src="{{ url_for('static', filename='item-placeholder.png') }}"
+                  alt="Sem Imagem"
+                  class="img-fluid item-thumbnail"
+                  style="max-width: 100px; cursor: pointer;"
+                />
+              {% endif %}
+            </td>
 
-                <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Cliente">
-                  {{ item.client_name | default('', true) | truncate(10, True) }}
-                </td>
+            <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Cliente">
+              {{ item.client_name | default('', true) | truncate(10, True) }}
+            </td>
 
-                <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Retirada Prevista">
-                  {{ item.rental_date_formatted }}
-                </td>
+            <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Retirada Prevista">
+              {{ item.rental_date_formatted }}
+            </td>
 
-                <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Devolução Prevista">
-                  {{ item.return_date_formatted }}
-                </td>
+            <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Devolução Prevista">
+              {{ item.return_date_formatted }}
+            </td>
 
-                <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Retirado">
-                  {% if item.retirado %}Sim{% else %}Não{% endif %}
-                </td>
+            <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Retirado">
+              {% if item.retirado %}Sim{% else %}Não{% endif %}
+            </td>
 
-                <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Pagamento">
-                  {{ item.pagamento }}
-                </td>
+            <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Pagamento">
+              {{ item.pagamento }}
+            </td>
 
-                <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Observações">
-                  {{ item.comments | default('', true) | truncate(10, True) }}
-                </td>
+            <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Observações">
+              {{ item.comments | default('', true) | truncate(10, True) }}
+            </td>
 
-                <td data-label="Ações">
-                  <div class="d-flex flex-wrap gap-2 justify-content-center align-items-center">
-                    <!-- Botão Deletar -->
-                    <form method="POST" action="{{ url_for('delete_transaction', transaction_id=item.transaction_id, next=request.url) }}" style="display: inline;">
-                      <button type="submit" class="action-button danger"
-                        onclick="return confirm('Tem certeza de que deseja deletar essa transação?');"
-                        title="Deletar">Deletar</button>
-                    </form>
+            <td data-label="Ações">
+              <div class="d-flex flex-wrap gap-2 justify-content-center align-items-center">
+                <!-- Delete Transaction Button -->
+                <form method="POST" action="{{ url_for('delete_transaction', transaction_id=item.transaction_id, next=request.url) }}" style="display: inline;">
+                  <button type="submit" class="action-button danger"
+                    onclick="return confirm('Tem certeza de que deseja deletar essa transação?');"
+                    title="Deletar">Deletar</button>
+                </form>
 
-                    <!-- Botão Editar -->
-                    <a href="{{ url_for('edit_transaction', transaction_id=item.transaction_id, next=request.url) }}" class="action-button warning" title="Editar">
-                      Editar
-                    </a>
+                <!-- Edit Transaction Button -->
+                <a href="{{ url_for('edit_transaction', transaction_id=item.transaction_id, next=request.url) }}" class="action-button warning" title="Editar">
+                  Editar
+                </a>
 
-                    <!-- Botão Disponível com Confirmação -->
-                    <a href="{{ url_for('mark_returned', transaction_id=item.transaction_id, next=request.url) }}"
-                      class="action-button success"
-                      title="Devolvido"
-                      onclick="return confirm('Tem certeza de que deseja marcar este item como devolvido?');">
-                      Devolvido
-                    </a>
-                  </div>
-                </td>
-              </tr> <!-- Feche a linha aqui -->
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
+                <!-- Mark as Returned Button -->
+                <a href="{{ url_for('mark_returned', transaction_id=item.transaction_id, next=request.url) }}"
+                  class="action-button success"
+                  title="Devolvido"
+                  onclick="return confirm('Tem certeza de que deseja marcar este item como devolvido?');">
+                  Devolvido
+                </a>
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 
-      <!-- MODAL para mais informações -->
-      <div class="modal fade" id="infoModal" tabindex="-1" aria-labelledby="infoModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title" id="infoModalLabel">Mais detalhes</h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
+  <!-- Pagination -->
+  {% set route_name = 'rented' %}
+  {% include 'components/pagination.html' with context %}
 
-              <p><strong>Cliente:</strong> <span id="modalName"></span></p>
-              <p><strong>Descrição:</strong> <span id="modalDescription"></span></p>
-              <p><strong>Telefone:</strong> <span id="modalPhone"></span></p>
-              <p><strong>Valor(R$):</strong> <span id="modalValue"></span></p>
-              <p><strong>Observações:</strong> <span id="modalObs"></span></p>
-
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- MODAL para imagem -->
-      <div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title" id="imageModalLabel">Visualizar Imagem</h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body text-center">
-              <img class="img-fluid" id="modalImg" alt="Imagem do Item" />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Bootstrap JS -->
-      <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
-      <script>
-        document.addEventListener("DOMContentLoaded", function () {
-          document.querySelectorAll(".open-modal").forEach(cell => {
-            cell.addEventListener("click", function () {
-              let item = JSON.parse(this.getAttribute("data-item"));
-              document.getElementById("modalName").textContent = item.client_name || "N/A";
-              document.getElementById("modalDescription").textContent = item.description || "N/A";
-              document.getElementById("modalPhone").textContent = item.client_tel || "N/A";
-              document.getElementById("modalValue").textContent = item.valor || "N/A";
-              document.getElementById("modalObs").textContent = item.comments || "sem observações";
-              let infoModal = new bootstrap.Modal(document.getElementById("infoModal"), { backdrop: 'static' });
-              infoModal.show();
-            });
-          });
-        });
-
-        function showImageModal(imageSrc) {
-          document.getElementById("modalImg").src = imageSrc;
-          let imageModal = new bootstrap.Modal(document.getElementById("imageModal"), { backdrop: 'static' });
-          imageModal.show();
-        }
-      </script>
-
-
-
-
-
-      {% include 'footer.html' %}
-  </body>
-</html>
+  <!-- Modals -->
+  {% include 'components/info_modal.html' %}
+  {% include 'components/image_modal.html' %}
+</div>
+{% endblock %}

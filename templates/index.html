@@ -1,64 +1,38 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-  <head>
-    <script
-      async
-      src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6173541572216337"
-      crossorigin="anonymous"
-    ></script>
+{% extends "base.html" %}
 
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Alugue QQC - Apresentação</title>
+{% block title %}Alugue QQC - Apresentação{% endblock %}
 
-    <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='style_index.css') }}" />
-  </head>
-  <body>
-    <!-- Importa o Header DENTRO do body -->
-    {% include 'header.html' %}
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='style_index.css') }}" />
+{% endblock %}
 
-    <!-- Envolve todo o conteúdo dentro de um wrapper -->
-    <div class="wrapper">
-      {% block content %}
+{% block content %}
+<!-- Seção de destaque -->
+<section class="hero">
+  <h1>Alugue QQC</h1>
+  <h1>Gerenciador de aluguéis de itens diversos</h1>
+  <p>Alugue seus itens de forma simples e segura</p>
+  <button class="btn btn-primary mt-3" onclick="window.location.href='{{ url_for('login') }}'">Entrar ou Cadastrar</button>
+</section>
 
-      <!-- Seção de destaque -->
-      <section class="hero">
-        <h1>Alugue QQC</h1>
-        <h1>Gerenciador de aluguéis de itens diversos</h1>
-        <p>Alugue seus itens de forma simples e segura</p>
-        <button class="btn btn-primary mt-3" onclick="window.location.href='{{ url_for('login') }}'">Entrar ou Cadastrar</button>
-      </section>
-
-      {% endblock %}
+<!-- Seção com 3 colunas -->
+<section class="features container text-center mt-5">
+  <div class="row">
+    <div class="col-12 col-sm-6 col-md-4 d-flex flex-column align-items-center feature-box">
+      <img src="https://cdn-icons-png.flaticon.com/128/8781/8781533.png" alt="Grátis até 30 itens" class="feature-img" />
+      <h3 class="mt-3">Grátis até 30 itens</h3>
+      <p class="feature-text">Teste todo o sistema sem compromisso</p>
     </div>
-
-    <!-- Seção com 3 colunas -->
-    <section class="features container text-center mt-5">
-      <div class="row">
-        <div class="col-12 col-sm-6 col-md-4 d-flex flex-column align-items-center feature-box">
-          <img src="https://cdn-icons-png.flaticon.com/128/8781/8781533.png" alt="Grátis até 30 itens" class="feature-img" />
-          <h3 class="mt-3">Grátis até 30 itens</h3>
-          <p class="feature-text">Teste todo o sistema sem compromisso</p>
-        </div>
-        <div class="col-12 col-sm-6 col-md-4 d-flex flex-column align-items-center feature-box">
-          <img src="https://cdn-icons-png.flaticon.com/128/2954/2954893.png" alt="Fácil de usar" class="feature-img" />
-          <h3 class="mt-3">Controle total</h3>
-          <p class="feature-text">Controle status, preços e datas de retirada e devolução.</p>
-        </div>
-        <div class="col-12 col-sm-6 col-md-4 d-flex flex-column align-items-center feature-box">
-          <img src="https://cdn-icons-png.flaticon.com/128/1161/1161388.png" alt="Segurança garantida" class="feature-img" />
-          <h3 class="mt-3">Segurança garantida</h3>
-          <p class="feature-text">Sistema seguro contra perda de dadosou deleção de itens por engano.</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- Importa o Footer -->
-    {% include 'footer.html' %}
-
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  </body>
-</html>
+    <div class="col-12 col-sm-6 col-md-4 d-flex flex-column align-items-center feature-box">
+      <img src="https://cdn-icons-png.flaticon.com/128/2954/2954893.png" alt="Fácil de usar" class="feature-img" />
+      <h3 class="mt-3">Controle total</h3>
+      <p class="feature-text">Controle status, preços e datas de retirada e devolução.</p>
+    </div>
+    <div class="col-12 col-sm-6 col-md-4 d-flex flex-column align-items-center feature-box">
+      <img src="https://cdn-icons-png.flaticon.com/128/1161/1161388.png" alt="Segurança garantida" class="feature-img" />
+      <h3 class="mt-3">Segurança garantida</h3>
+      <p class="feature-text">Sistema seguro contra perda de dadosou deleção de itens por engano.</p>
+    </div>
+  </div>
+</section>
+{% endblock %}

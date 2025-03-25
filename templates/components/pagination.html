@@ -1,0 +1,21 @@
+<!-- Paginação Component -->
+<nav aria-label="Page navigation" class="mt-4">
+  <ul class="pagination justify-content-center">
+    {% set args = request.args.to_dict() %} 
+    {% if page > 1 %}
+    <li class="page-item">
+      <a class="page-link" href="{{ url_for(route_name, **dict(args, page=page-1)) }}">Anterior</a>
+    </li>
+    {% endif %} 
+    {% for p in range(1, total_pages + 1) %}
+    <li class="page-item {% if p == page %}active{% endif %}">
+      <a class="page-link" href="{{ url_for(route_name, **dict(args, page=p)) }}">{{ p }}</a>
+    </li>
+    {% endfor %} 
+    {% if page < total_pages %}
+    <li class="page-item">
+      <a class="page-link" href="{{ url_for(route_name, **dict(args, page=page+1)) }}">Próxima</a>
+    </li>
+    {% endif %}
+  </ul>
+</nav>

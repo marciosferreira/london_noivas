@@ -1,50 +1,57 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+{% extends "base.html" %}
 
-    <title>Adicionar Registro</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style_add.css') }}" />
-  </head>
-  <body>
-    <div class="form-container">
-      {% set destino = request.args.get("next", "") %} {% set ultima_parte = destino.strip('/').split('/')[-1] %}
+{% block title %}Adicionar Registro{% endblock %}
 
-      <h1>
-        {% if ultima_parte == "archive" %} Inserir Novo Item em arquivo {% elif ultima_parte == "inventario" %} Inserir Novo Item em inventário {%
-        else %} Inserir Novo Item {% endif %}
-      </h1>
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='style_add.css') }}" />
+{% endblock %}
 
-      <!-- Link "Sair sem Finalizar" -->
-      <a href="{{ next }}" class="cancel-link">Sair sem Finalizar</a>
-      <form method="POST" enctype="multipart/form-data">
-        <!-- Campo oculto para preservar a página de origem -->
-        <input type="hidden" name="next" value="{{ next }}" />
+{% block content %}
+<div class="form-container">
+  {% set destino = request.args.get("next", "") %} 
+  {% set ultima_parte = destino.strip('/').split('/')[-1] %}
 
-        <label for="description">Descrição:</label>
-        <br />
-        <textarea id="description" name="description" rows="3" required></textarea>
-        <br />
-        <br />
+  <h1>
+    {% if ultima_parte == "archive" %} 
+      Inserir Novo Item em arquivo 
+    {% elif ultima_parte == "inventario" %} 
+      Inserir Novo Item em inventário 
+    {% else %} 
+      Inserir Novo Item 
+    {% endif %}
+  </h1>
 
-        <label for="comments">Comentários do item:</label>
-        <br />
-        <textarea id="comments" name="comments" rows="4" cols="50"></textarea>
-        <br />
-        <br />
-        <label for="valor">Valor (R$):</label>
-        <input type="number" id="valor" name="valor" step="0.10" min="0" required />
-        <br />
-        <br />
-        <label>Foto:</label>
-        <br />
-        <input type="file" name="image_file" accept="image/*;capture=camera" />
-        <br />
-        <br />
+  <!-- Link "Sair sem Finalizar" -->
+  <a href="{{ next }}" class="cancel-link">Sair sem Finalizar</a>
+  
+  <form method="POST" enctype="multipart/form-data">
+    <!-- Campo oculto para preservar a página de origem -->
+    <input type="hidden" name="next" value="{{ next }}" />
 
-        <button type="submit">Inserir</button>
-      </form>
-    </div>
-  </body>
-</html>
+    <label for="description">Descrição:</label>
+    <br />
+    <textarea id="description" name="description" rows="3" required></textarea>
+    <br />
+    <br />
+
+    <label for="comments">Comentários do item:</label>
+    <br />
+    <textarea id="comments" name="comments" rows="4" cols="50"></textarea>
+    <br />
+    <br />
+    
+    <label for="valor">Valor (R$):</label>
+    <input type="number" id="valor" name="valor" step="0.10" min="0" required />
+    <br />
+    <br />
+    
+    <label>Foto:</label>
+    <br />
+    <input type="file" name="image_file" accept="image/*;capture=camera" />
+    <br />
+    <br />
+
+    <button type="submit">Inserir</button>
+  </form>
+</div>
+{% endblock %}

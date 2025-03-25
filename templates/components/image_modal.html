@@ -1,0 +1,30 @@
+<!-- Modal for displaying images -->
+<div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="imageModalLabel">Visualizar Imagem</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body text-center">
+        <img class="img-fluid" id="modalImg" alt="Imagem do Item" />
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Modal de imagem
+  document.addEventListener('DOMContentLoaded', function() {
+    const thumbnails = document.querySelectorAll('.item-thumbnail');
+    const modalImg = document.getElementById('modalImg');
+    const imageModal = new bootstrap.Modal(document.getElementById('imageModal'));
+
+    thumbnails.forEach((img) => {
+      img.addEventListener('click', () => {
+        modalImg.src = img.src;
+        imageModal.show();
+      });
+    });
+  });
+</script>

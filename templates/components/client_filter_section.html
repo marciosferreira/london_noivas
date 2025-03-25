@@ -1,0 +1,29 @@
+<!-- Cliente Filter Section Component -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2 class="h5 mb-0">Ações</h2>
+  <div class="d-flex flex-wrap gap-2 justify-content-end">
+    <a href="{{ url_for('adicionar_cliente') }}" class="custom-button">Adicionar Cliente</a>
+    <a href="#" id="filter-toggle" class="custom-button" onclick="toggleFilters(event)">Filtros</a>
+  </div>
+</div>
+
+<!-- Seção de Filtros (inicialmente escondida) -->
+<div id="filter-section" class="d-none mb-4">
+  <form method="GET" action="{{ url_for('listar_clientes') }}">
+    <div class="p-3 border rounded">
+      <div class="mb-3">
+        <label for="search_name" class="form-label">Nome do Cliente:</label>
+        <input type="text" class="form-control" id="search_name" name="client_name" />
+      </div>
+      <button type="submit" class="btn btn-primary">Aplicar Filtros</button>
+    </div>
+  </form>
+</div>
+
+<script>
+  function toggleFilters(event) {
+    event.preventDefault();
+    const section = document.getElementById('filter-section');
+    section.classList.toggle('d-none');
+  }
+</script>

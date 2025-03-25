@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <title>{% block title %}Alugue QQC{% endblock %}</title>
+    
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
+    
+    <!-- Base CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style_base.css') }}" />
+    
+    <!-- Common table styles -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style_tables.css') }}" />
+    
+    <!-- Page specific CSS -->
+    {% block styles %}{% endblock %}
+    
+    <!-- Google Ads -->
+    {% block google_ads %}
+    <script
+      async
+      src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6173541572216337"
+      crossorigin="anonymous"
+    ></script>
+    {% endblock %}
+  </head>
+  <body>
+    <!-- Header (not shown on login page) -->
+    {% if request.endpoint != 'login' and request.endpoint != 'register' %}
+    {% include 'header.html' %}
+    {% endif %}
+    
+    <!-- Main Content -->
+    <div class="wrapper">
+      {% block content %}{% endblock %}
+    </div>
+    
+    <!-- Footer -->
+    {% include 'footer.html' %}
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Page specific JavaScript -->
+    {% block scripts %}{% endblock %}
+  </body>
+</html>

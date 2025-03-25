@@ -1,0 +1,35 @@
+<!-- Info Modal Component -->
+<div class="modal fade" id="infoModal" tabindex="-1" aria-labelledby="infoModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="infoModalLabel">Mais detalhes</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p><strong>Cliente:</strong> <span id="modalName"></span></p>
+        <p><strong>Descrição:</strong> <span id="modalDescription"></span></p>
+        <p><strong>Telefone:</strong> <span id="modalPhone"></span></p>
+        <p><strong>Valor(R$):</strong> <span id="modalValue"></span></p>
+        <p><strong>Observações:</strong> <span id="modalObs"></span></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll(".open-modal").forEach(cell => {
+      cell.addEventListener("click", function () {
+        let item = JSON.parse(this.getAttribute("data-item"));
+        document.getElementById("modalName").textContent = item.client_name || "N/A";
+        document.getElementById("modalDescription").textContent = item.description || "N/A";
+        document.getElementById("modalPhone").textContent = item.client_tel || "N/A";
+        document.getElementById("modalValue").textContent = item.valor || "N/A";
+        document.getElementById("modalObs").textContent = item.comments || "sem observações";
+        let infoModal = new bootstrap.Modal(document.getElementById("infoModal"));
+        infoModal.show();
+      });
+    });
+  });
+</script>

@@ -1,0 +1,154 @@
+/* Common table styles for the entire application */
+
+/* Table container */
+.table-container {
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+/* Responsive table */
+.responsive-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+/* Bootstrap custom table styles */
+.table-danger {
+  background-color: #f8d7da !important;
+}
+.table-warning {
+  background-color: #fff3cd !important;
+}
+
+/* Rounded table */
+.table.rounded-table {
+  border-radius: 10px;
+  overflow: hidden;
+  border: none;
+}
+
+/* Thumbnail images */
+.item-thumbnail {
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+.item-thumbnail:hover {
+  transform: scale(1.03);
+}
+
+/* Action buttons */
+.action-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 0.9rem;
+  text-decoration: none;
+  color: white;
+  border-radius: 25px;
+  padding: 5px 15px;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  border: 2px solid transparent;
+}
+
+.action-button:hover {
+  opacity: 0.9;
+}
+
+.action-button.danger {
+  background-color: #dc3545;
+  border-color: #dc3545;
+}
+
+.action-button.danger:hover {
+  background-color: white;
+  color: #dc3545;
+}
+
+.action-button.success {
+  background-color: #28a745;
+  border-color: #28a745;
+}
+
+.action-button.success:hover {
+  background-color: white;
+  color: #28a745;
+}
+
+.action-button.warning {
+  background-color: #ffc107;
+  border-color: #ffc107;
+}
+
+.action-button.warning:hover {
+  background-color: white;
+  color: #ffc107;
+}
+
+.action-button.info {
+  background-color: #17a2b8;
+  border-color: #17a2b8;
+}
+
+.action-button.info:hover {
+  background-color: white;
+  color: #17a2b8;
+}
+
+/* Modal trigger elements */
+.open-modal {
+  cursor: pointer;
+}
+
+/* Responsive table for mobile view */
+@media (max-width: 576px) {
+  /* Hide table header on mobile */
+  .responsive-table thead {
+    display: none;
+  }
+
+  /* Stack cells vertically */
+  .responsive-table,
+  .responsive-table tbody,
+  .responsive-table tr,
+  .responsive-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .responsive-table tr {
+    margin-bottom: 1rem;
+    border: 1px solid #dee2e6;
+    border-radius: 0.5rem;
+    padding: 0.5rem;
+    background-color: #fff;
+  }
+
+  .responsive-table td {
+    position: relative;
+    padding-left: 50%;
+    margin-bottom: 0.75rem;
+    text-align: left;
+    min-height: 2.5rem;
+  }
+
+  /* Show data labels on mobile */
+  .responsive-table td::before {
+    content: attr(data-label) ': ';
+    position: absolute;
+    left: 1rem;
+    font-weight: bold;
+  }
+
+  /* Make buttons stretch on mobile */
+  .action-button {
+    flex: 1 1 auto;
+    text-align: center;
+  }
+
+  /* Right-align button container on mobile */
+  .d-flex.justify-content-between .d-flex {
+    justify-content: flex-end;
+  }
+}

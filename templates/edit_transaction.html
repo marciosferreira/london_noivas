@@ -1,147 +1,94 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-  <head>
+{% extends "base.html" %}
 
-    <script src="https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.umd.min.js"></script>
+{% block title %}Editar Transação{% endblock %}
 
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Editar Registro</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style_edit_transaction.css') }}" />
-  </head>
-  <body>
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='style_edit_transaction.css') }}" />
+{% endblock %}
 
+{% block content %}
+<div class="form-container">
+  <h1>Editar transação</h1>
+  <a href="{{ request.args.get('next', url_for('index')) }}" class="cancel-link">Sair sem Finalizar</a>
 
+  <form method="POST" enctype="multipart/form-data" id="form-transaction">
+    <label for="client_name">Nome do Cliente:</label>
+    <div class="position-relative">
+      <input type="text" id="client_name" name="client_name" autocomplete="off" class="form-control" value="{{ item.client_name}}" required />
+      <div id="client_suggestions" class="autocomplete-suggestions"></div>
+    </div>
+    <br>
+    
+    <input type="hidden" name="client_id" id="client_id" />
 
-    <div class="form-container">
-      <h1>Editar transação</h1>
-      <a href="{{ request.args.get('next', url_for('index')) }}" class="cancel-link">Sair sem Finalizar</a>
+    <label for="client_tel">Telefone do Cliente:</label>
+    <input type="text" id="client_tel" name="client_tel" value="{{ item.client_tel }}" required />
 
+    <label for="datepicker">Defina as datas:</label>
+    <input id="datepicker" name="range_date" class="form-control" value="{{ item.range_date }}"/>
 
-      <form method="POST" enctype="multipart/form-data">
-
-
-        <label for="client_name">Nome do Cliente:</label>
-        <div class="position-relative">
-          <input type="text" id="client_name" name="client_name" autocomplete="off" class="form-control" value="{{ item.client_name}}"required />
-          <div id="client_suggestions" class="autocomplete-suggestions"></div>
-        </div>
-
-<br>
-<input type="hidden" name="client_id" id="client_id" />
-
-
-
-
-        <label for="client_tel">Telefone do Cliente:</label>
-        <input type="text" id="client_tel" name="client_tel" value="{{ item.client_tel }}" required />
-
-        <label for="datepicker">Defina as datas:</label>
-        <input id="datepicker" name="range_date" class="form-control" value="{{ item.range_date }}"/>
-
-        <div class="form-group">
-          <label for="retirado">
-            <input type="checkbox" id="retirado" name="retirado" value="True" {% if item.retirado %}checked{% endif %} />
-            Retirado
-          </label>
-        </div>
-
-        {% if 'returned' in request.full_path %}
-  <label for="return_date">Data de Devolução:</label>
-  <input type="date" id="return_date" name="return_date" value="{{ item.return_date }}" required />
-{% endif %}
-
-
-
-        <label for="valor">Valor (R$):</label>
-        <input type="number" id="valor" name="valor" step="0.01" min="0" value="{{ item.valor }}" required/>
-
-        <label for="pagamento">Pagamento:</label>
-<select id="pagamento" name="pagamento">
-    <option value="Não pago" {% if item.pagamento == "Não pago" or not item.pagamento %}selected{% endif %}>Não pago</option>
-    <option value="Pago 50%" {% if item.pagamento == "Pago 50%" %}selected{% endif %}>Pago 50%</option>
-    <option value="Pago 100%" {% if item.pagamento == "Pago 100%" %}selected{% endif %}>Pago 100%</option>
-</select>
-
-<label for="comments">Observações:</label>
-<textarea id="comments" name="comments" rows="3" value="{{item.comments}}">{{item.comments}}</textarea>
-
-
-<!-- Campo de Data -->
-<div id="dev-date-container" style="display: none;">
-  <label for="dev_date">Devolvido em:</label>
-  <input
-    type="date"
-    id="dev_date"
-    name="dev_date"
-    value="{{ item.dev_date }}"
-  />
-</div>
-
-<script>
-  // Função para atualizar a exibição e obrigatoriedade do campo de data
-  function updateDevDateField() {
-    const returnedRadio = document.getElementById('status-returned');
-    const devDateContainer = document.getElementById('dev-date-container');
-    const devDateInput = document.getElementById('dev_date');
-
-    // Verifica se o status é "returned"
-    if (returnedRadio.checked) {
-      devDateContainer.style.display = 'block'; // Mostra o campo
-      devDateInput.required = true;            // Torna obrigatório
-    } else {
-      devDateContainer.style.display = 'none'; // Esconde o campo
-      devDateInput.required = false;           // Remove obrigatoriedade
-    }
-  }
-
-  // Adiciona eventos aos botões de rádio
-  const radioButtons = document.querySelectorAll('input[name="status"]');
-  radioButtons.forEach((radio) => {
-    radio.addEventListener('change', updateDevDateField);
-  });
-
-  // Atualiza a exibição inicial com base no valor atual do status
-  window.onload = function () {
-    updateDevDateField();
-  };
-</script>
-
-
-
-        <label>Foto Atual:</label>
-        {% if item.image_url and item.image_url != "" %}
-        <img src="{{ item.image_url }}" alt="Imagem do vestido" />
-        {% else %}
-        <img src="{{ url_for('static', filename='item-placeholder.png') }}" alt="Sem Imagem" />
-        {% endif %}
-
-
-
-        <button type="submit">Salvar</button>
-      </form>
+    <div class="form-group">
+      <label for="retirado">
+        <input type="checkbox" id="retirado" name="retirado" value="True" {% if item.retirado %}checked{% endif %} />
+        Retirado
+      </label>
     </div>
 
+    {% if 'returned' in request.full_path %}
+    <label for="return_date">Data de Devolução:</label>
+    <input type="date" id="return_date" name="return_date" value="{{ item.return_date }}" required />
+    {% endif %}
 
+    <label for="valor">Valor (R$):</label>
+    <input type="number" id="valor" name="valor" step="0.01" min="0" value="{{ item.valor }}" required/>
 
+    <label for="pagamento">Pagamento:</label>
+    <select id="pagamento" name="pagamento">
+      <option value="Não pago" {% if item.pagamento == "Não pago" or not item.pagamento %}selected{% endif %}>Não pago</option>
+      <option value="Pago 50%" {% if item.pagamento == "Pago 50%" %}selected{% endif %}>Pago 50%</option>
+      <option value="Pago 100%" {% if item.pagamento == "Pago 100%" %}selected{% endif %}>Pago 100%</option>
+    </select>
 
+    <label for="comments">Observações:</label>
+    <textarea id="comments" name="comments" rows="3" value="{{item.comments}}">{{item.comments}}</textarea>
 
+    <!-- Campo de Data -->
+    <div id="dev-date-container" style="display: none;">
+      <label for="dev_date">Devolvido em:</label>
+      <input
+        type="date"
+        id="dev_date"
+        name="dev_date"
+        value="{{ item.dev_date }}"
+      />
+    </div>
 
-  </body>
-</html>
+    <label>Foto Atual:</label>
+    {% if item.image_url and item.image_url != "" %}
+    <img src="{{ item.image_url }}" alt="Imagem do item" style="max-width: 150px" />
+    {% else %}
+    <img src="{{ url_for('static', filename='item-placeholder.png') }}" alt="Sem Imagem" style="max-width: 150px" />
+    {% endif %}
 
+    <button type="submit">Salvar</button>
+  </form>
+</div>
+{% endblock %}
 
-
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.umd.min.js"></script>
 <script>
+  // Date picker initialization
   const DateTime = easepick.DateTime;
   const bookedDates = {{ reserved_ranges | tojson(indent=2) }}.map(d => {
-      if (d instanceof Array) {
-        const start = new DateTime(d[0], 'YYYY-MM-DD');
-        const end = new DateTime(d[1], 'YYYY-MM-DD');
-        return [start, end];
-      }
-      return new DateTime(d, 'YYYY-MM-DD');
+    if (d instanceof Array) {
+      const start = new DateTime(d[0], 'YYYY-MM-DD');
+      const end = new DateTime(d[1], 'YYYY-MM-DD');
+      return [start, end];
+    }
+    return new DateTime(d, 'YYYY-MM-DD');
   });
+  
   const picker = new easepick.create({
     element: document.getElementById('datepicker'),
     css: [
@@ -149,10 +96,10 @@
       'https://easepick.com/css/demo_hotelcal.css',
     ],
     lang: 'pt-BR',
-    autoApply: false, // Exibe os botões "Aplicar" e "Cancelar"
+    autoApply: false,
     plugins: ['RangePlugin', 'LockPlugin', 'AmpPlugin'],
     AmpPlugin: {
-      resetButton: true,  // 👈 Isso ativa o botão "Limpar"
+      resetButton: true,
     },
     RangePlugin: {
       tooltipNumber(num) {
@@ -182,11 +129,10 @@
       one: 'dia',
       other: 'dias',
     },
-
     format: 'DD/MM/YYYY',
   });
 
-
+  // Preselect handling
   picker.on('preselect', (evt) => {
     const start = picker.getStartDate();
     const end = picker.getEndDate();
@@ -194,36 +140,59 @@
     if (start && end) {
       const clickedDate = evt.detail.date;
 
-      // Previne que o EasePick processe esse clique
+      // Prevent default handling
       evt.preventDefault();
 
-      // Limpa a seleção atual
+      // Clear current selection
       picker.setStartDate(null);
       picker.setEndDate(null);
       document.getElementById('datepicker').value = '';
 
-      // Define o clique atual como o novo início do range
+      // Set clicked date as new start
       picker.setStartDate(clickedDate);
     }
   });
-</script>
 
+  // Dev date handling
+  function updateDevDateField() {
+    const returnedRadio = document.getElementById('status-returned');
+    const devDateContainer = document.getElementById('dev-date-container');
+    const devDateInput = document.getElementById('dev_date');
 
-<script>
-  document.getElementById('form-rent').addEventListener('submit', function (e) {
-    const dp = document.getElementById('datepicker');
-    if (!dp.value || dp.value.trim() === '') {
-      e.preventDefault(); // cancela o envio
-      alert('Por favor, selecione um intervalo de datas.');
-      dp.focus();
+    if (returnedRadio && returnedRadio.checked) {
+      devDateContainer.style.display = 'block';
+      devDateInput.required = true;
+    } else if (devDateContainer) {
+      devDateContainer.style.display = 'none';
+      if (devDateInput) devDateInput.required = false;
     }
-  });
-</script>
+  }
 
+  // Radio button event listeners
+  const radioButtons = document.querySelectorAll('input[name="status"]');
+  if (radioButtons.length > 0) {
+    radioButtons.forEach((radio) => {
+      radio.addEventListener('change', updateDevDateField);
+    });
+    
+    // Initialize state on load
+    window.addEventListener('load', updateDevDateField);
+  }
 
+  // Form validation
+  const form = document.getElementById('form-transaction');
+  if (form) {
+    form.addEventListener('submit', function (e) {
+      const dp = document.getElementById('datepicker');
+      if (dp && (!dp.value || dp.value.trim() === '')) {
+        e.preventDefault();
+        alert('Por favor, selecione um intervalo de datas.');
+        dp.focus();
+      }
+    });
+  }
 
-
-<script>
+  // Client autocomplete
   const clientInput = document.getElementById('client_name');
   const telInput = document.getElementById('client_tel');
   const idInput = document.getElementById('client_id');
@@ -232,45 +201,52 @@
   const cnpjInput = document.getElementById('client_cnpj');
   const suggestionsBox = document.getElementById('client_suggestions');
 
-  clientInput.addEventListener('input', async () => {
-    const term = clientInput.value.trim();
-    if (term.length < 2) {
-      suggestionsBox.innerHTML = '';
-      return;
-    }
+  if (clientInput && suggestionsBox) {
+    clientInput.addEventListener('input', async () => {
+      const term = clientInput.value.trim();
+      if (term.length < 2) {
+        suggestionsBox.innerHTML = '';
+        return;
+      }
 
-    const res = await fetch(`/autocomplete_clients?term=${encodeURIComponent(term)}`);
-    const clients = await res.json();
-
-    suggestionsBox.innerHTML = '';
-    clients.forEach((client) => {
-      const tel = client.client_tel ? `<div><small>📞 ${client.client_tel}</small></div>` : '';
-      const email = client.client_email ? `<div><small>📧 ${client.client_email}</small></div>` : '';
-      const cpf = client.client_cpf ? `<div><small>🆔 CPF: ${client.client_cpf}</small></div>` : '';
-      const cnpj = client.client_cnpj ? `<div><small>🏢 CNPJ: ${client.client_cnpj}</small></div>` : '';
-
-      const div = document.createElement('div');
-      div.className = 'autocomplete-item';
-      div.innerHTML = `<strong>${client.client_name}</strong>${tel}${email}${cpf}${cnpj}`;
-
-      div.addEventListener('click', () => {
-        clientInput.value = client.client_name || '';
-        telInput.value = client.client_tel || '';
-        if (idInput) idInput.value = client.client_id || '';
-        if (emailInput) emailInput.value = client.client_email || '';
-        if (cpfInput) cpfInput.value = client.client_cpf || '';
-        if (cnpjInput) cnpjInput.value = client.client_cnpj || '';
+      try {
+        const res = await fetch(`/autocomplete_clients?term=${encodeURIComponent(term)}`);
+        const clients = await res.json();
 
         suggestionsBox.innerHTML = '';
-      });
+        clients.forEach((client) => {
+          const tel = client.client_tel ? `<div><small>📞 ${client.client_tel}</small></div>` : '';
+          const email = client.client_email ? `<div><small>📧 ${client.client_email}</small></div>` : '';
+          const cpf = client.client_cpf ? `<div><small>🆔 CPF: ${client.client_cpf}</small></div>` : '';
+          const cnpj = client.client_cnpj ? `<div><small>🏢 CNPJ: ${client.client_cnpj}</small></div>` : '';
 
-      suggestionsBox.appendChild(div);
+          const div = document.createElement('div');
+          div.className = 'autocomplete-item';
+          div.innerHTML = `<strong>${client.client_name}</strong>${tel}${email}${cpf}${cnpj}`;
+
+          div.addEventListener('click', () => {
+            clientInput.value = client.client_name || '';
+            if (telInput) telInput.value = client.client_tel || '';
+            if (idInput) idInput.value = client.client_id || '';
+            if (emailInput) emailInput.value = client.client_email || '';
+            if (cpfInput) cpfInput.value = client.client_cpf || '';
+            if (cnpjInput) cnpjInput.value = client.client_cnpj || '';
+
+            suggestionsBox.innerHTML = '';
+          });
+
+          suggestionsBox.appendChild(div);
+        });
+      } catch (error) {
+        console.error('Error fetching client suggestions:', error);
+      }
     });
-  });
 
-  document.addEventListener('click', (e) => {
-    if (!clientInput.contains(e.target) && !suggestionsBox.contains(e.target)) {
-      suggestionsBox.innerHTML = '';
-    }
-  });
+    document.addEventListener('click', (e) => {
+      if (suggestionsBox && clientInput && !clientInput.contains(e.target) && !suggestionsBox.contains(e.target)) {
+        suggestionsBox.innerHTML = '';
+      }
+    });
+  }
 </script>
+{% endblock %}

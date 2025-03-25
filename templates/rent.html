@@ -1,75 +1,59 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-  <head>
+{% extends "base.html" %}
 
-    <script src="https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.umd.min.js"></script>
+{% block title %}Alugar Item{% endblock %}
 
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='style_rent.css') }}" />
+{% endblock %}
 
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Alugar Item</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style_rent.css') }}" />
-  </head>
-  <body>
-
-
-    <div class="form-container">
-      <h1>Alugar item</h1>
-      <a href="{{ url_for('inventario') }}" class="cancel-link">Sair sem Finalizar</a>
-      <form method="POST" enctype="multipart/form-data" id="form-rent">
-
-        <label for="client_name">Nome do Cliente:</label>
-        <div class="position-relative">
-          <input type="text" id="client_name" name="client_name" autocomplete="off" class="form-control" required />
-          <div id="client_suggestions" class="autocomplete-suggestions"></div>
-        </div>
-<br>
-
-<input type="hidden" name="client_id" id="client_id" />
-
-
-
-
-        <label for="client_tel">Telefone do Cliente:</label>
-        <input type="text" id="client_tel" name="client_tel" required />
-
-
-
-        <label for="datepicker">Defina as datas:</label>
-        <input id="datepicker" name="range_date" class="form-control" />
-
-
-
-
-
-
-        <div class="form-group">
-          <label for="retirado">
-            <input type="checkbox" id="retirado" name="retirado" />
-            Retirado
-          </label>
-        </div>
-
-
-        <label for="valor">Valor (R$):</label>
-        <input type="number" id="valor" name="valor" step="0.01" min="0" value="{{ item.valor }}" required/>
-
-        <label for="pagamento">Pagamento:</label>
-<select id="pagamento" name="pagamento">
-    <option value="Não pago" {% if item.pagamento == "Não pago" or not item.pagamento %}selected{% endif %}>Não pago</option>
-    <option value="Pago 50%" {% if item.pagamento == "Pago 50%" %}selected{% endif %}>Pago 50%</option>
-    <option value="Pago 100%" {% if item.pagamento == "Pago 100%" %}selected{% endif %}>Pago 100%</option>
-</select>
-
-        <label for="comments">Observações:</label>
-        <textarea id="comments" name="comments" rows="3">{{ item.comments }}</textarea>
-
-        <button type="submit">Salvar</button>
-      </form>
+{% block content %}
+<div class="form-container">
+  <h1>Alugar item</h1>
+  <a href="{{ url_for('inventario') }}" class="cancel-link">Sair sem Finalizar</a>
+  
+  <form method="POST" enctype="multipart/form-data" id="form-rent">
+    <label for="client_name">Nome do Cliente:</label>
+    <div class="position-relative">
+      <input type="text" id="client_name" name="client_name" autocomplete="off" class="form-control" required />
+      <div id="client_suggestions" class="autocomplete-suggestions"></div>
     </div>
-  </body>
-</html>
+    <br>
 
+    <input type="hidden" name="client_id" id="client_id" />
+
+    <label for="client_tel">Telefone do Cliente:</label>
+    <input type="text" id="client_tel" name="client_tel" required />
+
+    <label for="datepicker">Defina as datas:</label>
+    <input id="datepicker" name="range_date" class="form-control" />
+
+    <div class="form-group">
+      <label for="retirado">
+        <input type="checkbox" id="retirado" name="retirado" />
+        Retirado
+      </label>
+    </div>
+
+    <label for="valor">Valor (R$):</label>
+    <input type="number" id="valor" name="valor" step="0.01" min="0" value="{{ item.valor }}" required/>
+
+    <label for="pagamento">Pagamento:</label>
+    <select id="pagamento" name="pagamento">
+      <option value="Não pago" {% if item.pagamento == "Não pago" or not item.pagamento %}selected{% endif %}>Não pago</option>
+      <option value="Pago 50%" {% if item.pagamento == "Pago 50%" %}selected{% endif %}>Pago 50%</option>
+      <option value="Pago 100%" {% if item.pagamento == "Pago 100%" %}selected{% endif %}>Pago 100%</option>
+    </select>
+
+    <label for="comments">Observações:</label>
+    <textarea id="comments" name="comments" rows="3">{{ item.comments }}</textarea>
+
+    <button type="submit">Salvar</button>
+  </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.umd.min.js"></script>
 <script>
   const DateTime = easepick.DateTime;
   const bookedDates = {{ reserved_ranges | tojson(indent=2) }}.map(d => {
@@ -120,14 +104,10 @@
       one: 'dia',
       other: 'dias',
     },
-
     format: 'DD/MM/YYYY',
   });
-</script>
 
-
-
-<script>
+  // Form validation
   document.getElementById('form-rent').addEventListener('submit', function (e) {
     const dp = document.getElementById('datepicker');
     if (!dp.value || dp.value.trim() === '') {
@@ -136,9 +116,8 @@
       dp.focus();
     }
   });
-</script>
 
-<script>
+  // Client autocomplete
   const clientInput = document.getElementById("client_name");
   const telInput = document.getElementById("client_tel");
   const idInput = document.getElementById("client_id");
@@ -189,12 +168,4 @@
     }
   });
 </script>
-
-
-
-
-
-
-
-
-
+{% endblock %}

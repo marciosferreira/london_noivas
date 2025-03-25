@@ -1,61 +1,49 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Adicionar Cliente</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style_edit_small.css') }}" />
-  </head>
-  <body>
-    <!-- Mensagens flash -->
-    {% with messages = get_flashed_messages(with_categories=true) %} {% if messages %}
-    <div class="container mt-3">
-      {% for category, message in messages %}
-      <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
-        {{ message|safe }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
-      </div>
-      {% endfor %}
-    </div>
-    {% endif %} {% endwith %}
+{% extends "base.html" %}
 
-    <div class="form-container">
-      <h1>Novo Cliente</h1>
-      <a href="{{ request.args.get('next', url_for('listar_clientes')) }}" class="cancel-link">Cancelar</a>
+{% block title %}Adicionar Cliente{% endblock %}
 
-      <form method="POST">
-        <label for="client_name">Nome:</label>
-        <input type="text" id="client_name" name="client_name" class="form-control" required />
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='style_add_client.css') }}" />
+{% endblock %}
 
-        <label for="client_tel">Telefone:</label>
-        <input
-          type="tel"
-          id="client_tel"
-          name="client_tel"
-          class="form-control"
-          placeholder="(xx) xxxxx-xxxx"
-          pattern="^\(?\d{2}\)?\s?\d{4,5}-\d{4}$"
-          title="Formato esperado: (11) 91234-5678"
-        />
+{% block content %}
+<div class="form-container">
+  <h1>Novo Cliente</h1>
+  <a href="{{ request.args.get('next', url_for('listar_clientes')) }}" class="cancel-link">Cancelar</a>
 
-        <label for="client_email">E-mail:</label>
-        <input type="email" id="client_email" name="client_email" class="form-control" placeholder="exemplo@email.com" />
+  <form method="POST">
+    <label for="client_name">Nome:</label>
+    <input type="text" id="client_name" name="client_name" class="form-control" required />
 
-        <label for="client_address">Endereço:</label>
-        <input type="text" id="client_address" name="client_address" class="form-control" />
+    <label for="client_tel">Telefone:</label>
+    <input
+      type="tel"
+      id="client_tel"
+      name="client_tel"
+      class="form-control"
+      placeholder="(xx) xxxxx-xxxx"
+      pattern="^\(?\d{2}\)?\s?\d{4,5}-\d{4}$"
+      title="Formato esperado: (11) 91234-5678"
+    />
 
-        <label for="client_cpf">CPF:</label>
-        <input type="text" id="client_cpf" name="client_cpf" maxlength="14" placeholder="000.000.000-00" class="form-control" />
+    <label for="client_email">E-mail:</label>
+    <input type="email" id="client_email" name="client_email" class="form-control" placeholder="exemplo@email.com" />
 
-        <label for="client_cnpj">CNPJ:</label>
-        <input type="text" id="client_cnpj" name="client_cnpj" maxlength="18" placeholder="00.000.000/0000-00" class="form-control" />
+    <label for="client_address">Endereço:</label>
+    <input type="text" id="client_address" name="client_address" class="form-control" />
 
-        <button type="submit">Salvar</button>
-      </form>
-    </div>
-  </body>
-</html>
+    <label for="client_cpf">CPF:</label>
+    <input type="text" id="client_cpf" name="client_cpf" maxlength="14" placeholder="000.000.000-00" class="form-control" />
 
+    <label for="client_cnpj">CNPJ:</label>
+    <input type="text" id="client_cnpj" name="client_cnpj" maxlength="18" placeholder="00.000.000/0000-00" class="form-control" />
+
+    <button type="submit">Salvar</button>
+  </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
 <script>
   document.querySelector('form').addEventListener('submit', function (e) {
     const cpf = document.getElementById('client_cpf').value.replace(/\D/g, '');
@@ -118,3 +106,4 @@
     return resultado == parseInt(digitos.charAt(1));
   }
 </script>
+{% endblock %}
