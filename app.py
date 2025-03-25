@@ -3,14 +3,7 @@ import pytz
 import boto3
 from dotenv import load_dotenv
 
-from flask import (
-    Flask,
-    render_template,
-    request,
-    redirect,
-    url_for,
-    flash,
-)
+from flask import Flask
 
 # Define o fuso horário de Manaus
 manaus_tz = pytz.timezone("America/Manaus")
@@ -64,6 +57,8 @@ from auth import init_auth_routes
 from item_routes import init_item_routes
 from status_routes import init_status_routes
 from transaction_routes import init_transaction_routes
+from client_routes import init_client_routes
+from static_routes import init_static_routes
 
 
 # Initialize routes from modules
@@ -72,68 +67,11 @@ init_item_routes(
     app, itens_table, s3, s3_bucket_name, transactions_table, clients_table
 )
 init_status_routes(app, itens_table, transactions_table, manaus_tz)
-
 init_transaction_routes(
     app, itens_table, s3, s3_bucket_name, transactions_table, clients_table
 )
-
-
-# Static pages
-@app.route("/terms")
-def terms():
-    return render_template("terms.html")
-
-
-@app.route("/contato", methods=["GET", "POST"])
-def contato():
-    if request.method == "POST":
-        nome = request.form.get("name")
-        email = request.form.get("email")
-        mensagem = request.form.get("message")
-
-        print(nome)
-        print(email)
-        print(mensagem)
-
-        if not nome or not email or not mensagem:
-            flash("Todos os campos são obrigatórios.", "danger")
-            return redirect(url_for("contato"))
-
-        # Enviar e-mail via AWS SES
-        destinatario = "contato@alugueqqc.com.br"
-        assunto = f"Novo contato de {nome}"
-        corpo_email = f"Nome: {nome}\nE-mail: {email}\n\nMensagem:\n{mensagem}"
-
-        try:
-            response = ses_client.send_email(
-                Source=destinatario,
-                Destination={"ToAddresses": [destinatario]},
-                Message={
-                    "Subject": {"Data": assunto, "Charset": "UTF-8"},
-                    "Body": {"Text": {"Data": corpo_email, "Charset": "UTF-8"}},
-                },
-            )
-            flash("Mensagem enviada com sucesso!", "success")
-        except Exception as e:
-            print(f"Erro ao enviar e-mail: {e}")
-            flash("Erro ao enviar a mensagem. Tente novamente mais tarde.", "danger")
-
-        return redirect(url_for("contato"))
-
-    return render_template("contato.html")
-
-
-@app.route("/")
-def index():
-    return render_template("index.html")  # Renderiza a página inicial
-
-
-from flask import send_from_directory
-
-
-@app.route("/ads.txt")
-def ads_txt():
-    return send_from_directory("static", "ads.txt")
+init_client_routes(app, clients_table, transactions_table, itens_table)
+init_static_routes(app, ses_client)
 
 
 if __name__ == "__main__":
