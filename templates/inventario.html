@@ -1,16 +1,8 @@
-{% extends "base.html" %}
-
-{% block title %}Itens Disponíveis{% endblock %}
-
-{% block styles %}
+{% extends "base.html" %} {% block title %}Itens Disponíveis{% endblock %} {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='style_inventario.css') }}" />
-{% endblock %}
-
-{% block body_class %}inventario{% endblock %}
-
-{% block content %}
+{% endblock %} {% block body_class %}inventario{% endblock %} {% block content %}
 <div class="container my-4">
-  {% include "add_filter_section.html" with context %}
+  {% set show_add_button = True %} {% set add_route = url_for('add') %} {% include "filter_section.html" with context %}
 
   <!-- Tabela (que vira "cards" no mobile) -->
   <div class="table-container mt-4">
@@ -43,11 +35,8 @@
           <td data-label="Valor">{{ item.valor }}</td>
           <td data-label="Comentários do item" style="white-space: pre-wrap; text-align: left">{{ item.comments }}</td>
           <td data-label="Ações">
-            {% set show_delete = True %}
-            {% set show_edit = True %}
-            {% set show_rent = True %}
-            {% set show_archive = True %}
-            {% include 'components/action_buttons.html' with context %}
+            {% set show_delete = True %} {% set show_edit = True %} {% set show_rent = True %} {% set show_archive = True %} {% include
+            'components/action_buttons.html' with context %}
           </td>
         </tr>
         {% endfor %}
@@ -56,15 +45,11 @@
   </div>
 
   <!-- Paginação -->
-  {% set route_name = 'inventario' %}
-  {% include 'components/pagination.html' with context %}
+  {% set route_name = 'inventario' %} {% include 'components/pagination.html' with context %}
   <div style="height: 3rem"></div>
 </div>
 
 <!-- MODAL para imagem -->
-{% include 'components/image_modal.html' %}
-{% endblock %}
-
-{% block scripts %}
+{% include 'components/image_modal.html' %} {% endblock %} {% block scripts %}
 <!-- Image modal script is included in the image_modal component -->
 {% endblock %}

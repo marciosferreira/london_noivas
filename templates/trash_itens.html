@@ -21,8 +21,13 @@
 
     <!-- CONTEÚDO PRINCIPAL -->
     <div class="container my-4">
-      <h2>Lixeira de itens (últimos 30 dias)</h2>
-
+      {% set title = "Lixeira de itens (últimos 30 dias)" %}
+      {% set show_add_button = false %}
+      {% set current_filter = request.args.get('filter', 'todos') %}
+      
+      <!-- Seção de Filtros -->
+      {% include 'filter_section.html' with context %}
+      
       <!-- Tabela (limitada a 90%, que vira cards no mobile) -->
       <div class="table-container mt-4">
         <table class="table table-hover responsive-table align-middle rounded-table">

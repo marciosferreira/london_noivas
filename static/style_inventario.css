@@ -11,7 +11,8 @@ body.inventario {
 }
 
 /* Padding adjustments */
-html, body {
+html,
+body {
   padding-top: 30px;
 }
 
@@ -31,18 +32,6 @@ h1.h3 {
 }
 
 /* Filter toggle specific styling - if needed beyond base styles */
-#filter-toggle {
-  border-radius: 25px;
-  padding: 10px 20px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #007bff;
-  color: white;
-  border: 2px solid #007bff;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
 
 #filter-toggle:hover {
   background-color: white;

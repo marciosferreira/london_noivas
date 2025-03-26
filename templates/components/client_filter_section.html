@@ -1,21 +1,96 @@
 <!-- Cliente Filter Section Component -->
 <div class="d-flex justify-content-between align-items-center mb-4">
   <h2 class="h5 mb-0">Ações</h2>
-  <div class="d-flex flex-wrap gap-2 justify-content-end">
-    <a href="{{ url_for('adicionar_cliente') }}" class="custom-button">Adicionar Cliente</a>
-    <a href="#" id="filter-toggle" class="custom-button" onclick="toggleFilters(event)">Filtros</a>
-  </div>
+
+
+
+
+
+
+
+
+<!-- Container dos botões -->
+<div class="d-flex flex-wrap gap-2 align-items-center justify-content-end w-100 w-sm-auto">
+  <!-- Botão de Filtros -->
+  <a href="#" class="btn btn-primary" id="filter-toggle" onclick="toggleFilters(event)">Filtros</a>
+
+  {% if show_add_button %}
+  <!-- Botão de Adicionar -->
+  <a href="{{  url_for('adicionar_cliente') }}" class="btn btn-primary">Adicionar</a>
+  {% endif %}
+</div>
+</div>
+
+
+
+
+
+
+
+
 </div>
 
 <!-- Seção de Filtros (inicialmente escondida) -->
-<div id="filter-section" class="d-none mb-4">
+<div id="filter-section" class="{% if not has_filters %}d-none{% endif %} mb-4">
   <form method="GET" action="{{ url_for('listar_clientes') }}">
-    <div class="p-3 border rounded">
-      <div class="mb-3">
-        <label for="search_name" class="form-label">Nome do Cliente:</label>
-        <input type="text" class="form-control" id="search_name" name="client_name" />
+    <div class="card shadow-sm">
+      <div class="card-header bg-light">
+        <h5 class="m-0">Filtrar Clientes</h5>
       </div>
-      <button type="submit" class="btn btn-primary">Aplicar Filtros</button>
+      <div class="card-body">
+        <div class="row g-3">
+          <!-- Filtro por Nome -->
+          <div class="col-md-6">
+            <label for="client_name" class="form-label">Nome:</label>
+            <input type="text" class="form-control" id="client_name" name="client_name"
+                   value="{{ request.args.get('client_name', '') }}" />
+          </div>
+
+          <!-- Filtro por Telefone -->
+          <div class="col-md-6">
+            <label for="client_tel" class="form-label">Telefone:</label>
+            <input type="text" class="form-control" id="client_tel" name="client_tel"
+                   value="{{ request.args.get('client_tel', '') }}" placeholder="Apenas números" />
+          </div>
+
+          <!-- Filtro por Email -->
+          <div class="col-md-6">
+            <label for="client_email" class="form-label">E-mail:</label>
+            <input type="text" class="form-control" id="client_email" name="client_email"
+                   value="{{ request.args.get('client_email', '') }}" />
+          </div>
+
+          <!-- Filtro por Endereço -->
+          <div class="col-md-6">
+            <label for="client_address" class="form-label">Endereço:</label>
+            <input type="text" class="form-control" id="client_address" name="client_address"
+                   value="{{ request.args.get('client_address', '') }}" />
+          </div>
+
+          <!-- Filtro por CPF -->
+          <div class="col-md-6">
+            <label for="client_cpf" class="form-label">CPF:</label>
+            <input type="text" class="form-control" id="client_cpf" name="client_cpf"
+                   value="{{ request.args.get('client_cpf', '') }}" placeholder="Apenas números" />
+          </div>
+
+          <!-- Filtro por CNPJ -->
+          <div class="col-md-6">
+            <label for="client_cnpj" class="form-label">CNPJ:</label>
+            <input type="text" class="form-control" id="client_cnpj" name="client_cnpj"
+                   value="{{ request.args.get('client_cnpj', '') }}" placeholder="Apenas números" />
+          </div>
+        </div>
+      </div>
+
+      <div class="card-footer d-flex justify-content-between">
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-search"></i> Aplicar Filtros
+        </button>
+        <a href="{{ url_for('listar_clientes') }}" class="btn btn-secondary">
+          <i class="fas fa-times"></i> Limpar Filtros
+        </a>
+      </div>
     </div>
   </form>
 </div>
@@ -26,4 +101,28 @@
     const section = document.getElementById('filter-section');
     section.classList.toggle('d-none');
   }
+
+  // Validação para campos numéricos
+  document.addEventListener('DOMContentLoaded', function() {
+    // Remover caracteres não numéricos ao enviar o formulário
+    document.querySelector('form').addEventListener('submit', function(e) {
+      // Limpar formato do telefone
+      const telInput = document.getElementById('client_tel');
+      if (telInput && telInput.value) {
+        telInput.value = telInput.value.replace(/\D/g, '');
+      }
+
+      // Limpar formato do CPF
+      const cpfInput = document.getElementById('client_cpf');
+      if (cpfInput && cpfInput.value) {
+        cpfInput.value = cpfInput.value.replace(/\D/g, '');
+      }
+
+      // Limpar formato do CNPJ
+      const cnpjInput = document.getElementById('client_cnpj');
+      if (cnpjInput && cnpjInput.value) {
+        cnpjInput.value = cnpjInput.value.replace(/\D/g, '');
+      }
+    });
+  });
 </script>

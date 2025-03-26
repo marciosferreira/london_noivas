@@ -20,25 +20,6 @@ body {
   padding-right: 15px;
 }
 
-/* Common button style */
-.custom-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
-  font-size: 1rem;
-  text-decoration: none;
-  color: white;
-  background-color: #007bff;
-  border: 2px solid #007bff;
-  border-radius: 25px;
-  padding: 10px 20px;
-  transition: all 0.3s ease;
-  cursor: pointer;
-  height: 50px;
-  line-height: 1;
-}
-
 .custom-button:hover {
   background-color: white;
   color: #007bff;
@@ -77,12 +58,12 @@ body {
   font-weight: bold;
 }
 
-.form-container input[type="text"],
-.form-container input[type="number"],
-.form-container input[type="password"],
-.form-container input[type="email"],
-.form-container input[type="date"],
-.form-container input[type="tel"],
+.form-container input[type='text'],
+.form-container input[type='number'],
+.form-container input[type='password'],
+.form-container input[type='email'],
+.form-container input[type='date'],
+.form-container input[type='tel'],
 .form-container textarea,
 .form-container select {
   width: 100%;
@@ -93,7 +74,7 @@ body {
   box-sizing: border-box;
 }
 
-.form-container button[type="submit"] {
+.form-container button[type='submit'] {
   background-color: #007bff;
   color: white;
   border: none;
@@ -105,7 +86,7 @@ body {
   width: 100%;
 }
 
-.form-container button[type="submit"]:hover {
+.form-container button[type='submit']:hover {
   background-color: #0069d9;
 }
 

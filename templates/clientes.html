@@ -1,48 +1,143 @@
-{% extends "base.html" %}
-
-{% block title %}Clientes{% endblock %}
-
-{% block styles %}
+{% extends "base.html" %} {% block title %}Clientes{% endblock %} {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='style_clientes.css') }}" />
-{% endblock %}
 
-{% block body_class %}clientes{% endblock %}
-
-{% block content %}
+{% endblock %} {% block body_class %}clientes{% endblock %} {% block content %}
 <div class="container mt-5">
   <h1 class="mb-4">Clientes Cadastrados</h1>
-  
-  <!-- Client Filter Section -->
-  {% include 'components/client_filter_section.html' %}
-  
+
+  <div class="container my-4">
+    {% set show_add_button = True %} {% set add_route = url_for('add') %} {% include "components/client_filter_section.html" with context %}
+  </div>
+
   {% if clientes %}
-  <ul class="list-group shadow-sm">
-    {% for cliente in clientes %}
-    <li class="list-group-item d-flex justify-content-between align-items-start flex-column flex-md-row">
-      <div>
-        <h5 class="mb-1">{{ cliente.client_name }}</h5>
-        <p class="mb-1 text-muted">Telefone: {{ cliente.client_tel }}</p>
-        <small class="text-secondary">Criado em: {{ cliente.created_at }}</small>
+  <div class="row">
+    <div class="col-12">
+      <div class="card shadow-sm">
+        <div class="card-header bg-light">
+          <div class="row">
+            <div class="col-md-5">Nome</div>
+            <div class="col-md-3">Contato</div>
+            <div class="col-md-2">Documentos</div>
+            <div class="col-md-2 text-end">Ações</div>
+          </div>
+        </div>
+        <ul class="list-group list-group-flush">
+          {% for cliente in clientes %}
+          <li class="list-group-item client-card p-3">
+            <div class="row align-items-center">
+              <!-- Nome e Endereço -->
+              <div class="col-md-5 mb-2 mb-md-0">
+                <h5 class="mb-1">{{ cliente.client_name }}</h5>
+                {% if cliente.client_address %}
+                <p class="mb-1 text-muted small">
+                  <i class="fas fa-map-marker-alt"></i>
+                  {{ cliente.client_address }}
+                </p>
+                {% endif %}
+                <small class="text-secondary">Criado em: {{ cliente.created_at }}</small>
+              </div>
+
+              <!-- Contato -->
+              <div class="col-md-3 mb-2 mb-md-0">
+                {% if cliente.client_tel %}
+                <p class="mb-1">
+                  <i class="fas fa-phone"></i>
+                  {{ cliente.client_tel }}
+                </p>
+                {% endif %} {% if cliente.client_email %}
+                <p class="mb-1">
+                  <i class="fas fa-envelope"></i>
+                  {{ cliente.client_email }}
+                </p>
+                {% endif %}
+              </div>
+
+              <!-- Documentos -->
+              <div class="col-md-2 mb-2 mb-md-0">
+                {% if cliente.client_cpf %}
+                <p class="mb-1 small">
+                  <span class="client-badge">CPF</span>
+                  {{ cliente.client_cpf }}
+                </p>
+                {% endif %} {% if cliente.client_cnpj %}
+                <p class="mb-1 small">
+                  <span class="client-badge">CNPJ</span>
+                  {{ cliente.client_cnpj }}
+                </p>
+                {% endif %}
+              </div>
+
+              <!-- Ações -->
+              <div class="col-md-2 text-md-end">
+                <div class="btn-group-vertical btn-group-sm">
+                  <!-- Editar -->
+                  <a href="{{ url_for('editar_cliente', client_id=cliente.client_id) }}"
+                     class="action-button warning mb-1"
+                     title="Editar">
+                    <i class="fas fa-edit"></i> Editar
+                  </a>
+
+                  <!-- Transações -->
+                  <a href="{{ url_for('client_transactions', client_id=cliente.client_id) }}"
+                     class="action-button success mb-1"
+                     title="Transações">
+                    <i class="fas fa-exchange-alt"></i> Transações
+                  </a>
+
+                  <!-- Deletar -->
+                  <form method="POST"
+                        action="{{ url_for('deletar_cliente', client_id=cliente.client_id) }}"
+                        onsubmit="return confirm('Tem certeza que deseja deletar este cliente? Esta ação não poderá ser desfeita.');"
+                        style="display: inline;">
+                    <button type="submit" class="action-button danger" title="Deletar">
+                      <i class="fas fa-trash"></i> Deletar
+                    </button>
+                  </form>
+                </div>
+              </div>
+
+
+
+
+
+
+          </li>
+          {% endfor %}
+        </ul>
       </div>
+    </div>
+  </div>
 
-      <div class="mt-3 d-flex flex-column align-items-start">
-        <a href="{{ url_for('editar_cliente', client_id=cliente.client_id) }}" class="btn btn-warning btn-sm mt-2">
-          Editar
-        </a>
-
-        <a href="{{ url_for('client_transactions', client_id=cliente.client_id) }}" class="btn btn-success btn-sm mt-2">
-          Transações
-        </a>
-
-        <form method="POST" action="{{ url_for('deletar_cliente', client_id=cliente.client_id) }}" onsubmit="return confirm('Tem certeza que deseja deletar este cliente? Esta ação não poderá ser desfeita.');">
-          <button type="submit" class="btn btn-danger btn-sm mt-2">Deletar</button>
-        </form>
-      </div>
-    </li>
-    {% endfor %}
-  </ul>
-  {% else %}
+  <!-- Paginação -->
+  {% if total_pages and total_pages > 1 %}
+  <div class="pagination-container mt-4">
+    <nav aria-label="Navegação de páginas">
+      <ul class="pagination">
+        {% if page > 1 %}
+        <li class="page-item">
+          <a class="page-link" href="{{ url_for('listar_clientes', page=page-1, **request.args) }}" aria-label="Anterior">
+            <span aria-hidden="true">&laquo;</span>
+          </a>
+        </li>
+        {% endif %} {% for p in range(1, total_pages + 1) %}
+        <li class="page-item {% if p == page %}active{% endif %}">
+          <a class="page-link" href="{{ url_for('listar_clientes', page=p, **request.args.to_dict()) }}">{{ p }}</a>
+        </li>
+        {% endfor %} {% if page < total_pages %}
+        <li class="page-item">
+          <a class="page-link" href="{{ url_for('listar_clientes', page=page+1, **request.args) }}" aria-label="Próximo">
+            <span aria-hidden="true">&raquo;</span>
+          </a>
+        </li>
+        {% endif %}
+      </ul>
+    </nav>
+  </div>
+  {% endif %} {% else %}
   <div class="alert alert-warning">Nenhum cliente cadastrado ainda.</div>
   {% endif %}
 </div>
+{% endblock %} {% block scripts %}
+<!-- FontAwesome para ícones -->
+<script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
 {% endblock %}

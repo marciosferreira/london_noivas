@@ -12,38 +12,30 @@ body.clientes {
      background-color: #f8f9fa; */
 }
 
+.action-button {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 20px; /* <- Borda arredondada conforme o padrão do site */
+  font-size: 14px;
+  cursor: pointer;
+  color: #fff;
+  text-decoration: none;
+  display: inline-block;
+  transition: background-color 0.3s ease;
+}
 
+.action-button.warning {
+  background-color: #ffc107; /* amarelo */
+}
 
-<style>
-  .custom-button {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    font-size: 1rem;
-    text-decoration: none;
-    color: white;
-    background-color: #007bff;
-    border: 2px solid #007bff;
-    border-radius: 25px;
-    padding: 10px 20px;
-    transition: all 0.3s ease;
-    cursor: pointer;
-    height: 50px;
-    line-height: 1;
-  }
+.action-button.danger {
+  background-color: #dc3545; /* vermelho */
+}
 
-  .custom-button:hover {
-    background-color: white;
-    color: #007bff;
-  }
+.action-button.success {
+  background-color: #28a745; /* verde */
+}
 
-  .custom-button:active {
-    transform: scale(0.95);
-  }
-
-  #filter-toggle {
-    margin-left: 10px;
-  }
-</style>
-
+.action-button:hover {
+  opacity: 0.9;
+}

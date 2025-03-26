@@ -23,7 +23,7 @@
       <h1>Editar Cliente</h1>
       <a href="{{ request.args.get('next', url_for('listar_clientes')) }}" class="cancel-link">Cancelar</a>
 
-      <form method="POST">
+      <form method="POST" id="editClientForm">
         <label for="client_name">Nome:</label>
         <input type="text" id="client_name" name="client_name" value="{{ cliente.client_name }}" required class="form-control" />
 
@@ -34,9 +34,8 @@
           name="client_tel"
           class="form-control"
           placeholder="(xx) xxxxx-xxxx"
-          pattern="^\(?\d{2}\)?\s?\d{4,5}-\d{4}$"
-          title="Formato esperado: (11) 91234-5678"
-          value="{{ cliente.client_tel }}"
+          value="{{ cliente.client_tel|default('', true) }}"
+          data-only-digits="true"
         />
 
         <label for="client_email">E-mail:</label>
@@ -46,11 +45,17 @@
           name="client_email"
           class="form-control"
           placeholder="exemplo@email.com"
-          value="{{ cliente.client_email }}"
+          value="{{ cliente.client_email|default('', true) }}"
         />
 
         <label for="client_address">Endereço:</label>
-        <input type="text" id="client_address" name="client_address" value="{{ cliente.client_address }}" class="form-control" />
+        <input 
+          type="text" 
+          id="client_address" 
+          name="client_address" 
+          value="{{ cliente.client_address|default('', true) }}" 
+          class="form-control" 
+        />
 
         <label for="client_cpf">CPF:</label>
         <input
@@ -59,8 +64,10 @@
           name="client_cpf"
           maxlength="14"
           placeholder="000.000.000-00"
-          value="{{ cliente.client_cpf }}"
+          value="{{ cliente.client_cpf|default('', true) }}"
           class="form-control"
+          data-only-digits="true"
+          data-mask="cpf"
         />
 
         <label for="client_cnpj">CNPJ:</label>
@@ -70,12 +77,170 @@
           name="client_cnpj"
           maxlength="18"
           placeholder="00.000.000/0000-00"
-          value="{{ cliente.client_cnpj }}"
+          value="{{ cliente.client_cnpj|default('', true) }}"
           class="form-control"
+          data-only-digits="true"
+          data-mask="cnpj"
         />
+
+        <!-- Campos ocultos para valores sem formatação -->
+        <input type="hidden" id="client_tel_digits" name="client_tel_digits" />
+        <input type="hidden" id="client_cpf_digits" name="client_cpf_digits" />
+        <input type="hidden" id="client_cnpj_digits" name="client_cnpj_digits" />
 
         <button type="submit">Salvar</button>
       </form>
     </div>
+
+    <script>
+      // Função para aplicar máscara ao CPF
+      function formatCPF(cpf) {
+        cpf = cpf.replace(/\D/g, '');
+        if (cpf.length <= 11) {
+          cpf = cpf.replace(/(\d{3})(\d)/, '$1.$2');
+          cpf = cpf.replace(/(\d{3})(\d)/, '$1.$2');
+          cpf = cpf.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+        }
+        return cpf;
+      }
+
+      // Função para aplicar máscara ao CNPJ
+      function formatCNPJ(cnpj) {
+        cnpj = cnpj.replace(/\D/g, '');
+        if (cnpj.length <= 14) {
+          cnpj = cnpj.replace(/^(\d{2})(\d)/, '$1.$2');
+          cnpj = cnpj.replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3');
+          cnpj = cnpj.replace(/\.(\d{3})(\d)/, '.$1/$2');
+          cnpj = cnpj.replace(/(\d{4})(\d)/, '$1-$2');
+        }
+        return cnpj;
+      }
+
+      // Função para aplicar máscara ao telefone
+      function formatPhone(phone) {
+        phone = phone.replace(/\D/g, '');
+        if (phone.length > 10) {
+          phone = phone.replace(/^(\d{2})(\d{5})(\d{4})$/, '($1) $2-$3');
+        } else {
+          phone = phone.replace(/^(\d{2})(\d{4})(\d{4})$/, '($1) $2-$3');
+        }
+        return phone;
+      }
+
+      // Aplicar máscaras nos campos quando já tiverem valores
+      window.addEventListener('DOMContentLoaded', function() {
+        // Formatar valores iniciais
+        const cpfInput = document.getElementById('client_cpf');
+        const cnpjInput = document.getElementById('client_cnpj');
+        const telInput = document.getElementById('client_tel');
+        
+        // Certifique-se de que eles estão sendo formatados corretamente
+        if (cpfInput && cpfInput.value) {
+          const onlyDigits = cpfInput.value.replace(/\D/g, '');
+          cpfInput.value = formatCPF(onlyDigits);
+        }
+        
+        if (cnpjInput && cnpjInput.value) {
+          const onlyDigits = cnpjInput.value.replace(/\D/g, '');
+          cnpjInput.value = formatCNPJ(onlyDigits);
+        }
+        
+        if (telInput && telInput.value) {
+          const onlyDigits = telInput.value.replace(/\D/g, '');
+          telInput.value = formatPhone(onlyDigits);
+        }
+      });
+
+      // Aplicando máscaras nos campos durante digitação
+      document.getElementById('client_cpf').addEventListener('input', function(e) {
+        let value = e.target.value;
+        e.target.value = formatCPF(value);
+      });
+
+      document.getElementById('client_cnpj').addEventListener('input', function(e) {
+        let value = e.target.value;
+        e.target.value = formatCNPJ(value);
+      });
+
+      document.getElementById('client_tel').addEventListener('input', function(e) {
+        let value = e.target.value;
+        e.target.value = formatPhone(value);
+      });
+
+      // Validação e limpeza de formatação antes do envio
+      document.getElementById('editClientForm').addEventListener('submit', function(e) {
+        // Obter valores com formatação
+        const telFormatted = document.getElementById('client_tel').value;
+        const cpfFormatted = document.getElementById('client_cpf').value;
+        const cnpjFormatted = document.getElementById('client_cnpj').value;
+        
+        // Remover formatação e manter apenas dígitos
+        const telDigits = telFormatted.replace(/\D/g, '');
+        const cpfDigits = cpfFormatted.replace(/\D/g, '');
+        const cnpjDigits = cnpjFormatted.replace(/\D/g, '');
+        
+        // Preencher campos ocultos com apenas dígitos
+        document.getElementById('client_tel_digits').value = telDigits;
+        document.getElementById('client_cpf_digits').value = cpfDigits;
+        document.getElementById('client_cnpj_digits').value = cnpjDigits;
+
+        // Validar CPF se fornecido
+        if (cpfDigits && cpfDigits.length > 0 && !validaCPF(cpfDigits)) {
+          e.preventDefault();
+          alert('CPF inválido!');
+          return false;
+        }
+
+        // Validar CNPJ se fornecido
+        if (cnpjDigits && cnpjDigits.length > 0 && !validaCNPJ(cnpjDigits)) {
+          e.preventDefault();
+          alert('CNPJ inválido!');
+          return false;
+        }
+      });
+
+      function validaCPF(cpf) {
+        if (cpf.length !== 11 || /^(\d)\1+$/.test(cpf)) return false;
+        let soma = 0, resto;
+        for (let i = 1; i <= 9; i++) soma += parseInt(cpf[i - 1]) * (11 - i);
+        resto = (soma * 10) % 11;
+        if (resto === 10 || resto === 11) resto = 0;
+        if (resto !== parseInt(cpf[9])) return false;
+        soma = 0;
+        for (let i = 1; i <= 10; i++) soma += parseInt(cpf[i - 1]) * (12 - i);
+        resto = (soma * 10) % 11;
+        if (resto === 10 || resto === 11) resto = 0;
+        return resto === parseInt(cpf[10]);
+      }
+
+      function validaCNPJ(cnpj) {
+        if (cnpj.length !== 14 || /^(\d)\1+$/.test(cnpj)) return false;
+        let tamanho = cnpj.length - 2;
+        let numeros = cnpj.substring(0, tamanho);
+        let digitos = cnpj.substring(tamanho);
+        let soma = 0;
+        let pos = tamanho - 7;
+
+        for (let i = tamanho; i >= 1; i--) {
+          soma += parseInt(numeros.charAt(tamanho - i)) * pos--;
+          if (pos < 2) pos = 9;
+        }
+
+        let resultado = soma % 11 < 2 ? 0 : 11 - (soma % 11);
+        if (resultado != parseInt(digitos.charAt(0))) return false;
+
+        tamanho += 1;
+        numeros = cnpj.substring(0, tamanho);
+        soma = 0;
+        pos = tamanho - 7;
+        for (let i = tamanho; i >= 1; i--) {
+          soma += parseInt(numeros.charAt(tamanho - i)) * pos--;
+          if (pos < 2) pos = 9;
+        }
+
+        resultado = soma % 11 < 2 ? 0 : 11 - (soma % 11);
+        return resultado == parseInt(digitos.charAt(1));
+      }
+    </script>
   </body>
 </html>

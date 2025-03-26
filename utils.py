@@ -295,7 +295,7 @@ def aplicar_filtro(
             if dress.get("pagamento", "").lower() == payment_status.lower()
         ]
 
-    # Filtrar por intervalo de datas de retirada
+    # Filtrar por intervalo de datas de retirada (rental_date)
     if start_date or end_date:
         filtered_items = [
             dress
@@ -304,8 +304,27 @@ def aplicar_filtro(
             and (not end_date or dress["rental_date_obj"] <= end_date)
         ]
 
-    # Need fixing ########################
+    # Filtrar por intervalo de datas de devolução (return_date)
+    if return_start_date or return_end_date:
+        filtered_items = [
+            dress
+            for dress in filtered_items
+            if dress.get("return_date") and (
+                (not return_start_date or datetime.datetime.strptime(dress["return_date"], "%Y-%m-%d").date() >= return_start_date)
+                and (not return_end_date or datetime.datetime.strptime(dress["return_date"], "%Y-%m-%d").date() <= return_end_date)
+            )
+        ]
+
+    # Filtrar por data de devolução específica (dev_date)
     if dev_date:
-        filtered_items = [dress for dress in filtered_items]
+        try:
+            dev_date_obj = datetime.datetime.strptime(dev_date, "%Y-%m-%d").date() if isinstance(dev_date, str) else dev_date
+            filtered_items = [
+                dress 
+                for dress in filtered_items 
+                if dress.get("dev_date") and datetime.datetime.strptime(dress.get("dev_date"), "%Y-%m-%d").date() == dev_date_obj
+            ]
+        except (ValueError, TypeError):
+            print(f"Erro ao processar data de devolução: {dev_date}")
 
     return filtered_items

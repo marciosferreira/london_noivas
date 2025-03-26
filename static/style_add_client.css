@@ -1,0 +1,127 @@
+/* Estilo Geral */
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  background: linear-gradient(120deg, #f5e3a6 0%, #f3bbab 100%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
+/* Contêiner do Formulário */
+.form-container {
+  background-color: #ffffff;
+  width: 90%;
+  max-width: 400px;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+  margin: 20px auto;
+  text-align: left;
+}
+
+/* Títulos */
+.form-container h1 {
+  font-size: 24px;
+  text-align: center;
+  color: #343a40;
+  margin-bottom: 20px;
+}
+
+/* Links de cancelar */
+.cancel-link {
+  display: block;
+  margin-bottom: 20px;
+  color: #dc3545;
+  text-align: center;
+  text-decoration: none;
+}
+
+.cancel-link:hover {
+  text-decoration: underline;
+}
+
+/* Inputs e selects */
+input[type='text'],
+input[type='date'],
+input[type='number'],
+input[type='tel'],
+input[type='email'],
+input[type='file'],
+select,
+textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ced4da;
+  border-radius: 5px;
+  font-size: 16px;
+  margin-top: 5px;
+  box-sizing: border-box;
+}
+
+input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+}
+
+/* Botão de envio */
+button[type='submit'] {
+  background-color: #28a745;
+  color: #fff;
+  border: none;
+  padding: 12px;
+  font-size: 16px;
+  border-radius: 5px;
+  cursor: pointer;
+  width: 100%;
+}
+
+button[type='submit']:hover {
+  background-color: #218838;
+}
+
+/* Responsividade */
+@media (max-width: 600px) {
+  .form-container {
+    width: 95%;
+  }
+
+  .form-container h1 {
+    font-size: 20px;
+  }
+
+  button[type='submit'] {
+    font-size: 18px;
+    padding: 14px;
+  }
+}
+
+/* NOVO: Área de botões no topo ou lateral direita */
+.button-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin: 20px auto;
+  max-width: 400px;
+}
+
+/* Botões quadrados */
+.button-actions a.custom-button {
+  background-color: #007bff;
+  color: #fff;
+  padding: 10px 16px;
+  text-decoration: none;
+  border: 1px solid #007bff;
+  border-radius: 0; /* Borda quadrada */
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  transition: background-color 0.3s ease;
+}
+
+.button-actions a.custom-button:hover {
+  background-color: #0056b3;
+}
