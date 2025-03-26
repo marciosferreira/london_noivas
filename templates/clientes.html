@@ -2,6 +2,7 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='style_clientes.css') }}" />
 
 {% endblock %} {% block body_class %}clientes{% endblock %} {% block content %}
+
 <div class="container mt-5">
   <h1 class="mb-4">Clientes Cadastrados</h1>
 
@@ -9,103 +10,63 @@
     {% set show_add_button = True %} {% set add_route = url_for('add') %} {% include "components/client_filter_section.html" with context %}
   </div>
 
-  {% if clientes %}
-  <div class="row">
-    <div class="col-12">
-      <div class="card shadow-sm">
-        <div class="card-header bg-light">
-          <div class="row">
-            <div class="col-md-5">Nome</div>
-            <div class="col-md-3">Contato</div>
-            <div class="col-md-2">Documentos</div>
-            <div class="col-md-2 text-end">Ações</div>
-          </div>
-        </div>
-        <ul class="list-group list-group-flush">
-          {% for cliente in clientes %}
-          <li class="list-group-item client-card p-3">
-            <div class="row align-items-center">
-              <!-- Nome e Endereço -->
-              <div class="col-md-5 mb-2 mb-md-0">
-                <h5 class="mb-1">{{ cliente.client_name }}</h5>
-                {% if cliente.client_address %}
-                <p class="mb-1 text-muted small">
-                  <i class="fas fa-map-marker-alt"></i>
-                  {{ cliente.client_address }}
-                </p>
-                {% endif %}
-                <small class="text-secondary">Criado em: {{ cliente.created_at }}</small>
-              </div>
+  <!-- Tabela -->
+  <div class="table-container mt-4">
+    <table class="table table-hover responsive-table align-middle rounded-table">
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>Criado em</th>
+          <th>Telefone</th>
+          <th class="text-center">Ações</th>
+          <!-- 🔧 Aqui -->
+        </tr>
+      </thead>
+      <tbody>
+        {% if clientes %} {% for cliente in clientes %}
 
-              <!-- Contato -->
-              <div class="col-md-3 mb-2 mb-md-0">
-                {% if cliente.client_tel %}
-                <p class="mb-1">
-                  <i class="fas fa-phone"></i>
-                  {{ cliente.client_tel }}
-                </p>
-                {% endif %} {% if cliente.client_email %}
-                <p class="mb-1">
-                  <i class="fas fa-envelope"></i>
-                  {{ cliente.client_email }}
-                </p>
-                {% endif %}
-              </div>
+          <td class="open-modal" data-item='{{ cliente | tojson | safe }}' data-label="Cliente">
+            {{ cliente.client_name | default('', true) | truncate(10, True) }}
+          </td>
 
-              <!-- Documentos -->
-              <div class="col-md-2 mb-2 mb-md-0">
-                {% if cliente.client_cpf %}
-                <p class="mb-1 small">
-                  <span class="client-badge">CPF</span>
-                  {{ cliente.client_cpf }}
-                </p>
-                {% endif %} {% if cliente.client_cnpj %}
-                <p class="mb-1 small">
-                  <span class="client-badge">CNPJ</span>
-                  {{ cliente.client_cnpj }}
-                </p>
-                {% endif %}
-              </div>
+          <td class="open-modal" data-item='{{ cliente | tojson | safe }}' data-label="Criado em">{{ cliente.created_at }}</td>
 
-              <!-- Ações -->
-              <div class="col-md-2 text-md-end">
-                <div class="btn-group-vertical btn-group-sm">
-                  <!-- Editar -->
-                  <a href="{{ url_for('editar_cliente', client_id=cliente.client_id) }}"
-                     class="action-button warning mb-1"
-                     title="Editar">
-                    <i class="fas fa-edit"></i> Editar
-                  </a>
+          <td class="open-modal" data-item='{{ cliente | tojson | safe }}' data-label="Telefone">{{ cliente.client_tel }}</td>
 
-                  <!-- Transações -->
-                  <a href="{{ url_for('client_transactions', client_id=cliente.client_id) }}"
-                     class="action-button success mb-1"
-                     title="Transações">
-                    <i class="fas fa-exchange-alt"></i> Transações
-                  </a>
+          <td class="text-end" data-label="Ações">
+            <div class="d-flex flex-wrap gap-2 justify-content-end align-items-center">
+              <!-- Editar -->
+              <a href="{{ url_for('editar_cliente', client_id=cliente.client_id) }}" class="action-button warning" title="Editar">
+                <i class="fas fa-edit"></i>
+                Editar
+              </a>
 
-                  <!-- Deletar -->
-                  <form method="POST"
-                        action="{{ url_for('deletar_cliente', client_id=cliente.client_id) }}"
-                        onsubmit="return confirm('Tem certeza que deseja deletar este cliente? Esta ação não poderá ser desfeita.');"
-                        style="display: inline;">
-                    <button type="submit" class="action-button danger" title="Deletar">
-                      <i class="fas fa-trash"></i> Deletar
-                    </button>
-                  </form>
-                </div>
-              </div>
+              <!-- Transações -->
+              <a href="{{ url_for('client_transactions', client_id=cliente.client_id) }}" class="action-button success" title="Transações">
+                <i class="fas fa-exchange-alt"></i>
+                Transações
+              </a>
 
-
-
-
-
-
-          </li>
-          {% endfor %}
-        </ul>
-      </div>
-    </div>
+              <!-- Deletar -->
+              <form
+                method="POST"
+                action="{{ url_for('deletar_cliente', client_id=cliente.client_id) }}"
+                onsubmit="return confirm('Tem certeza que deseja deletar este cliente? Esta ação não poderá ser desfeita.');"
+                style="display: inline"
+              >
+                <button type="submit" class="action-button danger" title="Deletar">
+                  <i class="fas fa-trash"></i>
+                  Deletar
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %} {% else %}
+        <div class="alert alert-warning">Nenhum cliente cadastrado ainda.</div>
+        {% endif %}
+      </tbody>
+    </table>
   </div>
 
   <!-- Paginação -->
@@ -133,11 +94,12 @@
       </ul>
     </nav>
   </div>
-  {% endif %} {% else %}
-  <div class="alert alert-warning">Nenhum cliente cadastrado ainda.</div>
+
   {% endif %}
 </div>
-{% endblock %} {% block scripts %}
-<!-- FontAwesome para ícones -->
+
+{% include 'components/info_modal_client.html' %} {% endblock %} {% block scripts %}
+<!-- scripts extras -->
 <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+
 {% endblock %}

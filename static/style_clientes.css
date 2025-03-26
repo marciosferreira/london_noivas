@@ -12,30 +12,48 @@ body.clientes {
      background-color: #f8f9fa; */
 }
 
-.action-button {
-  padding: 6px 12px;
-  border: none;
-  border-radius: 20px; /* <- Borda arredondada conforme o padrão do site */
-  font-size: 14px;
-  cursor: pointer;
-  color: #fff;
-  text-decoration: none;
-  display: inline-block;
-  transition: background-color 0.3s ease;
+/* Responsividade dos cards de cliente */
+@media (max-width: 576px) {
+  .client-card {
+    display: block;
+    border: 1px solid #dee2e6;
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+    padding: 1rem;
+    background-color: #fff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  }
+
+  .client-card .row {
+    display: block;
+  }
+
+  .client-card [data-label] {
+    display: block;
+    position: relative;
+    padding-left: 6rem; /* espaço para o título do campo */
+    margin-bottom: 1rem;
+  }
+
+  .client-card [data-label]::before {
+    content: attr(data-label) ': ';
+    font-weight: bold;
+    position: absolute;
+    left: 1rem;
+    top: 0;
+    width: 5rem; /* largura reservada pro label */
+    color: #555;
+    white-space: nowrap;
+  }
+
+  .btn-group-vertical {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
 }
 
-.action-button.warning {
-  background-color: #ffc107; /* amarelo */
-}
-
-.action-button.danger {
-  background-color: #dc3545; /* vermelho */
-}
-
-.action-button.success {
-  background-color: #28a745; /* verde */
-}
-
-.action-button:hover {
-  opacity: 0.9;
+@media (max-width: 576px) {
+  .card-header {
+    display: none;
+  }
 }
