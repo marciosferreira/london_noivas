@@ -1,15 +1,10 @@
-{% extends "base.html" %}
-
-{% block title %}Transações Completadas (itens devolvidos){% endblock %}
-
-{% block styles %}
+{% extends "base.html" %} {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='style_returned.css') }}" />
-{% endblock %}
+{% endblock %} {% block body_class %}returned{% endblock %} {% block content %}
 
-{% block body_class %}returned{% endblock %}
+<div class="container my-3">
+  <h2 class="mb-4">Transações encerradas (itens devolvidos)</h2>
 
-{% block content %}
-<div class="container my-4">
   {% include "filter_section.html" with context %}
 
   <!-- Tabela -->
@@ -29,76 +24,74 @@
       </thead>
       <tbody>
         {% for item in itens %}
-          <tr>
-            <td data-label="Imagem">
-              {% if item.image_url and item.image_url != "N/A" %}
-                <img
-                  src="{{ item.image_url }}"
-                  alt="Imagem do item"
-                  class="img-fluid item-thumbnail"
-                  style="max-width: 100px; cursor: pointer;"
-                />
-              {% else %}
-                <img
-                  src="{{ url_for('static', filename='item-placeholder.png') }}"
-                  alt="Sem Imagem"
-                  class="img-fluid item-thumbnail"
-                  style="max-width: 100px; cursor: pointer;"
-                />
-              {% endif %}
-            </td>
+        <tr>
+          <td data-label="Imagem">
+            {% if item.image_url and item.image_url != "N/A" %}
+            <img src="{{ item.image_url }}" alt="Imagem do item" class="img-fluid item-thumbnail" style="max-width: 100px; cursor: pointer" />
+            {% else %}
+            <img
+              src="{{ url_for('static', filename='item-placeholder.png') }}"
+              alt="Sem Imagem"
+              class="img-fluid item-thumbnail"
+              style="max-width: 100px; cursor: pointer"
+            />
+            {% endif %}
+          </td>
 
-            <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Cliente">
-              {{ item.client_name | default('', true) | truncate(10, True) }}
-            </td>
+          <td class="open-modal" data-item="{{ item | tojson | safe }}" data-label="Cliente">
+            {{ item.client_name | default('', true) | truncate(10, True) }}
+          </td>
 
-            <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Retirada Prevista">
-              {{ item.rental_date_formatted }}
-            </td>
+          <td class="open-modal" data-item="{{ item | tojson | safe }}" data-label="Retirada Prevista">{{ item.rental_date_formatted }}</td>
 
-            <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Devolução Prevista">
-              {{ item.return_date_formatted }}
-            </td>
+          <td class="open-modal" data-item="{{ item | tojson | safe }}" data-label="Devolução Prevista">{{ item.return_date_formatted }}</td>
 
-            <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Retirado">
-              {% if item.retirado %}Sim{% else %}Não{% endif %}
-            </td>
+          <td class="open-modal" data-item="{{ item | tojson | safe }}" data-label="Retirado">{% if item.retirado %}Sim{% else %}Não{% endif %}</td>
 
-            <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Pagamento">
-              {{ item.pagamento }}
-            </td>
+          <td class="open-modal" data-item="{{ item | tojson | safe }}" data-label="Pagamento">{{ item.pagamento }}</td>
 
-            <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Observações">
-              {{ item.comments | default('', true) | truncate(10, True) }}
-            </td>
+          <td class="open-modal" data-item="{{ item | tojson | safe }}" data-label="Observações">
+            {{ item.comments | default('', true) | truncate(10, True) }}
+          </td>
 
-            <td data-label="Ações">
-              <div class="d-flex flex-wrap gap-2 justify-content-center align-items-center">
-                <!-- Delete Transaction Button -->
-                <form method="POST" action="{{ url_for('delete_transaction', transaction_id=item.transaction_id, next=request.url) }}" style="display: inline;">
-                  <button type="submit" class="action-button danger"
-                    onclick="return confirm('Tem certeza de que deseja deletar este item?');"
-                    title="Deletar">Deletar</button>
-                </form>
+          <td data-label="Ações">
+            <div class="d-flex flex-wrap gap-2 justify-content-center align-items-center">
+              <!-- Delete Transaction Button -->
+              <form
+                method="POST"
+                action="{{ url_for('delete_transaction', transaction_id=item.transaction_id, next=request.url) }}"
+                style="display: inline"
+              >
+                <button
+                  type="submit"
+                  class="action-button danger"
+                  onclick="return confirm('Tem certeza de que deseja deletar este item?');"
+                  title="Deletar"
+                >
+                  Deletar
+                </button>
+              </form>
 
-                <!-- Edit Transaction Button -->
-                <a href="{{ url_for('edit_transaction', transaction_id=item.transaction_id, next=request.url) }}" class="action-button warning" title="Editar">
-                  Editar
-                </a>
-              </div>
-            </td>
-          </tr>
+              <!-- Edit Transaction Button -->
+              <a
+                href="{{ url_for('edit_transaction', transaction_id=item.transaction_id, next=request.url) }}"
+                class="action-button warning"
+                title="Editar"
+              >
+                Editar
+              </a>
+            </div>
+          </td>
+        </tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
 
   <!-- Pagination -->
-  {% set route_name = 'returned' %}
-  {% include 'components/pagination.html' with context %}
+  {% set route_name = 'returned' %} {% include 'components/pagination.html' with context %}
 
   <!-- Modals -->
-  {% include 'components/info_modal.html' %}
-  {% include 'components/image_modal.html' %}
+  {% include 'components/info_modal.html' %} {% include 'components/image_modal.html' %}
 </div>
 {% endblock %}

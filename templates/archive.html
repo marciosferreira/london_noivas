@@ -1,15 +1,9 @@
-{% extends "base.html" %}
-
-{% block title %}Itens Arquivados{% endblock %}
-
-{% block styles %}
+{% extends "base.html" %} {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='style_archive.css') }}" />
-{% endblock %}
+{% endblock %} {% block body_class %}archive{% endblock %} {% block content %}
+<div class="container my-2">
+  <h2 class="mb-4">Itens arquivados (não disponíveis)</h2>
 
-{% block body_class %}archive{% endblock %}
-
-{% block content %}
-<div class="container my-4">
   {% include "add_filter_section.html" %}
 
   <!-- Tabela (que vira "cards" no mobile) -->
@@ -58,9 +52,7 @@
               </form>
 
               <!-- Botão Editar -->
-              <a href="{{ url_for('edit_small', item_id=item.item_id, next=request.url) }}" class="action-button warning" title="Editar">
-                Editar
-              </a>
+              <a href="{{ url_for('edit_small', item_id=item.item_id, next=request.url) }}" class="action-button warning" title="Editar">Editar</a>
 
               <!-- Botão Disponível -->
               <a
@@ -80,11 +72,9 @@
   </div>
 
   <!-- Paginação -->
-  {% set route_name = 'archive' %}
-  {% include 'components/pagination.html' with context %}
+  {% set route_name = 'archive' %} {% include 'components/pagination.html' with context %}
   <div style="height: 3rem"></div>
 </div>
 
 <!-- Image Modal -->
-{% include 'components/image_modal.html' %}
-{% endblock %}
+{% include 'components/image_modal.html' %} {% endblock %}

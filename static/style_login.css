@@ -30,6 +30,7 @@ body {
   border-radius: 10px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); /* Sombra suave */
   text-align: center;
+  margin: 0 auto;
 }
 
 /* Ajuste para evitar que o formulário de registro fique colado no topo */

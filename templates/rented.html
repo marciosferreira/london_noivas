@@ -1,15 +1,9 @@
-{% extends "base.html" %}
-
-{% block title %}Transações iniciadas (itens alugados){% endblock %}
-
-{% block styles %}
+{% extends "base.html" %} {% block title %} Transações iniciadas (itens alugados) {% endblock %} {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='style_rented.css') }}" />
-{% endblock %}
+{% endblock %} {% block body_class %}rented{% endblock %} {% block content %}
+<div class="container mt-3">
+  <h2 class="mb-4">Transações encerradas (itens alugados)</h2>
 
-{% block body_class %}rented{% endblock %}
-
-{% block content %}
-<div class="container my-4">
   {% include "filter_section.html" with context %}
 
   <!-- Tabela -->
@@ -29,84 +23,81 @@
       </thead>
       <tbody>
         {% for item in itens %}
-          <tr>
-            <td data-label="Imagem">
-              {% if item.image_url and item.image_url != "N/A" %}
-                <img
-                  src="{{ item.image_url }}"
-                  alt="Imagem do item"
-                  class="img-fluid item-thumbnail"
-                  style="max-width: 100px; cursor: pointer;"
-                />
-              {% else %}
-                <img
-                  src="{{ url_for('static', filename='item-placeholder.png') }}"
-                  alt="Sem Imagem"
-                  class="img-fluid item-thumbnail"
-                  style="max-width: 100px; cursor: pointer;"
-                />
-              {% endif %}
-            </td>
+        <tr>
+          <td data-label="Imagem">
+            {% if item.image_url and item.image_url != "N/A" %}
+            <img src="{{ item.image_url }}" alt="Imagem do item" class="img-fluid item-thumbnail" style="max-width: 100px; cursor: pointer" />
+            {% else %}
+            <img
+              src="{{ url_for('static', filename='item-placeholder.png') }}"
+              alt="Sem Imagem"
+              class="img-fluid item-thumbnail"
+              style="max-width: 100px; cursor: pointer"
+            />
+            {% endif %}
+          </td>
 
-            <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Cliente">
-              {{ item.client_name | default('', true) | truncate(10, True) }}
-            </td>
+          <td class="open-modal" data-item="{{ item | tojson | safe }}" data-label="Cliente">
+            {{ item.client_name | default('', true) | truncate(10, True) }}
+          </td>
 
-            <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Retirada Prevista">
-              {{ item.rental_date_formatted }}
-            </td>
+          <td class="open-modal" data-item="{{ item | tojson | safe }}" data-label="Retirada Prevista">{{ item.rental_date_formatted }}</td>
 
-            <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Devolução Prevista">
-              {{ item.return_date_formatted }}
-            </td>
+          <td class="open-modal" data-item="{{ item | tojson | safe }}" data-label="Devolução Prevista">{{ item.return_date_formatted }}</td>
 
-            <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Retirado">
-              {% if item.retirado %}Sim{% else %}Não{% endif %}
-            </td>
+          <td class="open-modal" data-item="{{ item | tojson | safe }}" data-label="Retirado">{% if item.retirado %}Sim{% else %}Não{% endif %}</td>
 
-            <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Pagamento">
-              {{ item.pagamento }}
-            </td>
+          <td class="open-modal" data-item="{{ item | tojson | safe }}" data-label="Pagamento">{{ item.pagamento }}</td>
 
-            <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Observações">
-              {{ item.comments | default('', true) | truncate(10, True) }}
-            </td>
+          <td class="open-modal" data-item="{{ item | tojson | safe }}" data-label="Observações">
+            {{ item.comments | default('', true) | truncate(10, True) }}
+          </td>
 
-            <td data-label="Ações">
-              <div class="d-flex flex-wrap gap-2 justify-content-center align-items-center">
-                <!-- Delete Transaction Button -->
-                <form method="POST" action="{{ url_for('delete_transaction', transaction_id=item.transaction_id, next=request.url) }}" style="display: inline;">
-                  <button type="submit" class="action-button danger"
-                    onclick="return confirm('Tem certeza de que deseja deletar essa transação?');"
-                    title="Deletar">Deletar</button>
-                </form>
+          <td data-label="Ações">
+            <div class="d-flex flex-wrap gap-2 justify-content-center align-items-center">
+              <form
+                method="POST"
+                action="{{ url_for('delete_transaction', transaction_id=item.transaction_id, next=request.url) }}"
+                style="display: inline"
+              >
+                <button
+                  type="submit"
+                  class="action-button danger"
+                  onclick="return confirm('Tem certeza de que deseja deletar essa transação?');"
+                  title="Deletar"
+                >
+                  Deletar
+                </button>
+              </form>
 
-                <!-- Edit Transaction Button -->
-                <a href="{{ url_for('edit_transaction', transaction_id=item.transaction_id, next=request.url) }}" class="action-button warning" title="Editar">
-                  Editar
-                </a>
+              <a
+                href="{{ url_for('edit_transaction', transaction_id=item.transaction_id, next=request.url) }}"
+                class="action-button warning"
+                title="Editar"
+              >
+                Editar
+              </a>
 
-                <!-- Mark as Returned Button -->
-                <a href="{{ url_for('mark_returned', transaction_id=item.transaction_id, next=request.url) }}"
-                  class="action-button success"
-                  title="Devolvido"
-                  onclick="return confirm('Tem certeza de que deseja marcar este item como devolvido?');">
-                  Devolvido
-                </a>
-              </div>
-            </td>
-          </tr>
+              <a
+                href="{{ url_for('mark_returned', transaction_id=item.transaction_id, next=request.url) }}"
+                class="action-button success"
+                title="Devolvido"
+                onclick="return confirm('Tem certeza de que deseja marcar este item como devolvido?');"
+              >
+                Devolvido
+              </a>
+            </div>
+          </td>
+        </tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
 
-  <!-- Pagination -->
-  {% set route_name = 'rented' %}
-  {% include 'components/pagination.html' with context %}
+  <!-- Paginação -->
+  {% set route_name = 'rented' %} {% include 'components/pagination.html' with context %}
 
   <!-- Modals -->
-  {% include 'components/info_modal.html' %}
-  {% include 'components/image_modal.html' %}
+  {% include 'components/info_modal.html' %} {% include 'components/image_modal.html' %}
 </div>
 {% endblock %}

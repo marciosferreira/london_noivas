@@ -1083,7 +1083,8 @@ def init_item_routes(
         # Total geral: recebido + a receber
         total_general = total_paid + total_due
 
-        flash("Relatório atualizado com sucesso!", "success")
+        if request.method == "POST":
+            flash("Relatório atualizado com sucesso!", "success")
 
         return render_template(
             "reports.html",
