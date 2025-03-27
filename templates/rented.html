@@ -36,20 +36,20 @@
             />
             {% endif %}
           </td>
-
-          <td class="open-modal" data-item="{{ item | tojson | safe }}" data-label="Cliente">
+          <!-- prettier-ignore -->
+          <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Cliente">
             {{ item.client_name | default('', true) | truncate(10, True) }}
           </td>
-
-          <td class="open-modal" data-item="{{ item | tojson | safe }}" data-label="Retirada Prevista">{{ item.rental_date_formatted }}</td>
-
-          <td class="open-modal" data-item="{{ item | tojson | safe }}" data-label="Devolução Prevista">{{ item.return_date_formatted }}</td>
-
-          <td class="open-modal" data-item="{{ item | tojson | safe }}" data-label="Retirado">{% if item.retirado %}Sim{% else %}Não{% endif %}</td>
-
-          <td class="open-modal" data-item="{{ item | tojson | safe }}" data-label="Pagamento">{{ item.pagamento }}</td>
-
-          <td class="open-modal" data-item="{{ item | tojson | safe }}" data-label="Observações">
+          <!-- prettier-ignore -->
+          <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Retirada Prevista">{{ item.rental_date_formatted }}</td>
+          <!-- prettier-ignore -->
+          <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Devolução Prevista">{{ item.return_date_formatted }}</td>
+          <!-- prettier-ignore -->
+          <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Retirado">{% if item.retirado %}Sim{% else %}Não{% endif %}</td>
+          <!-- prettier-ignore -->
+          <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Pagamento">{{ item.pagamento }}</td>
+          <!-- prettier-ignore -->
+          <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Observações">
             {{ item.comments | default('', true) | truncate(10, True) }}
           </td>
 

@@ -1,17 +1,8 @@
-{% extends "base.html" %}
-
-{% block title %}Alugue QQC - Login/Cadastro{% endblock %}
-
-{% block styles %}
+{% extends "base.html" %} {% block title %}Alugue QQC - Login/Cadastro{% endblock %} {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='style_login.css') }}" />
-<link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}" />
-{% endblock %}
-
-{% block google_ads %}
+{% endblock %} {% block google_ads %}
 <!-- No Google ads on login page -->
-{% endblock %}
-
-{% block content %}
+{% endblock %} {% block content %}
 <div class="login-container">
   <!-- Cabeçalho com título e logo -->
   <header class="login-header">
@@ -27,9 +18,7 @@
     {{ error }}
     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
   </div>
-  {% endif %} 
-  
-  {% if message %}
+  {% endif %} {% if message %}
   <div class="alert alert-success alert-dismissible fade show" role="alert">
     {{ message|safe }}
     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
@@ -156,9 +145,7 @@
     </div>
   </div>
 </div>
-{% endblock %}
-
-{% block scripts %}
+{% endblock %} {% block scripts %}
 <script>
   // No início do script, verifique se devemos mostrar registro ou reset
   document.addEventListener('DOMContentLoaded', function() {
@@ -261,7 +248,7 @@
   document.getElementById('terms-checkbox').addEventListener('change', function () {
     const password = document.getElementById('reg-password').value;
     const confirmPassword = document.getElementById('confirm-password').value;
-    
+
     if (password === confirmPassword) {
       document.getElementById('register-btn').disabled = !this.checked;
     }

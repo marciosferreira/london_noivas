@@ -1,6 +1,6 @@
 {
-  "short_name": "Alugue QQC",
-  "name": "Gestão de Itens Alugados",
+  "short_name": "QQC",
+  "name": "Alugue QQC",
   "icons": [
     {
       "src": "/static/icons/icon-192x192.png",

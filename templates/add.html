@@ -1,29 +1,17 @@
-{% extends "base.html" %}
-
-{% block title %}Adicionar Registro{% endblock %}
-
-{% block styles %}
+{% extends "base.html" %} {% block title %}Adicionar Registro{% endblock %} {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='style_add.css') }}" />
-{% endblock %}
-
-{% block content %}
+{% endblock %} {% block content %}
 <div class="form-container">
-  {% set destino = request.args.get("next", "") %} 
-  {% set ultima_parte = destino.strip('/').split('/')[-1] %}
+  {% set destino = request.args.get("next", "") %} {% set ultima_parte = destino.strip('/').split('/')[-1] %}
 
   <h1>
-    {% if ultima_parte == "archive" %} 
-      Inserir Novo Item em arquivo 
-    {% elif ultima_parte == "inventario" %} 
-      Inserir Novo Item em inventário 
-    {% else %} 
-      Inserir Novo Item 
-    {% endif %}
+    {% if ultima_parte == "archive" %} Inserir Novo Item em arquivo {% elif ultima_parte == "inventario" %} Inserir Novo Item em inventário {% else %}
+    Inserir Novo Item {% endif %}
   </h1>
 
   <!-- Link "Sair sem Finalizar" -->
   <a href="{{ next }}" class="cancel-link">Sair sem Finalizar</a>
-  
+
   <form method="POST" enctype="multipart/form-data">
     <!-- Campo oculto para preservar a página de origem -->
     <input type="hidden" name="next" value="{{ next }}" />
@@ -39,12 +27,12 @@
     <textarea id="comments" name="comments" rows="4" cols="50"></textarea>
     <br />
     <br />
-    
+
     <label for="valor">Valor (R$):</label>
     <input type="number" id="valor" name="valor" step="0.10" min="0" required />
     <br />
     <br />
-    
+
     <label>Foto:</label>
     <br />
     <input type="file" name="image_file" accept="image/*;capture=camera" />

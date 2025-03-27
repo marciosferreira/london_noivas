@@ -16,80 +16,85 @@
 
 <!-- Seção de Filtros -->
 <div id="filter-section" class="{% if not request.args.get('description') and not request.args.get('comments') and not request.args.get('client_name') and not request.args.get('payment') and not request.args.get('start_date') and not request.args.get('end_date') and not request.args.get('return_start_date') and not request.args.get('return_end_date') and not request.args.get('filter') %}d-none{% endif %} mt-3">
-  <div class="p-3 border rounded">
-    <form method="GET" action="">
-      <div class="row mb-3">
-        <div class="col-md-6">
-          <label for="description" class="form-label">Descrição:</label>
-          <input type="text" class="form-control" id="description" name="description" value="{{ request.args.get('description', '') }}" />
+  <div class="card shadow-sm">
+    <div class="card-header bg-light">
+      <h5 class="m-0">Filtros</h5>
+    </div>
+    <div class="card-body">
+      <form method="GET" action="">
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <label for="description" class="form-label">Descrição:</label>
+            <input type="text" class="form-control" id="description" name="description" value="{{ request.args.get('description', '') }}" />
+          </div>
+          <div class="col-md-6">
+            <label for="comments" class="form-label">Comentários:</label>
+            <input type="text" class="form-control" id="comments" name="comments" value="{{ request.args.get('comments', '') }}" />
+          </div>
         </div>
-        <div class="col-md-6">
-          <label for="comments" class="form-label">Comentários:</label>
-          <input type="text" class="form-control" id="comments" name="comments" value="{{ request.args.get('comments', '') }}" />
-        </div>
-      </div>
 
-      <div class="row mb-3">
-        <div class="col-md-6">
-          <label for="client_name" class="form-label">Nome do Cliente:</label>
-          <input type="text" class="form-control" id="client_name" name="client_name" value="{{ request.args.get('client_name', '') }}" />
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <label for="client_name" class="form-label">Nome do Cliente:</label>
+            <input type="text" class="form-control" id="client_name" name="client_name" value="{{ request.args.get('client_name', '') }}" />
+          </div>
+          <div class="col-md-6">
+            <label for="payment" class="form-label">Status de Pagamento:</label>
+            <select class="form-select" id="payment" name="payment">
+              <option value="">Todos</option>
+              <option value="pago 100%" {% if request.args.get('payment') == 'pago 100%' %}selected{% endif %}>Pago 100%</option>
+              <option value="pago 50%" {% if request.args.get('payment') == 'pago 50%' %}selected{% endif %}>Pago 50%</option>
+              <option value="não pago" {% if request.args.get('payment') == 'não pago' %}selected{% endif %}>Não Pago</option>
+            </select>
+          </div>
         </div>
-        <div class="col-md-6">
-          <label for="payment" class="form-label">Status de Pagamento:</label>
-          <select class="form-select" id="payment" name="payment">
-            <option value="">Todos</option>
-            <option value="pago 100%" {% if request.args.get('payment') == 'pago 100%' %}selected{% endif %}>Pago 100%</option>
-            <option value="pago 50%" {% if request.args.get('payment') == 'pago 50%' %}selected{% endif %}>Pago 50%</option>
-            <option value="não pago" {% if request.args.get('payment') == 'não pago' %}selected{% endif %}>Não Pago</option>
-          </select>
-        </div>
-      </div>
 
-      {% if request.path in ['/trash_itens', '/trash_transactions'] %}
-      <div class="row mb-3">
-        <div class="col-md-6">
-          <label for="filter" class="form-label">Tipo de Item:</label>
-          <select class="form-select" id="filter" name="filter">
-            <option value="todos" {% if request.args.get('filter') == 'todos' or not request.args.get('filter') %}selected{% endif %}>Todos</option>
-            <option value="deleted" {% if request.args.get('filter') == 'deleted' %}selected{% endif %}>Apenas Deletados</option>
-            <option value="version" {% if request.args.get('filter') == 'version' %}selected{% endif %}>Apenas Versões</option>
-          </select>
+        {% if request.path in ['/trash_itens', '/trash_transactions'] %}
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <label for="filter" class="form-label">Tipo de Item:</label>
+            <select class="form-select" id="filter" name="filter">
+              <option value="todos" {% if request.args.get('filter') == 'todos' or not request.args.get('filter') %}selected{% endif %}>Todos</option>
+              <option value="deleted" {% if request.args.get('filter') == 'deleted' %}selected{% endif %}>Apenas Deletados</option>
+              <option value="version" {% if request.args.get('filter') == 'version' %}selected{% endif %}>Apenas Versões</option>
+            </select>
+          </div>
         </div>
-      </div>
-      {% endif %}
+        {% endif %}
 
-      {% if request.path in ['/rented', '/returned', '/trash_transactions'] %}
-      <div class="row mb-3">
-        <div class="col-md-6">
-          <label class="form-label">Intervalo de Data de Aluguel:</label>
-          <div class="row">
-            <div class="col">
-              <input type="date" class="form-control" id="start_date" name="start_date" value="{{ request.args.get('start_date', '') }}" placeholder="Data Inicial" />
+        {% if request.path in ['/rented', '/returned', '/trash_transactions'] %}
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <label class="form-label">Intervalo de Data de Aluguel:</label>
+            <div class="row">
+              <div class="col">
+                <input type="date" class="form-control" id="start_date" name="start_date" value="{{ request.args.get('start_date', '') }}" placeholder="Data Inicial" />
+              </div>
+              <div class="col">
+                <input type="date" class="form-control" id="end_date" name="end_date" value="{{ request.args.get('end_date', '') }}" placeholder="Data Final" />
+              </div>
             </div>
-            <div class="col">
-              <input type="date" class="form-control" id="end_date" name="end_date" value="{{ request.args.get('end_date', '') }}" placeholder="Data Final" />
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Intervalo de Data de Devolução:</label>
+            <div class="row">
+              <div class="col">
+                <input type="date" class="form-control" id="return_start_date" name="return_start_date" value="{{ request.args.get('return_start_date', '') }}" placeholder="Data Inicial" />
+              </div>
+              <div class="col">
+                <input type="date" class="form-control" id="return_end_date" name="return_end_date" value="{{ request.args.get('return_end_date', '') }}" placeholder="Data Final" />
+              </div>
             </div>
           </div>
         </div>
-        <div class="col-md-6">
-          <label class="form-label">Intervalo de Data de Devolução:</label>
-          <div class="row">
-            <div class="col">
-              <input type="date" class="form-control" id="return_start_date" name="return_start_date" value="{{ request.args.get('return_start_date', '') }}" placeholder="Data Inicial" />
-            </div>
-            <div class="col">
-              <input type="date" class="form-control" id="return_end_date" name="return_end_date" value="{{ request.args.get('return_end_date', '') }}" placeholder="Data Final" />
-            </div>
-          </div>
-        </div>
-      </div>
-      {% endif %}
+        {% endif %}
 
-      <div class="d-flex justify-content-between">
-        <button type="submit" class="btn btn-primary">Aplicar Filtros</button>
-        <a href="{{ request.path }}" class="btn btn-secondary">Limpar Filtros</a>
-      </div>
-    </form>
+        <div class="d-flex justify-content-between mt-3">
+          <button type="submit" class="btn btn-primary">Aplicar Filtros</button>
+          <a href="{{ request.path }}" class="btn btn-secondary">Limpar Filtros</a>
+        </div>
+      </form>
+    </div>
   </div>
 </div>
 
