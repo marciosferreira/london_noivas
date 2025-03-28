@@ -1,12 +1,6 @@
-{% extends "base.html" %}
-
-{% block title %}Adicionar Cliente{% endblock %}
-
-{% block styles %}
+{% extends "base.html" %} {% block title %}Adicionar Cliente{% endblock %} {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='style_add_client.css') }}" />
-{% endblock %}
-
-{% block content %}
+{% endblock %} {% block content %}
 <div class="form-container">
   <h1>Novo Cliente</h1>
   <a href="{{ request.args.get('next', url_for('listar_clientes')) }}" class="cancel-link">Cancelar</a>
@@ -16,14 +10,7 @@
     <input type="text" id="client_name" name="client_name" class="form-control" required />
 
     <label for="client_tel">Telefone:</label>
-    <input
-      type="tel"
-      id="client_tel"
-      name="client_tel"
-      class="form-control"
-      placeholder="(xx) xxxxx-xxxx"
-      data-only-digits="true"
-    />
+    <input type="tel" id="client_tel" name="client_tel" class="form-control" placeholder="(xx) xxxxx-xxxx" data-only-digits="true" />
 
     <label for="client_email">E-mail:</label>
     <input type="email" id="client_email" name="client_email" class="form-control" placeholder="exemplo@email.com" />
@@ -32,24 +19,24 @@
     <input type="text" id="client_address" name="client_address" class="form-control" />
 
     <label for="client_cpf">CPF:</label>
-    <input 
-      type="text" 
-      id="client_cpf" 
-      name="client_cpf" 
-      maxlength="14" 
-      placeholder="000.000.000-00" 
+    <input
+      type="text"
+      id="client_cpf"
+      name="client_cpf"
+      maxlength="14"
+      placeholder="000.000.000-00"
       class="form-control"
       data-only-digits="true"
       data-mask="cpf"
     />
 
     <label for="client_cnpj">CNPJ:</label>
-    <input 
-      type="text" 
-      id="client_cnpj" 
-      name="client_cnpj" 
-      maxlength="18" 
-      placeholder="00.000.000/0000-00" 
+    <input
+      type="text"
+      id="client_cnpj"
+      name="client_cnpj"
+      maxlength="18"
+      placeholder="00.000.000/0000-00"
       class="form-control"
       data-only-digits="true"
       data-mask="cnpj"
@@ -65,9 +52,7 @@
     <button type="submit">Salvar</button>
   </form>
 </div>
-{% endblock %}
-
-{% block scripts %}
+{% endblock %} {% block scripts %}
 <script>
   // Função para aplicar máscara ao CPF
   function maskCPF(cpf) {
@@ -88,50 +73,34 @@
     return cnpj;
   }
 
-  // Função para aplicar máscara ao telefone
-  function maskPhone(phone) {
-    phone = phone.replace(/\D/g, '');
-    if (phone.length > 10) {
-      phone = phone.replace(/^(\d{2})(\d{5})(\d{4})$/, '($1) $2-$3');
-    } else {
-      phone = phone.replace(/^(\d{2})(\d{4})(\d{4})$/, '($1) $2-$3');
-    }
-    return phone;
-  }
-
   // Aplicando máscaras nos campos
-  document.getElementById('client_cpf').addEventListener('input', function(e) {
+  document.getElementById('client_cpf').addEventListener('input', function (e) {
     let value = e.target.value;
     e.target.value = maskCPF(value);
   });
 
-  document.getElementById('client_cnpj').addEventListener('input', function(e) {
+  document.getElementById('client_cnpj').addEventListener('input', function (e) {
     let value = e.target.value;
     e.target.value = maskCNPJ(value);
   });
 
-  document.getElementById('client_tel').addEventListener('input', function(e) {
-    let value = e.target.value;
-    e.target.value = maskPhone(value);
-  });
-
   // Validação de CPF e CNPJ ao submeter o formulário
-  document.getElementById('clientForm').addEventListener('submit', function(e) {
+  document.getElementById('clientForm').addEventListener('submit', function (e) {
     // Obter valores com formatação
     const telFormatted = document.getElementById('client_tel').value;
     const cpfFormatted = document.getElementById('client_cpf').value;
     const cnpjFormatted = document.getElementById('client_cnpj').value;
-    
+
     // Remover formatação e manter apenas dígitos
     const telDigits = telFormatted.replace(/\D/g, '');
     const cpfDigits = cpfFormatted.replace(/\D/g, '');
     const cnpjDigits = cnpjFormatted.replace(/\D/g, '');
-    
+
     // Preencher campos ocultos com apenas dígitos
     document.getElementById('client_tel_digits').value = telDigits;
     document.getElementById('client_cpf_digits').value = cpfDigits;
     document.getElementById('client_cnpj_digits').value = cnpjDigits;
-    
+
     // Validar CPF
     if (cpfDigits && !validaCPF(cpfDigits)) {
       e.preventDefault();
@@ -190,5 +159,31 @@
     resultado = soma % 11 < 2 ? 0 : 11 - (soma % 11);
     return resultado == parseInt(digitos.charAt(1));
   }
+</script>
+
+<script>
+  const telInput = document.getElementById('client_tel');
+
+  telInput.addEventListener('input', function (e) {
+    let input = e.target.value.replace(/\D/g, ''); // Remove tudo que não for número
+
+    if (input.length > 11) {
+      input = input.slice(0, 11); // Limita a 11 dígitos
+    }
+
+    let formatted = '';
+
+    if (input.length > 0) {
+      formatted += '(' + input.substring(0, 2);
+    }
+    if (input.length >= 3) {
+      formatted += ') ' + input.substring(2, 7);
+    }
+    if (input.length >= 8) {
+      formatted += '-' + input.substring(7);
+    }
+
+    e.target.value = formatted;
+  });
 </script>
 {% endblock %}

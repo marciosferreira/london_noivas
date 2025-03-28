@@ -68,15 +68,13 @@
       </tbody>
     </table>
   </div>
-
   <!-- Paginação -->
-  {% if total_pages and total_pages > 1 %}
   <div class="pagination-container mt-4">
     <nav aria-label="Navegação de páginas">
-      <ul class="pagination">
+      <ul class="pagination justify-content-center">
         {% if page > 1 %}
         <li class="page-item">
-          <a class="page-link" href="{{ url_for('listar_clientes', page=page-1, **request.args) }}" aria-label="Anterior">
+          <a class="page-link" href="{{ url_for('listar_clientes', page=page-1, **request.args.to_dict()) }}" aria-label="Anterior">
             <span aria-hidden="true">&laquo;</span>
           </a>
         </li>
@@ -86,7 +84,7 @@
         </li>
         {% endfor %} {% if page < total_pages %}
         <li class="page-item">
-          <a class="page-link" href="{{ url_for('listar_clientes', page=page+1, **request.args) }}" aria-label="Próximo">
+          <a class="page-link" href="{{ url_for('listar_clientes', page=page+1, **request.args.to_dict()) }}" aria-label="Próximo">
             <span aria-hidden="true">&raquo;</span>
           </a>
         </li>
@@ -95,17 +93,15 @@
     </nav>
   </div>
 
-  {% endif %}
+  {% include 'components/info_modal_client.html' %} {% endblock %} {% block scripts %}
+  <!-- scripts extras -->
+  <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+  <!-- Bootstrap Bundle com Popper -->
+  <script
+    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-A3xORN3yEh9NTBI69AsVZqg0vszNvB4LaU6gq3p0eNmKUy5OWyE4hzJxKr5oUqvN"
+    crossorigin="anonymous"
+  ></script>
+
+  {% endblock %}
 </div>
-
-{% include 'components/info_modal_client.html' %} {% endblock %} {% block scripts %}
-<!-- scripts extras -->
-<script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
-<!-- Bootstrap Bundle com Popper -->
-<script
-  src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
-  integrity="sha384-A3xORN3yEh9NTBI69AsVZqg0vszNvB4LaU6gq3p0eNmKUy5OWyE4hzJxKr5oUqvN"
-  crossorigin="anonymous"
-></script>
-
-{% endblock %}
