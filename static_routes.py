@@ -46,7 +46,9 @@ def init_static_routes(app, ses_client):
                 flash("Mensagem enviada com sucesso!", "success")
             except Exception as e:
                 print(f"Erro ao enviar e-mail: {e}")
-                flash("Erro ao enviar a mensagem. Tente novamente mais tarde.", "danger")
+                flash(
+                    "Erro ao enviar a mensagem. Tente novamente mais tarde.", "danger"
+                )
 
             return redirect(url_for("contato"))
 

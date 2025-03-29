@@ -40,6 +40,8 @@ def init_client_routes(app, clients_table, transactions_table, itens_table):
                     "client_cnpj": item.get("client_cnpj", ""),
                     "client_tel": item.get("client_tel", ""),
                     "client_id": item.get("client_id", ""),
+                    "client_email": item.get("client_email", ""),  # 👈 adiciona aqui
+                    "client_address": item.get("client_address", ""),  # 👈 e aqui
                 }
                 for item in response.get("Items", [])
             ]
@@ -53,20 +55,18 @@ def init_client_routes(app, clients_table, transactions_table, itens_table):
 
     @app.route("/clients")
     def listar_clientes():
-        # Verifica se o usuário está logado
         if not session.get("logged_in"):
             return redirect(url_for("login"))
 
-        # Obtém o account_id da sessão
         account_id = session.get("account_id")
         if not account_id:
             return redirect(url_for("login"))
 
-        # Parâmetros de paginação
+        # Paginação
         page = int(request.args.get("page", 1))
-        per_page = 10  # Clientes por página
+        per_page = 10
 
-        # Capturar parâmetros de filtro
+        # Filtros do formulário
         client_name = request.args.get("client_name", "").strip()
         client_tel = request.args.get("client_tel", "").strip()
         client_email = request.args.get("client_email", "").strip()
@@ -74,15 +74,50 @@ def init_client_routes(app, clients_table, transactions_table, itens_table):
         client_cpf = request.args.get("client_cpf", "").strip()
         client_cnpj = request.args.get("client_cnpj", "").strip()
 
-        # Remover caracteres não numéricos para telefone, CPF e CNPJ
-        if client_tel:
-            client_tel = "".join(filter(str.isdigit, client_tel))
-        if client_cpf:
-            client_cpf = "".join(filter(str.isdigit, client_cpf))
-        if client_cnpj:
-            client_cnpj = "".join(filter(str.isdigit, client_cnpj))
+        # Normalizar dados numéricos
+        client_tel = "".join(filter(str.isdigit, client_tel)) if client_tel else ""
+        client_cpf = "".join(filter(str.isdigit, client_cpf)) if client_cpf else ""
+        client_cnpj = "".join(filter(str.isdigit, client_cnpj)) if client_cnpj else ""
 
-        # Verificar se há filtros ativos
+        # 🔹 Buscar todos os clientes do usuário (sem filtros no Dynamo)
+        response = clients_table.query(
+            IndexName="account_id-index",
+            KeyConditionExpression="account_id = :account_id",
+            ExpressionAttributeValues={":account_id": account_id},
+        )
+        clientes = response.get("Items", [])
+
+        # 🔸 Aplicar os filtros localmente em Python (case insensitive)
+        def matches(cliente):
+            return (
+                (
+                    not client_name
+                    or client_name.lower() in cliente.get("client_name", "").lower()
+                )
+                and (not client_tel or client_tel in cliente.get("client_tel", ""))
+                and (
+                    not client_email
+                    or client_email.lower() in cliente.get("client_email", "").lower()
+                )
+                and (
+                    not client_address
+                    or client_address.lower()
+                    in cliente.get("client_address", "").lower()
+                )
+                and (not client_cpf or client_cpf in cliente.get("client_cpf", ""))
+                and (not client_cnpj or client_cnpj in cliente.get("client_cnpj", ""))
+            )
+
+        clientes_filtrados = [c for c in clientes if matches(c)]
+
+        # Paginação
+        total_items = len(clientes_filtrados)
+        total_pages = max((total_items + per_page - 1) // per_page, 1)
+        page = min(max(page, 1), total_pages)
+        start_idx = (page - 1) * per_page
+        end_idx = start_idx + per_page
+        paginated_clientes = clientes_filtrados[start_idx:end_idx]
+
         has_filters = any(
             [
                 client_name,
@@ -94,90 +129,6 @@ def init_client_routes(app, clients_table, transactions_table, itens_table):
             ]
         )
 
-        # Inicializar estruturas para os filtros
-        expression_names = {}
-        expression_values = {":account_id": account_id}
-        filter_expression = ""
-
-        # Construir expressões de filtro para cada campo, se fornecido
-        if client_name:
-            expression_names["#client_name"] = "client_name"
-            expression_values[":client_name"] = client_name.lower()
-            filter_expression += " AND contains(lower(#client_name), :client_name)"
-
-        if client_tel:
-            expression_names["#client_tel"] = "client_tel"
-            expression_values[":client_tel"] = client_tel
-            # Primeiro verifica se o atributo existe, depois filtra
-            filter_expression += " AND attribute_exists(#client_tel) AND contains(#client_tel, :client_tel)"
-
-        if client_email:
-            expression_names["#client_email"] = "client_email"
-            expression_values[":client_email"] = client_email.lower()
-            filter_expression += " AND attribute_exists(#client_email) AND contains(lower(#client_email), :client_email)"
-
-        if client_address:
-            expression_names["#client_address"] = "client_address"
-            expression_values[":client_address"] = client_address.lower()
-            filter_expression += " AND attribute_exists(#client_address) AND contains(lower(#client_address), :client_address)"
-
-        if client_cpf:
-            expression_names["#client_cpf"] = "client_cpf"
-            expression_values[":client_cpf"] = client_cpf
-            filter_expression += " AND attribute_exists(#client_cpf) AND contains(#client_cpf, :client_cpf)"
-
-        if client_cnpj:
-            expression_names["#client_cnpj"] = "client_cnpj"
-            expression_values[":client_cnpj"] = client_cnpj
-            filter_expression += " AND attribute_exists(#client_cnpj) AND contains(#client_cnpj, :client_cnpj)"
-
-        # Configurar a consulta principal
-        query_params = {
-            "IndexName": "account_id-index",
-            "KeyConditionExpression": "account_id = :account_id",
-            "ExpressionAttributeValues": {":account_id": account_id},
-        }
-
-        # Adicionar expressão de filtro, se houver
-        if filter_expression:
-            # Remover o " AND " inicial
-            filter_expression = filter_expression[5:]
-            query_params["FilterExpression"] = filter_expression
-
-            # Atualizar os expression values com os filtros adicionais
-            for key, value in expression_values.items():
-                if key != ":account_id":  # Evitar duplicar o account_id
-                    query_params["ExpressionAttributeValues"][key] = value
-
-            # Adicionar expression names apenas se houver filtros
-            if len(expression_names) > 0:
-                query_params["ExpressionAttributeNames"] = expression_names
-
-        # Executar a consulta
-        response = clients_table.query(**query_params)
-        clientes = response.get("Items", [])
-
-        # Log para depuração
-        print(f"Encontrados {len(clientes)} clientes com os filtros aplicados")
-
-        # Paginação dos resultados
-        total_items = len(clientes)
-        total_pages = (total_items + per_page - 1) // per_page if total_items > 0 else 1
-
-        # Ajustar a página atual se estiver fora dos limites
-        if page < 1:
-            page = 1
-        elif page > total_pages and total_pages > 0:
-            page = total_pages
-
-        # Calcular índices de início e fim para a paginação
-        start_idx = (page - 1) * per_page
-        end_idx = min(start_idx + per_page, total_items)
-
-        # Obter apenas os clientes da página atual
-        paginated_clientes = clientes[start_idx:end_idx]
-
-        # Renderiza a página passando a lista de clientes e informações de paginação
         return render_template(
             "clientes.html",
             clientes=paginated_clientes,
@@ -282,8 +233,6 @@ def init_client_routes(app, clients_table, transactions_table, itens_table):
     def client_transactions(client_id):
         # Import here to avoid circular imports
         from item_routes import listar_itens_per_transaction
-
-        print("kkkkkkkkk")
 
         # Lógica aqui para buscar transações do cliente
         return listar_itens_per_transaction(

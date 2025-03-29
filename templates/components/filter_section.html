@@ -1,7 +1,6 @@
 <!-- Título e Botões Principais -->
 <div class="d-flex justify-content-between align-items-center mb-3">
 
-
   <!-- Container dos botões -->
   <div class="d-flex flex-wrap gap-2 align-items-center justify-content-end w-100 w-sm-auto">
     <!-- Botão de Filtros -->
@@ -15,7 +14,7 @@
 </div>
 
 <!-- Seção de Filtros -->
-<div id="filter-section" class="{% if not request.args.get('description') and not request.args.get('comments') and not request.args.get('client_name') and not request.args.get('payment') and not request.args.get('start_date') and not request.args.get('end_date') and not request.args.get('return_start_date') and not request.args.get('return_end_date') and not request.args.get('filter') %}d-none{% endif %} mt-3">
+<div id="filter-section" class="{% if not request.args.get('description') and not request.args.get('comments') and not request.args.get('client_name') and not request.args.get('payment') and not request.args.get('start_date') and not request.args.get('end_date') and not request.args.get('return_start_date') and not request.args.get('return_end_date') and not request.args.get('filter') and not request.args.get('client_email') and not request.args.get('client_cpf') and not request.args.get('client_cnpj') and not request.args.get('client_address') %}d-none{% endif %} mt-3">
   <div class="card shadow-sm">
     <div class="card-header bg-light">
       <h5 class="m-0">Filtros</h5>
@@ -34,11 +33,30 @@
         </div>
 
         <div class="row mb-3">
-          <div class="col-md-6">
+          <div class="col-md-4">
             <label for="client_name" class="form-label">Nome do Cliente:</label>
             <input type="text" class="form-control" id="client_name" name="client_name" value="{{ request.args.get('client_name', '') }}" />
           </div>
-          <div class="col-md-6">
+          <div class="col-md-4">
+            <label for="client_email" class="form-label">Email do Cliente:</label>
+            <input type="email" class="form-control" id="client_email" name="client_email" value="{{ request.args.get('client_email', '') }}" />
+          </div>
+          <div class="col-md-4">
+            <label for="client_address" class="form-label">Endereço do Cliente:</label>
+            <input type="text" class="form-control" id="client_address" name="client_address" value="{{ request.args.get('client_address', '') }}" />
+          </div>
+        </div>
+
+        <div class="row mb-3">
+          <div class="col-md-4">
+            <label for="client_cpf" class="form-label">CPF:</label>
+            <input type="text" class="form-control" id="client_cpf" name="client_cpf" value="{{ request.args.get('client_cpf', '') }}" />
+          </div>
+          <div class="col-md-4">
+            <label for="client_cnpj" class="form-label">CNPJ:</label>
+            <input type="text" class="form-control" id="client_cnpj" name="client_cnpj" value="{{ request.args.get('client_cnpj', '') }}" />
+          </div>
+          <div class="col-md-4">
             <label for="payment" class="form-label">Status de Pagamento:</label>
             <select class="form-select" id="payment" name="payment">
               <option value="">Todos</option>
@@ -89,7 +107,7 @@
         </div>
         {% endif %}
 
-        <div class="d-flex justify-content-between mt-3">
+        <div class="d-flex card-footer justify-content-between mt-3">
           <button type="submit" class="btn btn-primary">Aplicar Filtros</button>
           <a href="{{ request.path }}" class="btn btn-secondary">Limpar Filtros</a>
         </div>
@@ -113,14 +131,8 @@
   // Auto-abrir os filtros se algum filtro estiver ativo
   document.addEventListener('DOMContentLoaded', function() {
     const urlParams = new URLSearchParams(window.location.search);
-    const hasFilters = urlParams.has('description') ||
-                      urlParams.has('comments') ||
-                      urlParams.has('client_name') ||
-                      urlParams.has('payment') ||
-                      urlParams.has('start_date') ||
-                      urlParams.has('end_date') ||
-                      urlParams.has('return_start_date') ||
-                      urlParams.has('return_end_date');
+    const hasFilters = Array.from(['description', 'comments', 'client_name', 'client_email', 'client_address', 'client_cpf', 'client_cnpj', 'payment', 'start_date', 'end_date', 'return_start_date', 'return_end_date'])
+      .some(param => urlParams.has(param));
 
     if (hasFilters) {
       const filterSection = document.getElementById('filter-section');

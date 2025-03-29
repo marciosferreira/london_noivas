@@ -1,31 +1,38 @@
-<!-- Info Modal Component -->
 <div class="modal fade" id="infoModal" tabindex="-1" aria-labelledby="infoModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="infoModalLabel">Mais detalhes</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <h5 class="modal-title">Detalhes do Cliente</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
         <p>
-          <strong>Cliente:</strong>
+          <strong>Nome:</strong>
           <span id="modalName"></span>
-        </p>
-        <p>
-          <strong>Descrição:</strong>
-          <span id="modalDescription"></span>
         </p>
         <p>
           <strong>Telefone:</strong>
           <span id="modalPhone"></span>
         </p>
         <p>
-          <strong>Valor(R$):</strong>
-          <span id="modalValue"></span>
+          <strong>Email:</strong>
+          <span id="modalEmail"></span>
         </p>
         <p>
-          <strong>Observações:</strong>
-          <span id="modalObs"></span>
+          <strong>Endereço:</strong>
+          <span id="modalAddress"></span>
+        </p>
+        <p>
+          <strong>CPF:</strong>
+          <span id="modalCPF"></span>
+        </p>
+        <p>
+          <strong>CNPJ:</strong>
+          <span id="modalCNPJ"></span>
+        </p>
+        <p>
+          <strong>Data de Cadastro:</strong>
+          <span id="modalCreated"></span>
         </p>
       </div>
     </div>
@@ -36,14 +43,22 @@
   document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.open-modal').forEach((cell) => {
       cell.addEventListener('click', function () {
-        let item = JSON.parse(this.getAttribute('data-item'));
-        document.getElementById('modalName').textContent = item.client_name || 'N/A';
-        document.getElementById('modalDescription').textContent = item.description || 'N/A';
-        document.getElementById('modalPhone').textContent = item.client_tel || 'N/A';
-        document.getElementById('modalValue').textContent = item.valor || 'N/A';
-        document.getElementById('modalObs').textContent = item.comments || 'sem observações';
-        let infoModal = new bootstrap.Modal(document.getElementById('infoModal'));
-        infoModal.show();
+        try {
+          const data = JSON.parse(this.getAttribute('data-item'));
+          console.log('🧪 Dados recebidos no modal:', data);
+
+          document.getElementById('modalName').textContent = data.client_name || 'N/A';
+          document.getElementById('modalPhone').textContent = data.client_tel || 'N/A';
+          document.getElementById('modalEmail').textContent = data.client_email || 'N/A';
+          document.getElementById('modalAddress').textContent = data.client_address || 'N/A';
+          document.getElementById('modalCPF').textContent = data.client_cpf || 'N/A';
+          document.getElementById('modalCNPJ').textContent = data.client_cnpj || 'N/A';
+          document.getElementById('modalCreated').textContent = data.created_at || 'N/A';
+
+          new bootstrap.Modal(document.getElementById('infoModal')).show();
+        } catch (e) {
+          console.error('Erro ao abrir modal:', e);
+        }
       });
     });
   });

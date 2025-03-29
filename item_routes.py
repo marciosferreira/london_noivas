@@ -212,7 +212,14 @@ def init_item_routes(
                 "description": request.form.get("description", "").strip() or None,
                 "client_name": request.form.get("client_name") or None,
                 "client_tel": request.form.get("client_tel") or None,
-                "retirado": "retirado" in request.form,  # Checkbox
+                "client_email": request.form.get("client_email") or None,
+                "client_address": request.form.get("client_address") or None,
+                "client_cpf": request.form.get("client_cpf") or None,
+                "client_cnpj": request.form.get("client_cnpj") or None,
+                "client_tel_digits": request.form.get("client_tel_digits") or None,
+                "client_cpf_digits": request.form.get("client_cpf_digits") or None,
+                "client_cnpj_digits": request.form.get("client_cnpj_digits") or None,
+                "retirado": "retirado" in request.form,
                 "valor": request.form.get("valor", "").strip() or None,
                 "pagamento": request.form.get("pagamento") or None,
                 "comments": request.form.get("comments", "").strip() or None,
@@ -1133,34 +1140,14 @@ def init_item_routes(
 def listar_itens_per_transaction(
     status_list, template, title, transactions_table, itens_table, client_id=None
 ):
-    print("jjjjjjjjjjjjjjjj")
-    print(client_id)
-
     if not session.get("logged_in"):
         return redirect(url_for("login"))
 
-    # Obter o account_id do usuário logado
     account_id = session.get("account_id")
     if not account_id:
         print("Erro: Usuário não autenticado corretamente.")
         return redirect(url_for("login"))
 
-    # Parâmetros de paginação
-    page = int(request.args.get("page", 1))
-    per_page = 5
-
-    # Capturar parâmetros adicionais
-    filtro = request.args.get("filter", "todos")
-    description = request.args.get("description")
-    client_name = request.args.get("client_name")
-    payment_status = request.args.get("payment")
-    start_date = request.args.get("start_date")
-    end_date = request.args.get("end_date")
-    return_start_date = request.args.get("return_start_date")
-    return_end_date = request.args.get("return_end_date")
-    comments = request.args.get("comments")
-
-    # Converter intervalos de datas, se fornecidos
     def parse_date(date_str):
         return (
             datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
@@ -1168,306 +1155,209 @@ def listar_itens_per_transaction(
             else None
         )
 
-    start_date = parse_date(start_date)
-    end_date = parse_date(end_date)
-    return_start_date = parse_date(return_start_date)
-    return_end_date = parse_date(return_end_date)
+    def process_dates(item):
+        today = datetime.datetime.now().date()
+        for key in ["rental_date", "return_date", "dev_date"]:
+            date_str = item.get(key)
+            if date_str:
+                try:
+                    date_obj = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
+                    item[f"{key}_formatted"] = date_obj.strftime("%d-%m-%Y")
+                    if key == "return_date":
+                        item["overdue"] = date_obj < today
+                    if key == "rental_date":
+                        item["rental_date_obj"] = date_obj
+                except ValueError:
+                    item[f"{key}_formatted"] = "Data Inválida"
+                    if key == "rental_date":
+                        item["rental_date_obj"] = today
+            else:
+                item[f"{key}_formatted"] = "N/A"
+                if key == "rental_date":
+                    item["rental_date_obj"] = today
+        item.setdefault("overdue", False)
+        return item
 
-    # Para depuração
-    print(
-        f"Filtros aplicados: description={description}, client_name={client_name}, payment={payment_status}"
-    )
-    print(
-        f"Datas: inicio={start_date}, fim={end_date}, devolucao_inicio={return_start_date}, devolucao_fim={return_end_date}"
-    )
+    def apply_filtros_request():
+        filtros = {
+            "filter": request.args.get("filter", "todos"),
+            "description": request.args.get("description"),
+            "client_name": request.args.get("client_name"),
+            "client_email": request.args.get("client_email"),
+            "client_cpf": request.args.get("client_cpf"),
+            "client_cnpj": request.args.get("client_cnpj"),
+            "client_address": request.args.get("client_address"),
+            "payment_status": request.args.get("payment"),
+            "start_date": parse_date(request.args.get("start_date")),
+            "end_date": parse_date(request.args.get("end_date")),
+            "return_start_date": parse_date(request.args.get("return_start_date")),
+            "return_end_date": parse_date(request.args.get("return_end_date")),
+            "comments": request.args.get("comments"),
+        }
+        return filtros
 
-    # 🔹 1º Passo: Filtragem no DynamoDB - Consultar transações do usuário
-    # Começamos com a filtragem por account_id
-    expression_names = {"#account_id": "account_id"}
-    expression_values = {":account_id": account_id}
-    filter_expression = ""
+    def montar_filtro_dynamodb(account_id, filtros):
+        names = {"#account_id": "account_id"}
+        values = {":account_id": account_id}
+        conditions = []
 
-    # Adicionar filtros diretos se possível
-    if client_name:
-        expression_names["#client_name"] = "client_name"
-        expression_values[":client_name"] = client_name.lower()
-        filter_expression += " AND contains(lower(#client_name), :client_name)"
-
-    if payment_status:
-        expression_names["#pagamento"] = "pagamento"
-        expression_values[":pagamento"] = payment_status
-        filter_expression += " AND #pagamento = :pagamento"
-
-    # Construir a expressão de filtro por intervalo de datas de aluguel
-    if start_date or end_date:
-        expression_names["#rental_date"] = "rental_date"
-        if start_date:
-            expression_values[":start_date"] = start_date.strftime("%Y-%m-%d")
-            filter_expression += " AND #rental_date >= :start_date"
-        if end_date:
-            expression_values[":end_date"] = end_date.strftime("%Y-%m-%d")
-            filter_expression += " AND #rental_date <= :end_date"
-
-    # Construir a expressão de filtro por intervalo de datas de devolução
-    if return_start_date or return_end_date:
-        expression_names["#return_date"] = "return_date"
-        if return_start_date:
-            expression_values[":return_start_date"] = return_start_date.strftime(
-                "%Y-%m-%d"
-            )
-            filter_expression += " AND #return_date >= :return_start_date"
-        if return_end_date:
-            expression_values[":return_end_date"] = return_end_date.strftime("%Y-%m-%d")
-            filter_expression += " AND #return_date <= :return_end_date"
-
-    # Remover o " AND " inicial se houver filtros
-    if filter_expression:
-        filter_expression = filter_expression[5:]  # Remove o primeiro " AND "
-
-    # Consulta base por account_id
-    if filter_expression:
-        response_account = transactions_table.query(
-            IndexName="account_id-index",
-            KeyConditionExpression="#account_id = :account_id",
-            FilterExpression=filter_expression,
-            ExpressionAttributeNames=expression_names,
-            ExpressionAttributeValues=expression_values,
-        )
-    else:
-        response_account = transactions_table.query(
-            IndexName="account_id-index",
-            KeyConditionExpression="#account_id = :account_id",
-            ExpressionAttributeNames=expression_names,
-            ExpressionAttributeValues=expression_values,
-        )
-
-    transactions_account = response_account.get("Items", [])
-
-    print(f"Transações após filtro por account_id: {len(transactions_account)}")
-
-    if not transactions_account:
-        flash("Nenhum item encontrado com os filtros aplicados.", "warning")
-        return render_template(
-            template,
-            itens=[],
-            page=1,
-            total_pages=1,
-            current_filter=filtro,
-            title=title,
-        )
-
-    # 🔹 2º Passo: Filtrar por status
-    status_filter = " OR ".join([f"#status = :{s}" for s in range(len(status_list))])
-    status_values = {f":{s}": status for s, status in enumerate(status_list)}
-
-    expression_names["#status"] = "status"
-    expression_values.update(status_values)
-
-    # Aplicar filtro de status separadamente, pois status é o índice principal
-    transactions_status = []
-    for iten_status in status_list:
-        response_status = transactions_table.query(
-            IndexName="status-index",
-            KeyConditionExpression="#status = :status_value",
-            ExpressionAttributeNames={"#status": "status"},
-            ExpressionAttributeValues={":status_value": iten_status},
-        )
-        transactions_status.extend(response_status.get("Items", []))
-
-    print(f"Transações após filtro por status: {len(transactions_status)}")
-
-    if not transactions_status:
-        flash("Nenhum item encontrado com os filtros aplicados.", "warning")
-        return render_template(
-            template,
-            itens=[],
-            page=1,
-            total_pages=1,
-            current_filter=filtro,
-            title=title,
-        )
-    print("CCCCCCCCIS")
-    print(client_id)
-    # 🔹 Filtrar por client_id se for fornecido
-    if client_id:
-        transactions_account = [
-            txn for txn in transactions_account if txn.get("client_id") == client_id
+        campos_texto = [
+            ("client_name", True),
+            ("client_email", True),
+            ("client_address", True),
+            ("client_cpf", False),
+            ("client_cnpj", False),
+            ("pagamento", False),
         ]
-        transactions_status = [
-            txn for txn in transactions_status if txn.get("client_id") == client_id
-        ]
+        for campo, use_lower in campos_texto:
+            valor = filtros.get(campo if campo != "pagamento" else "payment_status")
+            if valor:
+                key = f"#{campo}"
+                val = f":{campo}"
+                names[key] = campo
+                values[val] = valor.lower() if use_lower else valor
+                if use_lower:
+                    conditions.append(f"contains(lower({key}), {val})")
+                else:
+                    conditions.append(f"{key} = {val}")
 
-        # 🚨 Verificar se ainda há transações após o filtro
-        if not transactions_account or not transactions_status:
-            flash("Nenhuma transação encontrada para este cliente.", "warning")
-            return render_template(
-                template,
-                itens=[],
-                page=1,
-                total_pages=1,
-                current_filter=filtro,
-                title=title,
+        for data_campo, op, val_key in [
+            ("rental_date", ">=", ":start_date"),
+            ("rental_date", "<=", ":end_date"),
+            ("return_date", ">=", ":return_start_date"),
+            ("return_date", "<=", ":return_end_date"),
+        ]:
+            valor = filtros.get(val_key.strip(":"))
+            if valor:
+                names[f"#{data_campo}"] = data_campo
+                values[val_key] = valor.strftime("%Y-%m-%d")
+                conditions.append(f"#{data_campo} {op} {val_key}")
+
+        return names, values, " AND ".join(conditions)
+
+    def buscar_transacoes_por(account_id, status_list, filtros):
+        names, values, filtro_expr = montar_filtro_dynamodb(account_id, filtros)
+        base_query = {
+            "IndexName": "account_id-index",
+            "KeyConditionExpression": "#account_id = :account_id",
+            "ExpressionAttributeNames": names,
+            "ExpressionAttributeValues": values,
+        }
+        if filtro_expr:
+            base_query["FilterExpression"] = filtro_expr
+        trans_acc = transactions_table.query(**base_query).get("Items", [])
+
+        trans_status = []
+        for s in status_list:
+            response = transactions_table.query(
+                IndexName="status-index",
+                KeyConditionExpression="#status = :status_value",
+                ExpressionAttributeNames={"#status": "status"},
+                ExpressionAttributeValues={":status_value": s},
             )
+            trans_status.extend(response.get("Items", []))
 
-    # 🔹 3º Passo: Filtrar os itens que aparecem em AMBAS as consultas (FORA do loop!)
-    filtered_transactions = {}
+        return trans_acc, trans_status
 
-    # Obter transações que estão em ambos os conjuntos
-    for txn in transactions_account:
-        txn_id = txn.get("transaction_id")
-        # Verificar se esta transação também está no outro conjunto
-        if (
-            any(t.get("transaction_id") == txn_id for t in transactions_status)
-            and "item_id" in txn
-        ):
-            item_id = txn["item_id"]
-            if item_id not in filtered_transactions:
-                filtered_transactions[item_id] = []
-            filtered_transactions[item_id].append(txn)
+    def combinar_transacoes(trans_acc, trans_status, client_id=None):
+        acc_ids = {
+            txn["transaction_id"]
+            for txn in trans_acc
+            if not client_id or txn.get("client_id") == client_id
+        }
+        status_ids = {
+            txn["transaction_id"]
+            for txn in trans_status
+            if not client_id or txn.get("client_id") == client_id
+        }
+        comuns = acc_ids & status_ids
+        mapa = {}
+        for txn in trans_acc:
+            if txn["transaction_id"] in comuns:
+                mapa.setdefault(txn["item_id"], []).append(txn)
+        return mapa
 
-    print(
-        f"Transações após intersecção: {sum(len(txns) for txns in filtered_transactions.values())}"
-    )
-
-    # 🔹 4º Passo: Buscar os itens na itens_table com base nos item_ids coletados
-    items = []
-    for item_id, txn_list in filtered_transactions.items():
-        item_response = itens_table.get_item(Key={"item_id": item_id})
-        item_data = item_response.get("Item")
-
-        if item_data:
-            # Aplicar filtro de descrição e comentários aqui para os itens
-            if (
-                description
-                and description.lower() not in item_data.get("description", "").lower()
-            ):
+    def montar_itens(mapa_txn, filtros):
+        itens = []
+        for item_id, transacoes in mapa_txn.items():
+            item_data = itens_table.get_item(Key={"item_id": item_id}).get("Item")
+            if not item_data:
                 continue
 
             if (
-                comments
-                and comments.lower() not in item_data.get("comments", "").lower()
+                filtros["description"]
+                and filtros["description"].lower()
+                not in item_data.get("description", "").lower()
+            ):
+                continue
+            if (
+                filtros["comments"]
+                and filtros["comments"].lower()
+                not in item_data.get("comments", "").lower()
             ):
                 continue
 
-            for txn_data in txn_list:
-                item_copy = item_data.copy()
-                item_copy.update(
+            for txn in transacoes:
+                combinado = item_data.copy()
+                combinado.update(
                     {
-                        "transaction_id": txn_data.get("transaction_id"),
-                        "transaction_status": txn_data.get("status"),
-                        "transaction_previous_status": txn_data.get("previous_status"),
-                        "client_name": txn_data.get("client_name"),
-                        "client_tel": txn_data.get("client_tel"),
-                        "parent_transaction_id": txn_data.get("parent_transaction_id"),
-                        "rental_date": txn_data.get("rental_date"),
-                        "return_date": txn_data.get("return_date"),
-                        "pagamento": txn_data.get("pagamento"),
-                        "comments": txn_data.get("comments")
+                        "transaction_id": txn.get("transaction_id"),
+                        "transaction_status": txn.get("status"),
+                        "transaction_previous_status": txn.get("previous_status"),
+                        "client_id": txn.get("client_id"),
+                        "client_name": txn.get("client_name"),
+                        "client_tel": txn.get("client_tel"),
+                        "client_email": txn.get("client_email"),
+                        "client_cpf": txn.get("client_cpf"),
+                        "client_cnpj": txn.get("client_cnpj"),
+                        "client_address": txn.get("client_address"),
+                        "created_at": txn.get("created_at"),
+                        "parent_transaction_id": txn.get("parent_transaction_id"),
+                        "rental_date": txn.get("rental_date"),
+                        "return_date": txn.get("return_date"),
+                        "pagamento": txn.get("pagamento"),
+                        "comments": txn.get("comments")
                         or item_data.get("comments", ""),
-                        "valor": txn_data.get("valor"),
-                        "retirado": txn_data.get("retirado"),
-                        "dev_date": txn_data.get("dev_date"),
-                        "deleted_date": txn_data.get("deleted_date"),
-                        "edited_date": txn_data.get("edited_date"),
+                        "valor": txn.get("valor"),
+                        "retirado": txn.get("retirado"),
+                        "dev_date": txn.get("dev_date"),
+                        "deleted_date": txn.get("deleted_date"),
+                        "edited_date": txn.get("edited_date"),
                     }
                 )
-                items.append(item_copy)
+                itens.append(process_dates(combinado))
+        return itens
 
-    # Processar datas para exibição
-    today = datetime.datetime.now().date()
-    for dress in items:
-        # Processar return_date
-        return_date_str = dress.get("return_date")
-        if return_date_str:
-            try:
-                return_date = datetime.datetime.strptime(
-                    return_date_str, "%Y-%m-%d"
-                ).date()
-                dress["overdue"] = return_date < today
-                dress["return_date_formatted"] = return_date.strftime("%d-%m-%Y")
-            except ValueError:
-                dress["overdue"] = False
-                dress["return_date_formatted"] = "Data Inválida"
-        else:
-            dress["overdue"] = False
-            dress["return_date_formatted"] = "N/A"
+    def filtrar_por_categoria(itens, categoria):
+        if categoria == "reservados":
+            return [i for i in itens if not i.get("retirado")]
+        if categoria == "retirados":
+            return [i for i in itens if i.get("retirado")]
+        if categoria == "atrasados":
+            return [i for i in itens if i.get("overdue")]
+        if categoria == "deleted":
+            return [i for i in itens if i.get("transaction_status") == "deleted"]
+        if categoria == "version":
+            return [i for i in itens if i.get("transaction_status") == "version"]
+        return itens
 
-        # Processar rental_date
-        rental_date_str = dress.get("rental_date")
-        if rental_date_str:
-            try:
-                rental_date = datetime.datetime.strptime(
-                    rental_date_str, "%Y-%m-%d"
-                ).date()
-                dress["rental_date_formatted"] = rental_date.strftime("%d-%m-%Y")
-                dress["rental_date_obj"] = rental_date
-            except ValueError:
-                dress["rental_date_formatted"] = "Data Inválida"
-                dress["rental_date_obj"] = today
-        else:
-            dress["rental_date_formatted"] = "N/A"
-            dress["rental_date_obj"] = today
+    filtros = apply_filtros_request()
+    trans_acc, trans_status = buscar_transacoes_por(account_id, status_list, filtros)
+    mapa_txn = combinar_transacoes(trans_acc, trans_status, client_id)
+    itens_combinados = montar_itens(mapa_txn, filtros)
+    filtrados = filtrar_por_categoria(itens_combinados, filtros["filter"])
 
-        # Processar dev_date
-        if dress.get("dev_date"):
-            try:
-                dev_date_obj = datetime.datetime.strptime(
-                    dress.get("dev_date"), "%Y-%m-%d"
-                )
-                dress["dev_date_formatted"] = dev_date_obj.strftime("%d-%m-%Y")
-            except ValueError:
-                print("no dev_date")
-
-    # Aplicar filtro principal (reservados, retirados, atrasados)
-    if filtro == "reservados":
-        filtered_items = [dress for dress in items if not dress.get("retirado", False)]
-    elif filtro == "retirados":
-        filtered_items = [dress for dress in items if dress.get("retirado", False)]
-    elif filtro == "atrasados":
-        filtered_items = [dress for dress in items if dress.get("overdue", False)]
-    elif filtro == "deleted":
-        filtered_items = [
-            dress
-            for dress in items
-            if dress.get("status") == "deleted"
-            or dress.get("transaction_status") == "deleted"
-        ]
-    elif filtro == "version":
-        filtered_items = [
-            dress
-            for dress in items
-            if dress.get("status") == "version"
-            or dress.get("transaction_status") == "version"
-        ]
-    else:  # Default: "todos"
-        filtered_items = items
-
-    print(f"Itens após todos os filtros: {len(filtered_items)}")
-
-    if not filtered_items:
-        flash("Nenhum item encontrado com os filtros aplicados.", "warning")
-        return render_template(
-            template,
-            itens=[],
-            page=1,
-            total_pages=1,
-            current_filter=filtro,
-            title=title,
-        )
-
-    # 🔹 Paginação - aplicada APÓS todos os filtros
-    total_items = len(filtered_items)
-    total_pages = (total_items + per_page - 1) // per_page
-    start = (page - 1) * per_page
-    end = start + per_page
-    paginated_items = filtered_items[start:end]
+    total = len(filtrados)
+    total_pages = (total + 4) // 5
+    page = int(request.args.get("page", 1))
+    paginados = filtrados[(page - 1) * 5 : page * 5]
 
     return render_template(
         template,
-        itens=paginated_items,
+        itens=paginados,
         page=page,
         total_pages=total_pages,
-        current_filter=filtro,
+        current_filter=filtros["filter"],
         title=title,
         add_route=url_for("trash_transactions"),
         next_url=request.url,
@@ -1491,8 +1381,8 @@ def list_raw_itens(status_list, template, title, itens_table):
     # Capturar parâmetros de filtro
     description = request.args.get("description")
     comments = request.args.get("comments")
-
-    print(f"Filtros aplicados: description={description}, comments={comments}")
+    min_valor = request.args.get("min_valor")
+    max_valor = request.args.get("max_valor")
 
     # Construir a expressão de filtro diretamente para o DynamoDB
     filter_expressions = []
@@ -1539,7 +1429,30 @@ def list_raw_itens(status_list, template, title, itens_table):
     response = itens_table.query(**scan_kwargs)
     items = response.get("Items", [])
 
-    print(f"Itens encontrados após filtragem: {len(items)}")
+    # Filtrar por valor mínimo e máximo (localmente, pois DynamoDB armazena strings)
+    try:
+        min_valor = float(min_valor) if min_valor else None
+        max_valor = float(max_valor) if max_valor else None
+    except ValueError:
+        min_valor = None
+        max_valor = None
+
+    filtered_items = []
+    for item in items:
+        valor_str = item.get("valor")
+        try:
+            valor_float = float(valor_str)
+        except (ValueError, TypeError):
+            valor_float = None
+
+        if min_valor is not None and (valor_float is None or valor_float < min_valor):
+            continue
+        if max_valor is not None and (valor_float is None or valor_float > max_valor):
+            continue
+
+        filtered_items.append(item)
+
+    items = filtered_items
 
     if not items:
         flash("Nenhum item encontrado com os filtros aplicados.", "warning")

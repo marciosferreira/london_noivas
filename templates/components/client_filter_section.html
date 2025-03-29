@@ -1,13 +1,6 @@
 <!-- Cliente Filter Section Component -->
 <div class="d-flex justify-content-between align-items-center mb-0">
 
-
-
-
-
-
-
-
 <!-- Container dos botões -->
 <div class="d-flex flex-wrap gap-2 align-items-center justify-content-end w-100 w-sm-auto">
   <!-- Botão de Filtros -->
@@ -20,17 +13,10 @@
 </div>
 </div>
 
-
-
-
-
-
-
-
 </div>
 
 <!-- Seção de Filtros (inicialmente escondida) -->
-<div id="filter-section" class="{% if not has_filters %}d-none{% endif %} mb-4">
+<div id="filter-section" class="{% if not has_filters %}d-none{% endif %} mt-3 mb-4">
   <form method="GET" action="{{ url_for('listar_clientes') }}">
     <div class="card shadow-sm">
       <div class="card-header bg-light">

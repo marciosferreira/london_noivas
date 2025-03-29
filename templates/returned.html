@@ -37,27 +37,20 @@
             />
             {% endif %}
           </td>
-
           <!-- prettier-ignore -->
           <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Cliente">
             {{ item.client_name | default('', true) | truncate(10, True) }}
           </td>
-          <!-- prettier-ignore -->
-          <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Retirada Prevista">{{ item.rental_date_formatted }}</td>
-          <!-- prettier-ignore -->
-          <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Devolução Prevista">{{ item.return_date_formatted }}</td>
-          <!-- prettier-ignore -->
-          <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Retirado">{% if item.retirado %}Sim{% else %}Não{% endif %}</td>
-          <!-- prettier-ignore -->
-          <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Pagamento">{{ item.pagamento }}</td>
-          <!-- prettier-ignore -->
-          <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Observações">
-            {{ item.comments | default('', true) | truncate(10, True) }}
-          </td>
+
+          <!-- Demais não precisam mais do data-item -->
+          <td data-label="Retirada Prevista">{{ item.rental_date_formatted }}</td>
+          <td data-label="Devolução Prevista">{{ item.return_date_formatted }}</td>
+          <td data-label="Retirado">{% if item.retirado %}Sim{% else %}Não{% endif %}</td>
+          <td data-label="Pagamento">{{ item.pagamento }}</td>
+          <td data-label="Observações">{{ item.comments | default('', true) | truncate(10, True) }}</td>
 
           <td data-label="Ações">
             <div class="d-flex flex-wrap gap-2 justify-content-center align-items-center">
-              <!-- Delete Transaction Button -->
               <form
                 method="POST"
                 action="{{ url_for('delete_transaction', transaction_id=item.transaction_id, next=request.url) }}"
@@ -72,8 +65,6 @@
                   Deletar
                 </button>
               </form>
-
-              <!-- Edit Transaction Button -->
               <a
                 href="{{ url_for('edit_transaction', transaction_id=item.transaction_id, next=request.url) }}"
                 class="action-button warning"
