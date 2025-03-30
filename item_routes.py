@@ -85,8 +85,8 @@ def init_item_routes(
             itens_table,
         )
 
-    @app.route("/add", methods=["GET", "POST"])
-    def add():
+    @app.route("/add_item", methods=["GET", "POST"])
+    def add_item():
         if not session.get("logged_in"):
             return redirect(url_for("login"))
 
@@ -104,15 +104,15 @@ def init_item_routes(
 
         if request.method == "POST":
             # Capturar dados do formulário
-            status = request.form.get(
-                "status"
-            )  # Captura o status: rented, returned, available
+            status = request.form.get("status")  # status: rented, returned, available
             description = request.form.get("description").strip()
             comments = request.form.get("comments").strip()
             valor = request.form.get("valor").strip()
+            item_custom_id = request.form.get(
+                "item_custom_id", ""
+            ).strip()  # 🟢 novo campo
 
-            image_url = "N/A"  # Define um valor padrão ou dinamo db não cria o campo
-
+            image_url = "N/A"
             image_file = request.files.get("image_file")
 
             # Validar e fazer upload da imagem, se houver
@@ -126,33 +126,34 @@ def init_item_routes(
             item_id = str(uuid.uuid4())
 
             # Adicionar o novo item ao DynamoDB
-            itens_table.put_item(
-                Item={
-                    "user_id": user_id,
-                    "account_id": account_id,
-                    "item_id": item_id,
-                    "description": description,
-                    "comments": comments,
-                    "image_url": image_url,
-                    "status": origin_status,
-                    "previous_status": status,
-                    "valor": valor,
-                }
-            )
+            item_data = {
+                "user_id": user_id,
+                "account_id": account_id,
+                "item_id": item_id,
+                "description": description,
+                "comments": comments,
+                "image_url": image_url,
+                "status": origin_status,
+                "previous_status": status,
+                "valor": valor,
+            }
 
-            flash(
-                f"Item adicionado com sucesso! ",
-                "success",
-            )
+            # 🟢 Incluir somente se não estiver vazio
+            if item_custom_id:
+                item_data["item_custom_id"] = item_custom_id
+
+            itens_table.put_item(Item=item_data)
+
+            flash("Item adicionado com sucesso!", "success")
             if "image_not_allowed" in locals() and image_not_allowed:
                 flash(
                     "Extensão de arquivo não permitida para imagem. Use apenas JPEG, PNG e WEBP.",
                     "danger",
                 )
-            # Redirecionar para a página de origem
+
             return redirect(next_page)
 
-        return render_template("add.html", next=next_page)
+        return render_template("add_item.html", next=next_page)
 
     ######################################################################################################
 
@@ -259,15 +260,18 @@ def init_item_routes(
             # Criar dinamicamente os updates para evitar erro com valores vazios
             update_expression = []
             expression_values = {}
+            expression_names = {}
 
             for key, value in changes.items():
-                # Ignorar completamente o campo "status"
-                if key == "status":  # Ignorando 'status' na atualização
+                if key == "status":
                     continue
 
-                alias = f":{key[:3]}"  # Criar alias curto para valores
-                update_expression.append(f"{key} = {alias}")
-                expression_values[alias] = value
+                field_alias = f"#{key}"  # nome do campo com #
+                value_alias = f":val_{key}"  # valor do campo com :
+
+                update_expression.append(f"{field_alias} = {value_alias}")
+                expression_values[value_alias] = value
+                expression_names[field_alias] = key
 
             # Se não houver nada para atualizar, evitar erro no DynamoDB
             if not update_expression:
@@ -280,6 +284,7 @@ def init_item_routes(
                     Key={"transaction_id": transaction_id},
                     UpdateExpression="SET " + ", ".join(update_expression),
                     ExpressionAttributeValues=expression_values,
+                    ExpressionAttributeNames=expression_names,
                 )
 
             flash("Item atualizado com sucesso.", "success")
@@ -337,8 +342,8 @@ def init_item_routes(
 
     ########################################################################################################
 
-    @app.route("/edit_small/<item_id>", methods=["GET", "POST"])
-    def edit_small(item_id):
+    @app.route("/edit_item/<item_id>", methods=["GET", "POST"])
+    def edit_item(item_id):
         if not session.get("logged_in"):
             return redirect(url_for("login"))
 
@@ -373,7 +378,9 @@ def init_item_routes(
 
             # 🔹 Processar os demais dados do formulário
             new_data = process_form_data(request, item)
-            new_data["image_url"] = new_image_url
+
+            # 🟢 Garantir que o novo item_custom_id seja considerado
+            new_data["item_custom_id"] = request.form.get("item_custom_id", "").strip()
 
             # 🔹 Comparar novos valores com os antigos para detectar mudanças
             changes = {
@@ -423,6 +430,7 @@ def init_item_routes(
         # 🔹 Preparar dados para o template
         item = {
             "item_id": item.get("item_id"),
+            "item_custom_id": item.get("item_custom_id"),
             "description": item.get("description"),
             "client_name": item.get("client_name"),
             "client_tel": item.get("client_tel"),
@@ -435,7 +443,7 @@ def init_item_routes(
             "pagamento": item.get("pagamento"),
         }
 
-        return render_template("edit_small.html", item=item)
+        return render_template("edit_item.html", item=item)
 
     ##################################################################################################
     @app.route("/rent/<item_id>", methods=["GET", "POST"])
@@ -474,53 +482,70 @@ def init_item_routes(
             client_name = request.form.get("client_name").strip()
             client_id = request.form.get("client_id")
             client_tel = request.form.get("client_tel").strip()
-            retirado = "retirado" in request.form  # Verifica checkbox
+            client_email = request.form.get("client_email", "").strip()
+            client_address = request.form.get("client_address", "").strip()
+            client_cpf = request.form.get("client_cpf", "").strip()
+            client_cnpj = request.form.get("client_cnpj", "").strip()
+            client_obs = request.form.get("client_obs", "").strip()
+
+            retirado = "retirado" in request.form
             valor = request.form.get("valor")
             pagamento = request.form.get("pagamento")
             comments = request.form.get("comments")
 
             try:
                 rental_str, return_str = range_date.split(" - ")
-
-                # Passo 1: interpretar como %d/%m/%Y
-                rental_date = datetime.datetime.strptime(rental_str.strip(), "%d/%m/%Y")
-                return_date = datetime.datetime.strptime(return_str.strip(), "%d/%m/%Y")
-
-                # Passo 2: converter para %Y/%m/%d
-                rental_date = rental_date.strftime("%Y-%m-%d")
-                return_date = return_date.strftime("%Y-%m-%d")
-
+                rental_date = datetime.datetime.strptime(
+                    rental_str.strip(), "%d/%m/%Y"
+                ).strftime("%Y-%m-%d")
+                return_date = datetime.datetime.strptime(
+                    return_str.strip(), "%d/%m/%Y"
+                ).strftime("%Y-%m-%d")
             except ValueError:
                 flash("Formato de data inválido. Use DD/MM/AAAA.", "danger")
                 return render_template(
                     "rent.html", item=item, reserved_ranges=reserved_ranges
                 )
-            print(client_id)
-            # Cliente não encontrado, criar um novo
+
+            # Criar client_id se necessário
             if not client_id:
                 client_id = str(uuid.uuid4())
 
+            # Inserir cliente no banco
             clients_table.put_item(
                 Item={
                     "client_id": client_id,
                     "account_id": session.get("account_id"),
                     "client_name": client_name,
                     "client_tel": client_tel,
+                    "client_email": client_email,
+                    "client_address": client_address,
+                    "client_cpf": client_cpf,
+                    "client_cnpj": client_cnpj,
+                    "client_obs": client_obs,
                     "created_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 }
             )
 
-            # 🔹 Criar uma transação na tabela alugueqqc_transactions
-            transaction_id = str(uuid.uuid4())
+            # Obter o item_custom_id do item original
+            item_custom_id = item.get("item_custom_id", "")
 
+            # Criar transação
+            transaction_id = str(uuid.uuid4())
             transactions_table.put_item(
                 Item={
                     "transaction_id": transaction_id,
                     "account_id": session.get("account_id"),
                     "item_id": item_id,
+                    "item_custom_id": item_custom_id,  # ✅ incluído
                     "client_id": client_id,
                     "client_name": client_name,
                     "client_tel": client_tel,
+                    "client_email": client_email,
+                    "client_address": client_address,
+                    "client_cpf": client_cpf,
+                    "client_cnpj": client_cnpj,
+                    "client_obs": client_obs,
                     "comments": comments,
                     "valor": valor,
                     "pagamento": pagamento,
@@ -1277,56 +1302,36 @@ def listar_itens_per_transaction(
                 mapa.setdefault(txn["item_id"], []).append(txn)
         return mapa
 
-    def montar_itens(mapa_txn, filtros):
-        itens = []
-        for item_id, transacoes in mapa_txn.items():
+    def montar_transacoes_com_imagem(mapa_txn, filtros):
+        transacoes = []
+
+        for item_id, transacoes_por_item in mapa_txn.items():
             item_data = itens_table.get_item(Key={"item_id": item_id}).get("Item")
             if not item_data:
                 continue
 
-            if (
-                filtros["description"]
-                and filtros["description"].lower()
-                not in item_data.get("description", "").lower()
-            ):
-                continue
-            if (
-                filtros["comments"]
-                and filtros["comments"].lower()
-                not in item_data.get("comments", "").lower()
-            ):
-                continue
+            for txn in transacoes_por_item:
+                # Skip por filtro de descrição/comentários, se necessário
+                if (
+                    filtros["description"]
+                    and filtros["description"].lower()
+                    not in txn.get("description", "").lower()
+                ):
+                    continue
+                if (
+                    filtros["comments"]
+                    and filtros["comments"].lower()
+                    not in txn.get("comments", "").lower()
+                ):
+                    continue
 
-            for txn in transacoes:
-                combinado = item_data.copy()
-                combinado.update(
-                    {
-                        "transaction_id": txn.get("transaction_id"),
-                        "transaction_status": txn.get("status"),
-                        "transaction_previous_status": txn.get("previous_status"),
-                        "client_id": txn.get("client_id"),
-                        "client_name": txn.get("client_name"),
-                        "client_tel": txn.get("client_tel"),
-                        "client_email": txn.get("client_email"),
-                        "client_cpf": txn.get("client_cpf"),
-                        "client_cnpj": txn.get("client_cnpj"),
-                        "client_address": txn.get("client_address"),
-                        "created_at": txn.get("created_at"),
-                        "parent_transaction_id": txn.get("parent_transaction_id"),
-                        "rental_date": txn.get("rental_date"),
-                        "return_date": txn.get("return_date"),
-                        "pagamento": txn.get("pagamento"),
-                        "comments": txn.get("comments")
-                        or item_data.get("comments", ""),
-                        "valor": txn.get("valor"),
-                        "retirado": txn.get("retirado"),
-                        "dev_date": txn.get("dev_date"),
-                        "deleted_date": txn.get("deleted_date"),
-                        "edited_date": txn.get("edited_date"),
-                    }
-                )
-                itens.append(process_dates(combinado))
-        return itens
+                # Só adiciona campos faltantes
+                txn["image_url"] = item_data.get("image_url", "N/A")
+                txn["item_custom_id"] = item_data.get("item_custom_id", "")
+
+                transacoes.append(process_dates(txn))
+
+        return transacoes
 
     def filtrar_por_categoria(itens, categoria):
         if categoria == "reservados":
@@ -1344,13 +1349,16 @@ def listar_itens_per_transaction(
     filtros = apply_filtros_request()
     trans_acc, trans_status = buscar_transacoes_por(account_id, status_list, filtros)
     mapa_txn = combinar_transacoes(trans_acc, trans_status, client_id)
-    itens_combinados = montar_itens(mapa_txn, filtros)
+    itens_combinados = montar_transacoes_com_imagem(mapa_txn, filtros)
     filtrados = filtrar_por_categoria(itens_combinados, filtros["filter"])
 
     total = len(filtrados)
     total_pages = (total + 4) // 5
     page = int(request.args.get("page", 1))
     paginados = filtrados[(page - 1) * 5 : page * 5]
+
+    if not paginados:
+        flash("Nenhum item encontrado para os filtros selecionados.", "warning")
 
     return render_template(
         template,
@@ -1379,6 +1387,7 @@ def list_raw_itens(status_list, template, title, itens_table):
     per_page = 5
 
     # Capturar parâmetros de filtro
+    item_custom_id = request.args.get("item_custom_id")
     description = request.args.get("description")
     comments = request.args.get("comments")
     min_valor = request.args.get("min_valor")
@@ -1401,6 +1410,11 @@ def list_raw_itens(status_list, template, title, itens_table):
         filter_expressions.append(f"({' OR '.join(status_filter)})")
 
     # Adicionar filtros de texto se fornecidos
+    if item_custom_id:
+        expression_attr_names["#item_custom_id"] = "item_custom_id"
+        expression_attr_values[":item_custom_id"] = item_custom_id.lower()
+        filter_expressions.append("contains(#item_custom_id, :item_custom_id)")
+
     if description:
         expression_attr_names["#description"] = "description"
         expression_attr_values[":description"] = description.lower()
@@ -1462,7 +1476,7 @@ def list_raw_itens(status_list, template, title, itens_table):
             page=1,
             total_pages=1,
             title=title,
-            add_route=url_for("add"),
+            add_route=url_for("add_item"),
             next_url=request.url,
         )
 
@@ -1479,6 +1493,6 @@ def list_raw_itens(status_list, template, title, itens_table):
         page=page,
         total_pages=total_pages,
         title=title,
-        add_route=url_for("add"),
+        add_route=url_for("add_item"),
         next_url=request.url,
     )

@@ -11,7 +11,7 @@ body {
 
 .wrapper {
   flex: 1;
-  padding-top: 20px; /* Space for fixed header */
+  padding-top: 50px; /* Space for fixed header */
   padding-bottom: 30px; /* Space for footer */
   width: 100%;
   max-width: 1200px;

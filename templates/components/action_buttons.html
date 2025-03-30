@@ -2,60 +2,41 @@
 <div class="d-flex flex-wrap gap-2 justify-content-center align-items-center">
   {% if show_delete %}
   <!-- Botão Deletar -->
-  <form method="POST" action="{{ url_for('delete', item_id=item.item_id, next=request.url) }}" style="display: inline;">
-    <button
-      type="submit"
-      class="action-button danger"
-      onclick="return confirm('Tem certeza de que deseja deletar este item?');"
-      title="Deletar"
-    >
+  <form method="POST" action="{{ url_for('delete', item_id=item.item_id, next=request.url) }}" style="display: inline">
+    <button type="submit" class="action-button danger" onclick="return confirm('Tem certeza de que deseja deletar este item?');" title="Deletar">
       Deletar
     </button>
   </form>
-  {% endif %}
-
-  {% if show_edit %}
+  {% endif %} {% if show_edit %}
   <!-- Botão Editar -->
-  <a href="{{ url_for('edit_small', item_id=item.item_id, next=request.url) }}" class="action-button warning" title="Editar">
-    Editar
-  </a>
-  {% endif %}
-
-  {% if show_rent %}
+  <a href="{{ url_for('edit_item', item_id=item.item_id, next=request.url) }}" class="action-button warning" title="Editar">Editar</a>
+  {% endif %} {% if show_rent %}
   <!-- Botão Alugar -->
-  <a href="{{ url_for('rent', item_id=item.item_id, rent='true') }}" class="action-button success" title="Alugar">
-    Alugar
-  </a>
-  {% endif %}
-
-  {% if show_archive %}
+  <a href="{{ url_for('rent', item_id=item.item_id, rent='true') }}" class="action-button success" title="Alugar">Alugar</a>
+  {% endif %} {% if show_archive %}
   <!-- Botão Arquivar -->
-  <a href="{{ url_for('mark_archived', item_id=item.item_id, next=request.url) }}"
-     class="action-button info"
-     title="Arquivar"
-     onclick="return confirm('Tem certeza de que deseja arquivar este item?');">
+  <a
+    href="{{ url_for('mark_archived', item_id=item.item_id, next=request.url) }}"
+    class="action-button info"
+    title="Arquivar"
+    onclick="return confirm('Tem certeza de que deseja arquivar este item?');"
+  >
     Arquivar
   </a>
-  {% endif %}
-
-  {% if show_restore %}
+  {% endif %} {% if show_restore %}
   <!-- Botão Restaurar -->
-  <a href="{{ url_for('restore_item', item_id=item.item_id, next=request.url) }}"
-     class="action-button success"
-     title="Restaurar"
-     onclick="return confirm('Tem certeza de que deseja restaurar este item?');">
+  <a
+    href="{{ url_for('restore_item', item_id=item.item_id, next=request.url) }}"
+    class="action-button success"
+    title="Restaurar"
+    onclick="return confirm('Tem certeza de que deseja restaurar este item?');"
+  >
     Restaurar
   </a>
-  {% endif %}
-
-  {% if show_view_transactions %}
+  {% endif %} {% if show_view_transactions %}
   <!-- Botão Ver Transações -->
-  <a href="{{ url_for('client_transactions', client_id=item.client_id) }}" class="action-button info" title="Ver Transações">
-    Ver Transações
-  </a>
-  {% endif %}
-  
-  {% if show_edit_transaction %}
+  <a href="{{ url_for('client_transactions', client_id=item.client_id) }}" class="action-button info" title="Ver Transações">Ver Transações</a>
+  {% endif %} {% if show_edit_transaction %}
   <!-- Botão Editar Transação -->
   <a href="{{ url_for('edit_transaction', transaction_id=item.transaction_id, next=request.url) }}" class="action-button warning" title="Editar">
     Editar

@@ -6,7 +6,7 @@
 <div class="container mt-5 mb2">
   <h2 class="section-title mb-3">Clientes cadastrados</h2>
 
-  {% set show_add_button = True %} {% set add_route = url_for('add') %} {% include "components/client_filter_section.html" with context %}
+  {% set show_add_button = True %} {% set add_route = url_for('add_item') %} {% include "components/client_filter_section.html" with context %}
 
   <!-- Tabela -->
   <div class="table-container mt-4">
@@ -16,6 +16,8 @@
           <th>Nome</th>
           <th>Criado em</th>
           <th>Telefone</th>
+          <th>Observações</th>
+
           <th class="text-center">Ações</th>
           <!-- 🔧 Aqui -->
         </tr>
@@ -29,9 +31,14 @@
             {{ cliente.client_name | default('', true) | truncate(10, True) }}
           </td>
           <!-- prettier-ignore -->
-          <td class="open-modal" data-item='{{ cliente | tojson | safe }}' data-label="Criado em">{{ cliente.created_at }}</td>
+          <td class="open-modal" data-item='{{ cliente | tojson | safe }}' data-label="Criado em">{{ cliente.created_at | format_brasil_data }}</td>
           <!-- prettier-ignore -->
-          <td class="open-modal" data-item='{{ cliente | tojson | safe }}' data-label="Telefone">{{ cliente.client_tel }}</td>
+          <td class="open-modal" data-item='{{ cliente | tojson | safe }}' data-label="Telefone">{{ cliente.client_tel | format_telefone}}</td>
+
+          <!-- prettier-ignore -->
+          <td class="open-modal" data-item='{{ cliente | tojson | safe }}' data-label="Observações">
+            {{ cliente.client_obs | default('', true) | truncate(15, True) }}
+          </td>
 
           <td class="text-end" data-label="Ações">
             <div class="button-stack-right mt-3">

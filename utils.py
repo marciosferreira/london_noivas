@@ -309,22 +309,44 @@ def aplicar_filtro(
         filtered_items = [
             dress
             for dress in filtered_items
-            if dress.get("return_date") and (
-                (not return_start_date or datetime.datetime.strptime(dress["return_date"], "%Y-%m-%d").date() >= return_start_date)
-                and (not return_end_date or datetime.datetime.strptime(dress["return_date"], "%Y-%m-%d").date() <= return_end_date)
+            if dress.get("return_date")
+            and (
+                (
+                    not return_start_date
+                    or datetime.datetime.strptime(
+                        dress["return_date"], "%Y-%m-%d"
+                    ).date()
+                    >= return_start_date
+                )
+                and (
+                    not return_end_date
+                    or datetime.datetime.strptime(
+                        dress["return_date"], "%Y-%m-%d"
+                    ).date()
+                    <= return_end_date
+                )
             )
         ]
 
     # Filtrar por data de devolução específica (dev_date)
     if dev_date:
         try:
-            dev_date_obj = datetime.datetime.strptime(dev_date, "%Y-%m-%d").date() if isinstance(dev_date, str) else dev_date
+            dev_date_obj = (
+                datetime.datetime.strptime(dev_date, "%Y-%m-%d").date()
+                if isinstance(dev_date, str)
+                else dev_date
+            )
             filtered_items = [
-                dress 
-                for dress in filtered_items 
-                if dress.get("dev_date") and datetime.datetime.strptime(dress.get("dev_date"), "%Y-%m-%d").date() == dev_date_obj
+                dress
+                for dress in filtered_items
+                if dress.get("dev_date")
+                and datetime.datetime.strptime(dress.get("dev_date"), "%Y-%m-%d").date()
+                == dev_date_obj
             ]
         except (ValueError, TypeError):
             print(f"Erro ao processar data de devolução: {dev_date}")
 
     return filtered_items
+
+
+from datetime import datetime

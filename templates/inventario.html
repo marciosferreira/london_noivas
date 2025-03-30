@@ -4,7 +4,7 @@
 <div class="container my-3">
   <h2 class="mb-4">Inventário (itens disponíveis por data)</h2>
 
-  {% set show_add_button = True %} {% set add_route = url_for('add') %} {% include 'components/item_filter_section.html' %}
+  {% set show_add_button = True %} {% set add_route = url_for('add_item') %} {% include 'components/item_filter_section.html' %}
 
   <!-- Tabela (que vira "cards" no mobile) -->
   <div class="table-container mt-4">
@@ -12,6 +12,7 @@
       <thead>
         <tr>
           <th>Imagem</th>
+          <th>Item ID#</th>
           <th>Descrição</th>
           <th>Valor</th>
           <th>Comentários do item</th>
@@ -33,6 +34,8 @@
             />
             {% endif %}
           </td>
+          <td data-label="Item ID#">{{ item.item_custom_id or '-' }}</td>
+
           <td data-label="Descrição" style="white-space: pre-wrap; text-align: left">{{ item.description }}</td>
           <td data-label="Valor">{{ item.valor }}</td>
           <td data-label="Comentários do item" style="white-space: pre-wrap; text-align: left">{{ item.comments }}</td>

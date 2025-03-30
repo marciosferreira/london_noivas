@@ -12,7 +12,7 @@
 <!-- Filtros -->
 <div
   id="filter-section"
-  class="{% if not request.args.get('description') and not request.args.get('valor') and not request.args.get('comments') %}d-none{% endif %} mt-3"
+  class="{% if not request.args.get('description') and not request.args.get('valor') and not request.args.get('comments') and not request.args.get('item_custom_id') %}d-none{% endif %} mt-3"
 >
   <div class="card shadow-sm">
     <div class="card-header bg-light">
@@ -21,6 +21,11 @@
     <div class="card-body">
       <form method="GET" action="">
         <div class="row mb-3">
+          <div class="col-md-4">
+            <label for="item_custom_id" class="form-label">Item ID#:</label>
+            <input type="text" class="form-control" id="item_custom_id" name="item_custom_id" value="{{ request.args.get('item_custom_id', '') }}" />
+          </div>
+
           <div class="col-md-4">
             <label for="description" class="form-label">Descrição:</label>
             <input type="text" class="form-control" id="description" name="description" value="{{ request.args.get('description', '') }}" />
@@ -72,7 +77,7 @@
 
   document.addEventListener('DOMContentLoaded', function () {
     const urlParams = new URLSearchParams(window.location.search);
-    const hasFilters = ['description', 'valor', 'comments'].some((param) => urlParams.has(param));
+    const hasFilters = ['description', 'valor', 'comments', 'item_custom_id'].some((param) => urlParams.has(param));
     if (hasFilters) {
       const filterSection = document.getElementById('filter-section');
       if (filterSection) filterSection.classList.remove('d-none');

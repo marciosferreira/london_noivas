@@ -43,7 +43,22 @@
     {% if request.endpoint != 'login' and request.endpoint != 'register' %} {% include 'header.html' %} {% endif %}
 
     <!-- Main Content -->
-    <div class="wrapper">{% block content %}{% endblock %}</div>
+    <div class="wrapper">
+      <div class="container mt-3">
+        {% with messages = get_flashed_messages(with_categories=true) %} {% if messages %}
+        <div class="flashes mb-4">
+          {% for category, message in messages %}
+          <div class="alert alert-{% if category == 'error' %}danger{% else %}{{ category }}{% endif %} alert-dismissible fade show" role="alert">
+            {{ message|safe }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %} {% endwith %}
+      </div>
+
+      {% block content %}{% endblock %}
+    </div>
 
     <!-- Footer -->
     {% include 'footer.html' %}

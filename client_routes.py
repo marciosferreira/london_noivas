@@ -42,6 +42,7 @@ def init_client_routes(app, clients_table, transactions_table, itens_table):
                     "client_id": item.get("client_id", ""),
                     "client_email": item.get("client_email", ""),  # 👈 adiciona aqui
                     "client_address": item.get("client_address", ""),  # 👈 e aqui
+                    "client_obs": item.get("client_obs", ""),  # 👈 e aqui
                 }
                 for item in response.get("Items", [])
             ]
@@ -73,13 +74,14 @@ def init_client_routes(app, clients_table, transactions_table, itens_table):
         client_address = request.args.get("client_address", "").strip()
         client_cpf = request.args.get("client_cpf", "").strip()
         client_cnpj = request.args.get("client_cnpj", "").strip()
+        client_obs = request.args.get("client_obs", "").strip()
 
         # Normalizar dados numéricos
         client_tel = "".join(filter(str.isdigit, client_tel)) if client_tel else ""
         client_cpf = "".join(filter(str.isdigit, client_cpf)) if client_cpf else ""
         client_cnpj = "".join(filter(str.isdigit, client_cnpj)) if client_cnpj else ""
 
-        # 🔹 Buscar todos os clientes do usuário (sem filtros no Dynamo)
+        # 🔹 Buscar todos os clientes do usuário
         response = clients_table.query(
             IndexName="account_id-index",
             KeyConditionExpression="account_id = :account_id",
@@ -87,7 +89,7 @@ def init_client_routes(app, clients_table, transactions_table, itens_table):
         )
         clientes = response.get("Items", [])
 
-        # 🔸 Aplicar os filtros localmente em Python (case insensitive)
+        # 🔸 Aplicar filtros localmente
         def matches(cliente):
             return (
                 (
@@ -106,6 +108,10 @@ def init_client_routes(app, clients_table, transactions_table, itens_table):
                 )
                 and (not client_cpf or client_cpf in cliente.get("client_cpf", ""))
                 and (not client_cnpj or client_cnpj in cliente.get("client_cnpj", ""))
+                and (
+                    not client_obs
+                    or client_obs.lower() in cliente.get("client_obs", "").lower()
+                )
             )
 
         clientes_filtrados = [c for c in clientes if matches(c)]
@@ -126,6 +132,7 @@ def init_client_routes(app, clients_table, transactions_table, itens_table):
                 client_address,
                 client_cpf,
                 client_cnpj,
+                client_obs,  # ✅ incluído aqui também
             ]
         )
 
@@ -244,6 +251,24 @@ def init_client_routes(app, clients_table, transactions_table, itens_table):
             client_id=client_id,
         )
 
+    @app.template_filter("format_brasil_data")
+    def format_brasil_data(value):
+        try:
+            dt = datetime.datetime.strptime(value, "%Y-%m-%d %H:%M:%S")
+            return dt.strftime("%d/%m/%Y %H:%M:%S")
+        except:
+            return value
+
+    @app.template_filter("format_telefone")
+    def format_telefone(value):
+        digits = "".join(filter(str.isdigit, value))
+        if len(digits) == 11:
+            return f"({digits[:2]}) {digits[2:7]}-{digits[7:]}"
+        elif len(digits) == 10:
+            return f"({digits[:2]}) {digits[2:6]}-{digits[6:]}"
+        else:
+            return value
+
 
 def add_client_common(
     request, clients_table, session, flash, redirect, url_for, template
@@ -262,6 +287,8 @@ def add_client_common(
         client_tel_digits = request.form.get("client_tel_digits", "").strip()
         client_cpf_digits = request.form.get("client_cpf_digits", "").strip()
         client_cnpj_digits = request.form.get("client_cnpj_digits", "").strip()
+
+        client_obs = request.form.get("client_obs", "").strip()
 
         if not client_name:
             flash("O nome do cliente é obrigatório.", "error")
@@ -288,6 +315,8 @@ def add_client_common(
             new_client["client_cpf"] = client_cpf_digits
         if client_cnpj_digits:
             new_client["client_cnpj"] = client_cnpj_digits
+        if client_obs:
+            new_client["client_obs"] = client_obs
 
         try:
             clients_table.put_item(Item=new_client)

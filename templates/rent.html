@@ -58,7 +58,7 @@
       name="client_address"
       class="form-control"
       placeholder="Rua Exemplo, 123 - Bairro - Cidade"
-      required
+
     />
 
     <!-- Campos ocultos com apenas os dígitos -->
@@ -149,15 +149,6 @@
     format: 'DD/MM/YYYY',
   });
 
-  // Form validation
-  document.getElementById('form-rent').addEventListener('submit', function (e) {
-    const dp = document.getElementById('datepicker');
-    if (!dp.value || dp.value.trim() === '') {
-      e.preventDefault(); // cancela o envio
-      alert('Por favor, selecione um intervalo de datas.');
-      dp.focus();
-    }
-  });
 
   // Client autocomplete
   const clientInput = document.getElementById("client_name");

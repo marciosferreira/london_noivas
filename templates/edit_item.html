@@ -1,17 +1,20 @@
-{% extends "base.html" %}
-
-{% block title %}Editar Item{% endblock %}
-
-{% block styles %}
-<link rel="stylesheet" href="{{ url_for('static', filename='style_edit_small.css') }}" />
-{% endblock %}
-
-{% block content %}
+{% extends "base.html" %} {% block title %}Editar Item{% endblock %} {% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='style_edit_item.css') }}" />
+{% endblock %} {% block content %}
 <div class="form-container">
   <h1>Editar Item</h1>
   <a href="{{ request.args.get('next', url_for('index')) }}" class="cancel-link">Sair sem Finalizar</a>
 
   <form method="POST" enctype="multipart/form-data">
+    <label for="item_custom_id">Item ID#:</label>
+    <input
+      type="text"
+      id="item_custom_id"
+      name="item_custom_id"
+      placeholder="ID personalizado do item"
+      value="{{ item.item_custom_id | default('') }}"
+    />
+
     <label for="description">Descrição:</label>
     <textarea id="description" name="description" rows="3" required>{{item.description}}</textarea>
 
@@ -24,8 +27,7 @@
     {% set image_url = item.image_url if item.image_url and item.image_url != "N/A" else '' %}
 
     <label>Foto Atual:</label>
-    {% set image_url = item.image_url if item.image_url and item.image_url != "N/A" else '' %} 
-    {% if image_url %}
+    {% set image_url = item.image_url if item.image_url and item.image_url != "N/A" else '' %} {% if image_url %}
     <div id="image-container" style="margin-bottom: 10px">
       <img id="item-image" src="{{ image_url }}" alt="Imagem do item" style="max-width: 150px; display: block" />
 
@@ -45,9 +47,7 @@
     <button type="submit">Salvar</button>
   </form>
 </div>
-{% endblock %}
-
-{% block scripts %}
+{% endblock %} {% block scripts %}
 <script>
   function removeImage() {
     const imageInput = document.getElementById('image-url-input');

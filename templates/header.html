@@ -87,14 +87,3 @@
   </nav>
 </header>
 <br />
-<!-- Exibir mensagens flash -->
-{% with messages = get_flashed_messages(with_categories=true) %} {% if messages %}
-<div class="container mt-8">
-  {% for category, message in messages %}
-  <div class="alert alert-{% if category == 'error' %}danger{% else %}{{ category }}{% endif %} alert-dismissible fade show" role="alert">
-    {{ message|safe}}
-    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
-  </div>
-  {% endfor %}
-</div>
-{% endif %} {% endwith %}

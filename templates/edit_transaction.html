@@ -24,57 +24,36 @@
     <label for="client_tel">Telefone do Cliente:</label>
     <input type="text" id="client_tel" name="client_tel" value="{{ item.client_tel }}" required />
 
-
     <label for="client_email">E-mail do Cliente:</label>
-<input
-  type="email"
-  id="client_email"
-  name="client_email"
-  class="form-control"
-  placeholder="exemplo@email.com"
-  value="{{ item.client_email|default('', true) }}"
-/>
+    <input type="email" id="client_email" name="client_email" class="form-control" placeholder="exemplo@email.com" value="{{ item.client_email|default('', true) }}" />
 
-<label for="client_address">Endereço do Cliente:</label>
-<input
-  type="text"
-  id="client_address"
-  name="client_address"
-  class="form-control"
-  placeholder="Rua Exemplo, 123 - Bairro - Cidade"
-  value="{{ item.client_address|default('', true) }}"
-/>
+    <label for="client_address">Endereço do Cliente:</label>
+    <input type="text" id="client_address" name="client_address" class="form-control" placeholder="Rua Exemplo, 123 - Bairro - Cidade" value="{{ item.client_address|default('', true) }}" />
 
-<label for="client_cpf">CPF:</label>
-<input
-  type="text"
-  id="client_cpf"
-  name="client_cpf"
-  maxlength="14"
-  placeholder="000.000.000-00"
-  class="form-control"
-  value="{{ item.client_cpf|default('', true) }}"
-/>
+    <label for="client_cpf">CPF:</label>
+    <input type="text" id="client_cpf" name="client_cpf" maxlength="14" placeholder="000.000.000-00" class="form-control" value="{{ item.client_cpf|default('', true) }}" />
 
-<label for="client_cnpj">CNPJ:</label>
-<input
-  type="text"
-  id="client_cnpj"
-  name="client_cnpj"
-  maxlength="18"
-  placeholder="00.000.000/0000-00"
-  class="form-control"
-  value="{{ item.client_cnpj|default('', true) }}"
-/>
+    <label for="client_cnpj">CNPJ:</label>
+    <input type="text" id="client_cnpj" name="client_cnpj" maxlength="18" placeholder="00.000.000/0000-00" class="form-control" value="{{ item.client_cnpj|default('', true) }}" />
 
-<!-- Campos ocultos com apenas os dígitos -->
-<input type="hidden" id="client_tel_digits" name="client_tel_digits" />
-<input type="hidden" id="client_cpf_digits" name="client_cpf_digits" />
-<input type="hidden" id="client_cnpj_digits" name="client_cnpj_digits" />
+    <label for="client_obs">Observações do Cliente:</label>
+    <textarea id="client_obs" name="client_obs" class="form-control" rows="3" placeholder="Ex: Cliente prefere contato por WhatsApp">{{ item.client_obs|default('', true) }}</textarea>
 
+    <hr />
+
+    <label for="item_custom_id">Item ID#:</label>
+    <input type="text" id="item_custom_id" name="item_custom_id" class="form-control" value="{{ item.item_custom_id|default('', true) }}" />
+
+    <label for="description">Descrição do Item:</label>
+    <textarea id="description" name="description" class="form-control" rows="2" required>{{ item.description|default('', true) }}</textarea>
+
+    <label for="comments">Observações do item:</label>
+    <textarea id="comments" name="comments" rows="3">{{ item.comments }}</textarea>
+
+    <hr />
 
     <label for="datepicker">Defina as datas:</label>
-    <input id="datepicker" name="range_date" class="form-control" value="{{ item.range_date }}"/>
+    <input id="datepicker" name="range_date" class="form-control" value="{{ item.range_date }}" />
 
     <div class="form-group">
       <label for="retirado">
@@ -89,7 +68,7 @@
     {% endif %}
 
     <label for="valor">Valor (R$):</label>
-    <input type="number" id="valor" name="valor" step="0.01" min="0" value="{{ item.valor }}" required/>
+    <input type="number" id="valor" name="valor" step="0.01" min="0" value="{{ item.valor }}" required />
 
     <label for="pagamento">Pagamento:</label>
     <select id="pagamento" name="pagamento">
@@ -98,18 +77,9 @@
       <option value="Pago 100%" {% if item.pagamento == "Pago 100%" %}selected{% endif %}>Pago 100%</option>
     </select>
 
-    <label for="comments">Observações:</label>
-    <textarea id="comments" name="comments" rows="3" value="{{item.comments}}">{{item.comments}}</textarea>
-
-    <!-- Campo de Data -->
     <div id="dev-date-container" style="display: none;">
       <label for="dev_date">Devolvido em:</label>
-      <input
-        type="date"
-        id="dev_date"
-        name="dev_date"
-        value="{{ item.dev_date }}"
-      />
+      <input type="date" id="dev_date" name="dev_date" value="{{ item.dev_date }}" />
     </div>
 
     <label>Foto Atual:</label>
@@ -123,6 +93,7 @@
   </form>
 </div>
 {% endblock %}
+
 
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.umd.min.js"></script>
@@ -276,9 +247,39 @@
     document.getElementById("client_cpf").value = client.client_cpf ? maskCPF(client.client_cpf) : '';
     document.getElementById("client_cnpj").value = client.client_cnpj ? maskCNPJ(client.client_cnpj) : '';
     document.getElementById("client_address").value = client.client_address || '';
+
   }
 
   window.addEventListener('DOMContentLoaded', () => {
+    // Aplica máscaras aos campos já preenchidos ao carregar a página
+    const telInput = document.getElementById('client_tel');
+    const cpfInput = document.getElementById('client_cpf');
+    const cnpjInput = document.getElementById('client_cnpj');
+
+    if (telInput && telInput.value) telInput.value = maskPhone(telInput.value);
+    if (cpfInput && cpfInput.value) cpfInput.value = maskCPF(cpfInput.value);
+    if (cnpjInput && cnpjInput.value) cnpjInput.value = maskCNPJ(cnpjInput.value);
+
+    // Aplica máscaras em tempo real enquanto o usuário digita
+    if (telInput) {
+      telInput.addEventListener('input', function (e) {
+        e.target.value = maskPhone(e.target.value);
+      });
+    }
+
+    if (cpfInput) {
+      cpfInput.addEventListener('input', function (e) {
+        e.target.value = maskCPF(e.target.value);
+      });
+    }
+
+    if (cnpjInput) {
+      cnpjInput.addEventListener('input', function (e) {
+        e.target.value = maskCNPJ(e.target.value);
+      });
+    }
+
+    // Código já existente: autocomplete de cliente
     const clientInput = document.getElementById('client_name');
     const suggestionsBox = document.getElementById('client_suggestions');
 
@@ -306,7 +307,7 @@
           `;
 
           div.addEventListener('click', (event) => {
-            event.stopPropagation(); // evitar conflitos
+            event.stopPropagation();
             preencherCamposCliente(client);
             suggestionsBox.innerHTML = '';
           });

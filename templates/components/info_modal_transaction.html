@@ -2,7 +2,7 @@
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">Detalhes do Cliente</h5>
+        <h5 class="modal-title">Detalhes da transação</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
@@ -31,7 +31,42 @@
           <span id="modalCNPJ"></span>
         </p>
         <p>
-          <strong>Data de Cadastro:</strong>
+          <strong>Observações do Cliente:</strong>
+          <span id="modalObs"></span>
+        </p>
+        <hr />
+
+        <p>
+          <strong>Item Custom ID:</strong>
+          <span id="modalItemCustomId"></span>
+        </p>
+        <p>
+          <strong>Data de Retirada:</strong>
+          <span id="modalRentalDate"></span>
+        </p>
+        <p>
+          <strong>Data de Devolução:</strong>
+          <span id="modalReturnDate"></span>
+        </p>
+        <p>
+          <strong>Valor:</strong>
+          <span id="modalValor"></span>
+        </p>
+        <p>
+          <strong>Pagamento:</strong>
+          <span id="modalPagamento"></span>
+        </p>
+
+        <p>
+          <strong>Retirado:</strong>
+          <span id="modalRetirado"></span>
+        </p>
+        <p>
+          <strong>Observações da Transação:</strong>
+          <span id="modalTransactionComments"></span>
+        </p>
+        <p>
+          <strong>Data de Criação:</strong>
           <span id="modalCreated"></span>
         </p>
       </div>
@@ -53,6 +88,15 @@
           document.getElementById('modalAddress').textContent = data.client_address || 'N/A';
           document.getElementById('modalCPF').textContent = data.client_cpf || 'N/A';
           document.getElementById('modalCNPJ').textContent = data.client_cnpj || 'N/A';
+          document.getElementById('modalObs').textContent = data.client_obs || 'N/A';
+
+          document.getElementById('modalItemCustomId').textContent = data.item_custom_id || 'N/A';
+          document.getElementById('modalRentalDate').textContent = data.rental_date || 'N/A';
+          document.getElementById('modalReturnDate').textContent = data.return_date || 'N/A';
+          document.getElementById('modalValor').textContent = data.valor || 'N/A';
+          document.getElementById('modalPagamento').textContent = data.pagamento || 'N/A';
+          document.getElementById('modalRetirado').textContent = data.retirado ? 'Sim' : 'Não';
+          document.getElementById('modalTransactionComments').textContent = data.comments || 'N/A';
           document.getElementById('modalCreated').textContent = data.created_at || 'N/A';
 
           new bootstrap.Modal(document.getElementById('infoModal')).show();

@@ -1,5 +1,5 @@
 {% extends "base.html" %} {% block title %}Adicionar Registro{% endblock %} {% block styles %}
-<link rel="stylesheet" href="{{ url_for('static', filename='style_add.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='style_add_item.css') }}" />
 {% endblock %} {% block content %}
 <div class="form-container">
   {% set destino = request.args.get("next", "") %} {% set ultima_parte = destino.strip('/').split('/')[-1] %}
@@ -15,6 +15,11 @@
   <form method="POST" enctype="multipart/form-data">
     <!-- Campo oculto para preservar a página de origem -->
     <input type="hidden" name="next" value="{{ next }}" />
+
+    <label for="item_custom_id">Item ID#:</label>
+    <input type="text" id="item_custom_id" name="item_custom_id" placeholder="ID personalizado do item" />
+    <br />
+    <br />
 
     <label for="description">Descrição:</label>
     <br />
