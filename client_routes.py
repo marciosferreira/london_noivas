@@ -166,9 +166,11 @@ def init_client_routes(app, clients_table, transactions_table, itens_table):
             client_tel_digits = request.form.get("client_tel_digits", "").strip()
             client_cpf_digits = request.form.get("client_cpf_digits", "").strip()
             client_cnpj_digits = request.form.get("client_cnpj_digits", "").strip()
+            client_obs = request.form.get("client_obs", "").strip()
 
             # Atualizar dados do cliente
             cliente["client_name"] = client_name
+            cliente["client_obs"] = client_obs
 
             # Só atualizar os campos se tiverem valor
             if client_email:

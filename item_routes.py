@@ -224,6 +224,8 @@ def init_item_routes(
                 "valor": request.form.get("valor", "").strip() or None,
                 "pagamento": request.form.get("pagamento") or None,
                 "comments": request.form.get("comments", "").strip() or None,
+                "item_custom_id": request.form.get("item_custom_id", "").strip()
+                or None,
             }
 
             # Comparar novos valores com os antigos
@@ -487,6 +489,7 @@ def init_item_routes(
             client_cpf = request.form.get("client_cpf", "").strip()
             client_cnpj = request.form.get("client_cnpj", "").strip()
             client_obs = request.form.get("client_obs", "").strip()
+            transaction_obs = request.form.get("transaction_obs", "").strip()
 
             retirado = "retirado" in request.form
             valor = request.form.get("valor")
@@ -524,11 +527,13 @@ def init_item_routes(
                     "client_cnpj": client_cnpj,
                     "client_obs": client_obs,
                     "created_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "transaction_obs": transaction_obs,
                 }
             )
 
             # Obter o item_custom_id do item original
             item_custom_id = item.get("item_custom_id", "")
+            image_url = item.get("image_url", "")
 
             # Criar transação
             transaction_id = str(uuid.uuid4())
@@ -553,6 +558,7 @@ def init_item_routes(
                     "return_date": return_date,
                     "retirado": retirado,
                     "status": "rented",
+                    "image_url": image_url,
                     "created_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 }
             )
@@ -1324,10 +1330,6 @@ def listar_itens_per_transaction(
                     not in txn.get("comments", "").lower()
                 ):
                     continue
-
-                # Só adiciona campos faltantes
-                txn["image_url"] = item_data.get("image_url", "N/A")
-                txn["item_custom_id"] = item_data.get("item_custom_id", "")
 
                 transacoes.append(process_dates(txn))
 

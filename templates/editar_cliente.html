@@ -77,10 +77,8 @@
           data-mask="cnpj"
         />
 
-        <label for="client_obs">Observações:</label>
-        <textarea id="client_obs" name="client_obs" class="form-control" rows="3" placeholder="Ex: Cliente prefere contato por WhatsApp">
-{{ cliente.client_obs|default('', true) }}</textarea
-        >
+        <label for="client_obs">Observações do cliente:</label>
+        <textarea id="client_obs" name="client_obs" class="form-control" rows="3" placeholder="">{{ cliente.client_obs|default('', true) }}</textarea>
 
         <!-- Campos ocultos para valores sem formatação -->
         <input type="hidden" id="client_tel_digits" name="client_tel_digits" />

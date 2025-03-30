@@ -4,6 +4,34 @@
 
 {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='style_edit_transaction.css') }}" />
+<style>
+  .tabs {
+    display: flex;
+    margin-bottom: 1rem;
+    gap: 0.5rem;
+  }
+
+  .tab-button {
+    padding: 10px 20px;
+    border: none;
+    background-color: #eee;
+    cursor: pointer;
+    border-radius: 6px;
+  }
+
+  .tab-button.active {
+    background-color: #007bff;
+    color: white;
+  }
+
+  .tab-content {
+    display: none;
+  }
+
+  .tab-content.active {
+    display: block;
+  }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -12,206 +40,119 @@
   <a href="{{ request.args.get('next', url_for('index')) }}" class="cancel-link">Sair sem Finalizar</a>
 
   <form method="POST" enctype="multipart/form-data" id="form-transaction">
-    <label for="client_name">Nome do Cliente:</label>
-    <div class="position-relative">
-      <input type="text" id="client_name" name="client_name" autocomplete="off" class="form-control" value="{{ item.client_name}}" required />
-      <div id="client_suggestions" class="autocomplete-suggestions"></div>
-    </div>
-    <br>
 
-    <input type="hidden" name="client_id" id="client_id" />
-
-    <label for="client_tel">Telefone do Cliente:</label>
-    <input type="text" id="client_tel" name="client_tel" value="{{ item.client_tel }}" required />
-
-    <label for="client_email">E-mail do Cliente:</label>
-    <input type="email" id="client_email" name="client_email" class="form-control" placeholder="exemplo@email.com" value="{{ item.client_email|default('', true) }}" />
-
-    <label for="client_address">Endereço do Cliente:</label>
-    <input type="text" id="client_address" name="client_address" class="form-control" placeholder="Rua Exemplo, 123 - Bairro - Cidade" value="{{ item.client_address|default('', true) }}" />
-
-    <label for="client_cpf">CPF:</label>
-    <input type="text" id="client_cpf" name="client_cpf" maxlength="14" placeholder="000.000.000-00" class="form-control" value="{{ item.client_cpf|default('', true) }}" />
-
-    <label for="client_cnpj">CNPJ:</label>
-    <input type="text" id="client_cnpj" name="client_cnpj" maxlength="18" placeholder="00.000.000/0000-00" class="form-control" value="{{ item.client_cnpj|default('', true) }}" />
-
-    <label for="client_obs">Observações do Cliente:</label>
-    <textarea id="client_obs" name="client_obs" class="form-control" rows="3" placeholder="Ex: Cliente prefere contato por WhatsApp">{{ item.client_obs|default('', true) }}</textarea>
-
-    <hr />
-
-    <label for="item_custom_id">Item ID#:</label>
-    <input type="text" id="item_custom_id" name="item_custom_id" class="form-control" value="{{ item.item_custom_id|default('', true) }}" />
-
-    <label for="description">Descrição do Item:</label>
-    <textarea id="description" name="description" class="form-control" rows="2" required>{{ item.description|default('', true) }}</textarea>
-
-    <label for="comments">Observações do item:</label>
-    <textarea id="comments" name="comments" rows="3">{{ item.comments }}</textarea>
-
-    <hr />
-
-    <label for="datepicker">Defina as datas:</label>
-    <input id="datepicker" name="range_date" class="form-control" value="{{ item.range_date }}" />
-
-    <div class="form-group">
-      <label for="retirado">
-        <input type="checkbox" id="retirado" name="retirado" value="True" {% if item.retirado %}checked{% endif %} />
-        Retirado
-      </label>
+    <!-- Menu de abas -->
+    <div class="tabs">
+      <button type="button" class="tab-button active" data-tab="tab-cliente">Cliente</button>
+      <button type="button" class="tab-button" data-tab="tab-item">Item</button>
+      <button type="button" class="tab-button" data-tab="tab-transacao">Transação</button>
     </div>
 
-    {% if 'returned' in request.full_path %}
-    <label for="return_date">Data de Devolução:</label>
-    <input type="date" id="return_date" name="return_date" value="{{ item.return_date }}" required />
-    {% endif %}
+    <!-- Aba CLIENTE -->
+    <div id="tab-cliente" class="tab-content active">
+      <label for="client_name">Nome do Cliente:</label>
+      <div class="position-relative">
+        <input type="text" id="client_name" name="client_name" autocomplete="off" class="form-control" value="{{ item.client_name }}" required />
+        <div id="client_suggestions" class="autocomplete-suggestions"></div>
+      </div>
+      <br>
 
-    <label for="valor">Valor (R$):</label>
-    <input type="number" id="valor" name="valor" step="0.01" min="0" value="{{ item.valor }}" required />
+      <input type="hidden" name="client_id" id="client_id" />
 
-    <label for="pagamento">Pagamento:</label>
-    <select id="pagamento" name="pagamento">
-      <option value="Não pago" {% if item.pagamento == "Não pago" or not item.pagamento %}selected{% endif %}>Não pago</option>
-      <option value="Pago 50%" {% if item.pagamento == "Pago 50%" %}selected{% endif %}>Pago 50%</option>
-      <option value="Pago 100%" {% if item.pagamento == "Pago 100%" %}selected{% endif %}>Pago 100%</option>
-    </select>
+      <label for="client_tel">Telefone do Cliente:</label>
+      <input type="text" id="client_tel" name="client_tel" value="{{ item.client_tel }}" required />
 
-    <div id="dev-date-container" style="display: none;">
-      <label for="dev_date">Devolvido em:</label>
-      <input type="date" id="dev_date" name="dev_date" value="{{ item.dev_date }}" />
+      <label for="client_email">E-mail do Cliente:</label>
+      <input type="email" id="client_email" name="client_email" class="form-control" placeholder="exemplo@email.com" value="{{ item.client_email|default('', true) }}" />
+
+      <label for="client_address">Endereço do Cliente:</label>
+      <input type="text" id="client_address" name="client_address" class="form-control" placeholder="Rua Exemplo, 123 - Bairro - Cidade" value="{{ item.client_address|default('', true) }}" />
+
+      <label for="client_cpf">CPF:</label>
+      <input type="text" id="client_cpf" name="client_cpf" maxlength="14" placeholder="000.000.000-00" class="form-control" value="{{ item.client_cpf|default('', true) }}" />
+
+      <label for="client_cnpj">CNPJ:</label>
+      <input type="text" id="client_cnpj" name="client_cnpj" maxlength="18" placeholder="00.000.000/0000-00" class="form-control" value="{{ item.client_cnpj|default('', true) }}" />
+
+      <label for="client_obs">Observações do Cliente:</label>
+      <textarea id="client_obs" name="client_obs" class="form-control" rows="2" placeholder="Ex: Cliente prefere...">{{ item.client_obs|default('', true) }}</textarea>
     </div>
 
-    <label>Foto Atual:</label>
-    {% if item.image_url and item.image_url != "" %}
-    <img src="{{ item.image_url }}" alt="Imagem do item" style="max-width: 150px" />
-    {% else %}
-    <img src="{{ url_for('static', filename='item-placeholder.png') }}" alt="Sem Imagem" style="max-width: 150px" />
-    {% endif %}
+    <!-- Aba ITEM -->
+    <div id="tab-item" class="tab-content">
+      <label for="item_custom_id">Item ID#:</label>
+      <input type="text" id="item_custom_id" name="item_custom_id" class="form-control" value="{{ item.item_custom_id|default('', true) }}" />
 
+      <label for="description">Descrição do Item:</label>
+      <textarea id="description" name="description" class="form-control" rows="2">{{ item.description|default('', true) }}</textarea>
+
+      <label for="comments">Observações do item:</label>
+      <textarea id="comments" name="comments" rows="2">{{ item.comments }}</textarea>
+
+      <label>Foto Atual:</label>
+      {% if item.image_url and item.image_url != "" %}
+      <img src="{{ item.image_url }}" alt="Imagem do item" style="max-width: 150px" />
+      {% else %}
+      <img src="{{ url_for('static', filename='item-placeholder.png') }}" alt="Sem Imagem" style="max-width: 150px" />
+      {% endif %}
+    </div>
+
+    <!-- Aba TRANSACAO -->
+    <div id="tab-transacao" class="tab-content">
+      <label for="datepicker">Defina as datas:</label>
+      <input id="datepicker" name="range_date" class="form-control" value="{{ item.range_date }}" />
+
+      <div class="form-group">
+        <label for="retirado">
+          <input type="checkbox" id="retirado" name="retirado" value="True" {% if item.retirado %}checked{% endif %} />
+          Retirado
+        </label>
+      </div>
+
+      {% if 'returned' in request.full_path %}
+      <label for="return_date">Data de Devolução:</label>
+      <input type="date" id="return_date" name="return_date" value="{{ item.return_date }}" required />
+      {% endif %}
+
+      <label for="valor">Valor (R$):</label>
+      <input type="number" id="valor" name="valor" step="0.01" min="0" value="{{ item.valor }}" required />
+
+      <label for="pagamento">Pagamento:</label>
+      <select id="pagamento" name="pagamento">
+        <option value="Não pago" {% if item.pagamento == "Não pago" or not item.pagamento %}selected{% endif %}>Não pago</option>
+        <option value="Pago 50%" {% if item.pagamento == "Pago 50%" %}selected{% endif %}>Pago 50%</option>
+        <option value="Pago 100%" {% if item.pagamento == "Pago 100%" %}selected{% endif %}>Pago 100%</option>
+      </select>
+
+      <div id="dev-date-container" style="display: none;">
+        <label for="dev_date">Devolvido em:</label>
+        <input type="date" id="dev_date" name="dev_date" value="{{ item.dev_date }}" />
+      </div>
+    </div>
+
+    <br />
     <button type="submit">Salvar</button>
   </form>
 </div>
 {% endblock %}
 
-
 {% block scripts %}
+{{ super() }}
 <script src="https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.umd.min.js"></script>
+
 <script>
-  // Date picker initialization
-  const DateTime = easepick.DateTime;
-  const bookedDates = {{ reserved_ranges | tojson(indent=2) }}.map(d => {
-    if (d instanceof Array) {
-      const start = new DateTime(d[0], 'YYYY-MM-DD');
-      const end = new DateTime(d[1], 'YYYY-MM-DD');
-      return [start, end];
-    }
-    return new DateTime(d, 'YYYY-MM-DD');
-  });
-
-  const picker = new easepick.create({
-    element: document.getElementById('datepicker'),
-    css: [
-      'https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.css',
-      'https://easepick.com/css/demo_hotelcal.css',
-    ],
-    lang: 'pt-BR',
-    autoApply: false,
-    plugins: ['RangePlugin', 'LockPlugin', 'AmpPlugin'],
-    AmpPlugin: {
-      resetButton: true,
-    },
-    RangePlugin: {
-      tooltipNumber(num) {
-        return num;
-      },
-      locale: {
-        one: 'dia',
-        other: 'dias',
-      },
-    },
-    LockPlugin: {
-      minDate: new Date(),
-      minDays: 1,
-      inseparable: true,
-      filter(date, picked) {
-        if (picked.length === 1) {
-          const incl = date.isBefore(picked[0]) ? '[]' : '[]';
-          return !picked[0].isSame(date, 'day') && date.inArray(bookedDates, incl);
-        }
-        return date.inArray(bookedDates, '[]');
-      },
-    },
-    locale: {
-      cancel: 'Cancelar',
-      apply: 'Aplicar',
-      reset: 'Limpar',
-      one: 'dia',
-      other: 'dias',
-    },
-    format: 'DD/MM/YYYY',
-  });
-
-  // Preselect handling
-  picker.on('preselect', (evt) => {
-    const start = picker.getStartDate();
-    const end = picker.getEndDate();
-
-    if (start && end) {
-      const clickedDate = evt.detail.date;
-
-      // Prevent default handling
-      evt.preventDefault();
-
-      // Clear current selection
-      picker.setStartDate(null);
-      picker.setEndDate(null);
-      document.getElementById('datepicker').value = '';
-
-      // Set clicked date as new start
-      picker.setStartDate(clickedDate);
-    }
-  });
-
-  // Dev date handling
-  function updateDevDateField() {
-    const returnedRadio = document.getElementById('status-returned');
-    const devDateContainer = document.getElementById('dev-date-container');
-    const devDateInput = document.getElementById('dev_date');
-
-    if (returnedRadio && returnedRadio.checked) {
-      devDateContainer.style.display = 'block';
-      devDateInput.required = true;
-    } else if (devDateContainer) {
-      devDateContainer.style.display = 'none';
-      if (devDateInput) devDateInput.required = false;
-    }
-  }
-
-  // Radio button event listeners
-  const radioButtons = document.querySelectorAll('input[name="status"]');
-  if (radioButtons.length > 0) {
-    radioButtons.forEach((radio) => {
-      radio.addEventListener('change', updateDevDateField);
+  // 🟦 Alternância de abas
+  document.querySelectorAll('.tab-button').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+      const selectedTab = document.getElementById(btn.dataset.tab);
+      if (selectedTab) selectedTab.classList.add('active');
     });
+  });
 
-    // Initialize state on load
-    window.addEventListener('load', updateDevDateField);
-  }
-
-  // Form validation
-  const form = document.getElementById('form-transaction');
-  if (form) {
-    form.addEventListener('submit', function (e) {
-      const dp = document.getElementById('datepicker');
-      if (dp && (!dp.value || dp.value.trim() === '')) {
-        e.preventDefault();
-        alert('Por favor, selecione um intervalo de datas.');
-        dp.focus();
-      }
-    });
-  }
-
+  // 🟨 Máscaras de telefone, CPF e CNPJ
   function maskPhone(value) {
     let input = value.replace(/\D/g, '');
     if (input.length > 11) input = input.slice(0, 11);
@@ -239,19 +180,7 @@
     return cnpj;
   }
 
-  function preencherCamposCliente(client) {
-    document.getElementById("client_name").value = client.client_name || '';
-    document.getElementById("client_tel").value = client.client_tel ? maskPhone(client.client_tel) : '';
-    document.getElementById("client_id").value = client.client_id || '';
-    document.getElementById("client_email").value = client.client_email || '';
-    document.getElementById("client_cpf").value = client.client_cpf ? maskCPF(client.client_cpf) : '';
-    document.getElementById("client_cnpj").value = client.client_cnpj ? maskCNPJ(client.client_cnpj) : '';
-    document.getElementById("client_address").value = client.client_address || '';
-
-  }
-
-  window.addEventListener('DOMContentLoaded', () => {
-    // Aplica máscaras aos campos já preenchidos ao carregar a página
+  function aplicarMascaras() {
     const telInput = document.getElementById('client_tel');
     const cpfInput = document.getElementById('client_cpf');
     const cnpjInput = document.getElementById('client_cnpj');
@@ -260,28 +189,23 @@
     if (cpfInput && cpfInput.value) cpfInput.value = maskCPF(cpfInput.value);
     if (cnpjInput && cnpjInput.value) cnpjInput.value = maskCNPJ(cnpjInput.value);
 
-    // Aplica máscaras em tempo real enquanto o usuário digita
     if (telInput) {
-      telInput.addEventListener('input', function (e) {
-        e.target.value = maskPhone(e.target.value);
-      });
+      telInput.addEventListener('input', e => e.target.value = maskPhone(e.target.value));
     }
-
     if (cpfInput) {
-      cpfInput.addEventListener('input', function (e) {
-        e.target.value = maskCPF(e.target.value);
-      });
+      cpfInput.addEventListener('input', e => e.target.value = maskCPF(e.target.value));
     }
-
     if (cnpjInput) {
-      cnpjInput.addEventListener('input', function (e) {
-        e.target.value = maskCNPJ(e.target.value);
-      });
+      cnpjInput.addEventListener('input', e => e.target.value = maskCNPJ(e.target.value));
     }
+  }
 
-    // Código já existente: autocomplete de cliente
+  // 🟩 Preenchimento automático de cliente
+  function autocompleteCliente() {
     const clientInput = document.getElementById('client_name');
     const suggestionsBox = document.getElementById('client_suggestions');
+
+    if (!clientInput || !suggestionsBox) return;
 
     clientInput.addEventListener('input', async () => {
       const term = clientInput.value.trim();
@@ -324,9 +248,131 @@
         suggestionsBox.innerHTML = '';
       }
     });
+  }
+
+  function preencherCamposCliente(client) {
+    document.getElementById("client_name").value = client.client_name || '';
+    document.getElementById("client_tel").value = client.client_tel ? maskPhone(client.client_tel) : '';
+    document.getElementById("client_id").value = client.client_id || '';
+    document.getElementById("client_email").value = client.client_email || '';
+    document.getElementById("client_cpf").value = client.client_cpf ? maskCPF(client.client_cpf) : '';
+    document.getElementById("client_cnpj").value = client.client_cnpj ? maskCNPJ(client.client_cnpj) : '';
+    document.getElementById("client_address").value = client.client_address || '';
+  }
+
+  // 🟦 Validação do formulário
+  function configurarValidacaoFormulario() {
+    const form = document.getElementById('form-transaction');
+    if (!form) return;
+
+    form.addEventListener('submit', function (e) {
+      const dp = document.getElementById('datepicker');
+      if (dp && (!dp.value || dp.value.trim() === '')) {
+        e.preventDefault();
+        alert('Por favor, selecione um intervalo de datas.');
+        dp.focus();
+      }
+    });
+  }
+
+  // 🟥 Inicialização do Easepick (datepicker)
+  function iniciarDatePicker() {
+    const DateTime = easepick.DateTime;
+    const rawDates = {{ reserved_ranges | tojson(indent=2) }};
+    const bookedDates = rawDates.map(d => {
+      if (d instanceof Array) {
+        const start = new DateTime(d[0], 'YYYY-MM-DD');
+        const end = new DateTime(d[1], 'YYYY-MM-DD');
+        return [start, end];
+      }
+      return new DateTime(d, 'YYYY-MM-DD');
+    });
+
+    const picker = new easepick.create({
+      element: document.getElementById('datepicker'),
+      css: [
+        'https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.css',
+        'https://easepick.com/css/demo_hotelcal.css',
+      ],
+      lang: 'pt-BR',
+      autoApply: false,
+      plugins: ['RangePlugin', 'LockPlugin', 'AmpPlugin'],
+      AmpPlugin: {
+        resetButton: true,
+      },
+      RangePlugin: {
+        tooltipNumber(num) {
+          return num;
+        },
+        locale: {
+          one: 'dia',
+          other: 'dias',
+        },
+      },
+      LockPlugin: {
+        minDate: new Date(),
+        minDays: 1,
+        inseparable: true,
+        filter(date, picked) {
+          if (picked.length === 1) {
+            return !picked[0].isSame(date, 'day') && date.inArray(bookedDates, '[]');
+          }
+          return date.inArray(bookedDates, '[]');
+        },
+      },
+      locale: {
+        cancel: 'Cancelar',
+        apply: 'Aplicar',
+        reset: 'Limpar',
+        one: 'dia',
+        other: 'dias',
+      },
+      format: 'DD/MM/YYYY',
+    });
+
+    picker.on('preselect', (evt) => {
+      const clickedDate = evt.detail.date;
+      evt.preventDefault();
+      picker.setStartDate(null);
+      picker.setEndDate(null);
+      document.getElementById('datepicker').value = '';
+      picker.setStartDate(clickedDate);
+    });
+  }
+
+  // 🟨 Atualizar campo de devolução
+  function updateDevDateField() {
+    const returnedRadio = document.getElementById('status-returned');
+    const devDateContainer = document.getElementById('dev-date-container');
+    const devDateInput = document.getElementById('dev_date');
+
+    if (returnedRadio && returnedRadio.checked) {
+      devDateContainer.style.display = 'block';
+      devDateInput.required = true;
+    } else if (devDateContainer) {
+      devDateContainer.style.display = 'none';
+      if (devDateInput) devDateInput.required = false;
+    }
+  }
+
+  function configurarStatusListener() {
+    const radioButtons = document.querySelectorAll('input[name="status"]');
+    if (radioButtons.length > 0) {
+      radioButtons.forEach((radio) => {
+        radio.addEventListener('change', updateDevDateField);
+      });
+      updateDevDateField();
+    }
+  }
+
+  // ✅ Inicialização geral
+  window.addEventListener('DOMContentLoaded', () => {
+    aplicarMascaras();
+    autocompleteCliente();
+    configurarValidacaoFormulario();
+    iniciarDatePicker();
+    configurarStatusListener();
   });
-
-
-
 </script>
 {% endblock %}
+

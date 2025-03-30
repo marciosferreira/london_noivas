@@ -36,7 +36,7 @@
               <th>Devolução Prevista</th>
               <th>Retirado?</th>
               <th>Pago?</th>
-              <th>Observações</th>
+              <th>Obs. Transação</th>
               <th>Ações</th>
             </tr>
           </thead>
@@ -83,9 +83,10 @@
                   {{ item.pagamento }}
                 </td>
 
-                <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Observações">
-                  {{ item.comments | default('', true) | truncate(10, True) }}
+                <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Obs. Transação">
+                  {{ item.transaction_obs | default('', true) | truncate(10, True) }}
                 </td>
+
 
                 <td data-label="Ações">
                   <div class="d-flex flex-wrap gap-2 justify-content-center align-items-center">
@@ -130,7 +131,8 @@
               <p><strong>Descrição:</strong> <span id="modalDescription"></span></p>
               <p><strong>Telefone:</strong> <span id="modalPhone"></span></p>
               <p><strong>Valor(R$):</strong> <span id="modalValue"></span></p>
-              <p><strong>Observações:</strong> <span id="modalObs"></span></p>
+              <p><strong>Obs. da Transação:</strong> <span id="modalTransObs"></span></p>
+
 
             </div>
           </div>
@@ -164,7 +166,7 @@
               document.getElementById("modalDescription").textContent = item.description || "N/A";
               document.getElementById("modalPhone").textContent = item.client_tel || "N/A";
               document.getElementById("modalValue").textContent = item.valor || "N/A";
-              document.getElementById("modalObs").textContent = item.comments || "sem observações";
+              document.getElementById("modalTransObs").textContent = item.transaction_obs || "sem observações";
               let infoModal = new bootstrap.Modal(document.getElementById("infoModal"), { backdrop: 'static' });
               infoModal.show();
             });
