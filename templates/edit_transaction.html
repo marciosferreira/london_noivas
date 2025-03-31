@@ -78,6 +78,8 @@
       <textarea id="client_obs" name="client_obs" class="form-control" rows="2" placeholder="Ex: Cliente prefere...">{{ item.client_obs|default('', true) }}</textarea>
     </div>
 
+
+
     <!-- Aba ITEM -->
     <div id="tab-item" class="tab-content">
       <label for="item_custom_id">Item ID#:</label>
@@ -86,15 +88,46 @@
       <label for="description">Descrição do Item:</label>
       <textarea id="description" name="description" class="form-control" rows="2">{{ item.description|default('', true) }}</textarea>
 
-      <label for="comments">Observações do item:</label>
-      <textarea id="comments" name="comments" rows="2">{{ item.comments }}</textarea>
+      <label for="item_obs">Observações do item:</label>
+      <textarea id="item_obs" name="item_obs" rows="2">{{ item.item_obs }}</textarea>
 
       <label>Foto Atual:</label>
-      {% if item.image_url and item.image_url != "" %}
-      <img src="{{ item.image_url }}" alt="Imagem do item" style="max-width: 150px" />
-      {% else %}
-      <img src="{{ url_for('static', filename='item-placeholder.png') }}" alt="Sem Imagem" style="max-width: 150px" />
-      {% endif %}
+
+      {% set image_url = item.image_url if item.image_url and item.image_url != 'N/A' else '' %}
+
+      <div id="image-container" style="text-align: center; margin-bottom: 20px">
+        <img
+          id="item-image"
+          src="{{ image_url if image_url else url_for('static', filename='item-placeholder.png') }}"
+          alt="Imagem do item"
+          style="max-width: 150px; display: block; margin: 0 auto"
+        />
+
+        <!-- Campo oculto para indicar a URL da imagem atual -->
+        <input
+          type="text"
+          name="image_url"
+          id="image-url-input"
+          value="{{ image_url }}"
+          style="opacity: 0; position: absolute; left: -9999px"
+        />
+
+        <!-- Botão para excluir imagem -->
+        <button
+          type="button"
+          onclick="removeImage()"
+          id="remove-btn"
+          style="margin: 10px auto; display: {{ 'block' if image_url else 'none' }};"
+        >
+          Excluir imagem
+        </button>
+      </div>
+
+      <!-- Input de nova imagem -->
+      <label for="image_file">Trocar a Imagem:</label>
+      <input type="file" id="image_file" name="image_file" accept="image/*;capture=camera" />
+
+
     </div>
 
     <!-- Aba TRANSACAO -->
@@ -123,6 +156,10 @@
         <option value="Pago 50%" {% if item.pagamento == "Pago 50%" %}selected{% endif %}>Pago 50%</option>
         <option value="Pago 100%" {% if item.pagamento == "Pago 100%" %}selected{% endif %}>Pago 100%</option>
       </select>
+
+
+      <label for="transaction_obs">Observações da transação:</label>
+      <textarea id="transaction_obs" name="transaction_obs" rows="2">{{ item.transaction_obs }}</textarea>
 
       <div id="dev-date-container" style="display: none;">
         <label for="dev_date">Devolvido em:</label>
@@ -374,5 +411,52 @@
     configurarStatusListener();
   });
 </script>
+
+
+<script>
+  function removeImage() {
+    const imageInput = document.getElementById('image-url-input');
+    const imageElement = document.getElementById('item-image');
+    const removeButton = document.getElementById('remove-btn');
+
+    if (imageInput) {
+      imageInput.value = 'DELETE_IMAGE';
+    }
+
+    if (imageElement) {
+      imageElement.src = "{{ url_for('static', filename='item-placeholder.png') }}";
+    }
+
+    if (removeButton) {
+      removeButton.style.display = 'none';
+    }
+
+    // Limpa o campo de imagem
+    const fileInput = document.getElementById('image_file');
+    if (fileInput) {
+      fileInput.value = "";
+    }
+  }
+
+  document.getElementById('image_file').addEventListener('change', function (event) {
+    const file = event.target.files[0];
+    const imageElement = document.getElementById('item-image');
+    const removeButton = document.getElementById('remove-btn');
+
+    if (file && imageElement) {
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        imageElement.src = e.target.result;
+        imageElement.style.display = 'block';
+        imageElement.style.margin = '0 auto';
+        if (removeButton) {
+          removeButton.style.display = 'block';
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+</script>
+
 {% endblock %}
 

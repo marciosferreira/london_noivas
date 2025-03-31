@@ -106,7 +106,7 @@ def init_item_routes(
             # Capturar dados do formulário
             status = request.form.get("status")  # status: rented, returned, available
             description = request.form.get("description").strip()
-            comments = request.form.get("comments").strip()
+            item_obs = request.form.get("item_obs").strip()
             valor = request.form.get("valor").strip()
             item_custom_id = request.form.get(
                 "item_custom_id", ""
@@ -131,7 +131,7 @@ def init_item_routes(
                 "account_id": account_id,
                 "item_id": item_id,
                 "description": description,
-                "comments": comments,
+                "item_obs": item_obs,
                 "image_url": image_url,
                 "status": origin_status,
                 "previous_status": status,
@@ -194,18 +194,27 @@ def init_item_routes(
                 reserved_ranges.append([tx["rental_date"], tx["return_date"]])
 
         if request.method == "POST":
-            # Obter date do formulário
+            # 📸 Tratamento de imagem
+            image_file = request.files.get("image_file")
+            image_url_form = request.form.get("image_url", "").strip()
+            old_image_url = transaction.get("image_url", "N/A")
+
+            if image_url_form == "DELETE_IMAGE":
+                new_image_url = "N/A"
+            else:
+                new_image_url = handle_image_upload(image_file, old_image_url)
+
+            # 🗓️ Datas
             range_date = request.form.get("range_date")
             rental_str, return_str = range_date.split(" - ")
+            rental_date = datetime.datetime.strptime(
+                rental_str.strip(), "%d/%m/%Y"
+            ).strftime("%Y-%m-%d")
+            return_date = datetime.datetime.strptime(
+                return_str.strip(), "%d/%m/%Y"
+            ).strftime("%Y-%m-%d")
 
-            # Passo 1: interpretar como %d/%m/%Y
-            rental_date = datetime.datetime.strptime(rental_str.strip(), "%d/%m/%Y")
-            return_date = datetime.datetime.strptime(return_str.strip(), "%d/%m/%Y")
-
-            # Passo 2: converter para %Y/%m/%d
-            rental_date = rental_date.strftime("%Y-%m-%d")
-            return_date = return_date.strftime("%Y-%m-%d")
-
+            # 📝 Coleta de dados do formulário
             new_data = {
                 "rental_date": rental_date,
                 "return_date": return_date,
@@ -223,9 +232,10 @@ def init_item_routes(
                 "retirado": "retirado" in request.form,
                 "valor": request.form.get("valor", "").strip() or None,
                 "pagamento": request.form.get("pagamento") or None,
-                "comments": request.form.get("comments", "").strip() or None,
+                "item_obs": request.form.get("item_obs", "").strip() or None,
                 "item_custom_id": request.form.get("item_custom_id", "").strip()
                 or None,
+                "image_url": new_image_url,  # ✅ incluído
             }
 
             # Comparar novos valores com os antigos
@@ -235,9 +245,11 @@ def init_item_routes(
                 if transaction.get(key) != value
             }
 
-            if not changes:  # Se não houver mudanças, apenas exibir a mensagem e sair
+            if not changes:
                 flash("Nenhuma alteração foi feita.", "warning")
                 return redirect(next_page)
+
+            # Cópia de segurança e atualização (segue igual ao seu código atual)...
 
             # Criar cópia do item somente se houver mudanças
             new_transaction_id = str(uuid.uuid4())
@@ -338,7 +350,7 @@ def init_item_routes(
             "retirado": request.form.get("retirado") or None,
             "valor": request.form.get("valor", "").strip() or None,
             "pagamento": request.form.get("pagamento") or None,
-            "comments": request.form.get("comments", "").strip() or None,
+            "item_obs": request.form.get("item_obs", "").strip() or None,
             "image_url": item.get("image_url", ""),  # Mantém a URL original por padrão
         }
 
@@ -388,6 +400,11 @@ def init_item_routes(
             changes = {
                 key: value for key, value in new_data.items() if item.get(key) != value
             }
+
+            # 🔹 Verificar se a imagem foi alterada
+            if new_image_url != old_image_url:
+                changes["image_url"] = new_image_url
+
             if not changes:
                 flash("Nenhuma alteração foi feita.", "warning")
                 return redirect(next_page)
@@ -438,7 +455,7 @@ def init_item_routes(
             "client_tel": item.get("client_tel"),
             "rental_date": item.get("rental_date"),
             "return_date": item.get("return_date"),
-            "comments": item.get("comments"),
+            "item_obs": item.get("item_obs"),
             "image_url": item.get("image_url"),
             "retirado": item.get("retirado", False),
             "valor": item.get("valor"),
@@ -494,7 +511,7 @@ def init_item_routes(
             retirado = "retirado" in request.form
             valor = request.form.get("valor")
             pagamento = request.form.get("pagamento")
-            comments = request.form.get("comments")
+            item_obs = request.form.get("item_obs")
 
             try:
                 rental_str, return_str = range_date.split(" - ")
@@ -527,13 +544,14 @@ def init_item_routes(
                     "client_cnpj": client_cnpj,
                     "client_obs": client_obs,
                     "created_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    "transaction_obs": transaction_obs,
                 }
             )
 
             # Obter o item_custom_id do item original
             item_custom_id = item.get("item_custom_id", "")
             image_url = item.get("image_url", "")
+            item_obs = item.get("item_obs", "")
+            description = item.get("description", "")
 
             # Criar transação
             transaction_id = str(uuid.uuid4())
@@ -543,6 +561,8 @@ def init_item_routes(
                     "account_id": session.get("account_id"),
                     "item_id": item_id,
                     "item_custom_id": item_custom_id,  # ✅ incluído
+                    "item_obs": item_obs,  # ✅ incluído
+                    "description": description,  # ✅ incluído
                     "client_id": client_id,
                     "client_name": client_name,
                     "client_tel": client_tel,
@@ -551,7 +571,7 @@ def init_item_routes(
                     "client_cpf": client_cpf,
                     "client_cnpj": client_cnpj,
                     "client_obs": client_obs,
-                    "comments": comments,
+                    "item_obs": item_obs,
                     "valor": valor,
                     "pagamento": pagamento,
                     "rental_date": rental_date,
@@ -559,6 +579,7 @@ def init_item_routes(
                     "retirado": retirado,
                     "status": "rented",
                     "image_url": image_url,
+                    "transaction_obs": transaction_obs,
                     "created_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 }
             )
@@ -1223,7 +1244,7 @@ def listar_itens_per_transaction(
             "end_date": parse_date(request.args.get("end_date")),
             "return_start_date": parse_date(request.args.get("return_start_date")),
             "return_end_date": parse_date(request.args.get("return_end_date")),
-            "comments": request.args.get("comments"),
+            "item_obs": request.args.get("item_obs"),
         }
         return filtros
 
@@ -1325,9 +1346,9 @@ def listar_itens_per_transaction(
                 ):
                     continue
                 if (
-                    filtros["comments"]
-                    and filtros["comments"].lower()
-                    not in txn.get("comments", "").lower()
+                    filtros["item_obs"]
+                    and filtros["item_obs"].lower()
+                    not in txn.get("item_obs", "").lower()
                 ):
                     continue
 
@@ -1391,7 +1412,7 @@ def list_raw_itens(status_list, template, title, itens_table):
     # Capturar parâmetros de filtro
     item_custom_id = request.args.get("item_custom_id")
     description = request.args.get("description")
-    comments = request.args.get("comments")
+    item_obs = request.args.get("item_obs")
     min_valor = request.args.get("min_valor")
     max_valor = request.args.get("max_valor")
 
@@ -1422,10 +1443,10 @@ def list_raw_itens(status_list, template, title, itens_table):
         expression_attr_values[":description"] = description.lower()
         filter_expressions.append("contains(lower(#description), :description)")
 
-    if comments:
-        expression_attr_names["#comments"] = "comments"
-        expression_attr_values[":comments"] = comments.lower()
-        filter_expressions.append("contains(lower(#comments), :comments)")
+    if item_obs:
+        expression_attr_names["#item_obs"] = "item_obs"
+        expression_attr_values[":item_obs"] = item_obs.lower()
+        filter_expressions.append("contains(lower(#item_obs), :item_obs)")
 
     # Montar a expressão completa
     filter_expression = " AND ".join(filter_expressions) if filter_expressions else None

@@ -18,28 +18,29 @@
     <label for="description">Descrição:</label>
     <textarea id="description" name="description" rows="3" required>{{item.description}}</textarea>
 
-    <label for="comments">Comentários do item:</label>
-    <textarea id="comments" name="comments" rows="3" value="{{item.comments}}">{{item.comments}}</textarea>
+    <label for="item_obs">Obs do item:</label>
+    <textarea id="item_obs" name="item_obs" rows="3">{{ item.item_obs }}</textarea>
 
     <label for="valor">Valor (R$):</label>
     <input type="number" id="valor" name="valor" step="0.01" min="0" value="{{ item.valor }}" required />
 
-    {% set image_url = item.image_url if item.image_url and item.image_url != "N/A" else '' %}
+    {% set image_url = item.image_url if item.image_url and item.image_url != 'N/A' else '' %}
 
     <label>Foto Atual:</label>
-    {% set image_url = item.image_url if item.image_url and item.image_url != "N/A" else '' %} {% if image_url %}
-    <div id="image-container" style="margin-bottom: 10px">
-      <img id="item-image" src="{{ image_url }}" alt="Imagem do item" style="max-width: 150px; display: block" />
+    <div id="image-container" style="text-align: center; margin-bottom: 20px">
+      <img
+        id="item-image"
+        src="{{ image_url if image_url else url_for('static', filename='item-placeholder.png') }}"
+        alt="Imagem do item"
+        style="max-width: 150px; display: block; margin: 0 auto"
+      />
 
-      <!-- Campo de texto VISÍVEL para garantir que ele seja enviado -->
       <input type="text" name="image_url" id="image-url-input" value="{{ image_url }}" style="opacity: 0; position: absolute; left: -9999px" />
 
-      <button type="button" onclick="removeImage()" id="remove-btn" style="margin-top: 5px; display: block">Excluir imagem</button>
+      <button type="button" onclick="removeImage()" id="remove-btn" style="margin: 10px auto; display: {{ 'block' if image_url else 'none' }};">
+        Excluir imagem
+      </button>
     </div>
-    {% else %}
-    <img src="{{ url_for('static', filename='item-placeholder.png') }}" alt="Sem Imagem" style="max-width: 150px" />
-    <input type="text" name="image_url" id="image-url-input" value="" style="opacity: 0; position: absolute; left: -9999px" />
-    {% endif %}
 
     <label for="image_file">Trocar a Imagem:</label>
     <input type="file" id="image_file" name="image_file" accept="image/*;capture=camera" />
@@ -64,4 +65,44 @@
     if (removeButton) removeButton.style.display = 'none';
   }
 </script>
+
+<script>
+  function removeImage() {
+    const imageInput = document.getElementById('image-url-input');
+    const imageElement = document.getElementById('item-image');
+    const removeButton = document.getElementById('remove-btn');
+
+    if (imageInput) {
+      imageInput.value = 'DELETE_IMAGE';
+    }
+
+    if (imageElement) {
+      imageElement.src = "{{ url_for('static', filename='item-placeholder.png') }}";
+    }
+
+    if (removeButton) {
+      removeButton.style.display = 'none';
+    }
+  }
+
+  document.getElementById('image_file').addEventListener('change', function (event) {
+    const file = event.target.files[0];
+    const imageElement = document.getElementById('item-image');
+    const removeButton = document.getElementById('remove-btn');
+
+    if (file && imageElement) {
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        imageElement.src = e.target.result;
+        imageElement.style.display = 'block';
+        imageElement.style.margin = '0 auto'; // garantir centralização
+        if (removeButton) {
+          removeButton.style.display = 'block';
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+</script>
+
 {% endblock %}

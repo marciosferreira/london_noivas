@@ -23,13 +23,13 @@
 
     <label for="description">Descrição:</label>
     <br />
-    <textarea id="description" name="description" rows="3" required></textarea>
+    <textarea id="description" name="description" rows="2" required></textarea>
     <br />
     <br />
 
-    <label for="comments">Comentários do item:</label>
+    <label for="item_obs">Obs do item:</label>
     <br />
-    <textarea id="comments" name="comments" rows="4" cols="50"></textarea>
+    <textarea id="item_obs" name="item_obs" rows="2"></textarea>
     <br />
     <br />
 
@@ -39,12 +39,72 @@
     <br />
 
     <label>Foto:</label>
-    <br />
-    <input type="file" name="image_file" accept="image/*;capture=camera" />
+    <div id="image-container" style="text-align: center; margin: 10px 0 20px 0">
+      <img
+        id="item-image"
+        src="{{ url_for('static', filename='item-placeholder.png') }}"
+        alt="Imagem do item"
+        style="max-width: 150px; display: block; margin: 0 auto"
+      />
+
+      <input type="text" name="image_url" id="image-url-input" value="" style="opacity: 0; position: absolute; left: -9999px" />
+
+      <button
+      type="button"
+      onclick="removeImage()"
+      id="remove-btn"
+      style="margin: 10px auto; display: none; display: block;"
+    >
+      Excluir imagem
+    </button>
+
+
+    <input type="file" id="image_file" name="image_file" accept="image/*;capture=camera" />
     <br />
     <br />
 
     <button type="submit">Inserir</button>
   </form>
 </div>
-{% endblock %}
+{% block scripts %}
+<script>
+  function removeImage() {
+    const imageElement = document.getElementById('item-image');
+    const removeButton = document.getElementById('remove-btn');
+    const imageInput = document.getElementById('image-url-input');
+
+    // Voltar ao placeholder
+    if (imageElement) {
+      imageElement.src = "{{ url_for('static', filename='item-placeholder.png') }}";
+    }
+
+    if (removeButton) {
+      removeButton.style.display = 'none';
+    }
+
+    if (imageInput) {
+      imageInput.value = 'DELETE_IMAGE';
+    }
+
+    // Limpar o campo file (opcional)
+    document.getElementById('image_file').value = '';
+  }
+
+  document.getElementById('image_file').addEventListener('change', function (event) {
+    const file = event.target.files[0];
+    const imageElement = document.getElementById('item-image');
+    const removeButton = document.getElementById('remove-btn');
+
+    if (file && imageElement) {
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        imageElement.src = e.target.result;
+        imageElement.style.display = 'block';
+        imageElement.style.margin = '0 auto';
+        if (removeButton) removeButton.style.display = 'block';
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+</script>
+{% endblock %} {% endblock %}

@@ -203,7 +203,7 @@ def aplicar_filtro(
     end_date=None,
     return_start_date=None,
     return_end_date=None,
-    comments=None,
+    item_obs=None,
     formatted_dev_date=None,
     dev_date=None,
 ):
@@ -272,11 +272,11 @@ def aplicar_filtro(
         ]
 
     # Filtrar por comentários
-    if comments:
+    if item_obs:
         filtered_items = [
             dress
             for dress in filtered_items
-            if comments.lower() in dress.get("comments", "").lower()
+            if item_obs.lower() in dress.get("item_obs", "").lower()
         ]
 
     # Filtrar por nome do cliente
