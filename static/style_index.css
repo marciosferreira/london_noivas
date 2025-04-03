@@ -1,9 +1,9 @@
 /* Define o fundo do body para todas as páginas */
 body {
-  background: linear-gradient(120deg, #f5e3a6 0%, #f3bbab 100%);
+  background: linear-gradient(120deg, #dce3ea 0%, #edf2f7 100%);
   margin: 0;
   padding: 0;
-  padding-top: 80px; /* Ajuste conforme necessário para evitar sobreposição */
+  padding-top: 80px;
 }
 
 .btn-primary {

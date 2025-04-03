@@ -16,7 +16,7 @@ body.reports {
   min-height: 100vh;
 
   /* Exemplo de degradê linear (você pode trocar as cores) */
-  background: linear-gradient(120deg, #f5e3a6 0%, #f3bbab 100%);
+  background: linear-gradient(120deg, #dce3ea 0%, #edf2f7 100%);
   background-attachment: fixed; /* Fica fixo ao rolar */
   background-repeat: no-repeat;
   background-size: cover;

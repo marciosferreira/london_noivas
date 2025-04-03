@@ -27,112 +27,141 @@ d-none{% endif %} mt-3">
     <div class="card-body">
       <form method="GET" action="">
 
-        <div class="row mb-3">
-          <div class="col-md-6">
-            <label for="item_custom_id" class="form-label">ID Personalizado do Item:</label>
-            <input type="text" class="form-control" id="item_custom_id" name="item_custom_id" value="{{ request.args.get('item_custom_id', '') }}" />
-          </div>
+        <ul class="nav nav-tabs mb-3" id="filterTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+          <button class="nav-link active" id="item-tab" data-bs-toggle="tab" data-bs-target="#item" type="button" role="tab">Item</button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" id="client-tab" data-bs-toggle="tab" data-bs-target="#client" type="button" role="tab">Cliente</button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" id="transaction-tab" data-bs-toggle="tab" data-bs-target="#transaction" type="button" role="tab">Transação</button>
+        </li>
+      </ul>
 
-        <div class="row mb-3">
-          <div class="col-md-6">
-            <label for="description" class="form-label">Descrição do item:</label>
-            <input type="text" class="form-control" id="description" name="description" value="{{ request.args.get('description', '') }}" />
-          </div>
-
-          <div class="col-md-6">
-            <label for="item_obs" class="form-label">Observações do Item:</label>
-            <input type="text" class="form-control" id="item_obs" name="item_obs" value="{{ request.args.get('item_obs', '') }}" />
-          </div>
-        </div>
-
-        <div class="row mb-3">
-          <div class="col-md-4">
-            <label for="client_name" class="form-label">Nome do Cliente:</label>
-            <input type="text" class="form-control" id="client_name" name="client_name" value="{{ request.args.get('client_name', '') }}" />
-          </div>
-          <div class="col-md-4">
-            <label for="client_email" class="form-label">Email do Cliente:</label>
-            <input type="email" class="form-control" id="client_email" name="client_email" value="{{ request.args.get('client_email', '') }}" />
-          </div>
-          <div class="col-md-4">
-            <label for="client_address" class="form-label">Endereço do Cliente:</label>
-            <input type="text" class="form-control" id="client_address" name="client_address" value="{{ request.args.get('client_address', '') }}" />
-          </div>
-        </div>
-
-        <div class="row mb-3">
-          <div class="col-md-4">
-            <label for="client_cpf" class="form-label">CPF:</label>
-            <input type="text" class="form-control" id="client_cpf" name="client_cpf" value="{{ request.args.get('client_cpf', '') }}" />
-          </div>
-          <div class="col-md-4">
-            <label for="client_cnpj" class="form-label">CNPJ:</label>
-            <input type="text" class="form-control" id="client_cnpj" name="client_cnpj" value="{{ request.args.get('client_cnpj', '') }}" />
-          </div>
-
-          <div class="col-md-6">
-            <label for="comments" class="form-label">Obs do cliente:</label>
-            <input type="text" class="form-control" id="client_obs" name="client_obs" value="{{ request.args.get('client_obs', '') }}" />
-          </div>
-        </div>
-
-          <div class="col-md-4">
-            <label for="payment" class="form-label">Status de Pagamento:</label>
-            <select class="form-select" id="payment" name="payment">
-              <option value="">Todos</option>
-              <option value="pago 100%" {% if request.args.get('payment') == 'pago 100%' %}selected{% endif %}>Pago 100%</option>
-              <option value="pago 50%" {% if request.args.get('payment') == 'pago 50%' %}selected{% endif %}>Pago 50%</option>
-              <option value="não pago" {% if request.args.get('payment') == 'não pago' %}selected{% endif %}>Não Pago</option>
-            </select>
-          </div>
-        </div>
-
-        {% if request.path in ['/trash_itens', '/trash_transactions'] %}
-        <div class="row mb-3">
-          <div class="col-md-6">
-            <label for="filter" class="form-label">Tipo de Item:</label>
-            <select class="form-select" id="filter" name="filter">
-              <option value="todos" {% if request.args.get('filter') == 'todos' or not request.args.get('filter') %}selected{% endif %}>Todos</option>
-              <option value="deleted" {% if request.args.get('filter') == 'deleted' %}selected{% endif %}>Apenas Deletados</option>
-              <option value="version" {% if request.args.get('filter') == 'version' %}selected{% endif %}>Apenas Versões</option>
-            </select>
-          </div>
-        </div>
-        {% endif %}
-
-        {% if request.path in ['/rented', '/returned', '/trash_transactions'] %}
-        <div class="row mb-3">
-          <div class="col-md-6">
-            <label class="form-label">Intervalo de Data de Aluguel:</label>
-            <div class="row">
-              <div class="col">
-                <input type="date" class="form-control" id="start_date" name="start_date" value="{{ request.args.get('start_date', '') }}" placeholder="Data Inicial" />
-              </div>
-              <div class="col">
-                <input type="date" class="form-control" id="end_date" name="end_date" value="{{ request.args.get('end_date', '') }}" placeholder="Data Final" />
-              </div>
+      <div class="tab-content" id="filterTabsContent">
+        <!-- Aba Item -->
+        <div class="tab-pane fade show active" id="item" role="tabpanel">
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label for="item_custom_id" class="form-label">ID Personalizado do Item:</label>
+              <input type="text" class="form-control" id="item_custom_id" name="item_custom_id" value="{{ request.args.get('item_custom_id', '') }}" />
             </div>
+            <div class="col-md-6">
+              <label for="description" class="form-label">Descrição do item:</label>
+              <input type="text" class="form-control" id="description" name="description" value="{{ request.args.get('description', '') }}" />
+            </div>
+            <div class="col-md-6">
+              <label for="item_obs" class="form-label">Observações do Item:</label>
+              <input type="text" class="form-control" id="item_obs" name="item_obs" value="{{ request.args.get('item_obs', '') }}" />
+            </div>
+
+            {% if request.path in ['/trash_itens', '/trash_transactions'] %}
+            <div class="col-md-6">
+              <label for="filter" class="form-label">Tipo de Item:</label>
+              <select class="form-select" id="filter" name="filter">
+                <option value="todos" {% if request.args.get('filter') == 'todos' or not request.args.get('filter') %}selected{% endif %}>Todos</option>
+                <option value="deleted" {% if request.args.get('filter') == 'deleted' %}selected{% endif %}>Apenas Deletados</option>
+                <option value="version" {% if request.args.get('filter') == 'version' %}selected{% endif %}>Apenas Versões</option>
+              </select>
+            </div>
+            {% endif %}
           </div>
-          <div class="col-md-6">
-            <label class="form-label">Intervalo de Data de Devolução:</label>
-            <div class="row">
-              <div class="col">
-                <input type="date" class="form-control" id="return_start_date" name="return_start_date" value="{{ request.args.get('return_start_date', '') }}" placeholder="Data Inicial" />
-              </div>
-              <div class="col">
-                <input type="date" class="form-control" id="return_end_date" name="return_end_date" value="{{ request.args.get('return_end_date', '') }}" placeholder="Data Final" />
-              </div>
+        </div>
+
+        <!-- Aba Cliente -->
+        <div class="tab-pane fade" id="client" role="tabpanel">
+          <div class="row mb-3">
+            <div class="col-md-4">
+              <label for="client_name" class="form-label">Nome do Cliente:</label>
+              <input type="text" class="form-control" id="client_name" name="client_name" value="{{ request.args.get('client_name', '') }}" />
+            </div>
+            <div class="col-md-4">
+              <label for="client_email" class="form-label">Email do Cliente:</label>
+              <input type="email" class="form-control" id="client_email" name="client_email" value="{{ request.args.get('client_email', '') }}" />
+            </div>
+            <div class="col-md-4">
+              <label for="client_address" class="form-label">Endereço do Cliente:</label>
+              <input type="text" class="form-control" id="client_address" name="client_address" value="{{ request.args.get('client_address', '') }}" />
+            </div>
+            <div class="col-md-4">
+              <label for="client_cpf" class="form-label">CPF:</label>
+              <input type="text" class="form-control" id="client_cpf" name="client_cpf" value="{{ request.args.get('client_cpf', '') }}" />
+            </div>
+            <div class="col-md-4">
+              <label for="client_cnpj" class="form-label">CNPJ:</label>
+              <input type="text" class="form-control" id="client_cnpj" name="client_cnpj" value="{{ request.args.get('client_cnpj', '') }}" />
+            </div>
+            <div class="col-md-6">
+              <label for="client_obs" class="form-label">Obs do cliente:</label>
+              <input type="text" class="form-control" id="client_obs" name="client_obs" value="{{ request.args.get('client_obs', '') }}" />
             </div>
           </div>
         </div>
-        {% endif %}
 
-        <div class="d-flex card-footer justify-content-between mt-3">
-          <button type="submit" class="btn btn-primary">Aplicar Filtros</button>
-          <a href="{{ request.path }}" class="btn btn-secondary">Limpar Filtros</a>
+        <!-- Aba Transação -->
+        <div class="tab-pane fade" id="transaction" role="tabpanel">
+          <div class="row mb-3">
+            <div class="col-md-4">
+              <label for="payment" class="form-label">Status de Pagamento:</label>
+              <select class="form-select" id="payment" name="payment">
+                <option value="">Todos</option>
+                <option value="pago 100%" {% if request.args.get('payment') == 'pago 100%' %}selected{% endif %}>Pago 100%</option>
+                <option value="pago 50%" {% if request.args.get('payment') == 'pago 50%' %}selected{% endif %}>Pago 50%</option>
+                <option value="não pago" {% if request.args.get('payment') == 'não pago' %}selected{% endif %}>Não Pago</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label for="retirado" class="form-label">Retirado:</label>
+              <select class="form-select" id="retirado" name="retirado">
+                <option value="">Todos</option>
+                <option value="true" {% if request.args.get('retirado') == 'true' %}selected{% endif %}>Sim</option>
+                <option value="false" {% if request.args.get('retirado') == 'false' %}selected{% endif %}>Não</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label for="transaction_obs" class="form-label">Observações da Transação:</label>
+              <input type="text" class="form-control" id="transaction_obs" name="transaction_obs" value="{{ request.args.get('transaction_obs', '') }}" />
+            </div>
+
+            {% if request.path in ['/rented', '/returned', '/trash_transactions'] %}
+            <div class="col-md-6">
+              <label class="form-label">Intervalo de Data de Aluguel:</label>
+              <div class="row">
+                <div class="col">
+                  <input type="date" class="form-control" id="start_date" name="start_date" value="{{ request.args.get('start_date', '') }}" />
+                </div>
+                <div class="col">
+                  <input type="date" class="form-control" id="end_date" name="end_date" value="{{ request.args.get('end_date', '') }}" />
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Intervalo de Data de Devolução:</label>
+              <div class="row">
+                <div class="col">
+                  <input type="date" class="form-control" id="return_start_date" name="return_start_date" value="{{ request.args.get('return_start_date', '') }}" />
+                </div>
+                <div class="col">
+                  <input type="date" class="form-control" id="return_end_date" name="return_end_date" value="{{ request.args.get('return_end_date', '') }}" />
+                </div>
+              </div>
+            </div>
+            {% endif %}
+          </div>
         </div>
-      </form>
+      </div>
+
     </div>
+
+
+    <div class="d-flex card-footer justify-content-between mt-3">
+      <button type="submit" class="btn btn-primary">Aplicar Filtros</button>
+      <a href="{{ request.path }}" class="btn btn-secondary">Limpar Filtros</a>
+    </div>
+
+
+
   </div>
 </div>
 
@@ -151,8 +180,11 @@ d-none{% endif %} mt-3">
   // Auto-abrir os filtros se algum filtro estiver ativo
   document.addEventListener('DOMContentLoaded', function() {
     const urlParams = new URLSearchParams(window.location.search);
-    const hasFilters = Array.from(['description', 'comments', 'client_name', 'client_email', 'client_address', 'client_cpf', 'client_cnpj', 'payment', 'start_date', 'end_date', 'return_start_date', 'return_end_date'])
-      .some(param => urlParams.has(param));
+    const hasFilters = Array.from([
+    'description', 'comments', 'client_name', 'client_email', 'client_address',
+    'client_cpf', 'client_cnpj', 'payment', 'start_date', 'end_date',
+    'return_start_date', 'return_end_date', 'retirado', 'transaction_obs'
+  ]).some(param => urlParams.has(param));
 
     if (hasFilters) {
       const filterSection = document.getElementById('filter-section');

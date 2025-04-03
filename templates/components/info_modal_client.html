@@ -30,6 +30,16 @@
               <strong>Endereço:</strong>
               <span id="modalAddress"></span>
             </p>
+            <p></p>
+            <p>
+              <strong>CPF:</strong>
+              <span id="modalCPF"></span>
+            </p>
+            <p></p>
+            <p>
+              <strong>CNPJ:</strong>
+              <span id="modalCNPJ"></span>
+            </p>
             <p>
               <strong>Data de Cadastro:</strong>
               <span id="modalCreated"></span>
@@ -40,6 +50,17 @@
     </div>
 
     <script>
+      function formatarDataBrasilComHora(dataISO) {
+        if (!dataISO) return 'N/A';
+        const data = new Date(dataISO);
+        const dia = String(data.getDate()).padStart(2, '0');
+        const mes = String(data.getMonth() + 1).padStart(2, '0');
+        const ano = data.getFullYear();
+        const horas = String(data.getHours()).padStart(2, '0');
+        const minutos = String(data.getMinutes()).padStart(2, '0');
+        return `${dia}/${mes}/${ano} ${horas}:${minutos}`;
+      }
+
       document.addEventListener('DOMContentLoaded', function () {
         document.querySelectorAll('.open-modal').forEach((cell) => {
           cell.addEventListener('click', function () {
@@ -49,7 +70,9 @@
               document.getElementById('modalPhone').textContent = item.client_tel || 'N/A';
               document.getElementById('modalEmail').textContent = item.client_email || 'N/A';
               document.getElementById('modalAddress').textContent = item.client_address || 'N/A';
-              document.getElementById('modalCreated').textContent = item.created_at || 'N/A';
+              document.getElementById('modalCPF').textContent = item.client_cpf || 'N/A';
+              document.getElementById('modalCNPJ').textContent = item.client_cnpj || 'N/A';
+              document.getElementById('modalCreated').textContent = formatarDataBrasilComHora(item.created_at);
 
               let modal = new bootstrap.Modal(document.getElementById('infoModal'));
               modal.show();

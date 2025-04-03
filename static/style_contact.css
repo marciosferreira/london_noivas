@@ -1,6 +1,6 @@
 body.contact {
   font-family: Arial, sans-serif;
-  background: linear-gradient(120deg, #f5e3a6 0%, #f3bbab 100%);
+  background: linear-gradient(120deg, #dce3ea 0%, #edf2f7 100%);
   display: block; /* 🔹 Evita centralização da navbar */
   min-height: 100vh;
   margin: 0;

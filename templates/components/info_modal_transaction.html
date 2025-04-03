@@ -2,10 +2,12 @@
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">Detalhes da transação</h5>
+        <h5 class="modal-title">Mais Detalhes</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
+        <!-- Seção Cliente -->
+        <h4><strong>Cliente:</strong></h4>
         <p>
           <strong>Nome:</strong>
           <span id="modalName"></span>
@@ -34,12 +36,24 @@
           <strong>Observações do Cliente:</strong>
           <span id="modalObs"></span>
         </p>
+
         <hr />
 
+        <!-- Seção Item -->
+        <h4><strong>Item:</strong></h4>
         <p>
           <strong>Item Custom ID:</strong>
           <span id="modalItemCustomId"></span>
         </p>
+        <p>
+          <strong>Descrição:</strong>
+          <span id="modalItemDescription"></span>
+        </p>
+
+        <hr />
+
+        <!-- Seção Transação -->
+        <h4><strong>Transação:</strong></h4>
         <p>
           <strong>Data de Retirada:</strong>
           <span id="modalRentalDate"></span>
@@ -56,7 +70,6 @@
           <strong>Pagamento:</strong>
           <span id="modalPagamento"></span>
         </p>
-
         <p>
           <strong>Retirado:</strong>
           <span id="modalRetirado"></span>
@@ -75,6 +88,17 @@
 </div>
 
 <script>
+  function formatarDataBrasilComHora(dataISO) {
+    if (!dataISO) return 'N/A';
+    const data = new Date(dataISO);
+    const dia = String(data.getDate()).padStart(2, '0');
+    const mes = String(data.getMonth() + 1).padStart(2, '0');
+    const ano = data.getFullYear();
+    const horas = String(data.getHours()).padStart(2, '0');
+    const minutos = String(data.getMinutes()).padStart(2, '0');
+    return `${dia}/${mes}/${ano} ${horas}:${minutos}`;
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.open-modal').forEach((cell) => {
       cell.addEventListener('click', function () {
@@ -91,13 +115,15 @@
           document.getElementById('modalObs').textContent = data.client_obs || 'N/A';
 
           document.getElementById('modalItemCustomId').textContent = data.item_custom_id || 'N/A';
+          document.getElementById('modalItemDescription').textContent = data.description || 'N/A';
+
           document.getElementById('modalRentalDate').textContent = data.rental_date || 'N/A';
           document.getElementById('modalReturnDate').textContent = data.return_date || 'N/A';
           document.getElementById('modalValor').textContent = data.valor || 'N/A';
           document.getElementById('modalPagamento').textContent = data.pagamento || 'N/A';
           document.getElementById('modalRetirado').textContent = data.retirado ? 'Sim' : 'Não';
-          document.getElementById('modalTransactionComments').textContent = data.comments || 'N/A';
-          document.getElementById('modalCreated').textContent = data.created_at || 'N/A';
+          document.getElementById('modalTransactionComments').textContent = data.transaction_obs || 'N/A';
+          document.getElementById('modalCreated').textContent = formatarDataBrasilComHora(data.created_at);
 
           new bootstrap.Modal(document.getElementById('infoModal')).show();
         } catch (e) {

@@ -231,6 +231,8 @@ def init_item_routes(
                 "client_cnpj_digits": request.form.get("client_cnpj_digits") or None,
                 "retirado": "retirado" in request.form,
                 "valor": request.form.get("valor", "").strip() or None,
+                "transaction_obs": request.form.get("transaction_obs", "").strip()
+                or None,
                 "pagamento": request.form.get("pagamento") or None,
                 "item_obs": request.form.get("item_obs", "").strip() or None,
                 "item_custom_id": request.form.get("item_custom_id", "").strip()
@@ -1247,6 +1249,8 @@ def listar_itens_per_transaction(
             "return_start_date": parse_date(request.args.get("return_start_date")),
             "return_end_date": parse_date(request.args.get("return_end_date")),
             "item_obs": request.args.get("item_obs"),
+            "retirado": request.args.get("retirado"),  # ✅ NOVO
+            "transaction_obs": request.args.get("transaction_obs"),  # ✅ NOVO
         }
         return filtros
 
@@ -1366,6 +1370,18 @@ def listar_itens_per_transaction(
                     filtros["client_obs"]
                     and filtros["client_obs"].lower()
                     not in txn.get("client_obs", "").lower()
+                ):
+                    continue
+
+                if filtros.get("retirado") is not None:
+                    retirado_valor = filtros["retirado"].lower() == "true"
+                    if txn.get("retirado") != retirado_valor:
+                        continue
+
+                if (
+                    filtros["transaction_obs"]
+                    and filtros["transaction_obs"].lower()
+                    not in txn.get("transaction_obs", "").lower()
                 ):
                     continue
 
