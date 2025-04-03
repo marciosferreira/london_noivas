@@ -1233,12 +1233,14 @@ def listar_itens_per_transaction(
     def apply_filtros_request():
         filtros = {
             "filter": request.args.get("filter", "todos"),
+            "item_custom_id": request.args.get("item_custom_id"),
             "description": request.args.get("description"),
             "client_name": request.args.get("client_name"),
             "client_email": request.args.get("client_email"),
             "client_cpf": request.args.get("client_cpf"),
             "client_cnpj": request.args.get("client_cnpj"),
             "client_address": request.args.get("client_address"),
+            "client_obs": request.args.get("client_obs"),
             "payment_status": request.args.get("payment"),
             "start_date": parse_date(request.args.get("start_date")),
             "end_date": parse_date(request.args.get("end_date")),
@@ -1257,6 +1259,7 @@ def listar_itens_per_transaction(
             ("client_name", True),
             ("client_email", True),
             ("client_address", True),
+            ("client_obs", True),  # ⬅️ adiciona este!
             ("client_cpf", False),
             ("client_cnpj", False),
             ("pagamento", False),
@@ -1352,17 +1355,26 @@ def listar_itens_per_transaction(
                 ):
                     continue
 
+                if (
+                    filtros["item_custom_id"]
+                    and filtros["item_custom_id"].lower()
+                    not in item_data.get("item_custom_id", "").lower()
+                ):
+                    continue
+
+                if (
+                    filtros["client_obs"]
+                    and filtros["client_obs"].lower()
+                    not in txn.get("client_obs", "").lower()
+                ):
+                    continue
+
                 transacoes.append(process_dates(txn))
 
         return transacoes
 
     def filtrar_por_categoria(itens, categoria):
-        if categoria == "reservados":
-            return [i for i in itens if not i.get("retirado")]
-        if categoria == "retirados":
-            return [i for i in itens if i.get("retirado")]
-        if categoria == "atrasados":
-            return [i for i in itens if i.get("overdue")]
+
         if categoria == "deleted":
             return [i for i in itens if i.get("transaction_status") == "deleted"]
         if categoria == "version":

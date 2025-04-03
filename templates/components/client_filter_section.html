@@ -65,21 +65,27 @@
             <input type="text" class="form-control" id="client_cnpj" name="client_cnpj"
                    value="{{ request.args.get('client_cnpj', '') }}" placeholder="Apenas números" />
           </div>
+
+
+          <div class="col-md-4 mb-3">
+            <label for="client_obs" class="form-label">Obs do cliente:</label>
+            <input
+              type="text"
+              class="form-control"
+              id="client_obs"
+              name="client_obs"
+              value="{{ request.args.get('client_obs', '') }}"
+              placeholder="Digite observações..."
+            />
+          </div>
+
+
+
+
         </div>
       </div>
 
 
-      <div class="col-md-4 mb-3">
-        <label for="client_obs" class="form-label">Observações</label>
-        <input
-          type="text"
-          class="form-control"
-          id="client_obs"
-          name="client_obs"
-          value="{{ request.args.get('client_obs', '') }}"
-          placeholder="Digite observações..."
-        />
-      </div>
 
 
       <div class="card-footer d-flex justify-content-between">
