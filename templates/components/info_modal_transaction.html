@@ -63,11 +63,11 @@
           <span id="modalReturnDate"></span>
         </p>
         <p>
-          <strong>Valor:</strong>
+          <strong>Valor(R$):</strong>
           <span id="modalValor"></span>
         </p>
         <p>
-          <strong>Pagamento:</strong>
+          <strong>Pago(R$):</strong>
           <span id="modalPagamento"></span>
         </p>
         <p>
@@ -99,6 +99,16 @@
     return `${dia}/${mes}/${ano} ${horas}:${minutos}`;
   }
 
+  function formatarDataBrasil(dataISO) {
+    if (!dataISO) return 'N/A';
+    const data = new Date(dataISO);
+    const dia = String(data.getDate()).padStart(2, '0');
+    const mes = String(data.getMonth() + 1).padStart(2, '0');
+    const ano = data.getFullYear();
+
+    return `${dia}/${mes}/${ano}`;
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.open-modal').forEach((cell) => {
       cell.addEventListener('click', function () {
@@ -117,8 +127,8 @@
           document.getElementById('modalItemCustomId').textContent = data.item_custom_id || 'N/A';
           document.getElementById('modalItemDescription').textContent = data.description || 'N/A';
 
-          document.getElementById('modalRentalDate').textContent = data.rental_date || 'N/A';
-          document.getElementById('modalReturnDate').textContent = data.return_date || 'N/A';
+          document.getElementById('modalRentalDate').textContent = formatarDataBrasil(data.rental_date);
+          document.getElementById('modalReturnDate').textContent = formatarDataBrasil(data.return_date);
           document.getElementById('modalValor').textContent = data.valor || 'N/A';
           document.getElementById('modalPagamento').textContent = data.pagamento || 'N/A';
           document.getElementById('modalRetirado').textContent = data.retirado ? 'Sim' : 'Não';

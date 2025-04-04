@@ -1243,7 +1243,7 @@ def listar_itens_per_transaction(
             "client_cnpj": request.args.get("client_cnpj"),
             "client_address": request.args.get("client_address"),
             "client_obs": request.args.get("client_obs"),
-            "payment_status": request.args.get("payment"),
+            "payment": request.args.get("payment"),
             "start_date": parse_date(request.args.get("start_date")),
             "end_date": parse_date(request.args.get("end_date")),
             "return_start_date": parse_date(request.args.get("return_start_date")),
@@ -1345,6 +1345,7 @@ def listar_itens_per_transaction(
                 continue
 
             for txn in transacoes_por_item:
+
                 # Skip por filtro de descrição/comentários, se necessário
                 if (
                     filtros["description"]
@@ -1384,6 +1385,28 @@ def listar_itens_per_transaction(
                     not in txn.get("transaction_obs", "").lower()
                 ):
                     continue
+
+                # NOVO: Filtro de pagamento baseado no valor pago vs valor total
+                pagamento_raw = txn.get("pagamento")
+                valor_raw = txn.get("valor")
+
+                try:
+                    pagamento = float(pagamento_raw or 0)
+                    valor = float(valor_raw or 0)
+                except (TypeError, ValueError):
+                    continue
+
+                filtro_pagamento = (filtros.get("payment") or "").lower().strip()
+
+                if filtro_pagamento == "pago total":
+                    if pagamento < valor:
+                        continue
+                elif filtro_pagamento == "pago parcial":
+                    if pagamento == 0 or pagamento >= valor:
+                        continue
+                elif filtro_pagamento == "não pago":
+                    if pagamento > 0:
+                        continue
 
                 transacoes.append(process_dates(txn))
 

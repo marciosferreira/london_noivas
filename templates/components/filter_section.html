@@ -106,9 +106,9 @@ d-none{% endif %} mt-3">
               <label for="payment" class="form-label">Status de Pagamento:</label>
               <select class="form-select" id="payment" name="payment">
                 <option value="">Todos</option>
-                <option value="pago 100%" {% if request.args.get('payment') == 'pago 100%' %}selected{% endif %}>Pago 100%</option>
-                <option value="pago 50%" {% if request.args.get('payment') == 'pago 50%' %}selected{% endif %}>Pago 50%</option>
-                <option value="não pago" {% if request.args.get('payment') == 'não pago' %}selected{% endif %}>Não Pago</option>
+                <option value="pago total" {% if request.args.get('payment') == 'pago total' %}selected{% endif %}>pago total (PT)</option>
+                <option value="pago parcial" {% if request.args.get('payment') == 'pago parcial' %}selected{% endif %}>pago parcial (PP)</option>
+                <option value="não pago" {% if request.args.get('payment') == 'não pago' %}selected{% endif %}>Não Pago (NP)</option>
               </select>
             </div>
             <div class="col-md-4">
