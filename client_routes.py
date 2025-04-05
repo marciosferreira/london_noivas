@@ -1,6 +1,8 @@
 import datetime
 import uuid
 from boto3.dynamodb.conditions import Key
+from utils import get_user_timezone
+
 
 from flask import (
     render_template,
@@ -13,7 +15,10 @@ from flask import (
 )
 
 
-def init_client_routes(app, clients_table, transactions_table, itens_table):
+def init_client_routes(
+    app, clients_table, transactions_table, itens_table, users_table
+):
+
     @app.route("/autocomplete_clients")
     def autocomplete_clients():
         account_id = session.get("account_id")
@@ -186,8 +191,10 @@ def init_client_routes(app, clients_table, transactions_table, itens_table):
             if client_cnpj_digits:
                 cliente["client_cnpj"] = client_cnpj_digits
 
+            user_id = session.get("user_id") if "user_id" in session else None
+            user_utc = get_user_timezone(users_table, user_id)
             # Marcar como editado
-            cliente["updated_at"] = datetime.datetime.now().strftime(
+            cliente["updated_at"] = datetime.datetime.now(user_utc).strftime(
                 "%Y-%m-%d %H:%M:%S"
             )
 
@@ -273,7 +280,7 @@ def init_client_routes(app, clients_table, transactions_table, itens_table):
 
 
 def add_client_common(
-    request, clients_table, session, flash, redirect, url_for, template
+    request, clients_table, session, flash, redirect, url_for, template, users_table
 ):
     if not session.get("logged_in"):
         return redirect(url_for("login"))
@@ -299,11 +306,14 @@ def add_client_common(
         client_id = str(uuid.uuid4())
         account_id = session.get("account_id")
 
+        user_id = session.get("user_id") if "user_id" in session else None
+        user_utc = get_user_timezone(users_table, user_id)
+
         new_client = {
             "client_id": client_id,
             "account_id": account_id,
             "client_name": client_name,
-            "created_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "created_at": datetime.datetime.now(user_utc).strftime("%Y-%m-%d %H:%M:%S"),
         }
 
         # Adiciona apenas se os campos tiverem valor

@@ -27,13 +27,36 @@
   .tab-content.active {
     display: block;
   }
+
+  .erro-destaque {
+    border: 2px solid red !important;
+    animation: shake 0.3s ease-in-out;
+  }
+
+  @keyframes shake {
+    0% {
+      transform: translateX(0);
+    }
+    25% {
+      transform: translateX(-4px);
+    }
+    50% {
+      transform: translateX(4px);
+    }
+    75% {
+      transform: translateX(-4px);
+    }
+    100% {
+      transform: translateX(0);
+    }
+  }
 </style>
 {% endblock %} {% block content %}
 <div class="form-container">
   <h1>Editar transação</h1>
   <a href="{{ request.args.get('next', url_for('index')) }}" class="cancel-link">Sair sem Finalizar</a>
 
-  <form method="POST" enctype="multipart/form-data" id="form-transaction">
+  <form method="POST" enctype="multipart/form-data" id="form-transaction" novalidate>
     <!-- Menu de abas -->
     <div class="tabs">
       <button type="button" class="tab-button active" data-tab="tab-cliente">Cliente</button>
@@ -180,238 +203,266 @@
 <script src="https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.umd.min.js"></script>
 
 <script>
-  // 🟦 Alternância de abas
-  document.querySelectorAll('.tab-button').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-      const selectedTab = document.getElementById(btn.dataset.tab);
-      if (selectedTab) selectedTab.classList.add('active');
-    });
-  });
-
-  // 🟨 Máscaras de telefone, CPF e CNPJ
-  function maskPhone(value) {
-    let input = value.replace(/\D/g, '');
-    if (input.length > 11) input = input.slice(0, 11);
-    let formatted = '';
-    if (input.length > 0) formatted += '(' + input.substring(0, 2);
-    if (input.length >= 3) formatted += ') ' + input.substring(2, 7);
-    if (input.length >= 8) formatted += '-' + input.substring(7);
-    return formatted;
-  }
-
-  function maskCPF(cpf) {
-    cpf = cpf.replace(/\D/g, '');
-    cpf = cpf.replace(/(\d{3})(\d)/, '$1.$2');
-    cpf = cpf.replace(/(\d{3})(\d)/, '$1.$2');
-    cpf = cpf.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
-    return cpf;
-  }
-
-  function maskCNPJ(cnpj) {
-    cnpj = cnpj.replace(/\D/g, '');
-    cnpj = cnpj.replace(/^(\d{2})(\d)/, '$1.$2');
-    cnpj = cnpj.replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3');
-    cnpj = cnpj.replace(/\.(\d{3})(\d)/, '.$1/$2');
-    cnpj = cnpj.replace(/(\d{4})(\d)/, '$1-$2');
-    return cnpj;
-  }
-
-  function aplicarMascaras() {
-    const telInput = document.getElementById('client_tel');
-    const cpfInput = document.getElementById('client_cpf');
-    const cnpjInput = document.getElementById('client_cnpj');
-
-    if (telInput && telInput.value) telInput.value = maskPhone(telInput.value);
-    if (cpfInput && cpfInput.value) cpfInput.value = maskCPF(cpfInput.value);
-    if (cnpjInput && cnpjInput.value) cnpjInput.value = maskCNPJ(cnpjInput.value);
-
-    if (telInput) {
-      telInput.addEventListener('input', e => e.target.value = maskPhone(e.target.value));
-    }
-    if (cpfInput) {
-      cpfInput.addEventListener('input', e => e.target.value = maskCPF(e.target.value));
-    }
-    if (cnpjInput) {
-      cnpjInput.addEventListener('input', e => e.target.value = maskCNPJ(e.target.value));
-    }
-  }
-
-  // 🟩 Preenchimento automático de cliente
-  function autocompleteCliente() {
-    const clientInput = document.getElementById('client_name');
-    const suggestionsBox = document.getElementById('client_suggestions');
-
-    if (!clientInput || !suggestionsBox) return;
-
-    clientInput.addEventListener('input', async () => {
-      const term = clientInput.value.trim();
-      if (term.length < 2) {
-        suggestionsBox.innerHTML = '';
-        return;
-      }
-
-      try {
-        const res = await fetch(`/autocomplete_clients?term=${encodeURIComponent(term)}`);
-        const clients = await res.json();
-
-        suggestionsBox.innerHTML = '';
-
-        clients.forEach((client) => {
-          const div = document.createElement('div');
-          div.className = 'autocomplete-item';
-          div.innerHTML = `<strong>${client.client_name}</strong>
-            ${client.client_tel ? `<div><small>📞 ${client.client_tel}</small></div>` : ''}
-            ${client.client_email ? `<div><small>📧 ${client.client_email}</small></div>` : ''}
-            ${client.client_cpf ? `<div><small>🆔 CPF: ${client.client_cpf}</small></div>` : ''}
-            ${client.client_cnpj ? `<div><small>🏢 CNPJ: ${client.client_cnpj}</small></div>` : ''}
-          `;
-
-          div.addEventListener('click', (event) => {
-            event.stopPropagation();
-            preencherCamposCliente(client);
-            suggestionsBox.innerHTML = '';
-          });
-
-          suggestionsBox.appendChild(div);
+      // 🟦 Alternância de abas
+      document.querySelectorAll('.tab-button').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+          const selectedTab = document.getElementById(btn.dataset.tab);
+          if (selectedTab) selectedTab.classList.add('active');
         });
-      } catch (error) {
-        console.error('Erro ao buscar sugestões de cliente:', error);
-      }
-    });
-
-    document.addEventListener('click', (e) => {
-      if (!suggestionsBox.contains(e.target) && e.target !== clientInput) {
-        suggestionsBox.innerHTML = '';
-      }
-    });
-  }
-
-  function preencherCamposCliente(client) {
-    document.getElementById("client_name").value = client.client_name || '';
-    document.getElementById("client_tel").value = client.client_tel ? maskPhone(client.client_tel) : '';
-    document.getElementById("client_id").value = client.client_id || '';
-    document.getElementById("client_email").value = client.client_email || '';
-    document.getElementById("client_cpf").value = client.client_cpf ? maskCPF(client.client_cpf) : '';
-    document.getElementById("client_cnpj").value = client.client_cnpj ? maskCNPJ(client.client_cnpj) : '';
-    document.getElementById("client_address").value = client.client_address || '';
-  }
-
-  // 🟦 Validação do formulário
-  function configurarValidacaoFormulario() {
-    const form = document.getElementById('form-transaction');
-    if (!form) return;
-
-    form.addEventListener('submit', function (e) {
-      const dp = document.getElementById('datepicker');
-      if (dp && (!dp.value || dp.value.trim() === '')) {
-        e.preventDefault();
-        alert('Por favor, selecione um intervalo de datas.');
-        dp.focus();
-      }
-    });
-  }
-
-  // 🟥 Inicialização do Easepick (datepicker)
-  function iniciarDatePicker() {
-    const DateTime = easepick.DateTime;
-    const rawDates = {{ reserved_ranges | tojson(indent=2) }};
-    const bookedDates = rawDates.map(d => {
-      if (d instanceof Array) {
-        const start = new DateTime(d[0], 'YYYY-MM-DD');
-        const end = new DateTime(d[1], 'YYYY-MM-DD');
-        return [start, end];
-      }
-      return new DateTime(d, 'YYYY-MM-DD');
-    });
-
-    const picker = new easepick.create({
-      element: document.getElementById('datepicker'),
-      css: [
-        'https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.css',
-        'https://easepick.com/css/demo_hotelcal.css',
-      ],
-      lang: 'pt-BR',
-      autoApply: false,
-      plugins: ['RangePlugin', 'LockPlugin', 'AmpPlugin'],
-      AmpPlugin: {
-        resetButton: true,
-      },
-      RangePlugin: {
-        tooltipNumber(num) {
-          return num;
-        },
-        locale: {
-          one: 'dia',
-          other: 'dias',
-        },
-      },
-      LockPlugin: {
-        minDate: new Date(),
-        minDays: 1,
-        inseparable: true,
-        filter(date, picked) {
-          if (picked.length === 1) {
-            return !picked[0].isSame(date, 'day') && date.inArray(bookedDates, '[]');
-          }
-          return date.inArray(bookedDates, '[]');
-        },
-      },
-      locale: {
-        cancel: 'Cancelar',
-        apply: 'Aplicar',
-        reset: 'Limpar',
-        one: 'dia',
-        other: 'dias',
-      },
-      format: 'DD/MM/YYYY',
-    });
-
-    picker.on('preselect', (evt) => {
-      const clickedDate = evt.detail.date;
-      evt.preventDefault();
-      picker.setStartDate(null);
-      picker.setEndDate(null);
-      document.getElementById('datepicker').value = '';
-      picker.setStartDate(clickedDate);
-    });
-  }
-
-  // 🟨 Atualizar campo de devolução
-  function updateDevDateField() {
-    const returnedRadio = document.getElementById('status-returned');
-    const devDateContainer = document.getElementById('dev-date-container');
-    const devDateInput = document.getElementById('dev_date');
-
-    if (returnedRadio && returnedRadio.checked) {
-      devDateContainer.style.display = 'block';
-      devDateInput.required = true;
-    } else if (devDateContainer) {
-      devDateContainer.style.display = 'none';
-      if (devDateInput) devDateInput.required = false;
-    }
-  }
-
-  function configurarStatusListener() {
-    const radioButtons = document.querySelectorAll('input[name="status"]');
-    if (radioButtons.length > 0) {
-      radioButtons.forEach((radio) => {
-        radio.addEventListener('change', updateDevDateField);
       });
-      updateDevDateField();
-    }
-  }
 
-  // ✅ Inicialização geral
-  window.addEventListener('DOMContentLoaded', () => {
-    aplicarMascaras();
-    autocompleteCliente();
-    configurarValidacaoFormulario();
-    iniciarDatePicker();
-    configurarStatusListener();
-  });
+      // 🟨 Máscaras de telefone, CPF e CNPJ
+      function maskPhone(value) {
+        let input = value.replace(/\D/g, '');
+        if (input.length > 11) input = input.slice(0, 11);
+        let formatted = '';
+        if (input.length > 0) formatted += '(' + input.substring(0, 2);
+        if (input.length >= 3) formatted += ') ' + input.substring(2, 7);
+        if (input.length >= 8) formatted += '-' + input.substring(7);
+        return formatted;
+      }
+
+      function maskCPF(cpf) {
+        cpf = cpf.replace(/\D/g, '');
+        cpf = cpf.replace(/(\d{3})(\d)/, '$1.$2');
+        cpf = cpf.replace(/(\d{3})(\d)/, '$1.$2');
+        cpf = cpf.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+        return cpf;
+      }
+
+      function maskCNPJ(cnpj) {
+        cnpj = cnpj.replace(/\D/g, '');
+        cnpj = cnpj.replace(/^(\d{2})(\d)/, '$1.$2');
+        cnpj = cnpj.replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3');
+        cnpj = cnpj.replace(/\.(\d{3})(\d)/, '.$1/$2');
+        cnpj = cnpj.replace(/(\d{4})(\d)/, '$1-$2');
+        return cnpj;
+      }
+
+      function aplicarMascaras() {
+        const telInput = document.getElementById('client_tel');
+        const cpfInput = document.getElementById('client_cpf');
+        const cnpjInput = document.getElementById('client_cnpj');
+
+        if (telInput && telInput.value) telInput.value = maskPhone(telInput.value);
+        if (cpfInput && cpfInput.value) cpfInput.value = maskCPF(cpfInput.value);
+        if (cnpjInput && cnpjInput.value) cnpjInput.value = maskCNPJ(cnpjInput.value);
+
+        if (telInput) {
+          telInput.addEventListener('input', e => e.target.value = maskPhone(e.target.value));
+        }
+        if (cpfInput) {
+          cpfInput.addEventListener('input', e => e.target.value = maskCPF(e.target.value));
+        }
+        if (cnpjInput) {
+          cnpjInput.addEventListener('input', e => e.target.value = maskCNPJ(e.target.value));
+        }
+      }
+
+      // 🟩 Preenchimento automático de cliente
+      function autocompleteCliente() {
+        const clientInput = document.getElementById('client_name');
+        const suggestionsBox = document.getElementById('client_suggestions');
+
+        if (!clientInput || !suggestionsBox) return;
+
+        clientInput.addEventListener('input', async () => {
+          const term = clientInput.value.trim();
+          if (term.length < 2) {
+            suggestionsBox.innerHTML = '';
+            return;
+          }
+
+          try {
+            const res = await fetch(`/autocomplete_clients?term=${encodeURIComponent(term)}`);
+            const clients = await res.json();
+
+            suggestionsBox.innerHTML = '';
+
+            clients.forEach((client) => {
+              const div = document.createElement('div');
+              div.className = 'autocomplete-item';
+              div.innerHTML = `<strong>${client.client_name}</strong>
+                ${client.client_tel ? `<div><small>📞 ${client.client_tel}</small></div>` : ''}
+                ${client.client_email ? `<div><small>📧 ${client.client_email}</small></div>` : ''}
+                ${client.client_cpf ? `<div><small>🆔 CPF: ${client.client_cpf}</small></div>` : ''}
+                ${client.client_cnpj ? `<div><small>🏢 CNPJ: ${client.client_cnpj}</small></div>` : ''}
+              `;
+
+              div.addEventListener('click', (event) => {
+                event.stopPropagation();
+                preencherCamposCliente(client);
+                suggestionsBox.innerHTML = '';
+              });
+
+              suggestionsBox.appendChild(div);
+            });
+          } catch (error) {
+            console.error('Erro ao buscar sugestões de cliente:', error);
+          }
+        });
+
+        document.addEventListener('click', (e) => {
+          if (!suggestionsBox.contains(e.target) && e.target !== clientInput) {
+            suggestionsBox.innerHTML = '';
+          }
+        });
+      }
+
+      function preencherCamposCliente(client) {
+        document.getElementById("client_name").value = client.client_name || '';
+        document.getElementById("client_tel").value = client.client_tel ? maskPhone(client.client_tel) : '';
+        document.getElementById("client_id").value = client.client_id || '';
+        document.getElementById("client_email").value = client.client_email || '';
+        document.getElementById("client_cpf").value = client.client_cpf ? maskCPF(client.client_cpf) : '';
+        document.getElementById("client_cnpj").value = client.client_cnpj ? maskCNPJ(client.client_cnpj) : '';
+        document.getElementById("client_address").value = client.client_address || '';
+      }
+
+      // 🟦 Validação do formulário
+      function configurarValidacaoFormulario() {
+        const form = document.getElementById('form-transaction');
+        if (!form) return;
+
+        form.addEventListener('submit', function (e) {
+          const dp = document.getElementById('datepicker');
+          if (dp && (!dp.value || dp.value.trim() === '')) {
+            e.preventDefault();
+            alert('Por favor, selecione um intervalo de datas.');
+            dp.focus();
+          }
+        });
+      }
+
+      // 🟥 Inicialização do Easepick (datepicker)
+      function iniciarDatePicker() {
+        const DateTime = easepick.DateTime;
+        const rawDates = {{ reserved_ranges | tojson(indent=2) }};
+        const bookedDates = rawDates.map(d => {
+          if (d instanceof Array) {
+            const start = new DateTime(d[0], 'YYYY-MM-DD');
+            const end = new DateTime(d[1], 'YYYY-MM-DD');
+            return [start, end];
+          }
+          return new DateTime(d, 'YYYY-MM-DD');
+        });
+
+        const picker = new easepick.create({
+          element: document.getElementById('datepicker'),
+          css: [
+            'https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.css',
+            'https://easepick.com/css/demo_hotelcal.css',
+          ],
+          lang: 'pt-BR',
+          autoApply: false,
+          plugins: ['RangePlugin', 'LockPlugin', 'AmpPlugin'],
+          AmpPlugin: {
+            resetButton: true,
+          },
+          RangePlugin: {
+            tooltipNumber(num) {
+              return num;
+            },
+            locale: {
+              one: 'dia',
+              other: 'dias',
+            },
+          },
+          LockPlugin: {
+            minDate: new Date(),
+            minDays: 1,
+            inseparable: true,
+            filter(date, picked) {
+              if (picked.length === 1) {
+                return !picked[0].isSame(date, 'day') && date.inArray(bookedDates, '[]');
+              }
+              return date.inArray(bookedDates, '[]');
+            },
+          },
+          locale: {
+            cancel: 'Cancelar',
+            apply: 'Aplicar',
+            reset: 'Limpar',
+            one: 'dia',
+            other: 'dias',
+          },
+          format: 'DD/MM/YYYY',
+        });
+
+        picker.on('preselect', (evt) => {
+          const clickedDate = evt.detail.date;
+          evt.preventDefault();
+          picker.setStartDate(null);
+          picker.setEndDate(null);
+          document.getElementById('datepicker').value = '';
+          picker.setStartDate(clickedDate);
+        });
+      }
+
+      // 🟨 Atualizar campo de devolução
+      function updateDevDateField() {
+        const returnedRadio = document.getElementById('status-returned');
+        const devDateContainer = document.getElementById('dev-date-container');
+        const devDateInput = document.getElementById('dev_date');
+
+        if (returnedRadio && returnedRadio.checked) {
+          devDateContainer.style.display = 'block';
+          devDateInput.required = true;
+        } else if (devDateContainer) {
+          devDateContainer.style.display = 'none';
+          if (devDateInput) devDateInput.required = false;
+        }
+      }
+
+      function configurarStatusListener() {
+        const radioButtons = document.querySelectorAll('input[name="status"]');
+        if (radioButtons.length > 0) {
+          radioButtons.forEach((radio) => {
+            radio.addEventListener('change', updateDevDateField);
+          });
+          updateDevDateField();
+        }
+      }
+
+     // ✅ Inicialização geral
+    window.addEventListener('DOMContentLoaded', () => {
+      aplicarMascaras();
+      autocompleteCliente();
+      configurarValidacaoFormulario();
+
+      // 🛠️ Ativa a aba do campo inválido automaticamente
+      const form = document.getElementById('form-transaction');
+      if (form) {
+        form.addEventListener('submit', function (e) {
+          const invalidField = this.querySelector(':invalid');
+
+          if (invalidField) {
+            e.preventDefault(); // Impede o envio
+            const tabContent = invalidField.closest('.tab-content');
+
+            if (tabContent && !tabContent.classList.contains('active')) {
+              // Remove active de todas as abas e conteúdos
+              document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+              document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+
+              // Ativa a aba que contém o campo com erro
+              tabContent.classList.add('active');
+              const tabId = tabContent.getAttribute('id');
+              const button = document.querySelector(`.tab-button[data-tab="${tabId}"]`);
+              if (button) button.classList.add('active');
+
+              // Foca no campo com erro
+              // Foca no campo com erro
+  invalidField.focus();
+  invalidField.classList.add('erro-destaque'); // Aplica destaque visual
+            }
+          }
+        });
+      }
+    });
 </script>
 
 <script>

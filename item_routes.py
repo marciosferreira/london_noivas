@@ -13,6 +13,8 @@ from flask import (
 )
 import json
 
+from utils import get_user_timezone
+
 
 ALLOWED_EXTENSIONS = {"jpeg", "jpg", "png", "gif", "webp"}
 
@@ -26,8 +28,9 @@ from utils import upload_image_to_s3, aplicar_filtro, copy_image_in_s3
 
 
 def init_item_routes(
-    app, itens_table, s3, s3_bucket_name, transactions_table, clients_table
+    app, itens_table, s3, s3_bucket_name, transactions_table, clients_table, users_table
 ):
+
     @app.route("/rented")
     def rented():
         return listar_itens_per_transaction(
@@ -36,6 +39,7 @@ def init_item_routes(
             "Transações iniciadas (itens alugados)",
             transactions_table,
             itens_table,
+            users_table,
         )
 
     @app.route("/returned")
@@ -46,6 +50,7 @@ def init_item_routes(
             "Transações encerradas (itens devolvidos)",
             transactions_table,
             itens_table,
+            users_table,
         )
 
     @app.route("/archive")
@@ -258,7 +263,11 @@ def init_item_routes(
 
             # Criar cópia do item somente se houver mudanças
             new_transaction_id = str(uuid.uuid4())
-            edited_date = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+
+            user_id = session.get("user_id") if "user_id" in session else None
+            user_utc = get_user_timezone(users_table, user_id)
+
+            edited_date = datetime.datetime.now(user_utc).strftime("%d/%m/%Y %H:%M:%S")
 
             copied_item = {
                 key: value
@@ -416,7 +425,11 @@ def init_item_routes(
 
             # 🔹 Criar cópia do item antes de atualizar
             new_item_id = str(uuid.uuid4())
-            edited_date = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+
+            user_id = session.get("user_id") if "user_id" in session else None
+            user_utc = get_user_timezone(users_table, user_id)
+
+            edited_date = datetime.datetime.now(user_utc).strftime("%d/%m/%Y %H:%M:%S")
 
             copied_item = {
                 key: value
@@ -536,6 +549,8 @@ def init_item_routes(
             if not client_id:
                 client_id = str(uuid.uuid4())
 
+            user_id = session.get("user_id") if "user_id" in session else None
+            user_utc = get_user_timezone(users_table, user_id)
             # Inserir cliente no banco
             clients_table.put_item(
                 Item={
@@ -548,7 +563,9 @@ def init_item_routes(
                     "client_cpf": client_cpf,
                     "client_cnpj": client_cnpj,
                     "client_obs": client_obs,
-                    "created_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "created_at": datetime.datetime.now(user_utc).strftime(
+                        "%Y-%m-%d %H:%M:%S"
+                    ),
                 }
             )
 
@@ -585,7 +602,9 @@ def init_item_routes(
                     "status": "rented",
                     "image_url": image_url,
                     "transaction_obs": transaction_obs,
-                    "created_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "created_at": datetime.datetime.now(user_utc).strftime(
+                        "%Y-%m-%d %H:%M:%S"
+                    ),
                 }
             )
 
@@ -604,6 +623,9 @@ def init_item_routes(
         deleted_by = session.get("username")
         next_page = request.args.get("next", url_for("index"))
 
+        user_id = session.get("user_id") if "user_id" in session else None
+        user_utc = get_user_timezone(users_table, user_id)
+
         try:
             # Obter o item antes de modificar
             response = itens_table.get_item(Key={"item_id": item_id})
@@ -611,7 +633,9 @@ def init_item_routes(
 
             if item:
                 # Obter data e hora atuais no formato brasileiro
-                deleted_date = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+                deleted_date = datetime.datetime.now(user_utc).strftime(
+                    "%d/%m/%Y %H:%M:%S"
+                )
 
                 # Atualizar o status do item para "deleted"
                 itens_table.update_item(
@@ -647,7 +671,7 @@ def init_item_routes(
 
         try:
             # Obter a data atual e calcular o limite de 30 dias atrás
-            hoje = datetime.datetime.utcnow()
+            hoje = datetime.datetime.now()
             limite_data = hoje - datetime.timedelta(days=30)
 
             # Buscar todos os itens com status "deleted"
@@ -1079,8 +1103,11 @@ def init_item_routes(
             print("Erro: Usuário não autenticado corretamente.")  # 🔍 Depuração
             return redirect(url_for("login"))
 
+        user_id = session.get("user_id") if "user_id" in session else None
+        user_utc = get_user_timezone(users_table, user_id)
+
         # Valores padrão para data inicial e final (últimos 30 dias)
-        end_date = datetime.datetime.now().date()
+        end_date = datetime.datetime.now(user_utc).date()
         start_date = end_date - datetime.timedelta(days=30)
 
         if request.method == "POST":
@@ -1195,7 +1222,13 @@ def init_item_routes(
 
 # This function is used by client_routes.py, so it's defined outside the init_item_routes function
 def listar_itens_per_transaction(
-    status_list, template, title, transactions_table, itens_table, client_id=None
+    status_list,
+    template,
+    title,
+    transactions_table,
+    itens_table,
+    users_table,
+    client_id=None,
 ):
     if not session.get("logged_in"):
         return redirect(url_for("login"))
@@ -1213,7 +1246,9 @@ def listar_itens_per_transaction(
         )
 
     def process_dates(item):
-        today = datetime.datetime.now().date()
+        user_id = session.get("user_id") if "user_id" in session else None
+        user_utc = get_user_timezone(users_table, user_id)
+        today = datetime.datetime.now(user_utc).date()
         for key in ["rental_date", "return_date", "dev_date"]:
             date_str = item.get(key)
             if date_str:

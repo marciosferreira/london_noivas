@@ -6,7 +6,6 @@ from dotenv import load_dotenv
 from flask import Flask
 
 # Define o fuso horário de Manaus
-manaus_tz = pytz.timezone("America/Manaus")
 load_dotenv()  # only for setting up the env as debug
 
 # Configurações AWS
@@ -64,13 +63,13 @@ from static_routes import init_static_routes
 # Initialize routes from modules
 init_auth_routes(app, users_table, reset_tokens_table)
 init_item_routes(
-    app, itens_table, s3, s3_bucket_name, transactions_table, clients_table
+    app, itens_table, s3, s3_bucket_name, transactions_table, clients_table, users_table
 )
-init_status_routes(app, itens_table, transactions_table, manaus_tz)
+init_status_routes(app, itens_table, transactions_table, users_table)
 init_transaction_routes(
-    app, itens_table, s3, s3_bucket_name, transactions_table, clients_table
+    app, itens_table, s3, s3_bucket_name, transactions_table, clients_table, users_table
 )
-init_client_routes(app, clients_table, transactions_table, itens_table)
+init_client_routes(app, clients_table, transactions_table, itens_table, users_table)
 init_static_routes(app, ses_client)
 
 

@@ -9,17 +9,22 @@ from flask import (
     request,
 )
 
+from utils import get_user_timezone
+
 from utils import copy_image_in_s3
 
 
-def init_status_routes(app, itens_table, transactions_table, manaus_tz):
+def init_status_routes(app, itens_table, transactions_table, users_table):
+
     @app.route("/mark_returned/<transaction_id>", methods=["GET", "POST"])
     def mark_returned(transaction_id):
         if not session.get("logged_in"):
             return redirect(url_for("login"))
 
         # Obtém a data atual
-        dev_date = datetime.datetime.now(manaus_tz).strftime("%Y-%m-%d")
+        user_id = session.get("user_id") if "user_id" in session else None
+        user_utc = get_user_timezone(users_table, user_id)
+        dev_date = datetime.datetime.now(user_utc).strftime("%Y-%m-%d")
 
         # Atualiza status para 'returned' e adiciona a data de devolução
         transactions_table.update_item(

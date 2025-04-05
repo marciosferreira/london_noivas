@@ -69,6 +69,29 @@
             </div>
             <button type="submit" class="btn btn-primary w-100">Atualizar E-mail</button>
           </form>
+
+
+          <hr class="my-4" />
+
+          <form method="POST" action="{{ url_for('change_timezone') }}">
+            <h5 class="text-center">Fuso Horário</h5>
+            <p class="text-muted text-center">Escolha o seu fuso horário atual.</p>
+            <div class="mb-3">
+              <label for="timezone" class="form-label">Fuso Horário:</label>
+              <select id="timezone" name="timezone" class="form-select" required>
+                {% for tz in timezones %}
+                  <option value="{{ tz }}" {% if tz == current_timezone %}selected{% endif %}>{{ tz }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Atualizar Fuso Horário</button>
+          </form>
+
+
+
+
+
+
         </div>
       </div>
     </div>

@@ -9,10 +9,13 @@ from flask import (
 )
 import datetime
 
+from utils import get_user_timezone
+
 
 def init_transaction_routes(
-    app, itens_table, s3, s3_bucket_name, transactions_table, clients_table
+    app, itens_table, s3, s3_bucket_name, transactions_table, clients_table, users_table
 ):
+
     @app.route("/delete_transaction/<transaction_id>", methods=["POST"])
     def delete_transaction(transaction_id):
         if not session.get("logged_in"):
@@ -32,8 +35,11 @@ def init_transaction_routes(
                 flash("Transação não encontrada.", "danger")
                 return redirect(next_page)
 
+            user_id = session.get("user_id") if "user_id" in session else None
+            user_utc = get_user_timezone(users_table, user_id)
+
             current_status = transaction.get("status")  # 🔹 Captura o status atual
-            deleted_date = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+            deleted_date = datetime.datetime.now(user_utc).strftime("%d/%m/%Y %H:%M:%S")
 
             # 🔹 Atualizar o `previous_status` primeiro
             transactions_table.update_item(

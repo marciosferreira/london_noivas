@@ -350,3 +350,32 @@ def aplicar_filtro(
 
 
 from datetime import datetime
+
+
+# utils/time.py
+import datetime
+import pytz
+from flask import session
+
+
+import pytz
+
+# utils/time.py
+from flask import session, has_request_context
+
+
+def get_user_timezone(users_table, user_id=None, fallback_tz="America/Sao_Paulo"):
+    if not user_id and has_request_context():
+        user_id = session.get("user_id")
+
+    if not user_id:
+        return pytz.timezone(fallback_tz)
+
+    try:
+        response = users_table.get_item(Key={"user_id": user_id})
+        user = response.get("Item", {})
+        user_timezone = user.get("timezone", fallback_tz)
+        return pytz.timezone(user_timezone)
+    except Exception as e:
+        print("Erro ao obter timezone:", e)
+        return pytz.timezone(fallback_tz)

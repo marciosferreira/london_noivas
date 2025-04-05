@@ -2,6 +2,9 @@ import time
 import uuid
 import secrets
 import datetime
+import pytz
+from utils import get_user_timezone
+
 
 from flask import (
     render_template,
@@ -194,7 +197,9 @@ def init_auth_routes(app, users_table, reset_tokens_table):
 
             # Verificar tempo desde o último envio
             last_email_sent = user.get("last_email_sent", None)
-            now = datetime.datetime.now()
+            user_id = session.get("user_id") if "user_id" in session else None
+            user_utc = get_user_timezone(users_table, user_id)
+            now = datetime.datetime.now(user_utc)
             cooldown_seconds = 180  # 3 minutos de cooldown
 
             if last_email_sent:
@@ -407,13 +412,16 @@ def init_auth_routes(app, users_table, reset_tokens_table):
                 user_id = token_data["user_id"]
                 password_hash = generate_password_hash(new_password)
 
+                user_id = session.get("user_id") if "user_id" in session else None
+                user_utc = get_user_timezone(users_table, user_id)
+
                 # Atualizar senha no banco de dados
                 users_table.update_item(
                     Key={"user_id": user_id},
                     UpdateExpression="SET password_hash = :p, updated_at = :u",
                     ExpressionAttributeValues={
                         ":p": password_hash,
-                        ":u": datetime.datetime.now().isoformat(),
+                        ":u": datetime.datetime.now(user_utc).isoformat(),
                     },
                 )
 
@@ -489,13 +497,16 @@ def init_auth_routes(app, users_table, reset_tokens_table):
             # Gerar hash da nova senha
             new_password_hash = generate_password_hash(new_password)
 
+            user_id = session.get("user_id") if "user_id" in session else None
+            user_utc = get_user_timezone(users_table, user_id)
+
             # Atualizar a senha no banco de dados
             users_table.update_item(
                 Key={"user_id": user_id},
                 UpdateExpression="SET password_hash = :p, updated_at = :u",
                 ExpressionAttributeValues={
                     ":p": new_password_hash,
-                    ":u": datetime.datetime.now().date().isoformat(),
+                    ":u": datetime.datetime.now(user_utc).date().isoformat(),
                 },
             )
 
@@ -544,6 +555,47 @@ def init_auth_routes(app, users_table, reset_tokens_table):
         except Exception as e:
             print(f"Erro ao atualizar nome de usuário: {e}")
             flash("Ocorreu um erro ao atualizar o nome de usuário.", "danger")
+            return redirect(url_for("adjustments"))
+
+    # Change timezone
+    @app.route("/change_timezone", methods=["POST"])
+    def change_timezone():
+        if not session.get("logged_in"):
+            flash("Você precisa estar logado para alterar o fuso horário.", "danger")
+            return redirect(url_for("login"))
+
+        selected_timezone = request.form.get("timezone", "").strip()
+
+        if selected_timezone not in pytz.all_timezones:
+            flash("Fuso horário inválido.", "danger")
+            return redirect(url_for("adjustments"))
+
+        user_id = session["user_id"]
+
+        print(user_id)
+
+        try:
+            response = users_table.get_item(Key={"user_id": user_id})
+            print(">>> Usuário encontrado:", response.get("Item"))
+
+            if "Item" not in response:
+                flash("Usuário não encontrado.", "danger")
+                return redirect(url_for("adjustments"))
+
+            print(">>> Atualizando timezone para:", selected_timezone)
+
+            users_table.update_item(
+                Key={"user_id": user_id},
+                UpdateExpression="SET #tz = :tz",
+                ExpressionAttributeNames={"#tz": "timezone"},
+                ExpressionAttributeValues={":tz": selected_timezone},
+            )
+            print(">>> Timezone atualizado com sucesso.")
+            flash("Fuso horário atualizado com sucesso!", "success")
+            return redirect(url_for("adjustments"))
+        except Exception as e:
+            print(f"Erro ao atualizar timezone: {e}")
+            flash("Ocorreu um erro ao atualizar o fuso horário.", "danger")
             return redirect(url_for("adjustments"))
 
     # Request email change
@@ -668,15 +720,14 @@ def init_auth_routes(app, users_table, reset_tokens_table):
         return redirect(url_for("index"))
         # User profile settings
 
+    from pytz import all_timezones
+
     @app.route("/adjustments")
     def adjustments():
         if not session.get("logged_in"):
             return redirect(url_for("login"))
 
-        # Obter nome de usuário e e-mail logado
         user_id = session.get("user_id")
-
-        # Buscar usuário pelo e-mail
         response = users_table.get_item(Key={"user_id": user_id})
 
         if "Item" not in response:
@@ -686,26 +737,48 @@ def init_auth_routes(app, users_table, reset_tokens_table):
         user = response["Item"]
         username = user.get("username", "Usuário Desconhecido")
         user_email = user.get("email", "Usuário Desconhecido")
+        current_timezone = user.get("timezone", "America/Sao_Paulo")  # valor padrão
 
-        return render_template("adjustments.html", username=username, email=user_email)
-    
+        # Lista reduzida com as principais timezones do Brasil
+        timezones = [
+            "America/Sao_Paulo",
+            "America/Fortaleza",
+            "America/Recife",
+            "America/Bahia",
+            "America/Manaus",
+            "America/Belem",
+            "America/Boa_Vista",
+            "America/Campo_Grande",
+            "America/Cuiaba",
+            "America/Porto_Velho",
+            "America/Rio_Branco",
+        ]
+
+        return render_template(
+            "adjustments.html",
+            username=username,
+            email=user_email,
+            current_timezone=current_timezone,
+            timezones=timezones,
+        )
+
     # Admin dashboard
     @app.route("/admin-dashboard")
     def admin_dashboard():
         if not session.get("logged_in"):
             return redirect(url_for("login"))
-            
+
         # Verificar se o usuário tem permissão de general_admin
         if session.get("role") != "general_admin":
             flash("Você não tem permissão para acessar esta página.", "danger")
             return redirect(url_for("rented"))
-            
+
         # Importar as tabelas necessárias
         from app import itens_table, clients_table, transactions_table
-            
+
         # Obter todos os usuários
         all_users = get_all_users(users_table)
-        
+
         # Adicionar estatísticas para cada usuário
         users_with_stats = []
         for user in all_users:
@@ -714,37 +787,37 @@ def init_auth_routes(app, users_table, reset_tokens_table):
                 users_table,
                 itens_table,
                 clients_table,
-                transactions_table
+                transactions_table,
             )
             if user_stats:
                 users_with_stats.append(user_stats)
-                
+
         return render_template("admin_dashboard.html", users=users_with_stats)
-        
+
     # Login as user (impersonation)
     @app.route("/login-as-user/<user_id>")
     def login_as_user(user_id):
         if not session.get("logged_in"):
             return redirect(url_for("login"))
-            
+
         # Verificar se o usuário tem permissão de general_admin
         if session.get("role") != "general_admin":
             flash("Você não tem permissão para acessar esta funcionalidade.", "danger")
             return redirect(url_for("rented"))
-            
+
         # Guardar ID do admin
         admin_user_id = session.get("user_id")
         admin_username = session.get("username")
-        
+
         # Obter dados do usuário que será impersonado
         response = users_table.get_item(Key={"user_id": user_id})
-        
+
         if "Item" not in response:
             flash("Usuário não encontrado.", "danger")
             return redirect(url_for("admin_dashboard"))
-            
+
         user = response["Item"]
-        
+
         # Atualizar dados da sessão
         session["user_id"] = user["user_id"]
         session["account_id"] = user["account_id"]
@@ -753,27 +826,30 @@ def init_auth_routes(app, users_table, reset_tokens_table):
         session["role"] = user["role"]
         session["impersonated_by"] = admin_user_id
         session["admin_username"] = admin_username
-        
-        flash(f"Você está logado como {user['username']}. As ações realizadas serão registradas.", "warning")
+
+        flash(
+            f"Você está logado como {user['username']}. As ações realizadas serão registradas.",
+            "warning",
+        )
         return redirect(url_for("rented"))
-        
+
     # Return to admin account
     @app.route("/return-to-admin")
     def return_to_admin():
         if not session.get("impersonated_by"):
             return redirect(url_for("rented"))
-            
+
         admin_id = session.get("impersonated_by")
-        
+
         # Obter dados do admin
         response = users_table.get_item(Key={"user_id": admin_id})
-        
+
         if "Item" not in response:
             # Se algo der errado, fazer logout
             return redirect(url_for("logout"))
-            
+
         admin = response["Item"]
-        
+
         # Restaurar sessão do admin
         session["user_id"] = admin["user_id"]
         session["account_id"] = admin["account_id"]
@@ -782,7 +858,7 @@ def init_auth_routes(app, users_table, reset_tokens_table):
         session["role"] = admin["role"]
         session.pop("impersonated_by", None)
         session.pop("admin_username", None)
-        
+
         flash("Você retornou à sua conta de administrador.", "info")
         return redirect(url_for("admin_dashboard"))
 
@@ -795,6 +871,9 @@ def create_user(email, username, password, users_table, app, role="admin"):
         user_id = str(uuid.uuid4())  # Gerando um ID único para o usuário
         account_id = str(uuid.uuid4())  # Gerando um ID único para o usuário
 
+        user_id = session.get("user_id") if "user_id" in session else None
+        user_utc = get_user_timezone(users_table, user_id)
+
         try:
             users_table.put_item(
                 Item={
@@ -804,10 +883,10 @@ def create_user(email, username, password, users_table, app, role="admin"):
                     "username": username,
                     "password_hash": password_hash,
                     "role": role,
-                    "created_at": datetime.datetime.now().isoformat(),
+                    "created_at": datetime.datetime.now(user_utc).isoformat(),
                     "email_confirmed": False,
                     "email_token": email_token,
-                    "last_email_sent": datetime.datetime.now().isoformat(),
+                    "last_email_sent": datetime.datetime.now(user_utc).isoformat(),
                 },
                 ConditionExpression="attribute_not_exists(email)",  # Garantir que não há duplicação de email
             )
@@ -832,54 +911,50 @@ def get_all_users(users_table):
         return []
 
 
-def get_user_stats(user_id, users_table, itens_table, clients_table, transactions_table):
+def get_user_stats(
+    user_id, users_table, itens_table, clients_table, transactions_table
+):
     """Get stats for a specific user"""
     try:
         # Get basic user data
         response = users_table.get_item(Key={"user_id": user_id})
         user = response.get("Item", {})
-        
+
         if not user:
             return None
-            
+
         # Get item count (only "available" items)
         items_response = itens_table.scan(
             FilterExpression="account_id = :aid AND #status = :status",
             ExpressionAttributeValues={
                 ":aid": user.get("account_id"),
-                ":status": "available"
+                ":status": "available",
             },
-            ExpressionAttributeNames={
-                "#status": "status"
-            }
+            ExpressionAttributeNames={"#status": "status"},
         )
-        
+
         # Get client count
         clients_response = clients_table.scan(
             FilterExpression="account_id = :aid",
-            ExpressionAttributeValues={
-                ":aid": user.get("account_id")
-            }
+            ExpressionAttributeValues={":aid": user.get("account_id")},
         )
-        
+
         # Get transaction count (only "rented" or "returned" transactions)
         transactions_response = transactions_table.scan(
             FilterExpression="account_id = :aid AND (#status = :status1 OR #status = :status2)",
             ExpressionAttributeValues={
                 ":aid": user.get("account_id"),
                 ":status1": "rented",
-                ":status2": "returned"
+                ":status2": "returned",
             },
-            ExpressionAttributeNames={
-                "#status": "status"
-            }
+            ExpressionAttributeNames={"#status": "status"},
         )
-        
+
         # Add stats to user object
         user["item_count"] = len(items_response.get("Items", []))
         user["client_count"] = len(clients_response.get("Items", []))
         user["transaction_count"] = len(transactions_response.get("Items", []))
-        
+
         return user
     except Exception as e:
         print(f"Erro ao recuperar estatísticas do usuário: {e}")
