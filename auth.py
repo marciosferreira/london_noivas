@@ -688,6 +688,103 @@ def init_auth_routes(app, users_table, reset_tokens_table):
         user_email = user.get("email", "Usuário Desconhecido")
 
         return render_template("adjustments.html", username=username, email=user_email)
+    
+    # Admin dashboard
+    @app.route("/admin-dashboard")
+    def admin_dashboard():
+        if not session.get("logged_in"):
+            return redirect(url_for("login"))
+            
+        # Verificar se o usuário tem permissão de general_admin
+        if session.get("role") != "general_admin":
+            flash("Você não tem permissão para acessar esta página.", "danger")
+            return redirect(url_for("rented"))
+            
+        # Importar as tabelas necessárias
+        from app import itens_table, clients_table, transactions_table
+            
+        # Obter todos os usuários
+        all_users = get_all_users(users_table)
+        
+        # Adicionar estatísticas para cada usuário
+        users_with_stats = []
+        for user in all_users:
+            user_stats = get_user_stats(
+                user["user_id"],
+                users_table,
+                itens_table,
+                clients_table,
+                transactions_table
+            )
+            if user_stats:
+                users_with_stats.append(user_stats)
+                
+        return render_template("admin_dashboard.html", users=users_with_stats)
+        
+    # Login as user (impersonation)
+    @app.route("/login-as-user/<user_id>")
+    def login_as_user(user_id):
+        if not session.get("logged_in"):
+            return redirect(url_for("login"))
+            
+        # Verificar se o usuário tem permissão de general_admin
+        if session.get("role") != "general_admin":
+            flash("Você não tem permissão para acessar esta funcionalidade.", "danger")
+            return redirect(url_for("rented"))
+            
+        # Guardar ID do admin
+        admin_user_id = session.get("user_id")
+        admin_username = session.get("username")
+        
+        # Obter dados do usuário que será impersonado
+        response = users_table.get_item(Key={"user_id": user_id})
+        
+        if "Item" not in response:
+            flash("Usuário não encontrado.", "danger")
+            return redirect(url_for("admin_dashboard"))
+            
+        user = response["Item"]
+        
+        # Atualizar dados da sessão
+        session["user_id"] = user["user_id"]
+        session["account_id"] = user["account_id"]
+        session["email"] = user["email"]
+        session["username"] = user["username"]
+        session["role"] = user["role"]
+        session["impersonated_by"] = admin_user_id
+        session["admin_username"] = admin_username
+        
+        flash(f"Você está logado como {user['username']}. As ações realizadas serão registradas.", "warning")
+        return redirect(url_for("rented"))
+        
+    # Return to admin account
+    @app.route("/return-to-admin")
+    def return_to_admin():
+        if not session.get("impersonated_by"):
+            return redirect(url_for("rented"))
+            
+        admin_id = session.get("impersonated_by")
+        
+        # Obter dados do admin
+        response = users_table.get_item(Key={"user_id": admin_id})
+        
+        if "Item" not in response:
+            # Se algo der errado, fazer logout
+            return redirect(url_for("logout"))
+            
+        admin = response["Item"]
+        
+        # Restaurar sessão do admin
+        session["user_id"] = admin["user_id"]
+        session["account_id"] = admin["account_id"]
+        session["email"] = admin["email"]
+        session["username"] = admin["username"]
+        session["role"] = admin["role"]
+        session.pop("impersonated_by", None)
+        session.pop("admin_username", None)
+        
+        flash("Você retornou à sua conta de administrador.", "info")
+        return redirect(url_for("admin_dashboard"))
 
 
 def create_user(email, username, password, users_table, app, role="admin"):
@@ -733,3 +830,57 @@ def get_all_users(users_table):
     except Exception as e:
         print(f"Erro ao recuperar usuários: {e}")
         return []
+
+
+def get_user_stats(user_id, users_table, itens_table, clients_table, transactions_table):
+    """Get stats for a specific user"""
+    try:
+        # Get basic user data
+        response = users_table.get_item(Key={"user_id": user_id})
+        user = response.get("Item", {})
+        
+        if not user:
+            return None
+            
+        # Get item count (only "available" items)
+        items_response = itens_table.scan(
+            FilterExpression="account_id = :aid AND #status = :status",
+            ExpressionAttributeValues={
+                ":aid": user.get("account_id"),
+                ":status": "available"
+            },
+            ExpressionAttributeNames={
+                "#status": "status"
+            }
+        )
+        
+        # Get client count
+        clients_response = clients_table.scan(
+            FilterExpression="account_id = :aid",
+            ExpressionAttributeValues={
+                ":aid": user.get("account_id")
+            }
+        )
+        
+        # Get transaction count (only "rented" or "returned" transactions)
+        transactions_response = transactions_table.scan(
+            FilterExpression="account_id = :aid AND (#status = :status1 OR #status = :status2)",
+            ExpressionAttributeValues={
+                ":aid": user.get("account_id"),
+                ":status1": "rented",
+                ":status2": "returned"
+            },
+            ExpressionAttributeNames={
+                "#status": "status"
+            }
+        )
+        
+        # Add stats to user object
+        user["item_count"] = len(items_response.get("Items", []))
+        user["client_count"] = len(clients_response.get("Items", []))
+        user["transaction_count"] = len(transactions_response.get("Items", []))
+        
+        return user
+    except Exception as e:
+        print(f"Erro ao recuperar estatísticas do usuário: {e}")
+        return None

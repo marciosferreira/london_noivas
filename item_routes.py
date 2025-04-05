@@ -64,6 +64,7 @@ def init_item_routes(
             "trash_itens.html",
             "Histórico de alterações",
             itens_table,
+            transactions_table,
         )
 
     @app.route("/trash_transactions")

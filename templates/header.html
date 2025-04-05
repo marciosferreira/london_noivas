@@ -75,9 +75,13 @@
                 </a>
               </li>
 
-              {% if session.get('user_id') %}
-              <li><hr class="dropdown-divider" /></li>
-              <li><a class="dropdown-item text-danger" href="{{ url_for('logout') }}">Sair</a></li>
+              {% if session.get('logged_in') %}
+                {% if session.get('role') == 'general_admin' %}
+                <li><hr class="dropdown-divider" /></li>
+                <li><a class="dropdown-item text-success" href="{{ url_for('admin_dashboard') }}">Painel de Administração</a></li>
+                {% endif %}
+                <li><hr class="dropdown-divider" /></li>
+                <li><a class="dropdown-item text-danger" href="{{ url_for('logout') }}">Sair</a></li>
               {% endif %}
             </ul>
           </li>
