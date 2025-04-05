@@ -16,7 +16,7 @@ from flask import (
 
 
 def init_client_routes(
-    app, clients_table, transactions_table, itens_table, users_table
+    app, clients_table, users_table, transactions_table, itens_table
 ):
 
     @app.route("/autocomplete_clients")
@@ -212,7 +212,14 @@ def init_client_routes(
     @app.route("/clientes/adicionar", methods=["GET", "POST"])
     def adicionar_cliente():
         return add_client_common(
-            request, clients_table, session, flash, redirect, url_for, "add_client.html"
+            request,
+            clients_table,
+            users_table,
+            session,
+            flash,
+            redirect,
+            url_for,
+            "add_client.html",
         )
 
     @app.route("/add_client", methods=["GET", "POST"])
@@ -280,7 +287,14 @@ def init_client_routes(
 
 
 def add_client_common(
-    request, clients_table, session, flash, redirect, url_for, template, users_table
+    request,
+    clients_table,
+    users_table,
+    session,
+    flash,
+    redirect,
+    url_for,
+    template,
 ):
     if not session.get("logged_in"):
         return redirect(url_for("login"))

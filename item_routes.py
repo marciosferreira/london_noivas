@@ -81,6 +81,7 @@ def init_item_routes(
             "Lixeira de transações",
             transactions_table,
             itens_table,
+            users_table,
         )
 
     @app.route("/inventario")
