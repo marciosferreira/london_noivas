@@ -55,6 +55,7 @@ def init_item_routes(
             "archive.html",
             "Itens Arquivados",
             itens_table,
+            transactions_table,
         )
 
     @app.route("/trash_itens")
