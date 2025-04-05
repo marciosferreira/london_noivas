@@ -83,6 +83,7 @@ def init_item_routes(
             "inventario.html",
             "Inventário",
             itens_table,
+            transactions_table,
         )
 
     @app.route("/add_item", methods=["GET", "POST"])
@@ -1446,7 +1447,7 @@ def listar_itens_per_transaction(
     )
 
 
-def list_raw_itens(status_list, template, title, itens_table):
+def list_raw_itens(status_list, template, title, itens_table, transactions_table):
     if not session.get("logged_in"):
         return redirect(url_for("login"))
 
@@ -1456,6 +1457,22 @@ def list_raw_itens(status_list, template, title, itens_table):
         print("Erro: Usuário não autenticado corretamente.")  # 🔍 Depuração
         return redirect(url_for("login"))
 
+    total_relevant_transactions = 0
+
+    try:
+        response = transactions_table.query(
+            IndexName="account_id-index",
+            KeyConditionExpression="account_id = :account_id",
+            ExpressionAttributeValues={":account_id": account_id},
+        )
+        transactions = response.get("Items", [])
+
+        total_relevant_transactions = sum(
+            1 for txn in transactions if txn.get("status") in ["rented", "returned"]
+        )
+
+    except Exception as e:
+        print(f"Erro ao consultar transações: {e}")
     # Parâmetros de paginação
     page = int(request.args.get("page", 1))
     per_page = 5
@@ -1569,4 +1586,5 @@ def list_raw_itens(status_list, template, title, itens_table):
         title=title,
         add_route=url_for("add_item"),
         next_url=request.url,
+        total_relevant_transactions=total_relevant_transactions,
     )
