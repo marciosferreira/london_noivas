@@ -263,8 +263,8 @@ def init_client_routes(
             "client_transactions.html",
             "Transações do cliente",
             transactions_table,
-            users_table,
             itens_table,
+            users_table,
             client_id=client_id,
         )
 

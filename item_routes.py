@@ -30,10 +30,6 @@ from utils import upload_image_to_s3, aplicar_filtro, copy_image_in_s3
 def init_item_routes(
     app, itens_table, s3, s3_bucket_name, transactions_table, clients_table, users_table
 ):
-    print("NNNNNNNNNN")
-    print(transactions_table)
-    print(clients_table)
-    print(users_table)
 
     @app.route("/rented")
     def rented():
@@ -551,28 +547,37 @@ def init_item_routes(
                 )
 
             # Criar client_id se necessário
-            if not client_id:
-                client_id = str(uuid.uuid4())
-
             user_id = session.get("user_id") if "user_id" in session else None
             user_utc = get_user_timezone(users_table, user_id)
-            # Inserir cliente no banco
-            clients_table.put_item(
-                Item={
-                    "client_id": client_id,
-                    "account_id": session.get("account_id"),
-                    "client_name": client_name,
-                    "client_tel": client_tel,
-                    "client_email": client_email,
-                    "client_address": client_address,
-                    "client_cpf": client_cpf,
-                    "client_cnpj": client_cnpj,
-                    "client_obs": client_obs,
-                    "created_at": datetime.datetime.now(user_utc).strftime(
-                        "%Y-%m-%d %H:%M:%S"
-                    ),
-                }
-            )
+            if not client_id:
+                response = clients_table.query(
+                    IndexName="client_name-index",
+                    KeyConditionExpression="#cn = :client_name_val",
+                    ExpressionAttributeNames={"#cn": "client_name"},
+                    ExpressionAttributeValues={":client_name_val": client_name},
+                )
+                existing_clients = response.get("Items", [])
+
+                if existing_clients:
+                    client_id = existing_clients[0]["client_id"]
+                else:
+                    client_id = str(uuid.uuid4())
+                    clients_table.put_item(
+                        Item={
+                            "client_id": client_id,
+                            "account_id": session.get("account_id"),
+                            "client_name": client_name,
+                            "client_tel": client_tel,
+                            "client_email": client_email,
+                            "client_address": client_address,
+                            "client_cpf": client_cpf,
+                            "client_cnpj": client_cnpj,
+                            "client_obs": client_obs,
+                            "created_at": datetime.datetime.now(user_utc).strftime(
+                                "%Y-%m-%d %H:%M:%S"
+                            ),
+                        }
+                    )
 
             # Obter o item_custom_id do item original
             item_custom_id = item.get("item_custom_id", "")
