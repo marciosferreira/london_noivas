@@ -13,7 +13,7 @@
   <!-- Tabela de estatísticas do usuário -->
   <div class="container mt-5 d-flex justify-content-center">
     <div class="table-responsive" style="max-width: 600px; width: 100%">
-      <h4 class="text-center mb-3">Suas Estatísticas, {{username}}</h4>
+      <h4 class="text-center mb-3">Suas Estatísticas, {{ username }}</h4>
       <table class="table table-bordered text-center align-middle bg-white shadow rounded">
         <thead class="table-light">
           <tr>
@@ -23,19 +23,19 @@
         </thead>
         <tbody>
           <tr>
-            <td>Clientes cadastrados</td>
+            <td><a href="{{ url_for('listar_clientes') }}" class="text-decoration-none">Clientes cadastrados</a></td>
             <td>{{ stats.total_clients }}</td>
           </tr>
           <tr>
-            <td>Produtos cadastrados</td>
+            <td><a href="{{ url_for('inventario') }}" class="text-decoration-none">Produtos cadastrados</a></td>
             <td>{{ stats.total_items }}</td>
           </tr>
           <tr>
-            <td>Transações iniciadas</td>
+            <td><a href="{{ url_for('rented') }}" class="text-decoration-none">Transações iniciadas</a></td>
             <td>{{ stats.total_rented }}</td>
           </tr>
           <tr>
-            <td>Transações finalizadas</td>
+            <td><a href="{{ url_for('returned') }}" class="text-decoration-none">Transações finalizadas</a></td>
             <td>{{ stats.total_returned }}</td>
           </tr>
         </tbody>

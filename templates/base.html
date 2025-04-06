@@ -56,61 +56,29 @@
     ></script>
     {% endblock %}
   </head>
+
   <body class="{% block body_class %}{% endblock %}">
-    <!-- Header (not shown on login page) -->
     {% if request.endpoint != 'login' and request.endpoint != 'register' %} {% if session.get('impersonated_by') %}
-    <div class="admin-impersonation-bar">
-      <div class="container">
-        <div class="d-flex justify-content-between align-items-center py-2">
-          <div>
-            <span class="text-white">
-              Você está logado como
-              <strong>{{ session.username }}</strong>
-              (Modo de administrador)
-            </span>
-          </div>
-          <div>
-            <a href="{{ url_for('return_to_admin') }}" class="btn btn-light btn-sm">Retornar à conta de admin</a>
-          </div>
-        </div>
-      </div>
-    </div>
-    <style>
-      .admin-impersonation-bar {
-        background-color: #dc3545;
-        color: white;
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        z-index: 2000;
-      }
-      .navbar-dark.fixed-top {
-        top: 40px;
-      }
-      body {
-        padding-top: 40px;
-      }
-    </style>
+    <!-- Impersonation bar -->
+    <div class="admin-impersonation-bar">...</div>
     {% endif %} {% include 'header.html' %} {% endif %}
 
-    <!-- Main Content -->
-    <div class="wrapper">
-      <div class="container mt-3">
-        {% with messages = get_flashed_messages(with_categories=true) %} {% if messages %}
-        <div class="flashes mb-4">
-          {% for category, message in messages %}
-          <div class="alert alert-{% if category == 'error' %}danger{% else %}{{ category }}{% endif %} alert-dismissible fade show" role="alert">
-            {{ message|safe }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
-          </div>
-          {% endfor %}
+    <!-- Flash messages -->
+    <div class="container mt-5 pt-5">
+      {% with messages = get_flashed_messages(with_categories=true) %} {% if messages %}
+      <div class="flashes mb-4">
+        {% for category, message in messages %}
+        <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+          {{ message|safe }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
         </div>
-        {% endif %} {% endwith %}
+        {% endfor %}
       </div>
-
-      {% block content %}{% endblock %}
+      {% endif %} {% endwith %}
     </div>
+
+    <!-- Conteúdo principal -->
+    <div class="wrapper mt-1">{% block content %}{% endblock %}</div>
 
     <!-- Footer -->
     {% include 'footer.html' %}

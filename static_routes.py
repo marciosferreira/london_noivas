@@ -59,7 +59,7 @@ def init_static_routes(app, ses_client, clients_table, transactions_table, itens
 
         if session.get("logged_in"):
             account_id = session.get("account_id")
-            username = session.get("username")
+            username = session.get("username", None)
 
             # Contar clientes (tabela correta)
             stats["total_clients"] = clients_table.query(
@@ -88,6 +88,8 @@ def init_static_routes(app, ses_client, clients_table, transactions_table, itens
                 & Key("status").eq("returned"),
             )
             stats["total_returned"] = returned_txn["Count"]
+        else:
+            username = None
 
         return render_template("index.html", stats=stats, username=username)
 

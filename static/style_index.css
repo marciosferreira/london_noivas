@@ -41,16 +41,14 @@ body {
 }
 
 .hero {
-  min-height: 50vh;
   display: flex;
   flex-direction: column;
-  justify-content: center;
   align-items: center;
   text-align: center;
-  padding: 50px 20px; /* Padding para layout responsivo */
+  padding: 0px 20px; /* ajuste aqui a distância do topo */
   width: 100%;
-  max-width: 1200px; /* Limita a largura máxima */
-  margin: 0 auto; /* Centraliza na página */
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .hero h1:first-of-type {

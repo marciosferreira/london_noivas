@@ -8,7 +8,7 @@ body {
   justify-content: flex-start; /* Evita centralizar verticalmente */
   align-items: center; /* Mantém a centralização horizontal */
   height: 100vh;
-  padding-top: 50px;
+  padding-top: 0px;
 }
 
 /* Garante que os formulários ocupem exatamente o mesmo espaço */
