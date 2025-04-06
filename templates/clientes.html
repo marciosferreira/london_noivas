@@ -75,32 +75,10 @@
       </tbody>
     </table>
   </div>
-  <!-- Paginação -->
-  <div class="pagination-container mt-4">
-    <nav aria-label="Navegação de páginas">
-      <ul class="pagination justify-content-center">
-        {% if page > 1 %}
-        <li class="page-item">
-          <a class="page-link" href="{{ url_for('listar_clientes', page=page-1, **request.args.to_dict()) }}" aria-label="Anterior">
-            <span aria-hidden="true">&laquo;</span>
-          </a>
-        </li>
-        {% endif %} {% for p in range(1, total_pages + 1) %}
-        <li class="page-item {% if p == page %}active{% endif %}">
-          <a class="page-link" href="{{ url_for('listar_clientes', page=p, **request.args.to_dict()) }}">{{ p }}</a>
-        </li>
-        {% endfor %} {% if page < total_pages %}
-        <li class="page-item">
-          <a class="page-link" href="{{ url_for('listar_clientes', page=page+1, **request.args.to_dict()) }}" aria-label="Próximo">
-            <span aria-hidden="true">&raquo;</span>
-          </a>
-        </li>
-        {% endif %}
-      </ul>
-    </nav>
-  </div>
 
-  {% include 'components/info_modal_client.html' %} {% endblock %} {% block scripts %}
+  <!-- Pagination -->
+  {% set route_name = 'listar_clientes' %} {% include 'components/pagination.html' with context %} {% include 'components/info_modal_client.html' %}
+  {% endblock %} {% block scripts %}
   <!-- scripts extras -->
   <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
   <!-- Bootstrap Bundle com Popper -->

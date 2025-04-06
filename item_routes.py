@@ -1525,6 +1525,7 @@ def list_raw_itens(status_list, template, title, itens_table, transactions_table
 
     except Exception as e:
         print(f"Erro ao consultar transações: {e}")
+
     # Parâmetros de paginação
     page = int(request.args.get("page", 1))
     per_page = 5
@@ -1621,6 +1622,7 @@ def list_raw_itens(status_list, template, title, itens_table, transactions_table
             title=title,
             add_route=url_for("add_item"),
             next_url=request.url,
+            total_relevant_transactions=total_relevant_transactions,
         )
 
     # 🔹 Paginação
