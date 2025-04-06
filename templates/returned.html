@@ -5,7 +5,7 @@
 <div class="container my-3">
   <h2 class="mb-4">Transações encerradas (itens devolvidos)</h2>
 
-  {% include "filter_section.html" with context %}
+  {% include "components/filter_section.html" with context %}
 
   <!-- Tabela -->
   <div class="table-container mt-4">
@@ -54,7 +54,7 @@
           <!-- prettier-ignore -->
           <td data-label="Observações" data-item='{{ item | tojson | safe }}'>{{ item.comments | default('', true) | truncate(10, True) }}</td>
           <!-- prettier-ignore -->
-          <td class="open-modal" data-label="Ações">
+          <td data-label="Ações">
             <div class="d-flex flex-wrap gap-2 justify-content-center align-items-center">
               <form
                 method="POST"
@@ -91,4 +91,15 @@
   <!-- Modals -->
   {% include 'components/info_modal_transaction.html' %} {% include 'components/image_modal.html' %}
 </div>
+{% endblock %} {% block scripts %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    // Evita que clique no botão "Deletar" ative o modal
+    document.querySelectorAll('.action-button.danger').forEach((btn) => {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+      });
+    });
+  });
+</script>
 {% endblock %}

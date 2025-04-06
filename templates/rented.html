@@ -4,7 +4,7 @@
 <div class="container mt-3">
   <h2 class="mb-4">Transações iniciadas (itens alugados/reservados)</h2>
 
-  {% include "filter_section.html" with context %}
+  {% include "components/filter_section.html" with context %}
 
   <!-- Tabela -->
   <div class="table-container mt-4">
@@ -79,7 +79,7 @@
                 <button
                   type="submit"
                   class="action-button danger"
-                  onclick="return confirm('Tem certeza de que deseja deletar essa transação?');"
+                  onclick="return confirm('Tem certeza de que deseja deletar este item?');"
                   title="Deletar"
                 >
                   Deletar
@@ -116,4 +116,15 @@
   <!-- Modals -->
   {% include 'components/info_modal_transaction.html' %} {% include 'components/image_modal.html' %}
 </div>
+{% endblock %} {% block scripts %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.action-button.danger').forEach((btn) => {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation(); // impede de subir para a tr/td com "open-modal"
+        // NÃO use preventDefault aqui, porque é um botão de submit
+      });
+    });
+  });
+</script>
 {% endblock %}

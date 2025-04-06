@@ -24,6 +24,9 @@ def init_transaction_routes(
         deleted_by = session.get("username")
         next_page = request.args.get("next", url_for("index"))
 
+        print("JJJJJJJJJJJJJJ")
+        print(next_page)
+
         try:
             # 🔹 Obter a transação antes de modificar
             response = transactions_table.get_item(

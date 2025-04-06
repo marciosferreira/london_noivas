@@ -30,6 +30,10 @@ from utils import upload_image_to_s3, aplicar_filtro, copy_image_in_s3
 def init_item_routes(
     app, itens_table, s3, s3_bucket_name, transactions_table, clients_table, users_table
 ):
+    print("NNNNNNNNNN")
+    print(transactions_table)
+    print(clients_table)
+    print(users_table)
 
     @app.route("/rented")
     def rented():
@@ -38,8 +42,8 @@ def init_item_routes(
             "rented.html",
             "Transações iniciadas (itens alugados)",
             transactions_table,
-            itens_table,
             users_table,
+            itens_table,
         )
 
     @app.route("/returned")
@@ -49,8 +53,8 @@ def init_item_routes(
             "returned.html",
             "Transações encerradas (itens devolvidos)",
             transactions_table,
-            itens_table,
             users_table,
+            itens_table,
         )
 
     @app.route("/archive")
@@ -80,8 +84,8 @@ def init_item_routes(
             "trash_transactions.html",
             "Lixeira de transações",
             transactions_table,
-            itens_table,
             users_table,
+            itens_table,
         )
 
     @app.route("/inventario")
@@ -1227,10 +1231,15 @@ def listar_itens_per_transaction(
     template,
     title,
     transactions_table,
-    itens_table,
     users_table,
+    itens_table,
     client_id=None,
 ):
+    print("LLLLLLLLLLL")
+    print(transactions_table)
+    print(users_table)
+    print(itens_table)
+
     if not session.get("logged_in"):
         return redirect(url_for("login"))
 
