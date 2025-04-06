@@ -1230,7 +1230,9 @@ def init_item_routes(
         return jsonify({"status": "found", "data": item_data})
 
 
-# This function is used by client_routes.py, so it's defined outside the init_item_routes function
+import time  # 👈 necessário para medir o tempo
+
+
 def listar_itens_per_transaction(
     status_list,
     template,
@@ -1240,10 +1242,8 @@ def listar_itens_per_transaction(
     itens_table,
     client_id=None,
 ):
-    print("LLLLLLLLLLL")
-    print(transactions_table)
-    print(users_table)
-    print(itens_table)
+    import time
+    from boto3.dynamodb.conditions import Key
 
     if not session.get("logged_in"):
         return redirect(url_for("login"))
@@ -1253,6 +1253,9 @@ def listar_itens_per_transaction(
         print("Erro: Usuário não autenticado corretamente.")
         return redirect(url_for("login"))
 
+    user_id = session.get("user_id") if "user_id" in session else None
+    user_utc = get_user_timezone(users_table, user_id)
+
     def parse_date(date_str):
         return (
             datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
@@ -1260,9 +1263,7 @@ def listar_itens_per_transaction(
             else None
         )
 
-    def process_dates(item):
-        user_id = session.get("user_id") if "user_id" in session else None
-        user_utc = get_user_timezone(users_table, user_id)
+    def process_dates(item, user_utc):
         today = datetime.datetime.now(user_utc).date()
         for key in ["rental_date", "return_date", "dev_date"]:
             date_str = item.get(key)
@@ -1286,7 +1287,7 @@ def listar_itens_per_transaction(
         return item
 
     def apply_filtros_request():
-        filtros = {
+        return {
             "filter": request.args.get("filter", "todos"),
             "item_custom_id": request.args.get("item_custom_id"),
             "description": request.args.get("description"),
@@ -1302,181 +1303,96 @@ def listar_itens_per_transaction(
             "return_start_date": parse_date(request.args.get("return_start_date")),
             "return_end_date": parse_date(request.args.get("return_end_date")),
             "item_obs": request.args.get("item_obs"),
-            "retirado": request.args.get("retirado"),  # ✅ NOVO
-            "transaction_obs": request.args.get("transaction_obs"),  # ✅ NOVO
+            "retirado": request.args.get("retirado"),
+            "transaction_obs": request.args.get("transaction_obs"),
         }
-        return filtros
 
-    def montar_filtro_dynamodb(account_id, filtros):
-        names = {"#account_id": "account_id"}
-        values = {":account_id": account_id}
-        conditions = []
-
-        campos_texto = [
-            ("client_name", True),
-            ("client_email", True),
-            ("client_address", True),
-            ("client_obs", True),  # ⬅️ adiciona este!
-            ("client_cpf", False),
-            ("client_cnpj", False),
-            ("pagamento", False),
-        ]
-        for campo, use_lower in campos_texto:
-            valor = filtros.get(campo if campo != "pagamento" else "payment_status")
-            if valor:
-                key = f"#{campo}"
-                val = f":{campo}"
-                names[key] = campo
-                values[val] = valor.lower() if use_lower else valor
-                if use_lower:
-                    conditions.append(f"contains(lower({key}), {val})")
-                else:
-                    conditions.append(f"{key} = {val}")
-
-        for data_campo, op, val_key in [
-            ("rental_date", ">=", ":start_date"),
-            ("rental_date", "<=", ":end_date"),
-            ("return_date", ">=", ":return_start_date"),
-            ("return_date", "<=", ":return_end_date"),
-        ]:
-            valor = filtros.get(val_key.strip(":"))
-            if valor:
-                names[f"#{data_campo}"] = data_campo
-                values[val_key] = valor.strftime("%Y-%m-%d")
-                conditions.append(f"#{data_campo} {op} {val_key}")
-
-        return names, values, " AND ".join(conditions)
-
-    def buscar_transacoes_por(account_id, status_list, filtros):
-        names, values, filtro_expr = montar_filtro_dynamodb(account_id, filtros)
-        base_query = {
-            "IndexName": "account_id-index",
-            "KeyConditionExpression": "#account_id = :account_id",
-            "ExpressionAttributeNames": names,
-            "ExpressionAttributeValues": values,
-        }
-        if filtro_expr:
-            base_query["FilterExpression"] = filtro_expr
-        trans_acc = transactions_table.query(**base_query).get("Items", [])
-
-        trans_status = []
-        for s in status_list:
+    def buscar_transacoes_por(account_id, status_list):
+        all_results = []
+        for status in status_list:
             response = transactions_table.query(
-                IndexName="status-index",
-                KeyConditionExpression="#status = :status_value",
-                ExpressionAttributeNames={"#status": "status"},
-                ExpressionAttributeValues={":status_value": s},
+                IndexName="account_id-status-index",
+                KeyConditionExpression=Key("account_id").eq(account_id)
+                & Key("status").eq(status),
             )
-            trans_status.extend(response.get("Items", []))
+            all_results.extend(response.get("Items", []))
+        return all_results
 
-        return trans_acc, trans_status
-
-    def combinar_transacoes(trans_acc, trans_status, client_id=None):
-        acc_ids = {
-            txn["transaction_id"]
-            for txn in trans_acc
-            if not client_id or txn.get("client_id") == client_id
-        }
-        status_ids = {
-            txn["transaction_id"]
-            for txn in trans_status
-            if not client_id or txn.get("client_id") == client_id
-        }
-        comuns = acc_ids & status_ids
-        mapa = {}
-        for txn in trans_acc:
-            if txn["transaction_id"] in comuns:
-                mapa.setdefault(txn["item_id"], []).append(txn)
-        return mapa
-
-    def montar_transacoes_com_imagem(mapa_txn, filtros):
-        transacoes = []
-
-        for item_id, transacoes_por_item in mapa_txn.items():
-            item_data = itens_table.get_item(Key={"item_id": item_id}).get("Item")
-            if not item_data:
+    def montar_transacoes_com_imagem(transacoes, filtros):
+        resultado = []
+        for txn in transacoes:
+            if client_id and txn.get("client_id") != client_id:
                 continue
 
-            for txn in transacoes_por_item:
-
-                # Skip por filtro de descrição/comentários, se necessário
-                if (
-                    filtros["description"]
-                    and filtros["description"].lower()
-                    not in txn.get("description", "").lower()
-                ):
+            if (
+                filtros["description"]
+                and filtros["description"].lower()
+                not in txn.get("description", "").lower()
+            ):
+                continue
+            if (
+                filtros["item_obs"]
+                and filtros["item_obs"].lower() not in txn.get("item_obs", "").lower()
+            ):
+                continue
+            if (
+                filtros["item_custom_id"]
+                and filtros["item_custom_id"].lower()
+                not in txn.get("item_custom_id", "").lower()
+            ):
+                continue
+            if (
+                filtros["client_obs"]
+                and filtros["client_obs"].lower()
+                not in txn.get("client_obs", "").lower()
+            ):
+                continue
+            if filtros.get("retirado") is not None:
+                retirado_valor = filtros["retirado"].lower() == "true"
+                if txn.get("retirado") != retirado_valor:
                     continue
-                if (
-                    filtros["item_obs"]
-                    and filtros["item_obs"].lower()
-                    not in txn.get("item_obs", "").lower()
-                ):
-                    continue
+            if (
+                filtros["transaction_obs"]
+                and filtros["transaction_obs"].lower()
+                not in txn.get("transaction_obs", "").lower()
+            ):
+                continue
 
-                if (
-                    filtros["item_custom_id"]
-                    and filtros["item_custom_id"].lower()
-                    not in item_data.get("item_custom_id", "").lower()
-                ):
-                    continue
+            pagamento_raw = txn.get("pagamento")
+            valor_raw = txn.get("valor")
+            try:
+                pagamento = float(pagamento_raw or 0)
+                valor = float(valor_raw or 0)
+            except (TypeError, ValueError):
+                continue
 
-                if (
-                    filtros["client_obs"]
-                    and filtros["client_obs"].lower()
-                    not in txn.get("client_obs", "").lower()
-                ):
-                    continue
+            filtro_pagamento = (filtros.get("payment") or "").lower().strip()
+            if filtro_pagamento == "pago total" and pagamento < valor:
+                continue
+            elif filtro_pagamento == "pago parcial" and (
+                pagamento == 0 or pagamento >= valor
+            ):
+                continue
+            elif filtro_pagamento == "não pago" and pagamento > 0:
+                continue
 
-                if filtros.get("retirado") is not None:
-                    retirado_valor = filtros["retirado"].lower() == "true"
-                    if txn.get("retirado") != retirado_valor:
-                        continue
+            resultado.append(process_dates(txn, user_utc))
 
-                if (
-                    filtros["transaction_obs"]
-                    and filtros["transaction_obs"].lower()
-                    not in txn.get("transaction_obs", "").lower()
-                ):
-                    continue
-
-                # NOVO: Filtro de pagamento baseado no valor pago vs valor total
-                pagamento_raw = txn.get("pagamento")
-                valor_raw = txn.get("valor")
-
-                try:
-                    pagamento = float(pagamento_raw or 0)
-                    valor = float(valor_raw or 0)
-                except (TypeError, ValueError):
-                    continue
-
-                filtro_pagamento = (filtros.get("payment") or "").lower().strip()
-
-                if filtro_pagamento == "pago total":
-                    if pagamento < valor:
-                        continue
-                elif filtro_pagamento == "pago parcial":
-                    if pagamento == 0 or pagamento >= valor:
-                        continue
-                elif filtro_pagamento == "não pago":
-                    if pagamento > 0:
-                        continue
-
-                transacoes.append(process_dates(txn))
-
-        return transacoes
+        return resultado
 
     def filtrar_por_categoria(itens, categoria):
-
         if categoria == "deleted":
             return [i for i in itens if i.get("transaction_status") == "deleted"]
         if categoria == "version":
             return [i for i in itens if i.get("transaction_status") == "version"]
         return itens
 
+    # Medição de tempo
+    start_total = time.time()
+
     filtros = apply_filtros_request()
-    trans_acc, trans_status = buscar_transacoes_por(account_id, status_list, filtros)
-    mapa_txn = combinar_transacoes(trans_acc, trans_status, client_id)
-    itens_combinados = montar_transacoes_com_imagem(mapa_txn, filtros)
+    transacoes = buscar_transacoes_por(account_id, status_list)
+    itens_combinados = montar_transacoes_com_imagem(transacoes, filtros)
     filtrados = filtrar_por_categoria(itens_combinados, filtros["filter"])
 
     total = len(filtrados)
@@ -1486,6 +1402,8 @@ def listar_itens_per_transaction(
 
     if not paginados:
         flash("Nenhum item encontrado para os filtros selecionados.", "warning")
+
+    print(f"[DEBUG] Tempo total da função: {time.time() - start_total:.4f}s")
 
     return render_template(
         template,

@@ -1,18 +1,3 @@
-/* ---------------------------------------
-   HTML & BODY (100% ALTURA)
---------------------------------------- */
-html,
-body {
-  height: 100%;
-  margin: 0;
-  padding: 0;
-  padding-top: 30px; /* Ajuste conforme necessário para evitar sobreposição */
-}
-
-/*
-   Aplica o degradê (ou fundo) somente à página "available"
-   Ajuste livremente as cores do degradê, se quiser outro visual.
-*/
 body.client_transactions {
   min-height: 100vh;
 

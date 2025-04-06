@@ -33,7 +33,7 @@
           </li>
 
           <li class="nav-item">
-            <a class="nav-link {% if request.endpoint == 'rented' %}active{% endif %}" href="{{ url_for('inventario') }}">Inventário</a>
+            <a class="nav-link {% if request.endpoint == 'inventario' %}active{% endif %}" href="{{ url_for('inventario') }}">Inventário</a>
           </li>
 
           <!-- Dropdown Menu -->
@@ -41,7 +41,7 @@
             <a class="nav-link dropdown-toggle" href="#" id="menuDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">Menu</a>
             <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end">
               <li>
-                <a class="dropdown-item {% if request.endpoint == 'listar_clients' %}active{% endif %}" href="{{ url_for('listar_clientes') }}">
+                <a class="dropdown-item {% if request.endpoint == 'listar_clientes' %}active{% endif %}" href="{{ url_for('listar_clientes') }}">
                   Clientes
                 </a>
               </li>
@@ -75,13 +75,12 @@
                 </a>
               </li>
 
-              {% if session.get('logged_in') %}
-                {% if session.get('role') == 'general_admin' %}
-                <li><hr class="dropdown-divider" /></li>
-                <li><a class="dropdown-item text-success" href="{{ url_for('admin_dashboard') }}">Painel de Administração</a></li>
-                {% endif %}
-                <li><hr class="dropdown-divider" /></li>
-                <li><a class="dropdown-item text-danger" href="{{ url_for('logout') }}">Sair</a></li>
+              {% if session.get('logged_in') %} {% if session.get('role') == 'general_admin' %}
+              <li><hr class="dropdown-divider" /></li>
+              <li><a class="dropdown-item text-success" href="{{ url_for('admin_dashboard') }}">Painel de Administração</a></li>
+              {% endif %}
+              <li><hr class="dropdown-divider" /></li>
+              <li><a class="dropdown-item text-danger" href="{{ url_for('logout') }}">Sair</a></li>
               {% endif %}
             </ul>
           </li>
