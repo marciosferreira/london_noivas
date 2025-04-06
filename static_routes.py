@@ -1,6 +1,7 @@
 from flask import (
     render_template,
     request,
+    session,
     redirect,
     url_for,
     flash,
@@ -8,7 +9,7 @@ from flask import (
 )
 
 
-def init_static_routes(app, ses_client):
+def init_static_routes(app, ses_client, clients_table, transactions_table, itens_table):
     # Static pages
     @app.route("/terms")
     def terms():
@@ -20,10 +21,6 @@ def init_static_routes(app, ses_client):
             nome = request.form.get("name")
             email = request.form.get("email")
             mensagem = request.form.get("message")
-
-            print(nome)
-            print(email)
-            print(mensagem)
 
             if not nome or not email or not mensagem:
                 flash("Todos os campos são obrigatórios.", "danger")
@@ -56,7 +53,43 @@ def init_static_routes(app, ses_client):
 
     @app.route("/")
     def index():
-        return render_template("index.html")  # Renderiza a página inicial
+        from boto3.dynamodb.conditions import Key
+
+        stats = {}
+
+        if session.get("logged_in"):
+            account_id = session.get("account_id")
+            username = session.get("username")
+
+            # Contar clientes (tabela correta)
+            stats["total_clients"] = clients_table.query(
+                IndexName="account_id-index",
+                KeyConditionExpression=Key("account_id").eq(account_id),
+            )["Count"]
+
+            # Contar itens
+            stats["total_items"] = itens_table.query(
+                IndexName="account_id-index",
+                KeyConditionExpression=Key("account_id").eq(account_id),
+            )["Count"]
+
+            # Contar transações "rented"
+            rented_txn = transactions_table.query(
+                IndexName="account_id-status-index",
+                KeyConditionExpression=Key("account_id").eq(account_id)
+                & Key("status").eq("rented"),
+            )
+            stats["total_rented"] = rented_txn["Count"]
+
+            # Contar transações "returned"
+            returned_txn = transactions_table.query(
+                IndexName="account_id-status-index",
+                KeyConditionExpression=Key("account_id").eq(account_id)
+                & Key("status").eq("returned"),
+            )
+            stats["total_returned"] = returned_txn["Count"]
+
+        return render_template("index.html", stats=stats, username=username)
 
     @app.route("/ads.txt")
     def ads_txt():

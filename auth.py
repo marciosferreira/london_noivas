@@ -124,7 +124,8 @@ def init_auth_routes(app, users_table, reset_tokens_table):
                 session["username"] = username
                 session["user_id"] = user_id
                 session["account_id"] = account_id
-                return redirect(url_for("rented"))
+                flash("Você esta logado agora!", "info")
+                return redirect(url_for("index"))
 
             flash("E-mail ou senha incorretos.", "danger")
 
@@ -133,6 +134,7 @@ def init_auth_routes(app, users_table, reset_tokens_table):
     # Email confirmation
     @app.route("/confirm_email/<token>")
     def confirm_email(token):
+        print(token)
         try:
             # Buscar usuário pelo token no GSI
             response = users_table.query(
@@ -865,21 +867,32 @@ def init_auth_routes(app, users_table, reset_tokens_table):
 
 def create_user(email, username, password, users_table, app, role="admin"):
     """Create a new user in the database."""
+    from boto3.dynamodb.conditions import Key
+
     with app.app_context():
         password_hash = generate_password_hash(password)
         email_token = secrets.token_urlsafe(16)
-        user_id = str(uuid.uuid4())  # Gerando um ID único para o usuário
-        account_id = str(uuid.uuid4())  # Gerando um ID único para o usuário
+        user_id = str(uuid.uuid4())
+        account_id = str(uuid.uuid4())
 
-        user_id = session.get("user_id") if "user_id" in session else None
-        user_utc = get_user_timezone(users_table, user_id)
+        current_user_id = session.get("user_id") if "user_id" in session else None
+        user_utc = get_user_timezone(users_table, current_user_id)
 
+        # ✅ Verifica se o e-mail já está cadastrado via GSI
+        response = users_table.query(
+            IndexName="email-index", KeyConditionExpression=Key("email").eq(email)
+        )
+
+        if response["Count"] > 0:
+            return False  # E-mail já cadastrado
+
+        # ⬇️ Cria o novo usuário
         try:
             users_table.put_item(
                 Item={
-                    "user_id": user_id,  # Chave primária única
-                    "account_id": account_id,  # Chave primária única
-                    "email": email,  # Indexável para buscas
+                    "user_id": user_id,
+                    "account_id": account_id,
+                    "email": email,
                     "username": username,
                     "password_hash": password_hash,
                     "role": role,
@@ -887,17 +900,15 @@ def create_user(email, username, password, users_table, app, role="admin"):
                     "email_confirmed": False,
                     "email_token": email_token,
                     "last_email_sent": datetime.datetime.now(user_utc).isoformat(),
-                },
-                ConditionExpression="attribute_not_exists(email)",  # Garantir que não há duplicação de email
+                }
             )
 
-            # Generate confirmation URL
             confirm_url = url_for("confirm_email", token=email_token, _external=True)
             send_confirmation_email(email, username, confirm_url)
             return True
+
         except ClientError as e:
-            if e.response["Error"]["Code"] == "ConditionalCheckFailedException":
-                return False
+            print("Erro inesperado:", e)
             raise
 
 

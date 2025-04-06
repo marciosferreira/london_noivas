@@ -1,7 +1,9 @@
-{% extends "base.html" %} {% block title %}Transações por cliente{% endblock %} {% block styles %}
+{% extends "base.html" %} {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='style_client_transactions.css') }}" />
 {% endblock %} {% block body_class %}client_transactions{% endblock %} {% block content %}
 <div class="container my-4">
+  <h2 class="section-title mb-3">{% if client_name %} Transações de: {{ client_name }} {% else %} Transações por cliente {% endif %}</h2>
+
   {% include "components/filter_section.html" with context %}
 
   <!-- Tabela -->

@@ -1403,6 +1403,14 @@ def listar_itens_per_transaction(
     if not paginados:
         flash("Nenhum item encontrado para os filtros selecionados.", "warning")
 
+    # 🔍 Se client_id está definido, capturar o nome do cliente da primeira transação
+    client_name = None
+    if client_id:
+        for txn in transacoes:
+            if txn.get("client_id") == client_id:
+                client_name = txn.get("client_name")
+                break
+
     print(f"[DEBUG] Tempo total da função: {time.time() - start_total:.4f}s")
 
     return render_template(
@@ -1414,6 +1422,7 @@ def listar_itens_per_transaction(
         title=title,
         add_route=url_for("trash_transactions"),
         next_url=request.url,
+        client_name=client_name,  # ✅ incluído no render
     )
 
 
