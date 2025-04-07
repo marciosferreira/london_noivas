@@ -722,7 +722,6 @@ def init_auth_routes(app, users_table, reset_tokens_table):
         return redirect(url_for("index"))
         # User profile settings
 
-    from pytz import all_timezones
 
     @app.route("/adjustments")
     def adjustments():
