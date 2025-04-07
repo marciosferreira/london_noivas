@@ -79,7 +79,7 @@
           <span id="modalTransactionComments"></span>
         </p>
         <p>
-          <strong>Data de Criação:</strong>
+          <strong>Data da transação:</strong>
           <span id="modalCreated"></span>
         </p>
       </div>
@@ -130,7 +130,24 @@
           document.getElementById('modalRentalDate').textContent = formatarDataBrasil(data.rental_date);
           document.getElementById('modalReturnDate').textContent = formatarDataBrasil(data.return_date);
           document.getElementById('modalValor').textContent = data.valor || 'N/A';
-          document.getElementById('modalPagamento').textContent = data.pagamento || 'N/A';
+          const pagamento = parseFloat(data.pagamento) || 0;
+          const valor = parseFloat(data.valor) || 0;
+
+          let textoPagamento = `${pagamento.toFixed(2)}`;
+          let statusPagamento = '';
+
+          if (valor === 0) {
+            statusPagamento = '(Não Pago)';
+          } else if (pagamento === valor) {
+            statusPagamento = '(Pagamento Total)';
+          } else if (pagamento > 0 && pagamento < valor) {
+            statusPagamento = '(Pagamento Parcial)';
+          } else {
+            statusPagamento = '(Não Pago)';
+          }
+
+          document.getElementById('modalPagamento').textContent = `${textoPagamento} ${statusPagamento}`;
+
           document.getElementById('modalRetirado').textContent = data.retirado ? 'Sim' : 'Não';
           document.getElementById('modalTransactionComments').textContent = data.transaction_obs || 'N/A';
           document.getElementById('modalCreated').textContent = formatarDataBrasilComHora(data.created_at);

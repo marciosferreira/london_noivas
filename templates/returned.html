@@ -50,7 +50,23 @@
           <!-- prettier-ignore -->
           <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Retirado">{% if item.retirado %}Sim{% else %}Não{% endif %}</td>
           <!-- prettier-ignore -->
-          <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Pagamento">{{ item.pagamento }}</td>
+          <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Pagamento">
+            R$ {{ "%.2f"|format(item.pagamento | float) }}
+            {% if item.pagamento and item.valor %}
+              {% set pagamento_float = item.pagamento | float %}
+              {% set valor_float = item.valor | float %}
+              {% if pagamento_float == valor_float %}
+                (Pagamento Total)
+              {% elif pagamento_float > 0 and pagamento_float < valor_float %}
+                (Pagamento Parcial)
+              {% else %}
+                (Não Pago)
+              {% endif %}
+            {% else %}
+              (Não Pago)
+            {% endif %}
+          </td>
+
           <!-- prettier-ignore -->
           <td data-label="Observações" data-item='{{ item | tojson | safe }}'>{{ item.comments | default('', true) | truncate(10, True) }}</td>
           <!-- prettier-ignore -->
