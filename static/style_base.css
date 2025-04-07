@@ -9,6 +9,16 @@ body {
   flex-direction: column;
 }
 
+.flash-wrapper {
+  position: fixed;
+  top: 180px; /* distância do topo, ajustável */
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
+  max-width: 600px;
+  z-index: 1050; /* maior que o menu */
+}
+
 .wrapper {
   flex: 1;
   padding-bottom: 30px;
