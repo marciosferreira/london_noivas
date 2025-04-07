@@ -11,7 +11,7 @@ body {
 
 .flash-wrapper {
   position: fixed;
-  top: 180px; /* distância do topo, ajustável */
+  top: 10px; /* distância do topo, ajustável */
   left: 50%;
   transform: translateX(-50%);
   width: 90%;

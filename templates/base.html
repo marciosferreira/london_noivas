@@ -99,3 +99,15 @@
     </script>
   </body>
 </html>
+
+<script>
+  // Aguarda 3 segundos e fecha automaticamente todos os alerts
+  setTimeout(() => {
+    const alerts = document.querySelectorAll('.alert');
+    alerts.forEach((alert) => {
+      // Usa a API do Bootstrap 5 para fechar o alerta
+      const bsAlert = bootstrap.Alert.getOrCreateInstance(alert);
+      bsAlert.close();
+    });
+  }, 4000); // 4000 ms = 4 segundos
+</script>

@@ -51,6 +51,14 @@ app = Flask(__name__)
 # Defina uma chave secreta forte e fixa
 app.secret_key = os.environ.get("SECRET_KEY", "chave-secreta-estatica-e-forte-london")
 
+
+from datetime import timedelta
+
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=30)  # ou outro valor
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SECURE"] = True  # só se estiver usando HTTPS
+
+
 # Import routing modules
 from auth import init_auth_routes
 from item_routes import init_item_routes

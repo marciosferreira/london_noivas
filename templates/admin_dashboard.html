@@ -1,9 +1,7 @@
-{% extends "base.html" %}
-{% block title %}Alugue QQC - Painel de Administração{% endblock %}
-{% block content %}
+{% extends "base.html" %} {% block title %}Alugue QQC - Painel de Administração{% endblock %} {% block content %}
 <div class="container mt-5 pt-5">
   <h1 class="text-center mb-4">Painel de Administração Geral</h1>
-  
+
   <div class="row mb-4">
     <div class="col">
       <div class="card">
@@ -34,9 +32,9 @@
                   <td>{{ user.transaction_count }}</td>
                   <td>
                     {% if user.email_confirmed %}
-                      <span class="badge bg-success">Verificado</span>
+                    <span class="badge bg-success">Verificado</span>
                     {% else %}
-                      <span class="badge bg-warning">Pendente</span>
+                    <span class="badge bg-warning">Pendente</span>
                     {% endif %}
                   </td>
                   <td>
@@ -51,11 +49,7 @@
       </div>
     </div>
   </div>
-  
-  <div class="row mb-3">
-    <div class="col">
-      <a href="{{ url_for('rented') }}" class="btn btn-secondary">Voltar</a>
-    </div>
-  </div>
+
+  <div class="row mb-3"></div>
 </div>
 {% endblock %}

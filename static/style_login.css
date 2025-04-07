@@ -247,3 +247,14 @@ body {
   margin: 0;
   cursor: pointer;
 }
+
+.form-check {
+  display: flex;
+  align-items: center;
+  gap: 10px; /* espaço entre a checkbox e o texto */
+  justify-content: flex-start; /* alinha tudo à esquerda */
+}
+
+.form-check-label {
+  margin-bottom: 0; /* evita que o texto "afunde" */
+}
