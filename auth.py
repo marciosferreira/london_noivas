@@ -70,18 +70,12 @@ def init_auth_routes(app, users_table, reset_tokens_table):
     # Login route
     @app.route("/login", methods=["GET", "POST"])
     def login():
-        
+
         if session.get("logged_in"):  # Verifica se o usuário já está logado
             flash("Você já está logado!", "info")
             return redirect(url_for("index"))  # Redireciona para outra página
         remember_me = request.form.get("remember_me")
 
-        if check_password_hash(stored_hash, password):
-            if remember_me:
-                session.permanent = True  # Sessão durará conforme PERMANENT_SESSION_LIFETIME
-            else:
-                session.permanent = False  # Será apagada ao fechar o navegador
-                
         if request.method == "POST":
             email = request.form.get("email")
             password = request.form.get("password")
@@ -111,6 +105,14 @@ def init_auth_routes(app, users_table, reset_tokens_table):
             stored_hash = user["password_hash"]
             username = user["username"]
             account_id = user["account_id"]
+
+            if check_password_hash(stored_hash, password):
+                if remember_me:
+                    session.permanent = (
+                        True  # Sessão durará conforme PERMANENT_SESSION_LIFETIME
+                    )
+                else:
+                    session.permanent = False  # Será apagada ao fechar o navegador
 
             # Se o e-mail não estiver confirmado, mostrar opção de reenvio
             if not user.get("email_confirmed", False):
@@ -730,7 +732,6 @@ def init_auth_routes(app, users_table, reset_tokens_table):
         # Redireciona para a página inicial
         return redirect(url_for("index"))
         # User profile settings
-
 
     @app.route("/adjustments")
     def adjustments():
