@@ -50,6 +50,44 @@ def init_static_routes(app, ses_client, clients_table, transactions_table, itens
             return redirect(url_for("contato"))
 
         return render_template("contato.html")
+        
+    @app.route("/reportar-bug", methods=["GET", "POST"])
+    def reportar_bug():
+        url = request.args.get("url", "")
+        
+        if request.method == "POST":
+            url = request.form.get("url")
+            descricao = request.form.get("description")
+            email = request.form.get("email", "Não informado")
+
+            if not url or not descricao:
+                flash("URL e descrição do bug são obrigatórios.", "danger")
+                return redirect(url_for("reportar_bug"))
+
+            # Enviar e-mail via AWS SES
+            destinatario = "contato@alugueqqc.com.br"
+            assunto = f"Bug reportado: {url}"
+            corpo_email = f"URL: {url}\nE-mail: {email}\n\nDescrição do Bug:\n{descricao}"
+
+            try:
+                response = ses_client.send_email(
+                    Source=destinatario,
+                    Destination={"ToAddresses": [destinatario]},
+                    Message={
+                        "Subject": {"Data": assunto, "Charset": "UTF-8"},
+                        "Body": {"Text": {"Data": corpo_email, "Charset": "UTF-8"}},
+                    },
+                )
+                flash("Relatório de bug enviado com sucesso! Obrigado pela contribuição.", "success")
+            except Exception as e:
+                print(f"Erro ao enviar e-mail: {e}")
+                flash(
+                    "Erro ao enviar o relatório. Tente novamente mais tarde.", "danger"
+                )
+
+            return redirect(url_for("index"))
+
+        return render_template("reportar-bug.html", url=url)
 
     @app.route("/")
     def index():
