@@ -2,7 +2,7 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='style_rented.css') }}" />
 {% endblock %} {% block body_class %}rented{% endblock %} {% block content %}
 <div class="container mt-3">
-  <h2 class="mb-4">Transações iniciadas (itens alugados/reservados)</h2>
+  <h2 class="mb-4">{{ title }}</h2>
 
   {% include "components/filter_section.html" with context %}
 

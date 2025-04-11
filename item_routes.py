@@ -43,6 +43,18 @@ def init_item_routes(
             itens_table,
         )
 
+    @app.route("/retired")
+    def retired():
+        return listar_itens_per_transaction(
+            ["rented"],
+            "rented.html",
+            "Transações iniciadas (itens retirados)",
+            transactions_table,
+            users_table,
+            itens_table,
+            retired=True,
+        )
+
     @app.route("/returned")
     def returned():
         return listar_itens_per_transaction(
@@ -1281,6 +1293,7 @@ def listar_itens_per_transaction(
     users_table,
     itens_table,
     client_id=None,
+    retired=False,
 ):
     # from boto3.dynamodb.conditions import Key
 
@@ -1333,7 +1346,7 @@ def listar_itens_per_transaction(
         # Criar rental_message:
         rental_date = item.get("rental_date_obj")
         if rental_date:
-            if rental_date == today:
+            if rental_date == today and not item.get("retirado"):
                 item["rental_message"] = "Hoje"
             elif rental_date > today:
                 dias = (rental_date - today).days
@@ -1348,7 +1361,7 @@ def listar_itens_per_transaction(
         # Criar rental_message e rental_message_color:
         rental_date = item.get("rental_date_obj")
         if rental_date:
-            if rental_date == today:
+            if rental_date == today and not item.get("retirado"):
                 item["rental_message"] = "Retirada hoje"
                 item["rental_message_color"] = "orange"
             elif rental_date > today:
@@ -1477,6 +1490,12 @@ def listar_itens_per_transaction(
 
     filtros = apply_filtros_request()
     transacoes = buscar_transacoes_por(account_id, status_list)
+
+    if retired:
+        transacoes = [txn for txn in transacoes if txn.get("retirado") == True]
+    else:
+        transacoes = [txn for txn in transacoes if txn.get("retirado") == False]
+
     itens_combinados = montar_transacoes_com_imagem(transacoes, filtros)
     filtrados = filtrar_por_categoria(itens_combinados, filtros["filter"])
 

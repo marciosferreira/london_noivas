@@ -30,10 +30,14 @@
       <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
         <ul class="navbar-nav">
           <li class="nav-item">
-            <a class="nav-link {% if request.endpoint == 'returned' %}active{% endif %}" href="{{ url_for('returned') }}">Ver Devolvidos</a>
+            <a class="nav-link {% if request.endpoint == 'returned' %}active{% endif %}" href="{{ url_for('returned') }}">Devolvidos</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link {% if request.endpoint == 'rented' %}active{% endif %}" href="{{ url_for('rented') }}">Ver Alugados</a>
+            <a class="nav-link {% if request.endpoint == 'rented' %}active{% endif %}" href="{{ url_for('rented') }}">Alugados</a>
+          </li>
+
+          <li class="nav-item">
+            <a class="nav-link {% if request.endpoint == 'retired' %}active{% endif %}" href="{{ url_for('retired') }}">Retirados</a>
           </li>
 
           <li class="nav-item">
