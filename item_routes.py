@@ -1205,7 +1205,7 @@ def init_item_routes(
                 ).date()
                 if start_date <= rental_date <= end_date:
                     valor = float(transaction.get("valor", 0))
-                    pagamento = transaction.get("pagamento", "").lower()
+                    pagamento = str(transaction.get("pagamento", "") or "").lower()
 
                     # Calcular o total recebido
                     if pagamento == "pago 100%":
