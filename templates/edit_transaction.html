@@ -176,10 +176,40 @@
       </div>
 
       {% if 'returned' in request.full_path %}
-      <label for="return_date">Data de Devolução:</label>
-      <input type="date" id="return_date" name="return_date" value="{{ item.return_date }}" required />
-      {% endif %}
+      <label for="dev_date_input">Devolvido em:</label>
 
+      <div style="display: flex; gap: 10px">
+        <input type="date" id="dev_date_input" value="{{ item.dev_date[:10] }}" required />
+        <input
+          type="time"
+          id="dev_time_input"
+          value="{{ item.dev_date[11:16] }}"
+          required
+          required
+          style="padding: 4px 8px; height: 43px; font-size: 14px"
+        />
+      </div>
+
+      <input type="hidden" name="dev_date" id="dev_date_hidden" />
+
+      <script>
+        const dateInput = document.getElementById('dev_date_input');
+        const timeInput = document.getElementById('dev_time_input');
+        const hiddenInput = document.getElementById('dev_date_hidden');
+
+        function atualizarDevDate() {
+          if (dateInput.value && timeInput.value) {
+            hiddenInput.value = `${dateInput.value} ${timeInput.value}:00`; // segundos fixos
+          }
+        }
+
+        dateInput.addEventListener('change', atualizarDevDate);
+        timeInput.addEventListener('change', atualizarDevDate);
+
+        // Atualiza no carregamento inicial
+        atualizarDevDate();
+      </script>
+      {% endif %}
       <label for="valor">Valor (R$):</label>
       <input type="number" id="valor" name="valor" step="0.01" min="0" value="{{ item.valor }}" required />
 
@@ -507,6 +537,13 @@
       };
       reader.readAsDataURL(file);
     }
+  });
+
+  // 🚀 Inicializar tudo quando a página carregar
+  window.addEventListener('DOMContentLoaded', () => {
+    autocompleteCliente();
+    iniciarDatePicker();
+    configurarValidacao();
   });
 </script>
 

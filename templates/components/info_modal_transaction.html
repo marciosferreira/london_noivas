@@ -55,13 +55,19 @@
         <!-- Seção Transação -->
         <h4><strong>Transação:</strong></h4>
         <p>
-          <strong>Data de Retirada:</strong>
+          <strong>Retirada prevista:</strong>
           <span id="modalRentalDate"></span>
         </p>
         <p>
-          <strong>Data de Devolução:</strong>
+          <strong>Devolução prevista:</strong>
           <span id="modalReturnDate"></span>
         </p>
+
+        <p>
+          <strong>Devolvido em:</strong>
+          <span id="modalDevDate"></span>
+        </p>
+
         <p>
           <strong>Valor(R$):</strong>
           <span id="modalValor"></span>
@@ -70,10 +76,12 @@
           <strong>Pago(R$):</strong>
           <span id="modalPagamento"></span>
         </p>
-        <p>
+
+        <p id="modalPagamentoContainer">
           <strong>Retirado:</strong>
           <span id="modalRetirado"></span>
         </p>
+
         <p>
           <strong>Observações da Transação:</strong>
           <span id="modalTransactionComments"></span>
@@ -110,6 +118,13 @@
   }
 
   document.addEventListener('DOMContentLoaded', function () {
+    if (window.location.pathname.endsWith('/returned')) {
+      const pagamentoContainer = document.getElementById('modalPagamentoContainer');
+      if (pagamentoContainer) {
+        pagamentoContainer.style.display = 'none';
+      }
+    }
+
     document.querySelectorAll('.open-modal').forEach((cell) => {
       cell.addEventListener('click', function () {
         try {
@@ -129,6 +144,8 @@
 
           document.getElementById('modalRentalDate').textContent = formatarDataBrasil(data.rental_date);
           document.getElementById('modalReturnDate').textContent = formatarDataBrasil(data.return_date);
+          document.getElementById('modalDevDate').textContent = formatarDataBrasilComHora(data.dev_date);
+
           document.getElementById('modalValor').textContent = data.valor || 'N/A';
           const pagamento = parseFloat(data.pagamento) || 0;
           const valor = parseFloat(data.valor) || 0;

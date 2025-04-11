@@ -41,3 +41,9 @@ h1.h3 {
 #filter-toggle:active {
   transform: scale(0.95);
 }
+
+/* Exemplo style_inventario.css ou global */
+.action-button.neutral {
+  background-color: #6c757d; /* cinza Bootstrap */
+  color: #fff;
+}

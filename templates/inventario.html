@@ -1,5 +1,7 @@
 {% extends "base.html" %} {% block title %}Itens Disponíveis{% endblock %} {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='style_inventario.css') }}" />
+<script src="{{ url_for('static', filename='view_calendar.js') }}"></script>
+
 {% endblock %} {% block body_class %}inventario{% endblock %} {% block content %}
 <div class="container my-3">
   <h2 class="mb-4">Inventário (itens disponíveis por data)</h2>
@@ -40,11 +42,14 @@
           <td data-label="Valor">{{ item.valor }}</td>
           <td data-label="Comentários do item" style="white-space: pre-wrap; text-align: left">{{ item.comments }}</td>
           <td data-label="Ações">
-            {% set show_delete = True %} {% set show_edit = True %} {% set show_rent = True %} {% set show_archive = True %} {% include
-            'components/action_buttons.html' with context %}
+            <div class="d-flex flex-wrap gap-2 justify-content-center align-items-center">
+              {% set show_delete = True %} {% set show_edit = True %} {% set show_rent = True %} {% set show_archive = True %} {% set show_consult =
+              True %} {% include 'components/action_buttons.html' with context %}
+            </div>
           </td>
+
+          {% endfor %}
         </tr>
-        {% endfor %}
       </tbody>
     </table>
     <p>Seu total de transações simultâneas: {{ total_relevant_transactions }} de 30 grátis.</p>
@@ -58,4 +63,51 @@
 <!-- MODAL para imagem -->
 {% include 'components/image_modal.html' %} {% endblock %} {% block scripts %}
 <!-- Image modal script is included in the image_modal component -->
+
+<!-- Modal do calendário -->
+<div class="modal fade" id="calendarModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" style="max-width: 400px">
+    <div class="modal-content p-3">
+      <div class="modal-header">
+        <h5 class="modal-title">Calendário do Item</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body" id="calendarModalBody">Carregando...</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function abrirCalendario(url) {
+    fetch(url)
+      .then((response) => response.text())
+      .then((html) => {
+        document.getElementById('calendarModalBody').innerHTML = html;
+        const modal = new bootstrap.Modal(document.getElementById('calendarModal'));
+        modal.show();
+      })
+      .catch((error) => {
+        console.error('Erro ao carregar calendário:', error);
+        alert('Erro ao carregar calendário.');
+      });
+  }
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.umd.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.umd.min.js"></script>
+
+<script>
+  function iniciarDatePicker() {
+    const picker = new easepick.create({
+      element: document.getElementById('datepicker'),
+      css: ['https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.css'],
+      inline: true, // <- chave mágica
+      container: document.getElementById('calendar-container'), // <- onde ele vai aparecer
+    });
+
+    picker.show(); // já abre o calendário ao carregar
+  }
+</script>
+
 {% endblock %}

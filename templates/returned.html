@@ -93,6 +93,9 @@
               >
                 Editar
               </a>
+
+              <a href="{{ url_for('view_calendar', item_id=item.item_id, next=request.url) }}" class="action-button info">Consultar</a>
+
             </div>
           </td>
         </tr>

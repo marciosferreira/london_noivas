@@ -24,7 +24,7 @@ def init_status_routes(app, itens_table, transactions_table, users_table):
         # Obtém a data atual
         user_id = session.get("user_id") if "user_id" in session else None
         user_utc = get_user_timezone(users_table, user_id)
-        dev_date = datetime.datetime.now(user_utc).strftime("%Y-%m-%d")
+        dev_date = datetime.datetime.now(user_utc).strftime("%Y-%m-%d %H:%M:%S")
 
         # Atualiza status para 'returned' e adiciona a data de devolução
         transactions_table.update_item(

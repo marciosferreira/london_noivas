@@ -41,9 +41,24 @@
             {{ item.client_name | default('', true) | truncate(10, True) }}
           </td>
           <!-- prettier-ignore -->
-          <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Retirada Prevista">{{ item.rental_date_formatted }}</td>
+          <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Retirada Prevista">
+            {{ item.rental_date_formatted }}
+            {% if item.rental_message %}
+              <div class="rental-message mt-1 {{ item.rental_message_color }}">
+                {{ item.rental_message }}
+              </div>
+            {% endif %}
+          </td>
           <!-- prettier-ignore -->
-          <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Devolução Prevista">{{ item.return_date_formatted }}</td>
+
+          <td class="open-modal position-relative" data-item='{{ item | tojson | safe }}' data-label="Devolução Prevista">
+            {{ item.return_date_formatted }}
+
+            {% if item.overdue %}
+              <div class="atrasado-tag mt-1">Atrasado</div>
+            {% endif %}
+          </td>
+
           <!-- prettier-ignore -->
           <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Retirado">{% if item.retirado %}Sim{% else %}Não{% endif %}</td>
           <!-- prettier-ignore -->
@@ -102,6 +117,8 @@
               >
                 Devolvido
               </a>
+
+              <a href="{{ url_for('view_calendar', item_id=item.item_id, next=request.url) }}" class="action-button info">Consultar</a>
             </div>
           </td>
         </tr>

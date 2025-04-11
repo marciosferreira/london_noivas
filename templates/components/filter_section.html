@@ -126,7 +126,7 @@ d-none{% endif %} mt-3">
 
               {% if request.path in ['/rented', '/returned', '/trash_transactions'] %}
               <div class="col-md-6">
-                <label class="form-label">Intervalo de Data de Aluguel:</label>
+                <label class="form-label">Intervalo de Retirada Prevista:</label>
                 <div class="row">
                   <div class="col">
                     <input type="date" class="form-control" id="start_date" name="start_date" value="{{ request.args.get('start_date', '') }}" />
@@ -137,7 +137,7 @@ d-none{% endif %} mt-3">
                 </div>
               </div>
               <div class="col-md-6">
-                <label class="form-label">Intervalo de Data de Devolução:</label>
+                <label class="form-label">Intervalo de Devolução Prevista:</label>
                 <div class="row">
                   <div class="col">
                     <input type="date" class="form-control" id="return_start_date" name="return_start_date" value="{{ request.args.get('return_start_date', '') }}" />

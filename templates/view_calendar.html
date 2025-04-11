@@ -1,0 +1,48 @@
+{% extends "base.html" %} {% block title %}Datas Reservadas{% endblock %} {% block content %}
+<div class="container my-5 text-center">
+  <br />
+  <h2 class="mb-4">Consultar reservas do Item</h2>
+  <div class="text-center mt-4">
+    <a href="{{ next_page }}" class="btn btn-outline-primary btn-lg">← Voltar</a>
+  </div>
+
+  <div id="calendar-wrapper">
+    <div id="calendar-container">
+      <input id="datepicker" class="form-control" readonly style="cursor: pointer; opacity: 0; height: 0; border: none" />
+    </div>
+  </div>
+</div>
+{% endblock %} {% block styles %}
+<style>
+  #calendar-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+</style>
+{% endblock %} {% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.umd.min.js"></script>
+
+<script>
+  const rawDates = {{ reserved_ranges | tojson }};
+  const DateTime = easepick.DateTime;
+  const bookedDates = rawDates.map(d => Array.isArray(d) ? [new DateTime(d[0], 'YYYY-MM-DD'), new DateTime(d[1], 'YYYY-MM-DD')] : new DateTime(d, 'YYYY-MM-DD'));
+
+  const picker = new easepick.create({
+    element: document.getElementById('datepicker'),
+    css: ['https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.css'],
+    inline: true,
+    plugins: ['RangePlugin', 'LockPlugin'],
+    LockPlugin: {
+      minDate: new Date(),
+      filter(date, picked) {
+        return date.inArray(bookedDates, '[]');
+      },
+    },
+    lang: 'pt-BR',
+    format: 'DD/MM/YYYY',
+  });
+
+  picker.show();
+</script>
+{% endblock %}

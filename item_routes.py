@@ -1,6 +1,7 @@
 import datetime
 import uuid
 from urllib.parse import urlparse
+from boto3.dynamodb.conditions import Key
 
 from flask import (
     render_template,
@@ -624,6 +625,45 @@ def init_item_routes(
         return render_template("rent.html", item=item, reserved_ranges=reserved_ranges)
 
     ###########################################################################################################
+    @app.route("/view_calendar/<item_id>")
+    def view_calendar(item_id):
+        if not session.get("logged_in"):
+            return redirect(url_for("login"))
+
+        next_page = request.args.get("next") or url_for("inventario")
+
+        response = itens_table.get_item(Key={"item_id": item_id})
+        item = response.get("Item")
+
+        if not item:
+            flash("Item não encontrado.", "danger")
+            return redirect(url_for("inventario"))
+
+        response = transactions_table.query(
+            IndexName="item_id-index",
+            KeyConditionExpression="item_id = :item_id_val",
+            ExpressionAttributeValues={":item_id_val": item_id},
+        )
+
+        transactions = response.get("Items", [])
+        reserved_ranges = []
+
+        for tx in transactions:
+            if (
+                tx.get("status") == "rented"
+                and tx.get("rental_date")
+                and tx.get("return_date")
+            ):
+                reserved_ranges.append([tx["rental_date"], tx["return_date"]])
+
+        return render_template(
+            "view_calendar.html",
+            item=item,
+            reserved_ranges=reserved_ranges,
+            next_page=next_page,
+        )
+
+    ##########################################################
 
     @app.route("/delete/<item_id>", methods=["POST"])
     def delete(item_id):
@@ -1242,8 +1282,7 @@ def listar_itens_per_transaction(
     itens_table,
     client_id=None,
 ):
-    import time
-    from boto3.dynamodb.conditions import Key
+    # from boto3.dynamodb.conditions import Key
 
     if not session.get("logged_in"):
         return redirect(url_for("login"))
@@ -1255,6 +1294,7 @@ def listar_itens_per_transaction(
 
     user_id = session.get("user_id") if "user_id" in session else None
     user_utc = get_user_timezone(users_table, user_id)
+    today = datetime.datetime.now(user_utc).date()
 
     def parse_date(date_str):
         return (
@@ -1263,18 +1303,16 @@ def listar_itens_per_transaction(
             else None
         )
 
-    def process_dates(item, user_utc):
-        today = datetime.datetime.now(user_utc).date()
+    def process_dates(item, today):
         for key in ["rental_date", "return_date", "dev_date"]:
             date_str = item.get(key)
             if date_str:
                 try:
                     date_obj = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
                     item[f"{key}_formatted"] = date_obj.strftime("%d-%m-%Y")
-                    if key == "return_date":
-                        item["overdue"] = date_obj < today
                     if key == "rental_date":
                         item["rental_date_obj"] = date_obj
+                    item[f"{key}_obj"] = date_obj  # salva pra usar depois
                 except ValueError:
                     item[f"{key}_formatted"] = "Data Inválida"
                     if key == "rental_date":
@@ -1283,7 +1321,54 @@ def listar_itens_per_transaction(
                 item[f"{key}_formatted"] = "N/A"
                 if key == "rental_date":
                     item["rental_date_obj"] = today
-        item.setdefault("overdue", False)
+
+        # Regra clara de overdue:
+        if item.get("dev_date_obj"):
+            item["overdue"] = False  # Já foi devolvido
+        elif item.get("return_date_obj"):
+            item["overdue"] = item["return_date_obj"] < today
+        else:
+            item["overdue"] = False  # Não tem data nenhuma, não consideramos atrasado
+
+        # Criar rental_message:
+        rental_date = item.get("rental_date_obj")
+        if rental_date:
+            if rental_date == today:
+                item["rental_message"] = "Hoje"
+            elif rental_date > today:
+                dias = (rental_date - today).days
+                item["rental_message"] = f"Faltam {dias} dias"
+            elif rental_date < today and not item.get("retirado"):
+                item["rental_message"] = "Atrasado"
+            else:
+                item["rental_message"] = ""
+        else:
+            item["rental_message"] = ""
+
+        # Criar rental_message e rental_message_color:
+        rental_date = item.get("rental_date_obj")
+        if rental_date:
+            if rental_date == today:
+                item["rental_message"] = "Retirada hoje"
+                item["rental_message_color"] = "orange"
+            elif rental_date > today:
+                dias = (rental_date - today).days
+                if dias == 1:
+                    item["rental_message"] = "Falta 1 dia"
+                    item["rental_message_color"] = "yellow"
+                else:
+                    item["rental_message"] = f"Faltam {dias} dias"
+                    item["rental_message_color"] = "blue"
+            elif rental_date < today and not item.get("retirado"):
+                item["rental_message"] = "Não retirado"
+                item["rental_message_color"] = "red"
+            else:
+                item["rental_message"] = ""
+                item["rental_message_color"] = ""
+        else:
+            item["rental_message"] = ""
+            item["rental_message_color"] = ""
+
         return item
 
     def apply_filtros_request():
@@ -1338,7 +1423,7 @@ def listar_itens_per_transaction(
             if (
                 filtros["item_custom_id"]
                 and filtros["item_custom_id"].lower()
-                not in txn.get("item_custom_id", "").lower()
+                not in (txn.get("item_custom_id") or "").lower()
             ):
                 continue
             if (
@@ -1376,7 +1461,7 @@ def listar_itens_per_transaction(
             elif filtro_pagamento == "não pago" and pagamento > 0:
                 continue
 
-            resultado.append(process_dates(txn, user_utc))
+            resultado.append(process_dates(txn, today))
 
         return resultado
 
@@ -1394,6 +1479,9 @@ def listar_itens_per_transaction(
     transacoes = buscar_transacoes_por(account_id, status_list)
     itens_combinados = montar_transacoes_com_imagem(transacoes, filtros)
     filtrados = filtrar_por_categoria(itens_combinados, filtros["filter"])
+
+    # Ordenar por rental_date_obj (mais antigos primeiro)
+    filtrados = sorted(filtrados, key=lambda x: x.get("rental_date_obj", today))
 
     total = len(filtrados)
     total_pages = (total + 4) // 5
