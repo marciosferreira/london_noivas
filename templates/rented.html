@@ -55,7 +55,7 @@
             {{ item.return_date_formatted }}
 
             {% if item.overdue %}
-              <div class="atrasado-tag mt-1">Atrasado</div>
+              <div class="atrasado-tag mt-1">Devolução atrasada</div>
             {% endif %}
           </td>
 
@@ -118,7 +118,7 @@
                 Devolvido
               </a>
 
-              <a href="{{ url_for('view_calendar', item_id=item.item_id, next=request.url) }}" class="action-button info">Consultar</a>
+              <a href="{{ url_for('view_calendar', item_id=item.item_id, next=request.url) }}" class="action-button info">Reservas</a>
             </div>
           </td>
         </tr>

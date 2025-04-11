@@ -1,9 +1,8 @@
-{% extends "base.html" %} {% block styles %}
-<link rel="stylesheet" href="{{ url_for('static', filename='style_returned.css') }}" />
-{% endblock %} {% block body_class %}returned{% endblock %} {% block content %}
-
-<div class="container my-3">
-  <h2 class="mb-4">Transações encerradas (itens devolvidos)</h2>
+{% extends "base.html" %} {% block title %} Transações iniciadas (itens alugados) {% endblock %} {% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='style_retired.css') }}" />
+{% endblock %} {% block body_class %}retired{% endblock %} {% block content %}
+<div class="container mt-3">
+  <h2 class="mb-4">{{ title }}</h2>
 
   {% include "components/filter_section.html" with context %}
 
@@ -14,14 +13,15 @@
         <tr>
           <th>Imagem</th>
           <th>Cliente</th>
-          <th>Pago?</th>
+          <th>Devolução Prevista</th>
+          <th>Retirado?</th>
+          <th>Pago(R$)</th>
           <th>Observações</th>
           <th>Ações</th>
         </tr>
       </thead>
       <tbody>
         {% for item in itens %}
-
         <tr>
           <td data-label="Imagem">
             {% if item.image_url and item.image_url != "N/A" %}
@@ -41,6 +41,18 @@
           </td>
 
           <!-- prettier-ignore -->
+
+          <td class="open-modal position-relative" data-item='{{ item | tojson | safe }}' data-label="Devolução Prevista">
+            {{ item.return_date_formatted }}
+
+            {% if item.overdue %}
+              <div class="atrasado-tag mt-1">Devolução atrasada</div>
+            {% endif %}
+          </td>
+
+          <!-- prettier-ignore -->
+          <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Retirado">{% if item.retirado %}Sim{% else %}Não{% endif %}</td>
+          <!-- prettier-ignore -->
           <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Pagamento">
             R$ {{ "%.2f"|format(item.pagamento | float) }}
             {% if item.pagamento and item.valor %}
@@ -59,8 +71,10 @@
           </td>
 
           <!-- prettier-ignore -->
-          <td data-label="Observações" data-item='{{ item | tojson | safe }}'>{{ item.comments | default('', true) | truncate(10, True) }}</td>
-          <!-- prettier-ignore -->
+          <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Observações">
+            {{ item.comments | default('', true) | truncate(10, True) }}
+          </td>
+
           <td data-label="Ações">
             <div class="d-flex flex-wrap gap-2 justify-content-center align-items-center">
               <form
@@ -77,6 +91,7 @@
                   Deletar
                 </button>
               </form>
+
               <a
                 href="{{ url_for('edit_transaction', transaction_id=item.transaction_id, next=request.url) }}"
                 class="action-button warning"
@@ -85,8 +100,16 @@
                 Editar
               </a>
 
-              <a href="{{ url_for('view_calendar', item_id=item.item_id, next=request.url) }}" class="action-button info">Reservas</a>
+              <a
+                href="{{ url_for('mark_returned', transaction_id=item.transaction_id, next=request.url) }}"
+                class="action-button success"
+                title="Devolvido"
+                onclick="return confirm('Tem certeza de que deseja marcar este item como devolvido?');"
+              >
+                Devolvido
+              </a>
 
+              <a href="{{ url_for('view_calendar', item_id=item.item_id, next=request.url) }}" class="action-button info">Reservas</a>
             </div>
           </td>
         </tr>
@@ -95,8 +118,8 @@
     </table>
   </div>
 
-  <!-- Pagination -->
-  {% set route_name = 'returned' %} {% include 'components/pagination.html' with context %}
+  <!-- Paginação -->
+  {% set route_name = 'retired' %} {% include 'components/pagination.html' with context %}
 
   <!-- Modals -->
   {% include 'components/info_modal_transaction.html' %} {% include 'components/image_modal.html' %}
@@ -104,10 +127,10 @@
 {% endblock %} {% block scripts %}
 <script>
   document.addEventListener('DOMContentLoaded', function () {
-    // Evita que clique no botão "Deletar" ative o modal
     document.querySelectorAll('.action-button.danger').forEach((btn) => {
       btn.addEventListener('click', function (e) {
-        e.stopPropagation();
+        e.stopPropagation(); // impede de subir para a tr/td com "open-modal"
+        // NÃO use preventDefault aqui, porque é um botão de submit
       });
     });
   });

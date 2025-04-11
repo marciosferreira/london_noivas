@@ -47,7 +47,7 @@ def init_item_routes(
     def retired():
         return listar_itens_per_transaction(
             ["rented"],
-            "rented.html",
+            "retired.html",
             "Transações iniciadas (itens retirados)",
             transactions_table,
             users_table,
@@ -1323,9 +1323,9 @@ def listar_itens_per_transaction(
                 try:
                     date_obj = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
                     item[f"{key}_formatted"] = date_obj.strftime("%d-%m-%Y")
+                    item[f"{key}_obj"] = date_obj
                     if key == "rental_date":
                         item["rental_date_obj"] = date_obj
-                    item[f"{key}_obj"] = date_obj  # salva pra usar depois
                 except ValueError:
                     item[f"{key}_formatted"] = "Data Inválida"
                     if key == "rental_date":
@@ -1335,49 +1335,29 @@ def listar_itens_per_transaction(
                 if key == "rental_date":
                     item["rental_date_obj"] = today
 
-        # Regra clara de overdue:
+        # Definir overdue
         if item.get("dev_date_obj"):
-            item["overdue"] = False  # Já foi devolvido
+            item["overdue"] = False
         elif item.get("return_date_obj"):
             item["overdue"] = item["return_date_obj"] < today
         else:
-            item["overdue"] = False  # Não tem data nenhuma, não consideramos atrasado
+            item["overdue"] = False
 
-        # Criar rental_message:
+        # Definir rental_message e rental_message_color
         rental_date = item.get("rental_date_obj")
-        if rental_date:
-            if rental_date == today and not item.get("retirado"):
-                item["rental_message"] = "Hoje"
-            elif rental_date > today:
-                dias = (rental_date - today).days
-                item["rental_message"] = f"Faltam {dias} dias"
-            elif rental_date < today and not item.get("retirado"):
-                item["rental_message"] = "Atrasado"
-            else:
-                item["rental_message"] = ""
-        else:
-            item["rental_message"] = ""
-
-        # Criar rental_message e rental_message_color:
-        rental_date = item.get("rental_date_obj")
-        if rental_date:
-            if rental_date == today and not item.get("retirado"):
-                item["rental_message"] = "Retirada hoje"
+        if rental_date and not item.get("retirado"):
+            if rental_date == today:
+                item["rental_message"] = "Retirada é hoje"
                 item["rental_message_color"] = "orange"
             elif rental_date > today:
                 dias = (rental_date - today).days
-                if dias == 1:
-                    item["rental_message"] = "Falta 1 dia"
-                    item["rental_message_color"] = "yellow"
-                else:
-                    item["rental_message"] = f"Faltam {dias} dias"
-                    item["rental_message_color"] = "blue"
-            elif rental_date < today and not item.get("retirado"):
+                item["rental_message"] = (
+                    "Faltam 1 dia" if dias == 1 else f"Faltam {dias} dias"
+                )
+                item["rental_message_color"] = "blue" if dias > 1 else "yellow"
+            elif rental_date < today:
                 item["rental_message"] = "Não retirado"
                 item["rental_message_color"] = "red"
-            else:
-                item["rental_message"] = ""
-                item["rental_message_color"] = ""
         else:
             item["rental_message"] = ""
             item["rental_message_color"] = ""

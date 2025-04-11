@@ -1,4 +1,18 @@
-body.client_transactions {
+/* ---------------------------------------
+   HTML & BODY (100% ALTURA)
+--------------------------------------- */
+html,
+body {
+  margin: 0;
+  padding: 0;
+  padding-top: 30px;
+}
+
+/*
+   Aplica o degradê (ou fundo) somente à página "available"
+   Ajuste livremente as cores do degradê, se quiser outro visual.
+*/
+body.retired {
   min-height: 100vh;
 
   /* Exemplo de degradê linear */
@@ -213,6 +227,45 @@ h1.h3 {
   cursor: pointer;
 }
 
-.section-title {
-  margin-top: 5rem; /* ajuste conforme necessário */
+.atrasado-tag {
+  display: inline-block;
+  margin-top: 2px;
+  padding: 2px 6px;
+  background-color: red;
+  color: white;
+  font-size: 0.7rem;
+  font-weight: bold;
+  border-radius: 4px;
+}
+
+.rental-message {
+  display: inline-block;
+  padding: 2px 6px;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: bold;
+  border-radius: 4px;
+}
+
+.rental-message.blue {
+  background-color: #007bff; /* Azul Bootstrap */
+}
+
+.rental-message.yellow {
+  background-color: #ffc107; /* Amarelo Bootstrap */
+  color: black;
+}
+
+.rental-message.orange {
+  background-color: orange;
+}
+
+.rental-message.red {
+  background-color: red;
+}
+
+/* Exemplo style_inventario.css ou global */
+.action-button.neutral {
+  background-color: #6c757d; /* cinza Bootstrap */
+  color: #fff;
 }

@@ -1,18 +1,18 @@
 {
   "short_name": "QQC",
-  "name": "Alugue QQC",
+  "name": "Alugue QQC - Aluguel Fácil e Rápido",
   "icons": [
     {
       "src": "/static/icons/icon-192x192.png",
-      "type": "image/png",
       "sizes": "192x192",
-      "purpose": "any maskable"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
       "src": "/static/icons/icon-512x512.png",
-      "type": "image/png",
       "sizes": "512x512",
-      "purpose": "any maskable"
+      "type": "image/png",
+      "purpose": "any"
     }
   ],
   "start_url": "/",

@@ -10,6 +10,12 @@
   <!-- Botão para login/cadastro se não estiver logado -->
   <button class="btn btn-primary mt-3" onclick="window.location.href='{{ url_for('login') }}'">Entrar ou Cadastrar</button>
   {% else %}
+
+  <!-- Event snippet for Clique cadastro conversion page -->
+  <script>
+    gtag('event', 'conversion', { send_to: 'AW-1051093117/6kftCNiL_GUQ_dCZ9QM' });
+  </script>
+
   <!-- Tabela de estatísticas do usuário -->
   <div class="container mt-5 d-flex justify-content-center">
     <div class="table-responsive" style="max-width: 600px; width: 100%">

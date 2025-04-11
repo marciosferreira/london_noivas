@@ -1,24 +1,16 @@
 <!DOCTYPE html>
 <html lang="pt-br">
   <head>
-    <link rel="apple-touch-icon" sizes="57x57" href="{{ url_for('static', filename='icons/apple-icon-57x57.png') }}" />
-    <link rel="apple-touch-icon" sizes="60x60" href="{{ url_for('static', filename='icons/apple-icon-60x60.png') }}" />
-    <link rel="apple-touch-icon" sizes="72x72" href="{{ url_for('static', filename='icons/apple-icon-72x72.png') }}" />
-    <link rel="apple-touch-icon" sizes="76x76" href="{{ url_for('static', filename='icons/apple-icon-76x76.png') }}" />
-    <link rel="apple-touch-icon" sizes="114x114" href="{{ url_for('static', filename='icons/apple-icon-114x114.png') }}" />
-    <link rel="apple-touch-icon" sizes="120x120" href="{{ url_for('static', filename='icons/apple-icon-120x120.png') }}" />
-    <link rel="apple-touch-icon" sizes="144x144" href="{{ url_for('static', filename='icons/apple-icon-144x144.png') }}" />
-    <link rel="apple-touch-icon" sizes="152x152" href="{{ url_for('static', filename='icons/apple-icon-152x152.png') }}" />
-    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='icons/apple-icon-180x180.png') }}" />
-    <link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='icons/android-icon-192x192.png') }}" />
-    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='icons/favicon-32x32.png') }}" />
-    <link rel="icon" type="image/png" sizes="96x96" href="{{ url_for('static', filename='icons/favicon-96x96.png') }}" />
-    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='icons/favicon-16x16.png') }}" />
-    <link rel="manifest" href="{{ url_for('static', filename='icons/manifest.json') }}" />
-    <meta name="msapplication-TileColor" content="#ffffff" />
-    <meta name="msapplication-TileImage" content="{{ url_for('static', filename='icons/ms-icon-144x144.png') }}" />
-    <meta name="theme-color" content="#ffffff" />
+    <!-- Ícone principal para todos os dispositivos -->
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='icons/icon-192x192.png') }}" />
 
+    <!-- Apple (opcional, mas recomendado) -->
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/icon-192x192.png') }}" />
+
+    <!-- Manifest PWA -->
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}" />
+
+    <meta name="theme-color" content="#4CAF50" />
     <meta
       name="description"
       content="Gerencie aluguéis de forma simples, segura e gratuita com o Alugue QQC. Ideal para pequenos negócios e empreendedores."
@@ -56,7 +48,32 @@
       src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6173541572216337"
       crossorigin="anonymous"
     ></script>
+
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=AW-1051093117"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      gtag('js', new Date());
+
+      gtag('config', 'AW-1051093117');
+    </script>
+
     {% endblock %}
+
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=AW-1051093117"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      gtag('js', new Date());
+
+      gtag('config', 'AW-1051093117');
+    </script>
   </head>
 
   <body class="{% block body_class %}{% endblock %}">

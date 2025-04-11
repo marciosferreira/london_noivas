@@ -1,5 +1,12 @@
 /* Page-specific styles for the inventory page */
 
+html,
+body {
+  margin: 0;
+  padding: 0;
+  padding-top: 30px;
+}
+
 /* Background styles */
 body.inventario {
   min-height: 100vh;
@@ -8,12 +15,6 @@ body.inventario {
   background-repeat: no-repeat;
   background-size: cover;
   font-family: Arial, sans-serif;
-}
-
-/* Padding adjustments */
-html,
-body {
-  padding-top: 30px;
 }
 
 /* Section specific styles */
