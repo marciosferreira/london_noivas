@@ -1492,9 +1492,6 @@ def listar_itens_per_transaction(
     filtros = apply_filtros_request()
     transacoes = buscar_transacoes_por(account_id, status_list)
 
-    print("TTTTTTTTTTTTTTTTTTTTTTT")
-    print(transacoes)
-
     total_relevant_transactions = sum(
         1
         for txn in transacoes

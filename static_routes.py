@@ -96,11 +96,13 @@ def init_static_routes(app, ses_client, clients_table, transactions_table, itens
 
     @app.route("/")
     def index():
+        print("JJJJJJJJJJJJJJJJJJJJJJ")
         from boto3.dynamodb.conditions import Key
 
         stats = {}
 
         if session.get("logged_in"):
+            print("session ok?")
             account_id = session.get("account_id")
             username = session.get("username", None)
 
@@ -133,6 +135,15 @@ def init_static_routes(app, ses_client, clients_table, transactions_table, itens
                 & Key("transaction_status").eq("returned"),
             )
             stats["total_returned"] = returned_txn["Count"]
+
+            # Contar transações "returned"
+            clients_txn = clients_table.query(
+                IndexName="account_id-index",
+                KeyConditionExpression=Key("account_id").eq(account_id),
+            )["Count"]
+
+            stats["total_clients"] = clients_txn
+
         else:
             username = None
 

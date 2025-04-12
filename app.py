@@ -80,6 +80,14 @@ init_transaction_routes(
 init_client_routes(app, clients_table, transactions_table, itens_table, users_table)
 init_static_routes(app, ses_client, clients_table, transactions_table, itens_table)
 
+# Rota para servir o service-worker.js
+from flask import send_from_directory
+
+
+@app.route("/service-worker.js")
+def service_worker():
+    return send_from_directory(".", "service-worker.js")
+
 
 if __name__ == "__main__":
     # Determina se está no localhost
