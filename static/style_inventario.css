@@ -1,50 +1,6 @@
-/* Page-specific styles for the inventory page */
-
-html,
-body {
-  margin: 0;
-  padding: 0;
-  padding-top: 30px;
-}
-
-/* Background styles */
-body.inventario {
-  min-height: 100vh;
-  background: linear-gradient(120deg, #dce3ea 0%, #edf2f7 100%);
-  background-attachment: fixed;
-  background-repeat: no-repeat;
-  background-size: cover;
-  font-family: Arial, sans-serif;
-}
-
-/* Section specific styles */
-#filter-section {
-  margin-top: 1rem;
-}
-
-/* Heading styles */
-h1.h3 {
-  font-weight: 600;
-}
-
-/* Alert spacing */
-.alert {
-  margin-bottom: 1rem;
-}
-
-/* Filter toggle specific styling - if needed beyond base styles */
-
-#filter-toggle:hover {
-  background-color: white;
-  color: #007bff;
-}
-
-#filter-toggle:active {
-  transform: scale(0.95);
-}
-
-/* Exemplo style_inventario.css ou global */
-.action-button.neutral {
-  background-color: #6c757d; /* cinza Bootstrap */
-  color: #fff;
+/* Container para botões de ação */
+.d-flex {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px; /* Reduz o espaçamento entre os botões */
 }

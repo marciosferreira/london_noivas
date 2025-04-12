@@ -28,15 +28,6 @@ body.archive {
 }
 
 /* ---------------------------------------
-   RESET & BASE
---------------------------------------- */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-/* ---------------------------------------
    TABELA E CONTAINER
 --------------------------------------- */
 /* Container para limitar a tabela (ajuste max-width se quiser 90% em vez de 100%) */

@@ -1,41 +1,4 @@
 /* ---------------------------------------
-   HTML & BODY (100% ALTURA)
---------------------------------------- */
-html,
-body {
-  margin: 0;
-  padding: 0;
-  padding-top: 30px;
-}
-
-/*
-   Aplica o degradê (ou fundo) somente à página "available"
-   Ajuste livremente as cores do degradê, se quiser outro visual.
-*/
-body.retired {
-  min-height: 100vh;
-
-  /* Exemplo de degradê linear */
-  background: linear-gradient(120deg, #dce3ea 0%, #edf2f7 100%);
-  background-attachment: fixed;
-  background-repeat: no-repeat;
-  background-size: cover;
-
-  font-family: Arial, sans-serif;
-  /* Se quiser a cor de fundo base adicional, pode manter ou remover:
-     background-color: #f8f9fa; */
-}
-
-/* ---------------------------------------
-   RESET & BASE
---------------------------------------- */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-/* ---------------------------------------
    TABELA E CONTAINER
 --------------------------------------- */
 /* Container para limitar a tabela (ajuste max-width se quiser 90% em vez de 100%) */
@@ -200,13 +163,6 @@ h1.h3 {
 .action-button.info:hover {
   background-color: white;
   color: #17a2b8;
-}
-
-/* Container para botões de ação */
-.d-flex {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px; /* Reduz o espaçamento entre os botões */
 }
 
 @media (max-width: 576px) {

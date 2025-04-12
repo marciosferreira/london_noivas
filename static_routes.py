@@ -50,11 +50,11 @@ def init_static_routes(app, ses_client, clients_table, transactions_table, itens
             return redirect(url_for("contato"))
 
         return render_template("contato.html")
-        
+
     @app.route("/reportar-bug", methods=["GET", "POST"])
     def reportar_bug():
         url = request.args.get("url", "")
-        
+
         if request.method == "POST":
             url = request.form.get("url")
             descricao = request.form.get("description")
@@ -67,7 +67,9 @@ def init_static_routes(app, ses_client, clients_table, transactions_table, itens
             # Enviar e-mail via AWS SES
             destinatario = "contato@alugueqqc.com.br"
             assunto = f"Bug reportado: {url}"
-            corpo_email = f"URL: {url}\nE-mail: {email}\n\nDescrição do Bug:\n{descricao}"
+            corpo_email = (
+                f"URL: {url}\nE-mail: {email}\n\nDescrição do Bug:\n{descricao}"
+            )
 
             try:
                 response = ses_client.send_email(
@@ -78,7 +80,10 @@ def init_static_routes(app, ses_client, clients_table, transactions_table, itens
                         "Body": {"Text": {"Data": corpo_email, "Charset": "UTF-8"}},
                     },
                 )
-                flash("Relatório de bug enviado com sucesso! Obrigado pela contribuição.", "success")
+                flash(
+                    "Relatório de bug enviado com sucesso! Obrigado pela contribuição.",
+                    "success",
+                )
             except Exception as e:
                 print(f"Erro ao enviar e-mail: {e}")
                 flash(
@@ -113,17 +118,17 @@ def init_static_routes(app, ses_client, clients_table, transactions_table, itens
 
             # Contar transações "rented"
             rented_txn = transactions_table.query(
-                IndexName="account_id-status-index",
+                IndexName="account_id-transaction_status-index",
                 KeyConditionExpression=Key("account_id").eq(account_id)
-                & Key("status").eq("rented"),
+                & Key("transaction_status").eq("rented"),
             )
             stats["total_rented"] = rented_txn["Count"]
 
             # Contar transações "returned"
             returned_txn = transactions_table.query(
-                IndexName="account_id-status-index",
+                IndexName="account_id-transaction_status-index",
                 KeyConditionExpression=Key("account_id").eq(account_id)
-                & Key("status").eq("returned"),
+                & Key("transaction_status").eq("returned"),
             )
             stats["total_returned"] = returned_txn["Count"]
         else:

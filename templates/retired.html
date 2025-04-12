@@ -1,6 +1,6 @@
 {% extends "base.html" %} {% block title %} Transações iniciadas (itens alugados) {% endblock %} {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='style_retired.css') }}" />
-{% endblock %} {% block body_class %}retired{% endblock %} {% block content %}
+{% endblock %} {% block content %}
 <div class="container mt-3">
   <h2 class="mb-4">{{ title }}</h2>
 
@@ -54,7 +54,7 @@
           <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Retirado">{% if item.retirado %}Sim{% else %}Não{% endif %}</td>
           <!-- prettier-ignore -->
           <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Pagamento">
-            R$ {{ "%.2f"|format(item.pagamento | float) }}
+            R$ {{ "%.2f"|format(item.pagamento|default(0)|float) }}
             {% if item.pagamento and item.valor %}
               {% set pagamento_float = item.pagamento | float %}
               {% set valor_float = item.valor | float %}

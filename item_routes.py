@@ -41,6 +41,7 @@ def init_item_routes(
             transactions_table,
             users_table,
             itens_table,
+            page="rented",
         )
 
     @app.route("/retired")
@@ -52,7 +53,7 @@ def init_item_routes(
             transactions_table,
             users_table,
             itens_table,
-            retired=True,
+            page="retired",
         )
 
     @app.route("/returned")
@@ -64,6 +65,7 @@ def init_item_routes(
             transactions_table,
             users_table,
             itens_table,
+            page="returned",
         )
 
     @app.route("/archive")
@@ -95,6 +97,7 @@ def init_item_routes(
             transactions_table,
             users_table,
             itens_table,
+            page="trash_transactions",
         )
 
     @app.route("/inventario")
@@ -186,7 +189,6 @@ def init_item_routes(
 
         next_page = request.args.get("next", url_for("index"))
 
-        # Buscar item existente
         response = transactions_table.get_item(Key={"transaction_id": transaction_id})
         transaction = response.get("Item")
 
@@ -196,7 +198,6 @@ def init_item_routes(
 
         item_id = transaction.get("item_id")
 
-        # Consulta transações existentes para esse item com status "rented"
         response = transactions_table.query(
             IndexName="item_id-index",
             KeyConditionExpression="item_id = :item_id_val",
@@ -204,29 +205,17 @@ def init_item_routes(
         )
 
         all_transaction = response.get("Items", [])
-        reserved_ranges = []
-
-        for tx in all_transaction:
-            if (
-                tx.get("status") == "rented"
-                and tx.get("transaction_id") != transaction_id
-                and tx.get("rental_date")
-                and tx.get("return_date")
-            ):
-                reserved_ranges.append([tx["rental_date"], tx["return_date"]])
+        reserved_ranges = [
+            [tx["rental_date"], tx["return_date"]]
+            for tx in all_transaction
+            if tx.get("status") == "rented"
+            and tx.get("transaction_id") != transaction_id
+            and tx.get("rental_date")
+            and tx.get("return_date")
+        ]
 
         if request.method == "POST":
-            # 📸 Tratamento de imagem
-            image_file = request.files.get("image_file")
-            image_url_form = request.form.get("image_url", "").strip()
-            old_image_url = transaction.get("image_url", "N/A")
-
-            if image_url_form == "DELETE_IMAGE":
-                new_image_url = "N/A"
-            else:
-                new_image_url = handle_image_upload(image_file, old_image_url)
-
-            # 🗓️ Datas
+            # capturar campos do form
             range_date = request.form.get("range_date")
             rental_str, return_str = range_date.split(" - ")
             rental_date = datetime.datetime.strptime(
@@ -236,7 +225,9 @@ def init_item_routes(
                 return_str.strip(), "%d/%m/%Y"
             ).strftime("%Y-%m-%d")
 
-            # 📝 Coleta de dados do formulário
+            # capturar 'retirado' corretamente (True ou False)
+            retirado = "retirado" in request.form
+
             new_data = {
                 "rental_date": rental_date,
                 "return_date": return_date,
@@ -248,10 +239,7 @@ def init_item_routes(
                 "client_address": request.form.get("client_address") or None,
                 "client_cpf": request.form.get("client_cpf") or None,
                 "client_cnpj": request.form.get("client_cnpj") or None,
-                "client_tel_digits": request.form.get("client_tel_digits") or None,
-                "client_cpf_digits": request.form.get("client_cpf_digits") or None,
-                "client_cnpj_digits": request.form.get("client_cnpj_digits") or None,
-                "retirado": "retirado" in request.form,
+                "retirado": retirado,
                 "valor": request.form.get("valor", "").strip() or None,
                 "transaction_obs": request.form.get("transaction_obs", "").strip()
                 or None,
@@ -259,89 +247,93 @@ def init_item_routes(
                 "item_obs": request.form.get("item_obs", "").strip() or None,
                 "item_custom_id": request.form.get("item_custom_id", "").strip()
                 or None,
-                "image_url": new_image_url,  # ✅ incluído
+                "image_url": handle_image_upload(
+                    request.files.get("image_file"), transaction.get("image_url", "N/A")
+                ),
             }
 
-            # Comparar novos valores com os antigos
+            # Detectar mudanças (ignorando pagamento)
+            # Detectar mudanças ignorando pagamento e None igual a ''
             changes = {
                 key: value
                 for key, value in new_data.items()
-                if transaction.get(key) != value
+                if key != "pagamento"
+                and transaction.get(key) != value
+                and not (transaction.get(key) == "" and value is None)
             }
+            print("======= DEBUG =======")
+            print("transaction ORIGINAL:")
+            print(transaction)
+            print("new_data NOVO:")
+            print(new_data)
+            print("changes DETECTADAS:")
+            print(changes)
+            print("===============")
 
             if not changes:
                 flash("Nenhuma alteração foi feita.", "warning")
                 return redirect(next_page)
 
-            # Cópia de segurança e atualização (segue igual ao seu código atual)...
+            # caso seja alteração apenas de 'retirado'
+            if set(changes.keys()) == {"retirado"}:
+                transactions_table.update_item(
+                    Key={"transaction_id": transaction_id},
+                    UpdateExpression="SET retirado = :val",
+                    ExpressionAttributeValues={":val": retirado},
+                )
+                flash("Item atualizado com sucesso.", "success")
+                return redirect(next_page)
 
-            # Criar cópia do item somente se houver mudanças
+            # se houver outras alterações → cria cópia
             new_transaction_id = str(uuid.uuid4())
-
-            user_id = session.get("user_id") if "user_id" in session else None
-            user_utc = get_user_timezone(users_table, user_id)
-
-            edited_date = datetime.datetime.now(user_utc).strftime("%d/%m/%Y %H:%M:%S")
-
             copied_item = {
-                key: value
-                for key, value in transaction.items()
-                if key != "transaction_id" and value not in [None, ""]
+                k: v
+                for k, v in transaction.items()
+                if k != "transaction_id" and v not in [None, ""]
             }
-            copied_item["transaction_id"] = new_transaction_id
-            copied_item["parent_transaction_id"] = transaction.get("transaction_id", "")
-            copied_item["status"] = "version"
-            copied_item["edited_date"] = edited_date
-            copied_item["edited_by"] = session.get("username")
-            copied_item["previous_status"] = transaction.get("status")
+            copied_item.update(
+                {
+                    "transaction_id": new_transaction_id,
+                    "parent_transaction_id": transaction_id,
+                    "transaction_status": "version",
+                    "edited_date": datetime.datetime.now().strftime(
+                        "%d/%m/%Y %H:%M:%S"
+                    ),
+                    "edited_by": session.get("username"),
+                    "transaction_previous_status": transaction.get(
+                        "transaction_status"
+                    ),
+                }
+            )
 
-            # Salvar a cópia no DynamoDB
             transactions_table.put_item(Item=copied_item)
 
-            # agora vamos atualizar o item sendo editado
-            # Criar dinamicamente os updates para evitar erro com valores vazios
+            # atualizar item original
             update_expression = []
             expression_values = {}
             expression_names = {}
 
             for key, value in changes.items():
-                if key == "status":
-                    continue
-
-                field_alias = f"#{key}"  # nome do campo com #
-                value_alias = f":val_{key}"  # valor do campo com :
-
+                field_alias = f"#{key}"
+                value_alias = f":val_{key}"
                 update_expression.append(f"{field_alias} = {value_alias}")
                 expression_values[value_alias] = value
                 expression_names[field_alias] = key
 
-            # Se não houver nada para atualizar, evitar erro no DynamoDB
-            if not update_expression:
-                print("⚠️ Nenhuma atualização necessária, abortando update.")
-            else:
-                print("🔹 Atualizando com:", update_expression)
-                print("🔹 Valores:", expression_values)
-
-                transactions_table.update_item(
-                    Key={"transaction_id": transaction_id},
-                    UpdateExpression="SET " + ", ".join(update_expression),
-                    ExpressionAttributeValues=expression_values,
-                    ExpressionAttributeNames=expression_names,
-                )
+            transactions_table.update_item(
+                Key={"transaction_id": transaction_id},
+                UpdateExpression="SET " + ", ".join(update_expression),
+                ExpressionAttributeValues=expression_values,
+                ExpressionAttributeNames=expression_names,
+            )
 
             flash("Item atualizado com sucesso.", "success")
-
             return redirect(next_page)
 
-        # correct the date for the template easy date peaker
         transaction_copy = transaction.copy()
-        start = datetime.datetime.strptime(
-            transaction["rental_date"].strip(), "%Y-%m-%d"
-        ).strftime("%d/%m/%Y")
-        end = datetime.datetime.strptime(
-            transaction["return_date"].strip(), "%Y-%m-%d"
-        ).strftime("%d/%m/%Y")
-        transaction_copy["range_date"] = f"{start} - {end}"
+        transaction_copy["range_date"] = (
+            f"{datetime.datetime.strptime(transaction['rental_date'], '%Y-%m-%d').strftime('%d/%m/%Y')} - {datetime.datetime.strptime(transaction['return_date'], '%Y-%m-%d').strftime('%d/%m/%Y')}"
+        )
 
         return render_template(
             "edit_transaction.html",
@@ -522,7 +514,7 @@ def init_item_routes(
 
         for tx in transaction:
             if (
-                tx.get("status") == "rented"
+                tx.get("transaction_status") == "rented"
                 and tx.get("rental_date")
                 and tx.get("return_date")
             ):
@@ -540,7 +532,7 @@ def init_item_routes(
             client_obs = request.form.get("client_obs", "").strip()
             transaction_obs = request.form.get("transaction_obs", "").strip()
 
-            retirado = "retirado" in request.form
+            retirado = True if request.form.get("retirado") else False
             valor = request.form.get("valor")
             pagamento = request.form.get("pagamento")
             item_obs = request.form.get("item_obs")
@@ -622,7 +614,7 @@ def init_item_routes(
                     "rental_date": rental_date,
                     "return_date": return_date,
                     "retirado": retirado,
-                    "status": "rented",
+                    "transaction_status": "rented",
                     "image_url": image_url,
                     "transaction_obs": transaction_obs,
                     "created_at": datetime.datetime.now(user_utc).strftime(
@@ -662,7 +654,7 @@ def init_item_routes(
 
         for tx in transactions:
             if (
-                tx.get("status") == "rented"
+                tx.get("transaction_status") == "rented"
                 and tx.get("rental_date")
                 and tx.get("return_date")
             ):
@@ -978,7 +970,7 @@ def init_item_routes(
 
     @app.route("/restore_deleted_transaction", methods=["POST"])
     def restore_deleted_transaction():
-        print("restore deleted transaction")
+        print("###############restore deleted transaction")
         if not session.get("logged_in"):
             return redirect(url_for("login"))
 
@@ -990,6 +982,8 @@ def init_item_routes(
                 return redirect(url_for("trash_transactions"))
 
             transaction = json.loads(transaction_data)
+            print("kkkkkkkkk")
+            print(transaction)
 
             transaction_id = transaction.get("transaction_id")
             transaction_previous_status = transaction.get("transaction_previous_status")
@@ -997,8 +991,8 @@ def init_item_routes(
             # 🔹 Atualizar o status do item no banco
             transactions_table.update_item(
                 Key={"transaction_id": transaction_id},
-                UpdateExpression="SET #status = :transaction_previous_status",
-                ExpressionAttributeNames={"#status": "status"},
+                UpdateExpression="SET #transaction_status = :transaction_previous_status",
+                ExpressionAttributeNames={"#transaction_status": "transaction_status"},
                 ExpressionAttributeValues={
                     ":transaction_previous_status": transaction_previous_status
                 },
@@ -1021,7 +1015,7 @@ def init_item_routes(
 
     @app.route("/restore_version_transaction", methods=["POST"])
     def restore_version_transaction():
-        print("restore_version_transaction")
+        print("##############restore_version_transaction")
         if not session.get("logged_in"):
             return redirect(url_for("login"))
 
@@ -1029,7 +1023,7 @@ def init_item_routes(
 
         try:
             # 🔹 Pegar os dados do formulário e converter de JSON para dicionário
-            transaction_data = request.form.get("transaction_data")
+            transaction_data = request.form.get("item_data")
 
             if not transaction_data:
                 flash("Erro: Nenhum dado do item foi recebido.", "danger")
@@ -1045,7 +1039,9 @@ def init_item_routes(
             transaction_data = transaction_response.get("Item")
 
             parent_transaction_id = transaction_data.get("parent_transaction_id")
-            previous_transaction_status = transaction_data.get("previous_status")
+            previous_transaction_status = transaction_data.get(
+                "transaction_previous_status"
+            )
 
             parent_response = transactions_table.get_item(
                 Key={"transaction_id": parent_transaction_id}
@@ -1057,15 +1053,17 @@ def init_item_routes(
                 return redirect(next_page)
 
             # 🔹 Verificar o status do item pai
-            parent_status = parent_data.get("status")
+            parent_status = parent_data.get("transaction_status")
 
             # Se o item pai estiver deletado, restauramos o status
             if parent_status == "deleted":
                 print("Transaçao pai estava deletada. Restaurando...")
                 transactions_table.update_item(
                     Key={"transaction_id": parent_transaction_id},
-                    UpdateExpression="SET #status = :prev_status",
-                    ExpressionAttributeNames={"#status": "status"},
+                    UpdateExpression="SET #transaction_status = :prev_status",
+                    ExpressionAttributeNames={
+                        "#transaction_status": "transaction_status"
+                    },
                     ExpressionAttributeValues={
                         ":prev_status": previous_transaction_status
                     },
@@ -1074,9 +1072,24 @@ def init_item_routes(
             # 🔹 Passo 1: Definir os campos que podem ser trocados
             allowed_fields = {
                 "valor",
+                "item_custom_id",
+                "client_email",
                 "client_name",
                 "client_tel",
                 "edited_by",
+                "item_obs",
+                "rental_date",
+                "return_date",
+                "client_address",
+                "client_tel",
+                "client_cpf",
+                "image_url",
+                "description",
+                "rental_date_formatted",
+                "rental_date_obj",
+                "return_date_formatted",
+                "return_date_obj",
+                "dev_date_formatted",
             }  # Pode crescer no futuro
 
             # 🔹 Passo 2: Criar dicionários contendo APENAS os campos que serão trocados
@@ -1143,6 +1156,8 @@ def init_item_routes(
                 "returned": "Devolvidos",
             }
 
+            print("flasj okkkkkk")
+
             flash(
                 f"Item restaurado para <a href='{previous_transaction_status}'>{status_map[previous_transaction_status]}</a>.",  # status_map[previous_status]
                 "success",
@@ -1194,8 +1209,11 @@ def init_item_routes(
         response = transactions_table.query(
             IndexName="account_id-index",  # Usando o GSI para buscar por account_id
             KeyConditionExpression="#account_id = :account_id",
-            FilterExpression="#status IN (:rented, :returned)",
-            ExpressionAttributeNames={"#account_id": "account_id", "#status": "status"},
+            FilterExpression="#transaction_status IN (:rented, :returned)",
+            ExpressionAttributeNames={
+                "#account_id": "account_id",
+                "#transaction_status": "transaction_status",
+            },
             ExpressionAttributeValues={
                 ":account_id": account_id,
                 ":rented": "rented",
@@ -1293,9 +1311,8 @@ def listar_itens_per_transaction(
     users_table,
     itens_table,
     client_id=None,
-    retired=False,
+    page=None,
 ):
-    # from boto3.dynamodb.conditions import Key
 
     if not session.get("logged_in"):
         return redirect(url_for("login"))
@@ -1388,16 +1405,19 @@ def listar_itens_per_transaction(
     def buscar_transacoes_por(account_id, status_list):
         all_results = []
         for status in status_list:
+            print(status)
             response = transactions_table.query(
-                IndexName="account_id-status-index",
+                IndexName="account_id-transaction_status-index",
                 KeyConditionExpression=Key("account_id").eq(account_id)
-                & Key("status").eq(status),
+                & Key("transaction_status").eq(status),
             )
             all_results.extend(response.get("Items", []))
+
         return all_results
 
     def montar_transacoes_com_imagem(transacoes, filtros):
         resultado = []
+
         for txn in transacoes:
             if client_id and txn.get("client_id") != client_id:
                 continue
@@ -1463,6 +1483,7 @@ def listar_itens_per_transaction(
             return [i for i in itens if i.get("transaction_status") == "deleted"]
         if categoria == "version":
             return [i for i in itens if i.get("transaction_status") == "version"]
+
         return itens
 
     # Medição de tempo
@@ -1471,12 +1492,22 @@ def listar_itens_per_transaction(
     filtros = apply_filtros_request()
     transacoes = buscar_transacoes_por(account_id, status_list)
 
-    if retired:
+    print("TTTTTTTTTTTTTTTTTTTTTTT")
+    print(transacoes)
+
+    total_relevant_transactions = sum(
+        1
+        for txn in transacoes
+        if txn.get("transaction_status") in ["rented", "returned"]
+    )
+
+    if page == "retired":
         transacoes = [txn for txn in transacoes if txn.get("retirado") == True]
-    else:
+    if page == "rented":
         transacoes = [txn for txn in transacoes if txn.get("retirado") == False]
 
     itens_combinados = montar_transacoes_com_imagem(transacoes, filtros)
+
     filtrados = filtrar_por_categoria(itens_combinados, filtros["filter"])
 
     # Ordenar por rental_date_obj (mais antigos primeiro)
@@ -1510,6 +1541,7 @@ def listar_itens_per_transaction(
         add_route=url_for("trash_transactions"),
         next_url=request.url,
         client_name=client_name,  # ✅ incluído no render
+        total_relevant_transactions=total_relevant_transactions,  # ✅ adiciona aqui
     )
 
 
@@ -1534,7 +1566,9 @@ def list_raw_itens(status_list, template, title, itens_table, transactions_table
         transactions = response.get("Items", [])
 
         total_relevant_transactions = sum(
-            1 for txn in transactions if txn.get("status") in ["rented", "returned"]
+            1
+            for txn in transactions
+            if txn.get("transaction_status") in ["rented", "returned"]
         )
 
     except Exception as e:

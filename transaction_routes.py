@@ -38,21 +38,23 @@ def init_transaction_routes(
             user_id = session.get("user_id") if "user_id" in session else None
             user_utc = get_user_timezone(users_table, user_id)
 
-            current_status = transaction.get("status")  # 🔹 Captura o status atual
+            current_status = transaction.get(
+                "transaction_status"
+            )  # 🔹 Captura o status atual
             deleted_date = datetime.datetime.now(user_utc).strftime("%d/%m/%Y %H:%M:%S")
 
             # 🔹 Atualizar o `previous_status` primeiro
             transactions_table.update_item(
                 Key={"transaction_id": transaction_id},
-                UpdateExpression="SET previous_status = :current_status",
+                UpdateExpression="SET transaction_previous_status = :current_status",
                 ExpressionAttributeValues={":current_status": current_status},
             )
 
             # 🔹 Agora alterar o status para "deleted"
             transactions_table.update_item(
                 Key={"transaction_id": transaction_id},
-                UpdateExpression="SET #status = :deleted, deleted_date = :deleted_date, deleted_by = :deleted_by",
-                ExpressionAttributeNames={"#status": "status"},
+                UpdateExpression="SET #transaction_status = :deleted, deleted_date = :deleted_date, deleted_by = :deleted_by",
+                ExpressionAttributeNames={"#transaction_status": "transaction_status"},
                 ExpressionAttributeValues={
                     ":deleted": "deleted",
                     ":deleted_date": deleted_date,

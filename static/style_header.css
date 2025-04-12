@@ -6,14 +6,6 @@
   z-index: 1000;
 }
 
-/* Navbar principal */
-.navbar {
-  width: 100%; /* 🔹 Garante que a navbar ocupe toda a largura */
-  position: fixed; /* 🔹 Mantém fixa no topo */
-  top: 0;
-  left: 0;
-  z-index: 1000; /* 🔹 Garante que fique sobre o conteúdo */
-}
 /* Estiliza a logo */
 .logo {
   height: 50px; /* Ajuste ideal para tamanho pequeno */
@@ -25,7 +17,6 @@
 .logo:hover {
   transform: scale(1.1); /* Efeito de leve aumento ao passar o mouse */
 }
-
 /* Ajuste do nome ao lado da logo */
 .navbar-brand {
   font-size: 1.4rem;

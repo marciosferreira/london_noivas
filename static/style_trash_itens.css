@@ -28,15 +28,6 @@ body.trash_itens {
 }
 
 /* ---------------------------------------
-   RESET & BASE
---------------------------------------- */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-/* ---------------------------------------
    TABELA E CONTAINER
 --------------------------------------- */
 /* Container para limitar a tabela (ajuste max-width se quiser 90% em vez de 100%) */
@@ -220,4 +211,10 @@ h1.h3 {
   .d-flex.justify-content-between .d-flex {
     justify-content: flex-end; /* Alinha os botões à direita */
   }
+}
+/* Container para botões de ação */
+.d-flex {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px; /* Reduz o espaçamento entre os botões */
 }

@@ -1,12 +1,10 @@
-/* Base styles for the entire application */
-
-/* Body and main container */
-body {
-  font-family: 'Arial', sans-serif;
-  background-color: #f8f9fa;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
+/* ---------------------------------------
+   RESET & BASE
+--------------------------------------- */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
 .flash-wrapper {
@@ -116,4 +114,35 @@ body {
   .form-container {
     padding: 15px;
   }
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  padding-top: 30px;
+  font-family: Arial, sans-serif;
+  min-height: 100vh;
+  background: linear-gradient(120deg, #dce3ea 0%, #edf2f7 100%);
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+/* Estilo para empilhar os botões corretamente em telas pequenas */
+@media (max-width: 576px) {
+  .button-stack-right a,
+  .button-stack-right button {
+    display: block;
+    width: 100%;
+    margin-bottom: 0.5rem;
+  }
+}
+
+/* Container para botões de ação */
+.d-flex {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px; /* Reduz o espaçamento entre os botões */
 }

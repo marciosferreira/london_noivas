@@ -27,11 +27,9 @@ body.adjustments {
      background-color: #f8f9fa; */
 }
 
-/* ---------------------------------------
-   RESET & BASE
---------------------------------------- */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+/* Container para botões de ação */
+.d-flex {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px; /* Reduz o espaçamento entre os botões */
 }

@@ -1,99 +1,78 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-  <head>
+{% extends "base.html" %} {% block title %}Itens Disponíveis{% endblock %} {% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='style_inventario.css') }}" />
 
-        <!-- Importa o Header -->
-        {% include 'header.html' %}
-    <meta charset="UTF-8" />
-    <title>Transações Deletados</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-    <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
-
-    <!-- CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='style_trash_transactions.css') }}" />
-  </head>
-
-  <body class="trash_transactions">
+{% endblock %}
 
 
+{% block content %}
+<div class="container mt-3">
+  <h2 class="mb-2">Lixeira (transações)</h2>
 
-    <!-- CONTEÚDO PRINCIPAL -->
-    <div class="container my-5">
-      {% set show_add_button = false %}
-      {% set current_filter = request.args.get('filter', 'todos') %}
-
-      <h2 class="mb-2">Lixeira (transações)</h2>
+<!-- Seção de Filtros -->
+{% include '/components/filter_section.html' with context %}
 
 
-      <!-- Seção de Filtros -->
-      {% include '/components/filter_section.html' with context %}
-
-      <!-- Tabela (limitada a 90%, que vira cards no mobile) -->
-      <div class="table-container mt-4">
-        <table class="table table-hover responsive-table align-middle rounded-table">
-          <thead>
-            <tr>
-              <th>Imagem</th>
-              <th>Descrição</th>
-              <th>Cliente</th>
-              <th>Data exclusão/edição</th>
-              <th>Tipo de evento</th>
-              <th>Status prévio</th>
-
-              <th>Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for item in itens %}
+  <!-- Tabela (que vira "cards" no mobile) -->
+  <div class="table-container mt-4">
+    <table class="table table-hover responsive-table align-middle rounded-table">
+      <thead>
+        <tr>
+          <th>Imagem</th>
+          <th>Descrição</th>
+          <th>Cliente</th>
+          <th>Data exclusão/edição</th>
+          <th>Tipo de evento</th>
+          <th>Status prévio</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in itens %}
 
             <tr>
               <td data-label="Imagem">
                 {% if item.image_url and item.image_url != "N/A" %}
-                  <img
-                    src="{{ item.image_url }}"
-                    alt="Imagem do vestido"
-                    class="img-fluid item-thumbnail"
-                    style="max-width: 100px; cursor: pointer;"
-                    onclick="event.stopPropagation(); showImageModal('{{ item.image_url }}')"
-                  />
+                <img src="{{ item.image_url }}" alt="Imagem do vestido" class="img-fluid item-thumbnail" style="max-width: 100px" />
                 {% else %}
-                  <img
-                    src="{{ url_for('static', filename='item-placeholder.png') }}"
-                    alt="Sem Imagem"
-                    class="img-fluid item-thumbnail"
-                    style="max-width: 100px; cursor: pointer;"
-                    onclick="event.stopPropagation(); showImageModal('{{ url_for('static', filename='item-placeholder.png') }}')"
-                  />
+                <img
+                  src="{{ url_for('static', filename='item-placeholder.png') }}"
+                  alt="Sem Imagem"
+                  class="img-fluid item-thumbnail"
+                  style="max-width: 100px"
+                />
                 {% endif %}
               </td>
-              <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Descrição">
-                {{ item.description }}
-              </td>
+          <!-- prettier-ignore -->
+          <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Descrição">
+            {{ item.description }}
+          </td>
 
-              <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Cliente">
-                {{ item.client_name }}
-              </td>
+          <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Cliente">
+            {{ item.client_name }}
+          </td>
 
-              <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Data exclusão/edição">
-                {% if item.transaction_status == "deleted" %}
-                  {{ item.deleted_date }}
-                {% elif item.transaction_status == "version" %}
-                  {{ item.edited_date }}
-                {% else %}
-                  N/A
-                {% endif %}
-              </td>
-              <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Tipo de evento">
-                {% set status_map = {"deleted": "Original", "version": "Versão"} %}
-                {{ status_map.get(item.transaction_status, "Inválido") }}
-              </td>
+          <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Data exclusão/edição">
+            {% if item.transaction_status == "deleted" %}
+              {{ item.deleted_date }}
+            {% elif item.transaction_status == "version" %}
+              {{ item.edited_date }}
+            {% else %}
+              N/A
+            {% endif %}
+          </td>
+          <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Tipo de evento">
+            {% set status_map = {"deleted": "Original", "version": "Versão"} %}
+            {{ status_map.get(item.transaction_status, "Inválido") }}
+          </td>
 
-              <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Status">
-                {% set status_map = {"available": "Disponível", "rented": "Alugado", "returned": "Devolvido", "archived": "Arquivado", "historic": "Histórico"} %}
-                {{ status_map.get(item.transaction_previous_status, "Inválido") }}
-              </td>
+          <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Status">
+            {% set status_map = {"available": "Disponível", "rented": "Alugado", "returned": "Devolvido", "archived": "Arquivado", "historic": "Histórico"} %}
+            {{ status_map.get(item.transaction_previous_status, "Inválido") }}
+          </td>
+
+
+             <!-- <pre>{{ item | tojson(indent=2) }}</pre> -->
+
 
 <!-- Botão de Restaurar -->
 <td data-label="Ações">
@@ -104,9 +83,10 @@
 </td>
 
 
-      <!-- Formulário Dinâmico ajax-->
+
+<!-- Formulário Dinâmico -->
 <form id="form-restore" method="POST">
-  <input type="hidden" name="transaction_data" id="restore_transaction_data">
+  <input type="hidden" name="item_data" id="restore_item_data">
 </form>
 
 <script>
@@ -115,41 +95,30 @@
       "rented": "Alugado",
       "returned": "Devolvido",
       "historic": "Histórico",
-      "available": "Disponível",
+      "available": "Inventário",
       "deleted": "Deletado",
       "version": "Versão",
-      "archived": "Arquivado"
+      "archive": "Arquivado"
   };
 
   function definirMensagemEConfirmar(itemData, parentData, mensagem, form) {
-    console.log("🔹 Dados do item:", itemData);
-    console.log("🔹 Dados do item pai:", parentData);
+      if (!["deleted", "version"].includes(itemData.transaction_status)) {
+          alert("Status inválido para restauração.");
+          return;
+      }
 
-    if (!["deleted", "version"].includes(itemData.transaction_status)) {
-        alert("Status inválido para restauração.");
-        return;
-    }
+      form.action = itemData.transaction_status === "deleted"
+          ? "{{ url_for('restore_deleted_transaction') }}"
+          : "{{ url_for('restore_version_transaction') }}";
 
-    if (!itemData.transaction_previous_status) {
-        console.error("❌ Erro: transaction_previous_status está indefinido ou nulo!");
-        alert("Erro ao restaurar: status anterior indefinido.");
-        return;
-    }
+      if (confirm(mensagem)) {
+          // 🔹 Serializar os dados como JSON antes de enviar via POST
+          document.getElementById("restore_item_data").value = JSON.stringify(itemData);
+          form.submit();
+      }
+  }
 
-    form.action = itemData.transaction_status === "deleted"
-        ? "{{ url_for('restore_deleted_transaction') }}"
-        : "{{ url_for('restore_version_transaction') }}";
-
-    console.log("🔹 URL de envio do formulário:", form.action);
-    console.log("🔹 JSON Enviado:", JSON.stringify(itemData));
-
-    if (confirm(mensagem)) {
-        document.getElementById("restore_transaction_data").value = JSON.stringify(itemData);
-        form.submit();
-    }
-}
-
-function restaurarItem(itemData) {
+  function restaurarItem(itemData) {
     console.log("🔹 Restaurar item chamado:", itemData);
     let form = document.getElementById("form-restore");
 
@@ -167,20 +136,20 @@ function restaurarItem(itemData) {
     })
     .then(response => response.json())
     .then(parentData => {
-        if (parentData.status === "not_found" || !parentData.data) {
+        if (parentData.transaction_status === "not_found" || !parentData.data) {
             alert("Transação pai não encontrada.");
             return;
         }
 
-        if (!parentData.data.status) {
+        if (!parentData.data.transaction_status) {
             console.error("❌ Erro: status da transação pai está indefinido ou nulo!");
             alert("Erro ao restaurar: status da transação pai inválido.");
             return;
         }
 
-        let parentStatusTranslated = statusMap[parentData.data.status] || "Indefinido";
+        let parentStatusTranslated = statusMap[parentData.data.transaction_status] || "Indefinido";
 
-        let mensagem = parentData.data.status === "deleted"
+        let mensagem = parentData.data.transaction_status === "deleted"
             ? `Esta é uma versão de uma transação deletada. Restaurar esta versão para o status: ${previousStatusTranslated}?`
             : `Há uma transação pai desta versão com o status: ${parentStatusTranslated}. Deseja substituir a transação pai com esta versão?`;
 
@@ -191,95 +160,106 @@ function restaurarItem(itemData) {
         console.error("🔹 Erro na requisição:", error);
     });
 }
-
 </script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
             </tr>
             {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-    <!-- FIM CONTEÚDO PRINCIPAL -->
+        </tr>
+      </tbody>
+    </table>
 
-     <!-- MODAL para imagem -->
-   <div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="imageModalLabel">Visualizar Imagem</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body text-center">
-          <img class="img-fluid" id="modalImg" alt="Imagem do Item" />
-        </div>
+  </div>
+
+  <!-- Paginação -->
+  {% set route_name = 'trash_transactions' %} {% include 'components/pagination.html' with context %}
+  <div style="height: 3rem"></div>
+</div>
+
+
+
+<!-- MODAL para mais informações -->
+<div class="modal fade" id="infoModal" tabindex="-1" aria-labelledby="infoModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Mais detalhes</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p>
+          <strong>Cliente:</strong>
+          <span id="modalName"></span>
+        </p>
+        <p>
+          <strong>Descrição:</strong>
+          <span id="modalDescription"></span>
+        </p>
+        <p>
+          <strong>Telefone:</strong>
+          <span id="modalPhone"></span>
+        </p>
+        <p>
+          <strong>Valor(R$):</strong>
+          <span id="modalValue"></span>
+        </p>
+        <p>
+          <strong>Obs. da Transação:</strong>
+          <span id="modalTransObs"></span>
+        </p>
       </div>
     </div>
   </div>
-
-
-      <!-- MODAL para mais informações -->
-      <div class="modal fade" id="infoModal" tabindex="-1" aria-labelledby="infoModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title" id="infoModalLabel">Mais detalhes</h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-
-              <p><strong>Retirada prevista:</strong> <span id="modalRetirada"></span></p>
-              <p><strong>Devolução prevista:</strong> <span id="modalDevolucao"></span></p>
-              <p><strong>Retirado?:</strong> <span id="modalRetirado"></span></p>
-              <p><strong>Pago?:</strong> <span id="modalPago"></span></p>
-              <p><strong>Valor(R$):</strong> <span id="modalValue"></span></p>
-              <p><strong>Observações:</strong> <span id="modalObs"></span></p>
-
-            </div>
-          </div>
-        </div>
-      </div>
-
-
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
-    <script>
-      document.addEventListener("DOMContentLoaded", function () {
-        document.querySelectorAll(".open-modal").forEach(cell => {
-          cell.addEventListener("click", function () {
-            let item = JSON.parse(this.getAttribute("data-item"));
-            document.getElementById("modalRetirada").textContent = item.rental_date_formatted || "N/A";
-            document.getElementById("modalDevolucao").textContent = item.return_date_formatted || "N/A";
-            document.getElementById("modalRetirado").textContent =
-            item.retirado === true ? "Sim" :
-            item.retirado === false ? "Não" :
-            "N/A";            document.getElementById("modalPago").textContent = item.pagamento || "N/A";
-            document.getElementById("modalValue").textContent = item.valor || "N/A";
-            document.getElementById("modalObs").textContent = item.comments || "sem observações";
-            let infoModal = new bootstrap.Modal(document.getElementById("infoModal"), { backdrop: 'static' });
-            infoModal.show();
-          });
-        });
-      });
-
-      function showImageModal(imageSrc) {
-        document.getElementById("modalImg").src = imageSrc;
-        let imageModal = new bootstrap.Modal(document.getElementById("imageModal"), { backdrop: 'static' });
-        imageModal.show();
-      }
-    </script>
-
-    <!-- Paginação -->
-  {% set route_name = 'trash_transactions' %} {% include 'components/pagination.html' with context %}
-  <div style="height: 3rem"></div>
-
 </div>
 
-  </body>
 
-<!-- Importa o Footer -->
-{% include 'footer.html' %}
 
-</html>
+
+
+
+
+<!-- MODAL para imagem -->
+{% include 'components/image_modal.html' %} {% endblock %}
+
+
+{% block scripts %}
+<!-- Image modal script is included in the image_modal component -->
+
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+      document.querySelectorAll('.open-modal').forEach((cell) => {
+        cell.addEventListener('click', function () {
+          let item = JSON.parse(this.getAttribute('data-item'));
+          document.getElementById('modalName').textContent = item.client_name || 'N/A';
+          document.getElementById('modalDescription').textContent = item.description || 'N/A';
+          document.getElementById('modalPhone').textContent = item.client_tel || 'N/A';
+          document.getElementById('modalValue').textContent = item.valor || 'N/A';
+          document.getElementById('modalTransObs').textContent = item.transaction_obs || 'sem observações';
+          let infoModal = new bootstrap.Modal(document.getElementById('infoModal'), { backdrop: 'static' });
+          infoModal.show();
+        });
+      });
+    });
+</script>
+
+
+
+
+{% endblock %}
