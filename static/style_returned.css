@@ -180,9 +180,3 @@ h1.h3 {
 .open-modal {
   cursor: pointer;
 }
-
-/* Exemplo style_inventario.css ou global */
-.action-button.neutral {
-  background-color: #6c757d; /* cinza Bootstrap */
-  color: #fff;
-}

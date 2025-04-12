@@ -104,17 +104,19 @@ def init_static_routes(app, ses_client, clients_table, transactions_table, itens
             account_id = session.get("account_id")
             username = session.get("username", None)
 
-            # Contar clientes (tabela correta)
-            stats["total_clients"] = clients_table.query(
+            response = itens_table.query(
                 IndexName="account_id-index",
                 KeyConditionExpression=Key("account_id").eq(account_id),
-            )["Count"]
+            )
 
-            # Contar itens
-            stats["total_items"] = itens_table.query(
-                IndexName="account_id-index",
-                KeyConditionExpression=Key("account_id").eq(account_id),
-            )["Count"]
+            # Agora você filtra só os que tem status 'available' ou 'archive'
+            items = response["Items"]
+
+            filtered_items = [
+                item for item in items if item.get("status") in ["available", "archive"]
+            ]
+
+            stats["total_items"] = len(filtered_items)
 
             # Contar transações "rented"
             rented_txn = transactions_table.query(
