@@ -16,7 +16,7 @@ def init_transaction_routes(
     app, itens_table, s3, s3_bucket_name, transactions_table, clients_table, users_table
 ):
 
-    @app.route("/delete_transaction/<transaction_id>", methods=["POST"])
+    @app.route("/delete_transaction/<transaction_id>", methods=["POST", "GET"])
     def delete_transaction(transaction_id):
         if not session.get("logged_in"):
             return redirect(url_for("login"))

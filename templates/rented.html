@@ -22,7 +22,7 @@
         </tr>
       </thead>
       <tbody>
-        {% for item in itens %}
+        {% for item in itens %} {{ item }}
         <tr>
           <td data-label="Imagem">
             {% if item.image_url and item.image_url != "N/A" %}
@@ -86,39 +86,9 @@
 
           <td data-label="Ações">
             <div class="d-flex flex-wrap gap-2 justify-content-center align-items-center">
-              <form
-                method="POST"
-                action="{{ url_for('delete_transaction', transaction_id=item.transaction_id, next=request.url) }}"
-                style="display: inline"
-              >
-                <button
-                  type="submit"
-                  class="action-button danger"
-                  onclick="return confirm('Tem certeza de que deseja deletar este item?');"
-                  title="Deletar"
-                >
-                  Deletar
-                </button>
-              </form>
-
-              <a
-                href="{{ url_for('edit_transaction', transaction_id=item.transaction_id, next=request.url) }}"
-                class="action-button warning"
-                title="Editar"
-              >
-                Editar
-              </a>
-
-              <a
-                href="{{ url_for('mark_returned', transaction_id=item.transaction_id, next=request.url) }}"
-                class="action-button success"
-                title="Devolvido"
-                onclick="return confirm('Tem certeza de que deseja marcar este item como devolvido?');"
-              >
-                Devolvido
-              </a>
-
-              <a href="{{ url_for('view_calendar', item_id=item.item_id, next=request.url) }}" class="action-button info">Reservas</a>
+              {% set show_delete_transaction = True %} {% set show_edit_client = True %} {% set show_edit_item = True %} {% set show_edit_transaction
+              = True %} {% set show_ver_reservas = True %} {% set show_mark_returned = True %} {% include 'components/action_buttons.html' with
+              context %}
             </div>
           </td>
         </tr>

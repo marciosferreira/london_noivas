@@ -39,21 +39,21 @@ def init_item_routes(
             "rented.html",
             "Transações iniciadas (itens alugados)",
             transactions_table,
-            users_table,
             itens_table,
+            users_table,
             page="rented",
         )
 
-    @app.route("/retired")
-    def retired():
+    @app.route("/reserved")
+    def reserved():
         return listar_itens_per_transaction(
-            ["rented"],
-            "retired.html",
-            "Transações iniciadas (itens retirados)",
+            ["reserved"],
+            "reserved.html",
+            "Itens reservados",
             transactions_table,
             users_table,
             itens_table,
-            page="retired",
+            page="reserved",
         )
 
     @app.route("/returned")
@@ -226,7 +226,6 @@ def init_item_routes(
             ).strftime("%Y-%m-%d")
 
             # capturar 'retirado' corretamente (True ou False)
-            retirado = "retirado" in request.form
 
             new_data = {
                 "rental_date": rental_date,
@@ -239,7 +238,7 @@ def init_item_routes(
                 "client_address": request.form.get("client_address") or None,
                 "client_cpf": request.form.get("client_cpf") or None,
                 "client_cnpj": request.form.get("client_cnpj") or None,
-                "retirado": retirado,
+                "transaction_status": request.form.get("transaction_status") or "None",
                 "valor": request.form.get("valor", "").strip() or None,
                 "transaction_obs": request.form.get("transaction_obs", "").strip()
                 or None,
@@ -252,7 +251,6 @@ def init_item_routes(
                 ),
             }
 
-            # Detectar mudanças (ignorando pagamento)
             # Detectar mudanças ignorando pagamento e None igual a ''
             changes = {
                 key: value
@@ -261,25 +259,21 @@ def init_item_routes(
                 and transaction.get(key) != value
                 and not (transaction.get(key) == "" and value is None)
             }
-            print("======= DEBUG =======")
-            print("transaction ORIGINAL:")
-            print(transaction)
-            print("new_data NOVO:")
-            print(new_data)
-            print("changes DETECTADAS:")
-            print(changes)
-            print("===============")
 
             if not changes:
                 flash("Nenhuma alteração foi feita.", "warning")
                 return redirect(next_page)
 
-            # caso seja alteração apenas de 'retirado'
-            if set(changes.keys()) == {"retirado"}:
+            # caso seja alteração apenas de'transaction_status' ou ambos, nao gera copia para trash, apenas atualiza
+
+            # caso seja alteração apenas de 'transaction_status'
+            if set(changes.keys()) == {"transaction_status"}:
                 transactions_table.update_item(
                     Key={"transaction_id": transaction_id},
-                    UpdateExpression="SET retirado = :val",
-                    ExpressionAttributeValues={":val": retirado},
+                    UpdateExpression="SET transaction_status = :status",
+                    ExpressionAttributeValues={
+                        ":status": new_data["transaction_status"],
+                    },
                 )
                 flash("Item atualizado com sucesso.", "success")
                 return redirect(next_page)
@@ -514,7 +508,7 @@ def init_item_routes(
 
         for tx in transaction:
             if (
-                tx.get("transaction_status") == "rented"
+                tx.get("transaction_status") in ["reserved", "rented"]
                 and tx.get("rental_date")
                 and tx.get("return_date")
             ):
@@ -530,9 +524,10 @@ def init_item_routes(
             client_cpf = request.form.get("client_cpf", "").strip()
             client_cnpj = request.form.get("client_cnpj", "").strip()
             client_obs = request.form.get("client_obs", "").strip()
+            transaction_status = request.form.get("transaction_status", "").strip()
             transaction_obs = request.form.get("transaction_obs", "").strip()
 
-            retirado = True if request.form.get("retirado") else False
+            # retirado = True if request.form.get("retirado") else False
             valor = request.form.get("valor")
             pagamento = request.form.get("pagamento")
             item_obs = request.form.get("item_obs")
@@ -613,8 +608,7 @@ def init_item_routes(
                     "pagamento": pagamento,
                     "rental_date": rental_date,
                     "return_date": return_date,
-                    "retirado": retirado,
-                    "transaction_status": "rented",
+                    "transaction_status": transaction_status,
                     "image_url": image_url,
                     "transaction_obs": transaction_obs,
                     "created_at": datetime.datetime.now(user_utc).strftime(
@@ -1333,6 +1327,8 @@ def listar_itens_per_transaction(
             else None
         )
 
+    print("PPPPPPPPPPPPP")
+
     def process_dates(item, today):
         for key in ["rental_date", "return_date", "dev_date"]:
             date_str = item.get(key)
@@ -1400,12 +1396,12 @@ def listar_itens_per_transaction(
             "item_obs": request.args.get("item_obs"),
             "retirado": request.args.get("retirado"),
             "transaction_obs": request.args.get("transaction_obs"),
+            "transaction_status": request.args.get("transaction_status"),
         }
 
     def buscar_transacoes_por(account_id, status_list):
         all_results = []
         for status in status_list:
-            print(status)
             response = transactions_table.query(
                 IndexName="account_id-transaction_status-index",
                 KeyConditionExpression=Key("account_id").eq(account_id)
@@ -1418,9 +1414,13 @@ def listar_itens_per_transaction(
     def montar_transacoes_com_imagem(transacoes, filtros):
         resultado = []
 
+        # se o usuario clicou em ver transaçoes d eum cliente especifico
         for txn in transacoes:
+
             if client_id and txn.get("client_id") != client_id:
                 continue
+
+        for txn in transacoes:
 
             if (
                 filtros["description"]
@@ -1445,14 +1445,18 @@ def listar_itens_per_transaction(
                 not in txn.get("client_obs", "").lower()
             ):
                 continue
-            if filtros.get("retirado") is not None:
-                retirado_valor = filtros["retirado"].lower() == "true"
-                if txn.get("retirado") != retirado_valor:
-                    continue
+
             if (
                 filtros["transaction_obs"]
                 and filtros["transaction_obs"].lower()
                 not in txn.get("transaction_obs", "").lower()
+            ):
+                continue
+
+            if (
+                filtros["transaction_status"]
+                and filtros["transaction_status"].lower()
+                not in txn.get("transaction_status", "").lower()
             ):
                 continue
 
@@ -1474,6 +1478,8 @@ def listar_itens_per_transaction(
             elif filtro_pagamento == "não pago" and pagamento > 0:
                 continue
 
+            print(txn)
+
             resultado.append(process_dates(txn, today))
 
         return resultado
@@ -1490,20 +1496,16 @@ def listar_itens_per_transaction(
     start_total = time.time()
 
     filtros = apply_filtros_request()
+
     transacoes = buscar_transacoes_por(account_id, status_list)
 
-    total_relevant_transactions = sum(
-        1
-        for txn in transacoes
-        if txn.get("transaction_status") in ["rented", "returned"]
-    )
-
-    if page == "retired":
-        transacoes = [txn for txn in transacoes if txn.get("retirado") == True]
-    if page == "rented":
-        transacoes = [txn for txn in transacoes if txn.get("retirado") == False]
+    print("transções")
+    print(transacoes)
 
     itens_combinados = montar_transacoes_com_imagem(transacoes, filtros)
+
+    print("IC")
+    print(itens_combinados)
 
     filtrados = filtrar_por_categoria(itens_combinados, filtros["filter"])
 
@@ -1538,7 +1540,7 @@ def listar_itens_per_transaction(
         add_route=url_for("trash_transactions"),
         next_url=request.url,
         client_name=client_name,  # ✅ incluído no render
-        total_relevant_transactions=total_relevant_transactions,  # ✅ adiciona aqui
+        # ✅ adiciona aqui
     )
 
 

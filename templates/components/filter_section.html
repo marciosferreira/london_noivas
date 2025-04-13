@@ -100,6 +100,23 @@ d-none{% endif %} mt-3">
 
           <!-- Aba Transação -->
           <div class="tab-pane fade" id="transaction" role="tabpanel">
+
+            {% if '/client_transactions/' in request.path %}
+
+            <div class="col-md-4">
+              <label for="transaction_status" class="form-label">Status da Transação:</label>
+              <select class="form-select" id="transaction_status" name="transaction_status">
+                <option value="">Todos</option>
+                <option value="reserved" {% if request.args.get('transaction_status') == 'reserved' %}selected{% endif %}>Reservado</option>
+                <option value="rented" {% if request.args.get('transaction_status') == 'rented' %}selected{% endif %}>Alugado</option>
+                <option value="returned" {% if request.args.get('transaction_status') == 'returned' %}selected{% endif %}>Devolvido</option>
+              </select>
+            </div>
+
+            {% endif %}
+
+
+
             <div class="row mb-3">
               <!-- CAMPOS DA TRANSAÇÃO -->
               <div class="col-md-4">
@@ -109,14 +126,6 @@ d-none{% endif %} mt-3">
                   <option value="pago total" {% if request.args.get('payment') == 'pago total' %}selected{% endif %}>pago total (PT)</option>
                   <option value="pago parcial" {% if request.args.get('payment') == 'pago parcial' %}selected{% endif %}>pago parcial (PP)</option>
                   <option value="não pago" {% if request.args.get('payment') == 'não pago' %}selected{% endif %}>Não Pago (NP)</option>
-                </select>
-              </div>
-              <div class="col-md-4">
-                <label for="retirado" class="form-label">Retirado:</label>
-                <select class="form-select" id="retirado" name="retirado">
-                  <option value="">Todos</option>
-                  <option value="true" {% if request.args.get('retirado') == 'true' %}selected{% endif %}>Sim</option>
-                  <option value="false" {% if request.args.get('retirado') == 'false' %}selected{% endif %}>Não</option>
                 </select>
               </div>
               <div class="col-md-6">

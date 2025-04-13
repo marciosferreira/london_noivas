@@ -26,14 +26,17 @@ def init_status_routes(app, itens_table, transactions_table, users_table):
         user_utc = get_user_timezone(users_table, user_id)
         dev_date = datetime.datetime.now(user_utc).strftime("%Y-%m-%d %H:%M:%S")
 
-        # Atualiza status para 'returned' e adiciona a data de devolução
+        # Atualiza status para 'returned', adiciona a data de devolução e marca como retirado=True
         transactions_table.update_item(
             Key={"transaction_id": transaction_id},
-            UpdateExpression="SET #status = :s, dev_date = :d",
-            ExpressionAttributeNames={"#status": "status"},
+            UpdateExpression="SET #transaction_status = :s, dev_date = :d, retirado = :r",
+            ExpressionAttributeNames={
+                "#transaction_status": "transaction_status",
+            },
             ExpressionAttributeValues={
                 ":s": "returned",
-                ":d": dev_date,  # 🔹 Adicionando dev_date
+                ":d": dev_date,  # já definido anteriormente
+                ":r": True,  # novo campo retirado = True
             },
         )
 

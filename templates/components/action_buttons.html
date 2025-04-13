@@ -7,9 +7,9 @@
       Deletar
     </button>
   </form>
-  {% endif %} {% if show_edit %}
-  <!-- Botão Editar -->
-  <a href="{{ url_for('edit_item', item_id=item.item_id, next=request.url) }}" class="action-button warning" title="Editar">Editar</a>
+  {% endif %} {% if show_edit_item %}
+  <!-- Botão Editar item -->
+  <a href="{{ url_for('edit_item', item_id=item.item_id, next=request.url) }}" class="action-button warning" title="Editar">Editar item</a>
   {% endif %} {% if show_rent %}
   <!-- Botão Alugar -->
   <a
@@ -46,11 +46,40 @@
   {% endif %} {% if show_edit_transaction %}
   <!-- Botão Editar Transação -->
   <a href="{{ url_for('edit_transaction', transaction_id=item.transaction_id, next=request.url) }}" class="action-button warning" title="Editar">
-    Editar
+    Editar transação
   </a>
   {% endif %} {% if show_consult %}
   <!-- Botão Consultar -->
   <a href="{{ url_for('view_calendar', item_id=item.item_id, next=request.url) }}" class="action-button neutral" title="Consultar Datas">Reservas</a>
+  {% endif %} {% if show_edit_client %}
+  <!-- Editar client-->
+  <a href="{{ url_for('editar_cliente', client_id=item.client_id, next=request.url) }}" class="action-button warning" title="Editar">
+    <i class="fas fa-edit"></i>
+    Editar cliente
+  </a>
+  {% endif %} {% if show_ver_reservas %}
+  <!-- Botão Alugar -->
+  <a href="{{ url_for('view_calendar', item_id=item.item_id, next=request.url) }}" class="action-button info">Ver reservas</a>
+  {% endif %} {% if show_delete_transaction %}
+
+  <a
+    href="{{ url_for('delete_transaction', transaction_id=item.transaction_id, next=request.url) }}"
+    class="action-button danger"
+    title="Deletar"
+    onclick="return confirm('Tem certeza de que deseja deletar esta transação?');"
+  >
+    Deletar transação
+  </a>
+  {% endif %} {% if show_mark_returned %}
+
+  <a
+    href="{{ url_for('mark_returned', transaction_id=item.transaction_id, next=request.url) }}"
+    class="action-button success"
+    title="Devolvido"
+    onclick="return confirm('Tem certeza de que deseja marcar este item como devolvido?');"
+  >
+    Marcar devolvido
+  </a>
   {% endif %}
 </div>
 

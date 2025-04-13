@@ -1,5 +1,5 @@
 {% extends "base.html" %} {% block title %} Transações iniciadas (itens alugados) {% endblock %} {% block styles %}
-<link rel="stylesheet" href="{{ url_for('static', filename='style_retired.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='style_reserved.css') }}" />
 {% endblock %} {% block content %}
 <div class="container mt-3">
   <h2 class="mb-4">{{ title }}</h2>
@@ -119,7 +119,7 @@
   </div>
 
   <!-- Paginação -->
-  {% set route_name = 'retired' %} {% include 'components/pagination.html' with context %}
+  {% set route_name = 'reserved' %} {% include 'components/pagination.html' with context %}
 
   <!-- Modals -->
   {% include 'components/info_modal_transaction.html' %} {% include 'components/image_modal.html' %}

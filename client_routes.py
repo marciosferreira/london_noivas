@@ -154,12 +154,15 @@ def init_client_routes(
         if not session.get("logged_in"):
             return redirect(url_for("login"))
 
+        next_page = request.args.get("next", url_for("index"))
+
         response = clients_table.get_item(Key={"client_id": client_id})
         cliente = response.get("Item")
 
         if not cliente:
             flash("Cliente não encontrado.", "danger")
-            return redirect(url_for("listar_clientes"))
+            # return redirect(url_for("listar_clientes"))
+            return redirect(next_page)
 
         if request.method == "POST":
             # Obter valores do formulário
@@ -201,11 +204,13 @@ def init_client_routes(
             try:
                 clients_table.put_item(Item=cliente)
                 flash("Cliente atualizado com sucesso!", "success")
-                return redirect(url_for("listar_clientes"))
+                # return redirect(url_for("listar_clientes"))
+                return redirect(next_page)
             except Exception as e:
                 print("Erro ao atualizar cliente:", e)
                 flash("Erro ao atualizar cliente. Tente novamente.", "danger")
-                return redirect(request.url)
+                return redirect(next_page)
+                # return redirect(request.url)
 
         return render_template("editar_cliente.html", cliente=cliente)
 
@@ -259,7 +264,7 @@ def init_client_routes(
 
         # Lógica aqui para buscar transações do cliente
         return listar_itens_per_transaction(
-            ["rented", "returned"],
+            ["rented", "returned", "reserved"],
             "client_transactions.html",
             "Transações do cliente",
             transactions_table,

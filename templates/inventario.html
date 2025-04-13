@@ -42,8 +42,8 @@
           <td data-label="Comentários do item" style="white-space: pre-wrap; text-align: left">{{ item.comments }}</td>
           <td data-label="Ações">
             <div class="d-flex flex-wrap gap-2 justify-content-center align-items-center">
-              {% set show_delete = True %} {% set show_edit = True %} {% set show_rent = True %} {% set show_archive = True %} {% set show_consult =
-              True %} {% include 'components/action_buttons.html' with context %}
+              {% set show_delete = True %} {% set show_edit_item = True %} {% set show_rent = True %} {% set show_archive = True %} {% set
+              show_consult = True %} {% include 'components/action_buttons.html' with context %}
             </div>
           </td>
 
