@@ -4,7 +4,7 @@
     <a href="#" class="btn btn-primary" id="filter-toggle" onclick="toggleFilters(event)">Filtros</a>
 
     {% if show_add_button %}
-    <a href="{{ add_route }}?next={{ request.url }}" class="btn btn-primary">Adicionar</a>
+    <a href="#" class="btn btn-primary" id="add-item-btn" data-add-url="{{ add_route }}?next={{ request.url }}">Adicionar</a>
     {% endif %}
   </div>
 </div>
@@ -81,6 +81,26 @@
     if (hasFilters) {
       const filterSection = document.getElementById('filter-section');
       if (filterSection) filterSection.classList.remove('d-none');
+    }
+  });
+</script>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const totalItems = {{ total_items }};
+    const maxItems = 50;
+
+    const addButton = document.getElementById("add-item-btn");
+    if (addButton) {
+      addButton.addEventListener("click", function (event) {
+        event.preventDefault();
+        if (totalItems >= maxItems) {
+          alert("Você atingiu o limite de 50 itens cadastrados no plano gratuito.\nEntre em contato para planos personalizados.");
+        } else {
+          const targetUrl = addButton.getAttribute("data-add-url");
+          window.location.href = targetUrl;
+        }
+      });
     }
   });
 </script>

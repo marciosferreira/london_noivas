@@ -1642,10 +1642,9 @@ def list_raw_itens(status_list, template, title, itens_table, transactions_table
     if not session.get("logged_in"):
         return redirect(url_for("login"))
 
-    # Obter o account_id do usuário logado
     account_id = session.get("account_id")
     if not account_id:
-        print("Erro: Usuário não autenticado corretamente.")  # 🔍 Depuração
+        print("Erro: Usuário não autenticado corretamente.")
         return redirect(url_for("login"))
 
     total_relevant_transactions = 0
@@ -1671,30 +1670,27 @@ def list_raw_itens(status_list, template, title, itens_table, transactions_table
     page = int(request.args.get("page", 1))
     per_page = 5
 
-    # Capturar parâmetros de filtro
+    # Parâmetros de filtros opcionais
     item_custom_id = request.args.get("item_custom_id")
     description = request.args.get("description")
     item_obs = request.args.get("item_obs")
     min_valor = request.args.get("min_valor")
     max_valor = request.args.get("max_valor")
 
-    # Construir a expressão de filtro diretamente para o DynamoDB
     filter_expressions = []
     expression_attr_names = {"#account_id": "account_id"}
     expression_attr_values = {":account_id": account_id}
 
-    # Construir o filtro de status
+    # Filtrar por status "available" ou "archived"
     status_filter = []
-    for i, status in enumerate(status_list):
+    for i, status in enumerate(["available", "archived"]):
         status_key = f":status{i}"
         expression_attr_values[status_key] = status
         status_filter.append(f"#status = {status_key}")
 
-    if status_filter:
-        expression_attr_names["#status"] = "status"
-        filter_expressions.append(f"({' OR '.join(status_filter)})")
+    expression_attr_names["#status"] = "status"
+    filter_expressions.append(f"({' OR '.join(status_filter)})")
 
-    # Adicionar filtros de texto se fornecidos
     if item_custom_id:
         expression_attr_names["#item_custom_id"] = "item_custom_id"
         expression_attr_values[":item_custom_id"] = item_custom_id.lower()
@@ -1710,11 +1706,8 @@ def list_raw_itens(status_list, template, title, itens_table, transactions_table
         expression_attr_values[":item_obs"] = item_obs.lower()
         filter_expressions.append("contains(lower(#item_obs), :item_obs)")
 
-    # Montar a expressão completa
     filter_expression = " AND ".join(filter_expressions) if filter_expressions else None
-    print(f"Expressão de filtro: {filter_expression}")
 
-    # 🔹 Fazer a consulta usando o GSI "account_id-index" com filtros
     scan_kwargs = {
         "IndexName": "account_id-index",
         "KeyConditionExpression": "#account_id = :account_id",
@@ -1728,7 +1721,6 @@ def list_raw_itens(status_list, template, title, itens_table, transactions_table
     response = itens_table.query(**scan_kwargs)
     items = response.get("Items", [])
 
-    # Filtrar por valor mínimo e máximo (localmente, pois DynamoDB armazena strings)
     try:
         min_valor = float(min_valor) if min_valor else None
         max_valor = float(max_valor) if max_valor else None
@@ -1753,6 +1745,8 @@ def list_raw_itens(status_list, template, title, itens_table, transactions_table
 
     items = filtered_items
 
+    total_items = len(items)
+
     if not items:
         flash("Nenhum item encontrado com os filtros aplicados.", "warning")
         return render_template(
@@ -1764,10 +1758,9 @@ def list_raw_itens(status_list, template, title, itens_table, transactions_table
             add_route=url_for("add_item"),
             next_url=request.url,
             total_relevant_transactions=total_relevant_transactions,
+            total_items=0,
         )
 
-    # 🔹 Paginação
-    total_items = len(items)
     total_pages = (total_items + per_page - 1) // per_page
     start = (page - 1) * per_page
     end = start + per_page
@@ -1782,4 +1775,5 @@ def list_raw_itens(status_list, template, title, itens_table, transactions_table
         add_route=url_for("add_item"),
         next_url=request.url,
         total_relevant_transactions=total_relevant_transactions,
+        total_items=total_items,
     )

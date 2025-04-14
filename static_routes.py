@@ -151,3 +151,8 @@ def init_static_routes(app, ses_client, clients_table, transactions_table, itens
     @app.route("/ads.txt")
     def ads_txt():
         return send_from_directory("static", "ads.txt")
+
+    @app.route("/fees")
+    def fees():
+
+        return render_template("fees.html")

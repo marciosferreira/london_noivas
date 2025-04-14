@@ -53,7 +53,21 @@
         </tr>
       </tbody>
     </table>
-    <p>Seu total de transações simultâneas: {{ total_relevant_transactions }} de 30 grátis.</p>
+
+    <div class="container mt-4">
+      <div class="usage-info text-center p-3 rounded shadow-sm">
+        <div>
+          Seu total de transações simultâneas:
+          <strong>{{ total_relevant_transactions }}</strong>
+          de 30 grátis.
+        </div>
+        <div>
+          Seu total de itens cadastrados:
+          <strong>{{ total_items }}</strong>
+          de 50 grátis.
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Paginação -->
