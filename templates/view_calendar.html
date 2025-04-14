@@ -22,7 +22,6 @@
 </style>
 {% endblock %} {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.umd.min.js"></script>
-
 <script>
   const rawDates = {{ reserved_ranges | tojson }};
   const DateTime = easepick.DateTime;

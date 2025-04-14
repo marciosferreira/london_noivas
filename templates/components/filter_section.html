@@ -189,7 +189,7 @@ d-none{% endif %} mt-3">
     const hasFilters = Array.from([
     'description', 'comments', 'client_name', 'client_email', 'client_address',
     'client_cpf', 'client_cnpj', 'payment', 'start_date', 'end_date',
-    'return_start_date', 'return_end_date', 'retirado', 'transaction_obs'
+    'return_start_date', 'return_end_date', 'transaction_obs'
   ]).some(param => urlParams.has(param));
 
     if (hasFilters) {

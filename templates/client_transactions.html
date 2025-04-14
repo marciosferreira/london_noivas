@@ -15,10 +15,9 @@
           <th>Cliente</th>
           <th>Retirada prevista</th>
           <th>Devolução Prevista</th>
-          <th>Retirado?</th>
           <th>Pago?</th>
           <th>Obs. Transação</th>
-          <th>Ações</th>
+          <th></th>
         </tr>
       </thead>
       <tbody>
@@ -50,8 +49,6 @@
 
           <td class="open-modal" data-item="{{ item | tojson | safe }}" data-label="Devolução Prevista">{{ item.return_date_formatted }}</td>
 
-          <td class="open-modal" data-item="{{ item | tojson | safe }}" data-label="Retirado">{% if item.retirado %}Sim{% else %}Não{% endif %}</td>
-
           <td class="open-modal" data-item="{{ item | tojson | safe }}" data-label="Pagamento">{{ item.pagamento }}</td>
 
           <td class="open-modal" data-item="{{ item | tojson | safe }}" data-label="Obs. Transação">
@@ -60,25 +57,8 @@
 
           <td data-label="Ações">
             <div class="d-flex flex-wrap gap-2 justify-content-center align-items-center">
-              <form
-                method="POST"
-                action="{{ url_for('delete_transaction', transaction_id=item.transaction_id, next=request.url) }}"
-                style="display: inline"
-              >
-                <button type="submit" class="action-button danger" onclick="return confirm('Tem certeza de que deseja deletar essa transação?');">
-                  Deletar
-                </button>
-              </form>
-              <a href="{{ url_for('edit_transaction', transaction_id=item.transaction_id, next=request.url) }}" class="action-button warning">
-                Editar
-              </a>
-              <a
-                href="{{ url_for('mark_returned', transaction_id=item.transaction_id, next=request.url) }}"
-                class="action-button success"
-                onclick="return confirm('Marcar como devolvido?');"
-              >
-                Devolvido
-              </a>
+              {% set show_delete_transaction = True %} {% set show_edit_transaction = True %} {% set show_mark_returned = True %} {% include
+              'components/action_buttons.html' with context %}
             </div>
           </td>
         </tr>

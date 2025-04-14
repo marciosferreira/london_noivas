@@ -9,173 +9,76 @@
   <form method="POST" enctype="multipart/form-data" id="form-transaction" novalidate>
     <!-- Menu de abas -->
     <div class="tabs">
-      <button type="button" class="tab-button active" data-tab="tab-cliente">Cliente</button>
+      <button type="button" class="tab-button active" data-tab="tab-transacao">Transação</button>
+      <button type="button" class="tab-button" data-tab="tab-cliente">Cliente</button>
       <button type="button" class="tab-button" data-tab="tab-item">Item</button>
-      <button type="button" class="tab-button" data-tab="tab-transacao">Transação</button>
     </div>
 
     <!-- Aba CLIENTE -->
-    <div id="tab-cliente" class="tab-content active">
-      <label for="client_name">Nome do Cliente:</label>
-      <div class="position-relative">
-        <input type="text" id="client_name" name="client_name" autocomplete="off" class="form-control" value="{{ item.client_name }}" required />
-        <div id="client_suggestions" class="autocomplete-suggestions"></div>
-      </div>
-      <br />
+    <div id="tab-cliente" class="tab-content">
+      <h3>Informações do Cliente</h3>
 
-      <input type="hidden" name="client_id" id="client_id" />
-
-      <label for="client_tel">Telefone do Cliente:</label>
-      <input type="text" id="client_tel" name="client_tel" value="{{ item.client_tel }}" required />
-
-      <label for="client_email">E-mail do Cliente:</label>
-      <input
-        type="email"
-        id="client_email"
-        name="client_email"
-        class="form-control"
-        placeholder="exemplo@email.com"
-        value="{{ item.client_email|default('', true) }}"
-      />
-
-      <label for="client_address">Endereço do Cliente:</label>
-      <input
-        type="text"
-        id="client_address"
-        name="client_address"
-        class="form-control"
-        placeholder="Rua Exemplo, 123 - Bairro - Cidade"
-        value="{{ item.client_address|default('', true) }}"
-      />
-
-      <label for="client_cpf">CPF:</label>
-      <input
-        type="text"
-        id="client_cpf"
-        name="client_cpf"
-        maxlength="14"
-        placeholder="000.000.000-00"
-        class="form-control"
-        value="{{ item.client_cpf|default('', true) }}"
-      />
-
-      <label for="client_cnpj">CNPJ:</label>
-      <input
-        type="text"
-        id="client_cnpj"
-        name="client_cnpj"
-        maxlength="18"
-        placeholder="00.000.000/0000-00"
-        class="form-control"
-        value="{{ item.client_cnpj|default('', true) }}"
-      />
-
-      <label for="client_obs">Observações do Cliente:</label>
-      <textarea id="client_obs" name="client_obs" class="form-control" rows="2" placeholder="Ex: Cliente prefere...">
-{{ item.client_obs|default('', true) }}</textarea
-      >
+      <p><strong>Nome:</strong> {{ item.client_name or '-' }}</p>
+      <p><strong>Telefone:</strong> {{ item.client_tel or '-' }}</p>
+      <p><strong>Email:</strong> {{ item.client_email or '-' }}</p>
+      <p><strong>Endereço:</strong> {{ item.client_address or '-' }}</p>
+      <p><strong>CPF:</strong> {{ item.client_cpf or '-' }}</p>
+      <p><strong>CNPJ:</strong> {{ item.client_cnpj or '-' }}</p>
+      <p><strong>Observações:</strong> {{ item.client_obs or '-' }}</p>
     </div>
 
-    <!-- Aba ITEM -->
+
     <div id="tab-item" class="tab-content">
-      <label for="item_custom_id">Item ID#:</label>
-      <input type="text" id="item_custom_id" name="item_custom_id" class="form-control" value="{{ item.item_custom_id|default('', true) }}" />
+      <h3>Informações do Item</h3>
 
-      <label for="description">Descrição do Item:</label>
-      <textarea id="description" name="description" class="form-control" rows="2">{{ item.description|default('', true) }}</textarea>
+      <p><strong>ID do Item:</strong> {{ item.item_custom_id or '-' }}</p>
+      <p><strong>Descrição:</strong> {{ item.description or '-' }}</p>
+      <p><strong>Observações:</strong> {{ item.item_obs or '-' }}</p>
 
-      <label for="item_obs">Observações do item:</label>
-      <textarea id="item_obs" name="item_obs" rows="2">{{ item.item_obs }}</textarea>
-
-      <label>Foto Atual:</label>
-
-      {% set image_url = item.image_url if item.image_url and item.image_url != 'N/A' else '' %}
-
-      <div id="image-container" style="text-align: center; margin-bottom: 20px">
-        <img
-          id="item-image"
-          src="{{ image_url if image_url else url_for('static', filename='item-placeholder.png') }}"
-          alt="Imagem do item"
-          style="max-width: 150px; display: block; margin: 0 auto"
-        />
-
-        <!-- Campo oculto para indicar a URL da imagem atual -->
-        <input type="text" name="image_url" id="image-url-input" value="{{ image_url }}" style="opacity: 0; position: absolute; left: -9999px" />
-
-        <!-- Botão para excluir imagem -->
-        <button type="button" onclick="removeImage()" id="remove-btn" style="margin: 10px auto; display: {{ 'block' if image_url else 'none' }};">
-          Excluir imagem
-        </button>
-      </div>
-
-      <!-- Input de nova imagem -->
-      <label for="image_file">Trocar a Imagem:</label>
-      <input type="file" id="image_file" name="image_file" accept="image/*;capture=camera" />
+      <p><strong>Imagem do Item:</strong></p>
+      <img src="{{ item.image_url if item.image_url and item.image_url != 'N/A' else url_for('static', filename='item-placeholder.png') }}"
+           alt="Imagem do item" style="max-width: 150px; display: block; margin: 0 auto;">
     </div>
 
-    <!-- Aba TRANSACAO -->
-    <div id="tab-transacao" class="tab-content">
 
 
-      <label for="transaction_status">Status da Transação:</label>
-      <select id="transaction_status" name="transaction_status" class="form-control" required>
-        <option value="rented" {% if item.transaction_status == 'rented' %}selected{% endif %}>Alugado</option>
-        <option value="returned" {% if item.transaction_status == 'returned' %}selected{% endif %}>Devolvido</option>
-      </select>
+<!-- Aba TRANSACAO -->
+<div id="tab-transacao" class="tab-content">
+
+  <label for="transaction_status">Status da Transação:</label>
+  <select id="transaction_status" name="transaction_status" class="form-control" required>
+    <option value="reserved" {% if item.transaction_status == 'reserved' %}selected{% endif %}>Reservado</option>
+    <option value="rented" {% if item.transaction_status == 'rented' %}selected{% endif %}>Alugado</option>
+    <option value="returned" {% if item.transaction_status == 'returned' %}selected{% endif %}>Devolvido</option>
+  </select>
+
+
+  <div id="ret-date-container" style="display: none;">
+    <label for="ret_date">Retirada real:</label>
+    <input type="date" id="ret_date" name="ret_date" class="form-control"
+           value="{{ item.ret_date[:10] if item.ret_date }}">
+  </div>
+
+  <div id="dev-date-container" style="display: none;">
+    <label for="dev_date">Devolução real:</label>
+    <input type="date" id="dev_date" name="dev_date" class="form-control"
+           value="{{ item.dev_date[:10] if item.dev_date }}">
+  </div>
 
 
 
-
-      <label for="datepicker">Defina as datas:</label>
+      <label for="datepicker">Intervalo acordado do aluguel:</label>
       <input id="datepicker" name="range_date" class="form-control" value="{{ item.range_date }}" />
 
-      <div class="form-group">
-        <label for="retirado">
-          <input type="checkbox" id="retirado" name="retirado" value="True" {% if item.retirado %}checked{% endif %} />
-          Retirado
-        </label>
-      </div>
 
-      {% if 'returned' in request.full_path %}
-      <label for="dev_date_input">Devolvido em:</label>
 
-      <div style="display: flex; gap: 10px">
-        <input type="date" id="dev_date_input" value="{{ item.dev_date[:10] }}" required />
-        <input
-          type="time"
-          id="dev_time_input"
-          value="{{ item.dev_date[11:16] }}"
-          required
-          required
-          style="padding: 4px 8px; height: 43px; font-size: 14px"
-        />
-      </div>
 
-      <input type="hidden" name="dev_date" id="dev_date_hidden" />
+      <label for="valor">Preço do aluguel (R$):</label>
+      <input type="text" class="form-control" id="valor" name="valor" value="{{ item.valor | round(2) | string | replace('.', ',') }}" required />
 
-      <script>
-        const dateInput = document.getElementById('dev_date_input');
-        const timeInput = document.getElementById('dev_time_input');
-        const hiddenInput = document.getElementById('dev_date_hidden');
 
-        function atualizarDevDate() {
-          if (dateInput.value && timeInput.value) {
-            hiddenInput.value = `${dateInput.value} ${timeInput.value}:00`; // segundos fixos
-          }
-        }
-
-        dateInput.addEventListener('change', atualizarDevDate);
-        timeInput.addEventListener('change', atualizarDevDate);
-
-        // Atualiza no carregamento inicial
-        atualizarDevDate();
-      </script>
-      {% endif %}
-      <label for="valor">Valor (R$):</label>
-      <input type="number" id="valor" name="valor" step="0.01" min="0" value="{{ item.valor }}" required />
-
-      <label for="pagamento">Valor Pago (R$):</label>
-      <input type="number" step="0.01" min="0" class="form-control" id="pagamento" name="pagamento" value="{{ item.pagamento or '' }}" />
+      <label for="pagamento">Valor já pago (R$):</label>
+      <input type="text" class="form-control" id="pagamento" name="pagamento" value="{{ item.pagamento | round(2) | string | replace('.', ',') or '' }}" />
 
       <label for="transaction_obs">Observações da transação:</label>
       <textarea id="transaction_obs" name="transaction_obs" rows="2">{{ item.transaction_obs }}</textarea>
@@ -190,322 +93,202 @@
     <button type="submit">Salvar</button>
   </form>
 </div>
-{% endblock %} {% block scripts %} {{ super() }}
+
+
+
+
+
+
+{% endblock %} {% block scripts %}
+
 <script src="https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.umd.min.js"></script>
 
 <script>
-      // 🟦 Alternância de abas
-      document.querySelectorAll('.tab-button').forEach((btn) => {
-        btn.addEventListener('click', () => {
-          document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
-          btn.classList.add('active');
-          document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-          const selectedTab = document.getElementById(btn.dataset.tab);
-          if (selectedTab) selectedTab.classList.add('active');
-        });
-      });
+  document.querySelectorAll('.tab-button').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+      const selectedTab = document.getElementById(btn.dataset.tab);
+      if (selectedTab) selectedTab.classList.add('active');
 
-      // 🟨 Máscaras de telefone, CPF e CNPJ
-      function maskPhone(value) {
-        let input = value.replace(/\D/g, '');
-        if (input.length > 11) input = input.slice(0, 11);
-        let formatted = '';
-        if (input.length > 0) formatted += '(' + input.substring(0, 2);
-        if (input.length >= 3) formatted += ') ' + input.substring(2, 7);
-        if (input.length >= 8) formatted += '-' + input.substring(7);
-        return formatted;
-      }
-
-      function maskCPF(cpf) {
-        cpf = cpf.replace(/\D/g, '');
-        cpf = cpf.replace(/(\d{3})(\d)/, '$1.$2');
-        cpf = cpf.replace(/(\d{3})(\d)/, '$1.$2');
-        cpf = cpf.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
-        return cpf;
-      }
-
-      function maskCNPJ(cnpj) {
-        cnpj = cnpj.replace(/\D/g, '');
-        cnpj = cnpj.replace(/^(\d{2})(\d)/, '$1.$2');
-        cnpj = cnpj.replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3');
-        cnpj = cnpj.replace(/\.(\d{3})(\d)/, '.$1/$2');
-        cnpj = cnpj.replace(/(\d{4})(\d)/, '$1-$2');
-        return cnpj;
-      }
-
-      function aplicarMascaras() {
-        const telInput = document.getElementById('client_tel');
-        const cpfInput = document.getElementById('client_cpf');
-        const cnpjInput = document.getElementById('client_cnpj');
-
-        if (telInput && telInput.value) telInput.value = maskPhone(telInput.value);
-        if (cpfInput && cpfInput.value) cpfInput.value = maskCPF(cpfInput.value);
-        if (cnpjInput && cnpjInput.value) cnpjInput.value = maskCNPJ(cnpjInput.value);
-
-        if (telInput) {
-          telInput.addEventListener('input', e => e.target.value = maskPhone(e.target.value));
-        }
-        if (cpfInput) {
-          cpfInput.addEventListener('input', e => e.target.value = maskCPF(e.target.value));
-        }
-        if (cnpjInput) {
-          cnpjInput.addEventListener('input', e => e.target.value = maskCNPJ(e.target.value));
-        }
-      }
-
-      // 🟩 Preenchimento automático de cliente
-      function autocompleteCliente() {
-        const clientInput = document.getElementById('client_name');
-        const suggestionsBox = document.getElementById('client_suggestions');
-
-        if (!clientInput || !suggestionsBox) return;
-
-        clientInput.addEventListener('input', async () => {
-          const term = clientInput.value.trim();
-          if (term.length < 2) {
-            suggestionsBox.innerHTML = '';
-            return;
-          }
-
-          try {
-            const res = await fetch(`/autocomplete_clients?term=${encodeURIComponent(term)}`);
-            const clients = await res.json();
-
-            suggestionsBox.innerHTML = '';
-
-            clients.forEach((client) => {
-              const div = document.createElement('div');
-              div.className = 'autocomplete-item';
-              div.innerHTML = `<strong>${client.client_name}</strong>
-                ${client.client_tel ? `<div><small>📞 ${client.client_tel}</small></div>` : ''}
-                ${client.client_email ? `<div><small>📧 ${client.client_email}</small></div>` : ''}
-                ${client.client_cpf ? `<div><small>🆔 CPF: ${client.client_cpf}</small></div>` : ''}
-                ${client.client_cnpj ? `<div><small>🏢 CNPJ: ${client.client_cnpj}</small></div>` : ''}
-              `;
-
-              div.addEventListener('click', (event) => {
-                event.stopPropagation();
-                preencherCamposCliente(client);
-                suggestionsBox.innerHTML = '';
-              });
-
-              suggestionsBox.appendChild(div);
-            });
-          } catch (error) {
-            console.error('Erro ao buscar sugestões de cliente:', error);
-          }
-        });
-
-        document.addEventListener('click', (e) => {
-          if (!suggestionsBox.contains(e.target) && e.target !== clientInput) {
-            suggestionsBox.innerHTML = '';
-          }
-        });
-      }
-
-      function preencherCamposCliente(client) {
-        document.getElementById("client_name").value = client.client_name || '';
-        document.getElementById("client_tel").value = client.client_tel ? maskPhone(client.client_tel) : '';
-        document.getElementById("client_id").value = client.client_id || '';
-        document.getElementById("client_email").value = client.client_email || '';
-        document.getElementById("client_cpf").value = client.client_cpf ? maskCPF(client.client_cpf) : '';
-        document.getElementById("client_cnpj").value = client.client_cnpj ? maskCNPJ(client.client_cnpj) : '';
-        document.getElementById("client_address").value = client.client_address || '';
-      }
-
-      // 🟦 Validação do formulário
-      function configurarValidacaoFormulario() {
-        const form = document.getElementById('form-transaction');
-        if (!form) return;
-
-        form.addEventListener('submit', function (e) {
-          const dp = document.getElementById('datepicker');
-          if (dp && (!dp.value || dp.value.trim() === '')) {
-            e.preventDefault();
-            alert('Por favor, selecione um intervalo de datas.');
-            dp.focus();
-          }
-        });
-      }
-
-      // 🟥 Inicialização do Easepick (datepicker)
-      function iniciarDatePicker() {
-        const DateTime = easepick.DateTime;
-        const rawDates = {{ reserved_ranges | tojson(indent=2) }};
-        const bookedDates = rawDates.map(d => {
-          if (d instanceof Array) {
-            const start = new DateTime(d[0], 'YYYY-MM-DD');
-            const end = new DateTime(d[1], 'YYYY-MM-DD');
-            return [start, end];
-          }
-          return new DateTime(d, 'YYYY-MM-DD');
-        });
-
-        const picker = new easepick.create({
-          element: document.getElementById('datepicker'),
-          css: [
-            'https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.css',
-            'https://easepick.com/css/demo_hotelcal.css',
-          ],
-          lang: 'pt-BR',
-          autoApply: false,
-          plugins: ['RangePlugin', 'LockPlugin', 'AmpPlugin'],
-          AmpPlugin: {
-            resetButton: true,
-          },
-          RangePlugin: {
-            tooltipNumber(num) {
-              return num;
-            },
-            locale: {
-              one: 'dia',
-              other: 'dias',
-            },
-          },
-          LockPlugin: {
-
-            minDays: 1,
-            inseparable: true,
-            filter(date, picked) {
-              if (picked.length === 1) {
-                return !picked[0].isSame(date, 'day') && date.inArray(bookedDates, '[]');
-              }
-              return date.inArray(bookedDates, '[]');
-            },
-          },
-          locale: {
-            cancel: 'Cancelar',
-            apply: 'Aplicar',
-            reset: 'Limpar',
-            one: 'dia',
-            other: 'dias',
-          },
-          format: 'DD/MM/YYYY',
-        });
-
-        picker.on('preselect', (evt) => {
-          const clickedDate = evt.detail.date;
-          evt.preventDefault();
-          picker.setStartDate(null);
-          picker.setEndDate(null);
-          document.getElementById('datepicker').value = '';
-          picker.setStartDate(clickedDate);
-        });
-      }
-
-      // 🟨 Atualizar campo de devolução
-      function updateDevDateField() {
-        const returnedRadio = document.getElementById('status-returned');
-        const devDateContainer = document.getElementById('dev-date-container');
-        const devDateInput = document.getElementById('dev_date');
-
-        if (returnedRadio && returnedRadio.checked) {
-          devDateContainer.style.display = 'block';
-          devDateInput.required = true;
-        } else if (devDateContainer) {
-          devDateContainer.style.display = 'none';
-          if (devDateInput) devDateInput.required = false;
-        }
-      }
-
-      function configurarStatusListener() {
-        const radioButtons = document.querySelectorAll('input[name="status"]');
-        if (radioButtons.length > 0) {
-          radioButtons.forEach((radio) => {
-            radio.addEventListener('change', updateDevDateField);
-          });
-          updateDevDateField();
-        }
-      }
-
-     // ✅ Inicialização geral
-    window.addEventListener('DOMContentLoaded', () => {
-      aplicarMascaras();
-      autocompleteCliente();
-      configurarValidacaoFormulario();
-
-      // 🛠️ Ativa a aba do campo inválido automaticamente
-      const form = document.getElementById('form-transaction');
-      if (form) {
-        form.addEventListener('submit', function (e) {
-          const invalidField = this.querySelector(':invalid');
-
-          if (invalidField) {
-            e.preventDefault(); // Impede o envio
-            const tabContent = invalidField.closest('.tab-content');
-
-            if (tabContent && !tabContent.classList.contains('active')) {
-              // Remove active de todas as abas e conteúdos
-              document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-              document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
-
-              // Ativa a aba que contém o campo com erro
-              tabContent.classList.add('active');
-              const tabId = tabContent.getAttribute('id');
-              const button = document.querySelector(`.tab-button[data-tab="${tabId}"]`);
-              if (button) button.classList.add('active');
-
-              // Foca no campo com erro
-              // Foca no campo com erro
-  invalidField.focus();
-  invalidField.classList.add('erro-destaque'); // Aplica destaque visual
-            }
-          }
-        });
+      // Se clicou na aba transação, atualiza campos extras
+      if (btn.dataset.tab === 'tab-transacao') {
+        toggleExtraFields();
       }
     });
-</script>
+  });
 
-<script>
-  function removeImage() {
-    const imageInput = document.getElementById('image-url-input');
-    const imageElement = document.getElementById('item-image');
-    const removeButton = document.getElementById('remove-btn');
+  // Exibe/esconde campos ret_date e dev_date
+  function toggleExtraFields() {
+    const statusSelect = document.getElementById('transaction_status');
+    const retDateContainer = document.getElementById('ret-date-container');
+    const devDateContainer = document.getElementById('dev-date-container');
+    const retDateInput = document.getElementById('ret_date');
+    const devDateInput = document.getElementById('dev_date');
 
-    if (imageInput) {
-      imageInput.value = 'DELETE_IMAGE';
-    }
-
-    if (imageElement) {
-      imageElement.src = "{{ url_for('static', filename='item-placeholder.png') }}";
-    }
-
-    if (removeButton) {
-      removeButton.style.display = 'none';
-    }
-
-    // Limpa o campo de imagem
-    const fileInput = document.getElementById('image_file');
-    if (fileInput) {
-      fileInput.value = '';
+    if (statusSelect.value === 'reserved') {
+      retDateContainer.style.display = 'none';
+      devDateContainer.style.display = 'none';
+      retDateInput.removeAttribute('required');
+      devDateInput.removeAttribute('required');
+    } else if (statusSelect.value === 'rented') {
+      retDateContainer.style.display = 'block';
+      devDateContainer.style.display = 'none';
+      retDateInput.setAttribute('required', 'required');
+      devDateInput.removeAttribute('required');
+    } else if (statusSelect.value === 'returned') {
+      retDateContainer.style.display = 'block';
+      devDateContainer.style.display = 'block';
+      retDateInput.setAttribute('required', 'required');
+      devDateInput.setAttribute('required', 'required');
     }
   }
 
-  document.getElementById('image_file').addEventListener('change', function (event) {
-    const file = event.target.files[0];
-    const imageElement = document.getElementById('item-image');
-    const removeButton = document.getElementById('remove-btn');
+  toggleExtraFields();
+  document.getElementById('transaction_status').addEventListener('change', toggleExtraFields);
 
-    if (file && imageElement) {
-      const reader = new FileReader();
-      reader.onload = function (e) {
-        imageElement.src = e.target.result;
-        imageElement.style.display = 'block';
-        imageElement.style.margin = '0 auto';
-        if (removeButton) {
-          removeButton.style.display = 'block';
+  // 🟥 Inicialização do Easepick (datepicker)
+  function iniciarDatePicker() {
+    const DateTime = easepick.DateTime;
+    const rawDates = {{ reserved_ranges | tojson(indent=2) }};
+    const bookedDates = rawDates.map(d => {
+      if (d instanceof Array) {
+        const start = new DateTime(d[0], 'YYYY-MM-DD');
+        const end = new DateTime(d[1], 'YYYY-MM-DD');
+        return [start, end];
+      }
+      return new DateTime(d, 'YYYY-MM-DD');
+    });
+
+    const picker = new easepick.create({
+      element: document.getElementById('datepicker'),
+      css: [
+        'https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.css',
+        'https://easepick.com/css/demo_hotelcal.css',
+      ],
+      lang: 'pt-BR',
+      autoApply: false,
+      plugins: ['RangePlugin', 'LockPlugin', 'AmpPlugin'],
+      AmpPlugin: {
+        resetButton: true,
+      },
+      RangePlugin: {
+        tooltipNumber(num) {
+          return num;
+        },
+        locale: {
+          one: 'dia',
+          other: 'dias',
+        },
+      },
+      LockPlugin: {
+
+        minDays: 1,
+        inseparable: true,
+        filter(date, picked) {
+          if (picked.length === 1) {
+            return !picked[0].isSame(date, 'day') && date.inArray(bookedDates, '[]');
+          }
+          return date.inArray(bookedDates, '[]');
+        },
+      },
+      locale: {
+        cancel: 'Cancelar',
+        apply: 'Aplicar',
+        reset: 'Limpar',
+        one: 'dia',
+        other: 'dias',
+      },
+      format: 'DD/MM/YYYY',
+    });
+
+    picker.on('preselect', (evt) => {
+      const clickedDate = evt.detail.date;
+      evt.preventDefault();
+      picker.setStartDate(null);
+      picker.setEndDate(null);
+      document.getElementById('datepicker').value = '';
+      picker.setStartDate(clickedDate);
+    });
+  }
+
+  // Validação do formulário
+  function configurarValidacaoFormulario() {
+    const form = document.getElementById('form-transaction');
+    if (!form) return;
+
+    form.addEventListener('submit', function (e) {
+      const dp = document.getElementById('datepicker');
+      if (dp && (!dp.value || dp.value.trim() === '')) {
+        e.preventDefault();
+        alert('Selecione um intervalo de datas acordado do aluguel.');
+        dp.focus();
+        return;
+      }
+
+      const statusSelect = document.getElementById('transaction_status');
+      const retDateInput = document.getElementById('ret_date');
+      const devDateInput = document.getElementById('dev_date');
+
+      if (statusSelect.value !== 'reserved') {
+        if (!retDateInput.value || retDateInput.value.trim() === '') {
+          e.preventDefault();
+          alert('Por favor, informe a data de retirada do item.');
+          retDateInput.focus();
+          return;
         }
-      };
-      reader.readAsDataURL(file);
+      }
+
+      if (statusSelect.value === 'returned') {
+        if (!devDateInput.value || devDateInput.value.trim() === '') {
+          e.preventDefault();
+          alert('Por favor, informe a data de devolução do item.');
+          devDateInput.focus();
+        }
+      }
+    });
+  }
+  window.addEventListener('DOMContentLoaded', () => {
+    configurarValidacaoFormulario();
+    iniciarDatePicker();
+
+    // Ativar a aba inicial (transação)
+    const activeTabButton = document.querySelector('.tab-button.active');
+    if (activeTabButton) {
+      activeTabButton.click(); // força a execução certa
     }
   });
-
-  // 🚀 Inicializar tudo quando a página carregar
-  window.addEventListener('DOMContentLoaded', () => {
-    autocompleteCliente();
-    iniciarDatePicker();
-    configurarValidacao();
-  });
 </script>
+
+
+
+<script>
+  function formatarCampoMonetario(input) {
+    input.addEventListener('input', function(e) {
+      let value = e.target.value.replace(/\D/g, '');
+
+      if (!value) {
+        e.target.value = '';
+        return;
+      }
+
+      let intValue = parseInt(value, 10);
+      let floatValue = intValue / 100;
+
+      e.target.value = floatValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    });
+  }
+
+  // Aplica em todos os campos que precisam
+  const campos = [document.getElementById('valor'), document.getElementById('pagamento')];
+
+  campos.forEach(campo => {
+    if (campo) {
+      formatarCampoMonetario(campo);
+    }
+  });
+  </script>
+
 
 {% endblock %}

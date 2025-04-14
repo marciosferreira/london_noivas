@@ -15,7 +15,7 @@
           <th>Descrição</th>
           <th>Valor</th>
           <th>Comentários</th>
-          <th>Ações</th>
+          <th></th>
         </tr>
       </thead>
       <tbody>
@@ -39,30 +39,8 @@
 
           <td data-label="Ações">
             <div class="d-flex flex-wrap gap-2 justify-content-center align-items-center">
-              <!-- Botão Deletar -->
-              <form method="POST" action="{{ url_for('delete', item_id=item.item_id, next=request.url) }}" style="display: inline">
-                <button
-                  type="submit"
-                  class="action-button danger"
-                  onclick="return confirm('Tem certeza de que deseja deletar este item?');"
-                  title="Deletar"
-                >
-                  Deletar
-                </button>
-              </form>
-
-              <!-- Botão Editar -->
-              <a href="{{ url_for('edit_item', item_id=item.item_id, next=request.url) }}" class="action-button warning" title="Editar">Editar</a>
-
-              <!-- Botão Disponível -->
-              <a
-                href="{{ url_for('mark_available', item_id=item.item_id, next=request.url) }}"
-                class="action-button success"
-                title="Disponível"
-                onclick="return confirm('Tem certeza que deseja tornar este item disponível novamente?');"
-              >
-                Disponível
-              </a>
+              {% set show_delete_item = True %} {% set show_edit_item = True %} {% set show_mark_available = True %} {% include
+              'components/action_buttons.html' with context %}
             </div>
           </td>
         </tr>

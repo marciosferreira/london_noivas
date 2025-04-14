@@ -77,11 +77,6 @@
           <span id="modalPagamento"></span>
         </p>
 
-        <p id="modalPagamentoContainer">
-          <strong>Retirado:</strong>
-          <span id="modalRetirado"></span>
-        </p>
-
         <p>
           <strong>Observações da Transação:</strong>
           <span id="modalTransactionComments"></span>
@@ -165,7 +160,6 @@
 
           document.getElementById('modalPagamento').textContent = `${textoPagamento} ${statusPagamento}`;
 
-          document.getElementById('modalRetirado').textContent = data.retirado ? 'Sim' : 'Não';
           document.getElementById('modalTransactionComments').textContent = data.transaction_obs || 'N/A';
           document.getElementById('modalCreated').textContent = formatarDataBrasilComHora(data.created_at);
 

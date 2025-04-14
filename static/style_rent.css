@@ -306,7 +306,6 @@ input.form-control {
     cursor: not-allowed;
   }
 
-  <style>
   .tabs {
     display: flex;
     margin-bottom: 1rem;
@@ -334,6 +333,4 @@ input.form-control {
     border: 2px solid red !important;
     background-color: #ffe6e6;
   }
-</style>
-
 

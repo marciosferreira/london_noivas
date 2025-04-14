@@ -5,8 +5,12 @@
   gap: 8px; /* Reduz o espaçamento entre os botões */
 }
 
-/* Exemplo style_inventario.css ou global */
+/* Exemplo style_inventory.css ou global */
 .action-button.neutral {
   background-color: #6c757d; /* cinza Bootstrap */
   color: #fff;
+}
+
+.table.rounded-table {
+  overflow: visible !important;
 }

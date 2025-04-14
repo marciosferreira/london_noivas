@@ -15,7 +15,7 @@
           <th>Telefone</th>
           <th>Observações</th>
 
-          <th class="text-center">Ações</th>
+          <th class="text-center"></th>
           <!-- 🔧 Aqui -->
         </tr>
       </thead>
@@ -37,32 +37,10 @@
             {{ cliente.client_obs | default('', true) | truncate(15, True) }}
           </td>
 
-          <td class="text-end" data-label="Ações">
-            <div class="button-stack-right mt-3">
-              <!-- Editar -->
-              <a href="{{ url_for('editar_cliente', client_id=cliente.client_id) }}" class="action-button warning" title="Editar">
-                <i class="fas fa-edit"></i>
-                Editar
-              </a>
-
-              <!-- Transações -->
-              <a href="{{ url_for('client_transactions', client_id=cliente.client_id) }}" class="action-button success" title="Transações">
-                <i class="fas fa-exchange-alt"></i>
-                Transações
-              </a>
-
-              <!-- Deletar -->
-              <form
-                method="POST"
-                action="{{ url_for('deletar_cliente', client_id=cliente.client_id) }}"
-                onsubmit="return confirm('Tem certeza que deseja deletar este cliente? Esta ação não poderá ser desfeita.');"
-                style="display: inline"
-              >
-                <button type="submit" class="action-button danger" title="Deletar">
-                  <i class="fas fa-trash"></i>
-                  Deletar
-                </button>
-              </form>
+          <td data-label="Ações">
+            <div class="d-flex flex-wrap gap-2 justify-content-center align-items-center">
+              {% set show_delete_client = True %} {% set show_edit_client = True %} {% set show_view_transactions = True %} {% include
+              'components/action_buttons.html' with context %}
             </div>
           </td>
         </tr>

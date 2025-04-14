@@ -5,7 +5,7 @@
   {% set destino = request.args.get("next", "") %} {% set ultima_parte = destino.strip('/').split('/')[-1] %}
 
   <h1>
-    {% if ultima_parte == "archive" %} Inserir Novo Item em arquivo {% elif ultima_parte == "inventario" %} Inserir Novo Item em inventário {% else %}
+    {% if ultima_parte == "archive" %} Inserir Novo Item em arquivo {% elif ultima_parte == "inventory" %} Inserir Novo Item em inventário {% else %}
     Inserir Novo Item {% endif %}
   </h1>
 
@@ -27,14 +27,18 @@
     <br />
     <br />
 
-    <label for="item_obs">Obs do item:</label>
+    <label for="item_obs">Observações do item:</label>
     <br />
     <textarea id="item_obs" name="item_obs" rows="2"></textarea>
     <br />
     <br />
 
-    <label for="valor">Valor (R$):</label>
-    <input type="number" id="valor" name="valor" step="0.10" min="0" required />
+
+    <label for="valor">Preço do aluguel (R$):</label>
+    <input type="text" id="valor" name="valor" required />
+
+
+
     <br />
     <br />
 
@@ -107,4 +111,33 @@
     }
   });
 </script>
+
+
+<script>
+  function formatarCampoMonetario(input) {
+    input.addEventListener('input', function(e) {
+      let value = e.target.value.replace(/\D/g, '');
+
+      if (!value) {
+        e.target.value = '';
+        return;
+      }
+
+      let intValue = parseInt(value, 10);
+      let floatValue = intValue / 100;
+
+      e.target.value = floatValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    });
+  }
+
+  // Aplica em todos os campos que precisam
+  const campos = [document.getElementById('valor')];
+
+  campos.forEach(campo => {
+    if (campo) {
+      formatarCampoMonetario(campo);
+    }
+  });
+  </script>
+
 {% endblock %} {% endblock %}

@@ -180,3 +180,7 @@ h1.h3 {
 .open-modal {
   cursor: pointer;
 }
+
+.table.rounded-table {
+  overflow: visible !important;
+}

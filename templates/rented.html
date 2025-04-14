@@ -15,10 +15,10 @@
           <th>Cliente</th>
           <th>Retirada prevista</th>
           <th>Devolução Prevista</th>
-          <th>Retirado?</th>
-          <th>Pago(R$)</th>
+          <th>Preço (R$)</th>
+          <th>Pago (R$)</th>
           <th>Observações</th>
-          <th>Ações</th>
+          <th></th>
         </tr>
       </thead>
       <tbody>
@@ -58,31 +58,22 @@
               <div class="atrasado-tag mt-1">Devolução atrasada</div>
             {% endif %}
           </td>
+          <!-- prettier-ignore -->
 
-          <!-- prettier-ignore -->
-          <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Retirado">{% if item.retirado %}Sim{% else %}Não{% endif %}</td>
-          <!-- prettier-ignore -->
-          <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Pagamento">
-            R$ {{ "%.2f"|format(item.pagamento|default(0)|float) }}
-            {% if item.pagamento and item.valor %}
-              {% set pagamento_float = item.pagamento | float %}
-              {% set valor_float = item.valor | float %}
-              {% if pagamento_float == valor_float %}
-                (Pagamento Total)
-              {% elif pagamento_float > 0 and pagamento_float < valor_float %}
-                (Pagamento Parcial)
-              {% else %}
-                (Não Pago)
-              {% endif %}
-            {% else %}
-              (Não Pago)
-            {% endif %}
+          <td class="open-modal position-relative" data-item='{{ item | tojson | safe }}' data-label="Preço (R$)">
+            {{ item.valor | round(2) | string | replace('.', ',') }} </td>
+
+          <td class="open-modal" data-item="{{ item | tojson | safe }}" data-label="Pagamento">
+            {{ item.pagamento | round(2) | string | replace('.', ',') }} {% if item.pagamento is not none and item.valor is not none %} {% if
+            item.pagamento == item.valor %} (Pagamento Total) {% elif item.pagamento > 0 and item.pagamento < item.valor %} (Pagamento Parcial) {%
+            else %} (Não Pago) {% endif %} {% else %} (Não Pago) {% endif %}
           </td>
 
           <!-- prettier-ignore -->
           <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Observações">
             {{ item.comments | default('', true) | truncate(10, True) }}
           </td>
+          <!--botoes de açao -->
 
           <td data-label="Ações">
             <div class="d-flex flex-wrap gap-2 justify-content-center align-items-center">

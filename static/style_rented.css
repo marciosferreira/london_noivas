@@ -220,8 +220,15 @@ h1.h3 {
   background-color: red;
 }
 
-/* Exemplo style_inventario.css ou global */
+/* Exemplo style_inventory.css ou global */
 .action-button.neutral {
   background-color: #6c757d; /* cinza Bootstrap */
   color: #fff;
+}
+.table-responsive {
+  overflow: visible !important;
+}
+
+.table.rounded-table {
+  overflow: visible !important;
 }

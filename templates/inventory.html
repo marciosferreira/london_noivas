@@ -1,9 +1,9 @@
 {% extends "base.html" %} {% block title %}Itens Disponíveis{% endblock %} {% block styles %}
-<link rel="stylesheet" href="{{ url_for('static', filename='style_inventario.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='style_inventory.css') }}" />
 
 {% endblock %} {% block content %}
 <div class="container mt-3">
-  <h2 class="mb-4">Inventário (itens disponíveis por data)</h2>
+  <h2 class="mb-4">Inventário de itens</h2>
 
   {% set show_add_button = True %} {% set add_route = url_for('add_item') %} {% include 'components/item_filter_section.html' %}
 
@@ -15,9 +15,9 @@
           <th>Imagem</th>
           <th>Item ID#</th>
           <th>Descrição</th>
-          <th>Valor</th>
+          <th>Preço (R$)</th>
           <th>Comentários do item</th>
-          <th>Ações</th>
+          <th></th>
         </tr>
       </thead>
       <tbody>
@@ -35,14 +35,16 @@
             />
             {% endif %}
           </td>
-          <td data-label="Item ID#">{{ item.item_custom_id or '-' }}</td>
+          <td data-label="Item ID#">{{ '' if item.item_custom_id == 'None' else item.item_custom_id or '' }}</td>
 
           <td data-label="Descrição" style="white-space: pre-wrap; text-align: left">{{ item.description }}</td>
           <td data-label="Valor">{{ item.valor }}</td>
-          <td data-label="Comentários do item" style="white-space: pre-wrap; text-align: left">{{ item.comments }}</td>
+          <td data-label="Comentários do item" style="white-space: pre-wrap; text-align: left">
+            {{ '' if item.item_obs == 'None' else item.item_obs or '' }}
+          </td>
           <td data-label="Ações">
             <div class="d-flex flex-wrap gap-2 justify-content-center align-items-center">
-              {% set show_delete = True %} {% set show_edit_item = True %} {% set show_rent = True %} {% set show_archive = True %} {% set
+              {% set show_delete_item = True %} {% set show_edit_item = True %} {% set show_rent = True %} {% set show_archive = True %} {% set
               show_consult = True %} {% include 'components/action_buttons.html' with context %}
             </div>
           </td>
@@ -55,7 +57,7 @@
   </div>
 
   <!-- Paginação -->
-  {% set route_name = 'inventario' %} {% include 'components/pagination.html' with context %}
+  {% set route_name = 'inventory' %} {% include 'components/pagination.html' with context %}
   <div style="height: 3rem"></div>
 </div>
 

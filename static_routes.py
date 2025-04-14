@@ -96,7 +96,6 @@ def init_static_routes(app, ses_client, clients_table, transactions_table, itens
 
     @app.route("/")
     def index():
-        print("JJJJJJJJJJJJJJJJJJJJJJ")
         from boto3.dynamodb.conditions import Key
 
         stats = {}

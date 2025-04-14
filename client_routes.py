@@ -203,6 +203,45 @@ def init_client_routes(
 
             try:
                 clients_table.put_item(Item=cliente)
+                # caso o user decida alterar todos os clientes na db
+                # Campos do cliente que precisam ser atualizados nas transações
+                if request.form.get("update_all_transactions"):
+                    client_fields = [
+                        "client_address",
+                        "client_cnpj",
+                        "client_cpf",
+                        "client_email",
+                        "client_id",
+                        "client_name",
+                        "client_obs",
+                        "client_tel",
+                    ]
+
+                    # Query no GSI client_id-index para buscar transações relacionadas
+                    response = transactions_table.query(
+                        IndexName="client_id-index",
+                        KeyConditionExpression="client_id = :client_id_val",
+                        ExpressionAttributeValues={":client_id_val": client_id},
+                    )
+
+                    transacoes_relacionadas = response.get("Items", [])
+
+                    for transacao in transacoes_relacionadas:
+                        update_expr = [
+                            f"{key} = :{key}" for key in client_fields if key in cliente
+                        ]
+                        expr_values = {
+                            f":{key}": cliente[key]
+                            for key in client_fields
+                            if key in cliente
+                        }
+
+                        transactions_table.update_item(
+                            Key={"transaction_id": transacao["transaction_id"]},
+                            UpdateExpression="SET " + ", ".join(update_expr),
+                            ExpressionAttributeValues=expr_values,
+                        )
+
                 flash("Cliente atualizado com sucesso!", "success")
                 # return redirect(url_for("listar_clientes"))
                 return redirect(next_page)

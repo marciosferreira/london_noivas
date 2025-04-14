@@ -14,6 +14,8 @@ from flask import (
 )
 import json
 
+from decimal import Decimal
+
 from utils import get_user_timezone
 
 
@@ -100,11 +102,11 @@ def init_item_routes(
             page="trash_transactions",
         )
 
-    @app.route("/inventario")
-    def inventario():
+    @app.route("/inventory")
+    def inventory():
         return list_raw_itens(
             ["available"],
-            "inventario.html",
+            "inventory.html",
             "Inventário",
             itens_table,
             transactions_table,
@@ -120,7 +122,7 @@ def init_item_routes(
 
         # Extrair a última parte da URL de next_page
         origin = next_page.rstrip("/").split("/")[-1]
-        origin_status = "available" if origin == "inventario" else "archive"
+        origin_status = "available" if origin == "inventory" else "archive"
         print(origin_status)
 
         # Obter o user_id e account_id do usuário logado da sessão
@@ -184,8 +186,12 @@ def init_item_routes(
 
     @app.route("/edit_transaction/<transaction_id>", methods=["GET", "POST"])
     def edit_transaction(transaction_id):
+
         if not session.get("logged_in"):
             return redirect(url_for("login"))
+
+        valor_str = request.form.get("valor", "").replace(",", ".")
+        pagamento_str = request.form.get("pagamento", "").replace(",", ".")
 
         next_page = request.args.get("next", url_for("index"))
 
@@ -216,6 +222,7 @@ def init_item_routes(
 
         if request.method == "POST":
             # capturar campos do form
+            ret_date = request.form.get("ret_date")
             range_date = request.form.get("range_date")
             rental_str, return_str = range_date.split(" - ")
             rental_date = datetime.datetime.strptime(
@@ -225,40 +232,52 @@ def init_item_routes(
                 return_str.strip(), "%d/%m/%Y"
             ).strftime("%Y-%m-%d")
 
-            # capturar 'retirado' corretamente (True ou False)
-
             new_data = {
                 "rental_date": rental_date,
                 "return_date": return_date,
                 "dev_date": request.form.get("dev_date") or None,
-                "description": request.form.get("description", "").strip() or None,
-                "client_name": request.form.get("client_name") or None,
-                "client_tel": request.form.get("client_tel") or None,
-                "client_email": request.form.get("client_email") or None,
-                "client_address": request.form.get("client_address") or None,
-                "client_cpf": request.form.get("client_cpf") or None,
-                "client_cnpj": request.form.get("client_cnpj") or None,
                 "transaction_status": request.form.get("transaction_status") or "None",
-                "valor": request.form.get("valor", "").strip() or None,
-                "transaction_obs": request.form.get("transaction_obs", "").strip()
-                or None,
-                "pagamento": request.form.get("pagamento") or None,
-                "item_obs": request.form.get("item_obs", "").strip() or None,
-                "item_custom_id": request.form.get("item_custom_id", "").strip()
-                or None,
-                "image_url": handle_image_upload(
-                    request.files.get("image_file"), transaction.get("image_url", "N/A")
+                "valor": Decimal(valor_str) if valor_str else Decimal("0.0"),
+                "transaction_obs": request.form.get("transaction_obs", "").strip(),
+                "pagamento": (
+                    Decimal(pagamento_str) if pagamento_str else Decimal("0.0") or None
                 ),
             }
 
-            # Detectar mudanças ignorando pagamento e None igual a ''
+            # Adiciona o ret_date apenas se ele foi enviado
+            if ret_date:
+                new_data["ret_date"] = ret_date
+
+            # Detectar mudanças ignorando alguns campos
+            # Detectar mudanças ignorando transaction_status e pagamento para criar cópia
+            # Detectar mudanças ignorando transaction_status e pagamento para criar cópia
             changes = {
                 key: value
                 for key, value in new_data.items()
-                if key != "pagamento"
-                and transaction.get(key) != value
+                if transaction.get(key) != value
                 and not (transaction.get(key) == "" and value is None)
             }
+
+            if set(changes.keys()).issubset({"transaction_status", "pagamento"}):
+                update_expression = []
+                expression_values = {}
+
+                if "transaction_status" in changes:
+                    update_expression.append("transaction_status = :status")
+                    expression_values[":status"] = new_data["transaction_status"]
+
+                if "pagamento" in changes:
+                    update_expression.append("pagamento = :pagamento")
+                    expression_values[":pagamento"] = new_data["pagamento"]
+
+                transactions_table.update_item(
+                    Key={"transaction_id": transaction_id},
+                    UpdateExpression="SET " + ", ".join(update_expression),
+                    ExpressionAttributeValues=expression_values,
+                )
+
+                flash("Item atualizado com sucesso.", "success")
+                return redirect(next_page)
 
             if not changes:
                 flash("Nenhuma alteração foi feita.", "warning")
@@ -321,6 +340,43 @@ def init_item_routes(
                 ExpressionAttributeNames=expression_names,
             )
 
+            # Caso o usuário decida alterar todos os itens no db
+            # Campos do cliente que precisam ser atualizados nas transações
+            if request.form.get("update_all_transactions"):
+                item_fields = [
+                    "description",
+                    "image_url",
+                    "item_custom_id",
+                    "item_obs",
+                    "valor",
+                ]
+
+                # Filtrar os campos que foram alterados e fazem parte de item_fields
+                item_changes = {
+                    key: value for key, value in changes.items() if key in item_fields
+                }
+
+                if item_changes:
+                    response = transactions_table.query(
+                        IndexName="item_id-index",
+                        KeyConditionExpression="item_id = :item_id_val",
+                        ExpressionAttributeValues={":item_id_val": item_id},
+                    )
+
+                    transacoes_relacionadas = response.get("Items", [])
+
+                    for transacao in transacoes_relacionadas:
+                        update_expr = [f"{key} = :{key}" for key in item_changes.keys()]
+                        expr_values = {
+                            f":{key}": value for key, value in item_changes.items()
+                        }
+
+                        transactions_table.update_item(
+                            Key={"transaction_id": transacao["transaction_id"]},
+                            UpdateExpression="SET " + ", ".join(update_expr),
+                            ExpressionAttributeValues=expr_values,
+                        )
+
             flash("Item atualizado com sucesso.", "success")
             return redirect(next_page)
 
@@ -361,7 +417,6 @@ def init_item_routes(
             "description": request.form.get("description", "").strip() or None,
             "client_name": request.form.get("client_name") or None,
             "client_tel": request.form.get("client_tel") or None,
-            "retirado": request.form.get("retirado") or None,
             "valor": request.form.get("valor", "").strip() or None,
             "pagamento": request.form.get("pagamento") or None,
             "item_obs": request.form.get("item_obs", "").strip() or None,
@@ -383,7 +438,7 @@ def init_item_routes(
 
         if not item:
             flash("Item não encontrado.", "danger")
-            return redirect(url_for("inventario"))
+            return redirect(url_for("inventory"))
 
         if request.method == "POST":
             image_file = request.files.get(
@@ -475,7 +530,6 @@ def init_item_routes(
             "return_date": item.get("return_date"),
             "item_obs": item.get("item_obs"),
             "image_url": item.get("image_url"),
-            "retirado": item.get("retirado", False),
             "valor": item.get("valor"),
             "pagamento": item.get("pagamento"),
         }
@@ -485,6 +539,7 @@ def init_item_routes(
     ##################################################################################################
     @app.route("/rent/<item_id>", methods=["GET", "POST"])
     def rent(item_id):
+
         if not session.get("logged_in"):
             return redirect(url_for("login"))
 
@@ -494,7 +549,7 @@ def init_item_routes(
 
         if not item:
             flash("Item não encontrado.", "danger")
-            return redirect(url_for("inventario"))
+            return redirect(url_for("inventory"))
 
         # Consulta transações existentes para esse item com status "rented"
         response = transactions_table.query(
@@ -526,10 +581,12 @@ def init_item_routes(
             client_obs = request.form.get("client_obs", "").strip()
             transaction_status = request.form.get("transaction_status", "").strip()
             transaction_obs = request.form.get("transaction_obs", "").strip()
-
-            # retirado = True if request.form.get("retirado") else False
-            valor = request.form.get("valor")
-            pagamento = request.form.get("pagamento")
+            valor_str = request.form.get("valor", "").replace(",", ".")
+            pagamento_str = request.form.get("pagamento", "").replace(",", ".")
+            # Transforma em float ou 0.0 se vier vazio
+            # Usa Decimal
+            valor = Decimal(valor_str) if valor_str else Decimal("0.0")
+            pagamento = Decimal(pagamento_str) if pagamento_str else Decimal("0.0")
             item_obs = request.form.get("item_obs")
 
             try:
@@ -617,8 +674,12 @@ def init_item_routes(
                 }
             )
 
-            flash("Item <a href='/rented'>alugado</a> com sucesso!", "success")
-            return redirect(url_for("inventario"))
+            if transaction_status == "reserved":
+                flash("Item <a href='/reserved'>reservado</a> com sucesso!", "success")
+            else:
+                flash("Item <a href='/rented'>alugado</a> com sucesso!", "success")
+
+            return redirect(url_for("inventory"))
 
         return render_template("rent.html", item=item, reserved_ranges=reserved_ranges)
 
@@ -628,14 +689,14 @@ def init_item_routes(
         if not session.get("logged_in"):
             return redirect(url_for("login"))
 
-        next_page = request.args.get("next") or url_for("inventario")
+        next_page = request.args.get("next") or url_for("inventory")
 
         response = itens_table.get_item(Key={"item_id": item_id})
         item = response.get("Item")
 
         if not item:
             flash("Item não encontrado.", "danger")
-            return redirect(url_for("inventario"))
+            return redirect(url_for("inventory"))
 
         response = transactions_table.query(
             IndexName="item_id-index",
@@ -648,7 +709,7 @@ def init_item_routes(
 
         for tx in transactions:
             if (
-                tx.get("transaction_status") == "rented"
+                tx.get("transaction_status") in ["reserved", "rented"]
                 and tx.get("rental_date")
                 and tx.get("return_date")
             ):
@@ -885,7 +946,7 @@ def init_item_routes(
             print("before")
             print(previous_status)
             previous_status = (
-                "inventario" if previous_status == "available" else previous_status
+                "inventory" if previous_status == "available" else previous_status
             )
 
             print(previous_status)
@@ -894,7 +955,7 @@ def init_item_routes(
                 "rented": "Alugados",
                 "returned": "Devolvidos",
                 "historic": "Histórico",
-                "inventario": "Inventário",
+                "inventory": "Inventário",
                 "archive": "Arquivados",
             }
 
@@ -939,14 +1000,14 @@ def init_item_routes(
             # flash(f"Item {item_id} restaurado para {previous_status}.", "success")
             # Dicionário para mapear os valores a nomes associados
             previous_status = (
-                "inventario" if previous_status == "available" else previous_status
+                "inventory" if previous_status == "available" else previous_status
             )
 
             status_map = {
                 "rented": "Alugados",
                 "returned": "Devolvidos",
                 "historic": "Histórico",
-                "inventario": "Inventário",
+                "inventory": "Inventário",
                 "archive": "Arquivados",
             }
 
@@ -1327,8 +1388,6 @@ def listar_itens_per_transaction(
             else None
         )
 
-    print("PPPPPPPPPPPPP")
-
     def process_dates(item, today):
         for key in ["rental_date", "return_date", "dev_date"]:
             date_str = item.get(key)
@@ -1358,7 +1417,7 @@ def listar_itens_per_transaction(
 
         # Definir rental_message e rental_message_color
         rental_date = item.get("rental_date_obj")
-        if rental_date and not item.get("retirado"):
+        if rental_date and item.get("transaction_status") != "retired":
             if rental_date == today:
                 item["rental_message"] = "Retirada é hoje"
                 item["rental_message_color"] = "orange"
@@ -1394,7 +1453,6 @@ def listar_itens_per_transaction(
             "return_start_date": parse_date(request.args.get("return_start_date")),
             "return_end_date": parse_date(request.args.get("return_end_date")),
             "item_obs": request.args.get("item_obs"),
-            "retirado": request.args.get("retirado"),
             "transaction_obs": request.args.get("transaction_obs"),
             "transaction_status": request.args.get("transaction_status"),
         }
@@ -1478,8 +1536,6 @@ def listar_itens_per_transaction(
             elif filtro_pagamento == "não pago" and pagamento > 0:
                 continue
 
-            print(txn)
-
             resultado.append(process_dates(txn, today))
 
         return resultado
@@ -1499,13 +1555,7 @@ def listar_itens_per_transaction(
 
     transacoes = buscar_transacoes_por(account_id, status_list)
 
-    print("transções")
-    print(transacoes)
-
     itens_combinados = montar_transacoes_com_imagem(transacoes, filtros)
-
-    print("IC")
-    print(itens_combinados)
 
     filtrados = filtrar_por_categoria(itens_combinados, filtros["filter"])
 
