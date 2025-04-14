@@ -1,4 +1,4 @@
-{% extends "base.html" %} {% block title %} Transações iniciadas (itens alugados) {% endblock %} {% block styles %}
+{% extends "base.html" %} {% block title %} Itens alugados (retirados) {% endblock %} {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='style_rented.css') }}" />
 {% endblock %} {% block content %}
 <div class="container mt-3">
@@ -22,7 +22,7 @@
         </tr>
       </thead>
       <tbody>
-        {% for item in itens %} {{ item }}
+        {% for item in itens %}
         <tr>
           <td data-label="Imagem">
             {% if item.image_url and item.image_url != "N/A" %}

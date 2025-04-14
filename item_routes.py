@@ -39,7 +39,7 @@ def init_item_routes(
         return listar_itens_per_transaction(
             ["rented"],
             "rented.html",
-            "Transações iniciadas (itens alugados)",
+            "Itens alugados (retirados)",
             transactions_table,
             itens_table,
             users_table,
@@ -51,7 +51,7 @@ def init_item_routes(
         return listar_itens_per_transaction(
             ["reserved"],
             "reserved.html",
-            "Itens reservados",
+            "Itens reservados (não retirados)",
             transactions_table,
             users_table,
             itens_table,
@@ -63,7 +63,7 @@ def init_item_routes(
         return listar_itens_per_transaction(
             ["returned"],
             "returned.html",
-            "Transações encerradas (itens devolvidos)",
+            "Itens devolvidos",
             transactions_table,
             users_table,
             itens_table,
