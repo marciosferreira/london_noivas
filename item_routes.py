@@ -1268,7 +1268,7 @@ def init_item_routes(
         response = transactions_table.query(
             IndexName="account_id-index",  # Usando o GSI para buscar por account_id
             KeyConditionExpression="#account_id = :account_id",
-            FilterExpression="#transaction_status IN (:rented, :returned)",
+            FilterExpression="#transaction_status IN (:rented, :returned, :reserved)",
             ExpressionAttributeNames={
                 "#account_id": "account_id",
                 "#transaction_status": "transaction_status",
@@ -1277,38 +1277,71 @@ def init_item_routes(
                 ":account_id": account_id,
                 ":rented": "rented",
                 ":returned": "returned",
+                ":reserved": "reserved",
             },
         )
 
         transactions = response.get("Items", [])
 
-        # Inicializar os totais
-        total_paid = 0  # Total recebido
-        total_due = 0  # Total a receber
+        # Buscar novos clientes no período
+        clients_response = users_table.query(
+            IndexName="account_id-index",
+            KeyConditionExpression=Key("account_id").eq(account_id),
+        )
+
+        new_clients = []
+        for client in clients_response.get("Items", []):
+            try:
+                created_at = datetime.datetime.fromisoformat(
+                    client.get("created_at")
+                ).date()
+                if start_date <= created_at <= end_date:
+                    new_clients.append(client)
+            except Exception as e:
+                print("Erro ao processar created_at:", e)
+
+        num_new_clients = len(new_clients)
+
+        total_paid = 0
+        total_due = 0
+        num_transactions = 0
+        sum_valor = 0
+        status_counter = {"rented": 0, "returned": 0, "reserved": 0}
+        item_counter = {}
 
         for transaction in transactions:
             try:
-                # Considerar apenas registros dentro do período
-                rental_date = datetime.datetime.strptime(
-                    transaction.get("rental_date"), "%Y-%m-%d"
+                transaction_date = datetime.datetime.strptime(
+                    transaction.get("created_at"), "%Y-%m-%d %H:%M:%S"
                 ).date()
-                if start_date <= rental_date <= end_date:
+
+                if start_date <= transaction_date <= end_date:
+                    # Soma transações válidas no período
+                    num_transactions += 1
+
                     valor = float(transaction.get("valor", 0))
-                    pagamento = str(transaction.get("pagamento", "") or "").lower()
+                    pagamento = float(transaction.get("pagamento", 0))
 
-                    # Calcular o total recebido
-                    if pagamento == "pago 100%":
-                        total_paid += valor
-                    elif pagamento == "pago 50%":
-                        total_paid += valor * 0.5
+                    total_paid += pagamento
+                    total_due += max(0, valor - pagamento)
+                    sum_valor += valor  # Total dos valores dos itens (para preço médio)
 
-                    # Calcular o total a receber
-                    if pagamento == "não pago":
-                        total_due += valor
-                    elif pagamento == "pago 50%":
-                        total_due += valor * 0.5
+                    # Contador por status
+                    status_counter[
+                        transaction.get("transaction_status", "unknown")
+                    ] += 1
+
+                    # Itens mais alugados
+                    item_id = transaction.get("item_id")
+                    if item_id:
+                        item_counter[item_id] = item_counter.get(item_id, 0) + 1
+
             except (ValueError, TypeError):
-                continue  # Ignorar registros com datas ou valores inválidos
+                continue
+
+        # Preço médio das transações (baseado no valor do item)
+        preco_medio = sum_valor / num_transactions if num_transactions else 0
+        total_general = total_paid + total_due
 
         # Total geral: recebido + a receber
         total_general = total_paid + total_due
@@ -1323,6 +1356,11 @@ def init_item_routes(
             total_general=total_general,
             start_date=start_date,
             end_date=end_date,
+            num_transactions=num_transactions,
+            preco_medio=preco_medio,
+            num_new_clients=num_new_clients,
+            status_counter=status_counter,
+            item_counter=item_counter,
         )
 
     @app.route("/query", methods=["POST"])

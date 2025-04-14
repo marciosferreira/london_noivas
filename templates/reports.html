@@ -19,17 +19,17 @@
     <!-- Wrapper para garantir espaçamento correto -->
     <div class="wrapper container mt-5">
       <!-- CONTEÚDO PRINCIPAL -->
-      <h2 class="text-center text-dark-blue">Relatórios de Recebimentos (R$)</h2>
+      <h2 class="mb-4">Relatórios do Sistema</h2>
 
       <!-- Formulário para seleção de datas -->
       <form method="POST" class="my-4">
         <div class="row">
           <div class="col-md-5">
-            <label for="start_date" class="form-label text-dark-blue">Data Inicial (alugado)</label>
+            <label for="start_date" class="form-label text-dark-blue">Data Inicial (criação da transação)</label>
             <input type="date" id="start_date" name="start_date" class="form-control" value="{{ start_date }}" />
           </div>
           <div class="col-md-5">
-            <label for="end_date" class="form-label text-dark-blue">Data Final (alugado)</label>
+            <label for="end_date" class="form-label text-dark-blue">Data Final (criação da transação)</label>
             <input type="date" id="end_date" name="end_date" class="form-control" value="{{ end_date }}" />
           </div>
           <div class="col-md-2 d-flex align-items-end mt-2 mt-md-0">
@@ -38,37 +38,119 @@
         </div>
       </form>
 
-      <!-- Exibir total pago e a receber -->
-      <div class="card mx-auto mt-4 shadow-sm" style="max-width: 400px">
-        <div class="card-body">
-          <h5 class="card-title text-center">Resumo Financeiro</h5>
-          <p class="card-text">
-            Total Recebido:
-            <strong>R$ {{ "%.2f"|format(total_paid) }}</strong>
-          </p>
-          <p class="card-text">
-            Total à Receber:
-            <strong>R$ {{ "%.2f"|format(total_due) }}</strong>
-          </p>
-          <hr />
-          <p class="card-text">
-            <strong>Total Geral:</strong>
-            <span style="font-size: 1.2em">R$ {{ "%.2f"|format(total_general) }}</span>
-          </p>
-          <p class="card-text text-muted">
-            <small>
-              Período: {{ start_date.strftime("%d/%m/%Y") }} a {{ end_date.strftime("%d/%m/%Y") }} ({{ (end_date - start_date).days }} dias)
-            </small>
-          </p>
+      <!-- Período da Pesquisa -->
+      <div class="text-center mt-3 text-muted">
+        <small>Período: {{ start_date.strftime("%d/%m/%Y") }} a {{ end_date.strftime("%d/%m/%Y") }} ({{ (end_date - start_date).days }} dias)</small>
+      </div>
+
+      <!-- Form de Datas -->
+      <!-- Mantém o mesmo que você já tem -->
+
+      <!-- Resumo Financeiro -->
+      <div class="row text-center g-3 mt-4">
+        <div class="col-md-4">
+          <div class="card shadow-sm">
+            <div class="card-body">
+              <h5>Total Recebido</h5>
+              <h3 class="text-success">R$ {{ "%.2f"|format(total_paid) }}</h3>
+            </div>
+          </div>
         </div>
+        <div class="col-md-4">
+          <div class="card shadow-sm">
+            <div class="card-body">
+              <h5>Total à Receber</h5>
+              <h3 class="text-danger">R$ {{ "%.2f"|format(total_due) }}</h3>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card shadow-sm">
+            <div class="card-body">
+              <h5>Total Geral</h5>
+              <h3 class="text-dark">R$ {{ "%.2f"|format(total_general) }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Informações Extras -->
+      <div class="row text-center g-3 mt-4">
+        <div class="col-md-4">
+          <div class="card shadow-sm">
+            <div class="card-body">
+              <h5>Transações no Período</h5>
+              <h3>{{ num_transactions }}</h3>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card shadow-sm">
+            <div class="card-body">
+              <h5>Preço Médio dos Itens</h5>
+              <h3>R$ {{ "%.2f"|format(preco_medio) }}</h3>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card shadow-sm">
+            <div class="card-body">
+              <h5>Novos Clientes no período</h5>
+              <h3>{{ num_new_clients }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Gráfico -->
+      <div class="mt-5 text-center">
+        <h4>Distribuição por Status das Transações</h4>
+
+        {% if status_counter is defined and status_counter.values() | sum > 0 %}
+
+        <div style="max-width: 400px; margin: auto">
+          <canvas id="statusChart" width="300" height="300"></canvas>
+        </div>
+        {% else %}
+        <p class="text-muted mt-4">Aguardando dados...</p>
+        {% endif %}
       </div>
     </div>
 
     <!-- Espaçamento extra para evitar que o footer fique colado -->
     <div class="spacer" style="height: 50px"></div>
 
-    <!-- Importa o Footer -->
-    {% include 'footer.html' %}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+      const statusData = {{ status_counter|tojson }};
+
+      // Mapeia os labels para português
+      const statusLabelsMap = {
+        rented: "Retirado",
+        returned: "Devolvido",
+        reserved: "Reservado"
+      };
+
+      if (Object.keys(statusData).length > 0) {
+        const ctx = document.getElementById('statusChart').getContext('2d');
+
+        new Chart(ctx, {
+          type: 'pie',
+          data: {
+            labels: Object.keys(statusData).map(key => statusLabelsMap[key] || key),
+            datasets: [{
+              data: Object.values(statusData),
+              backgroundColor: ['#4CAF50', '#FFC107', '#2196F3'],
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: true
+          }
+        });
+      }
+    </script>
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -82,5 +164,8 @@
         submitBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Carregando...`;
       });
     </script>
+
+    <!-- Importa o Footer -->
+    {% include 'footer.html' %}
   </body>
 </html>

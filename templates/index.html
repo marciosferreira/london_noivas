@@ -19,32 +19,54 @@
   <div class="container mt-5 d-flex justify-content-center">
     <div class="table-responsive" style="max-width: 600px; width: 100%">
       <h4 class="text-center mb-3">Suas Estatísticas, {{ username }}</h4>
-      <table class="table table-bordered text-center align-middle bg-white shadow rounded">
-        <thead class="table-light">
-          <tr>
-            <th>Descrição</th>
-            <th>Quantidade</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><a href="{{ url_for('listar_clientes') }}" class="text-decoration-none">Clientes cadastrados</a></td>
-            <td>{{ stats.total_clients }}</td>
-          </tr>
-          <tr>
-            <td><a href="{{ url_for('inventory') }}" class="text-decoration-none">Produtos cadastrados</a></td>
-            <td>{{ stats.total_items }}</td>
-          </tr>
-          <tr>
-            <td><a href="{{ url_for('rented') }}" class="text-decoration-none">Itens Reservados</a></td>
-            <td>{{ stats.total_rented }}</td>
-          </tr>
-          <tr>
-            <td><a href="{{ url_for('returned') }}" class="text-decoration-none">Itens devolvidos</a></td>
-            <td>{{ stats.total_returned }}</td>
-          </tr>
-        </tbody>
-      </table>
+
+      <div class="container mt-4">
+        <div class="row g-3 text-center">
+          <div class="col-12 col-sm-6 col-md-3">
+            <a href="{{ url_for('listar_clientes') }}" class="text-decoration-none">
+              <div class="card shadow-sm h-100">
+                <div class="card-body">
+                  <h6 class="mb-1">Clientes Cadastrados</h6>
+                  <h2>{{ stats.total_clients }}</h2>
+                </div>
+              </div>
+            </a>
+          </div>
+
+          <div class="col-12 col-sm-6 col-md-3">
+            <a href="{{ url_for('inventory') }}" class="text-decoration-none">
+              <div class="card shadow-sm h-100">
+                <div class="card-body">
+                  <h6 class="mb-1">Produtos Cadastrados</h6>
+                  <h2>{{ stats.total_items }}</h2>
+                </div>
+              </div>
+            </a>
+          </div>
+
+          <div class="col-12 col-sm-6 col-md-3">
+            <a href="{{ url_for('rented') }}" class="text-decoration-none">
+              <div class="card shadow-sm h-100">
+                <div class="card-body">
+                  <h6 class="mb-1">Itens Reservados</h6>
+                  <h2>{{ stats.total_rented }}</h2>
+                </div>
+              </div>
+            </a>
+          </div>
+
+          <div class="col-12 col-sm-6 col-md-3">
+            <a href="{{ url_for('returned') }}" class="text-decoration-none">
+              <div class="card shadow-sm h-100">
+                <div class="card-body">
+                  <h6 class="mb-1">Itens Devolvidos</h6>
+                  <h2>{{ stats.total_returned }}</h2>
+                </div>
+              </div>
+            </a>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -55,42 +77,42 @@
     <div class="row row-cols-2 row-cols-sm-2 row-cols-md-4 g-4 text-center">
       <div class="col">
         <a href="{{ url_for('reserved') }}">
-          <img src="/static/icons/reserved.png" alt="Reservados" class="img-fluid mb-2 rounded shadow" />
+          <img src="/static/icons/reserved.png" alt="Reservados" class="img-fluid img-quick-access mb-2 rounded shadow" />
         </a>
       </div>
       <div class="col">
         <a href="{{ url_for('rented') }}">
-          <img src="/static/icons/rented.png" alt="Retirados" class="img-fluid mb-2 rounded shadow" />
+          <img src="/static/icons/rented.png" alt="Retirados" class="img-fluid img-quick-access mb-2 rounded shadow" />
         </a>
       </div>
       <div class="col">
         <a href="{{ url_for('returned') }}">
-          <img src="/static/icons/returned.png" alt="Devolvidos" class="img-fluid mb-2 rounded shadow" />
+          <img src="/static/icons/returned.png" alt="Devolvidos" class="img-fluid img-quick-access mb-2 rounded shadow" />
         </a>
       </div>
       <div class="col">
         <a href="{{ url_for('inventory') }}">
-          <img src="/static/icons/inventory.png" alt="Inventário" class="img-fluid mb-2 rounded shadow" />
+          <img src="/static/icons/inventory.png" alt="Inventário" class="img-fluid img-quick-access mb-2 rounded shadow" />
         </a>
       </div>
       <div class="col">
         <a href="{{ url_for('listar_clientes') }}">
-          <img src="/static/icons/clients.png" alt="Clientes" class="img-fluid mb-2 rounded shadow" />
+          <img src="/static/icons/clients.png" alt="Clientes" class="img-fluid img-quick-access mb-2 rounded shadow" />
         </a>
       </div>
       <div class="col">
         <a href="{{ url_for('reports') }}">
-          <img src="/static/icons/reports.png" alt="Relatórios" class="img-fluid mb-2 rounded shadow" />
+          <img src="/static/icons/reports.png" alt="Relatórios" class="img-fluid img-quick-access mb-2 rounded shadow" />
         </a>
       </div>
       <div class="col">
         <a href="{{ url_for('archive') }}">
-          <img src="/static/icons/archive.png" alt="Arquivados" class="img-fluid mb-2 rounded shadow" />
+          <img src="/static/icons/archive.png" alt="Arquivados" class="img-fluid img-quick-access mb-2 rounded shadow" />
         </a>
       </div>
       <div class="col">
         <a href="{{ url_for('adjustments') }}">
-          <img src="/static/icons/adjustments.png" alt="Ajustes" class="img-fluid mb-2 rounded shadow" />
+          <img src="/static/icons/adjustments.png" alt="Ajustes" class="img-fluid img-quick-access mb-2 rounded shadow" />
         </a>
       </div>
     </div>

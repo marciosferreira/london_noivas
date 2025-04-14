@@ -146,3 +146,16 @@ body {
   flex-wrap: wrap;
   gap: 8px; /* Reduz o espaçamento entre os botões */
 }
+
+.flash-fixed {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 1055; /* acima de quase tudo */
+  max-width: 300px;
+}
+
+.flash-fixed .alert {
+  margin-bottom: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}

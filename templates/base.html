@@ -72,18 +72,14 @@
     <div class="admin-impersonation-bar">...</div>
     {% endif %} {% include 'header.html' %} {% endif %}
 
-    <!-- Flash messages -->
-    <div class="container flash-wrapper">
-      {% with messages = get_flashed_messages(with_categories=true) %} {% if messages %}
-      <div class="flashes mb-4">
-        {% for category, message in messages %}
-        <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
-          {{ message|safe }}
-          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
-        </div>
-        {% endfor %}
+    <!-- Flash messages no canto inferior direito -->
+    <div class="flash-fixed">
+      {% with messages = get_flashed_messages(with_categories=true) %} {% if messages %} {% for category, message in messages %}
+      <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+        {{ message|safe }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
       </div>
-      {% endif %} {% endwith %}
+      {% endfor %} {% endif %} {% endwith %}
     </div>
 
     <!-- Conteúdo principal -->

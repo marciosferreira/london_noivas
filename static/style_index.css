@@ -105,3 +105,8 @@ body {
 body {
   background-color: #e9eff5; /* corzinha suave */
 }
+
+.img-quick-access {
+  max-width: 200px; /* diminui o tamanho máximo */
+  height: auto; /* mantém a proporção */
+}
