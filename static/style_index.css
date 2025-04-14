@@ -107,6 +107,6 @@ body {
 }
 
 .img-quick-access {
-  max-width: 170px; /* diminui o tamanho máximo */
+  max-width: 150px; /* diminui o tamanho máximo */
   height: auto; /* mantém a proporção */
 }
