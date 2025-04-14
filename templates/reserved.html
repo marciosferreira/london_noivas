@@ -13,7 +13,7 @@
         <tr>
           <th>Imagem</th>
           <th>Cliente</th>
-          <th>Devolução Prevista</th>
+          <th>Retirada Prevista</th>
           <th>Preço (R$)</th>
           <th>Pago (R$)</th>
           <th>Observações</th>
@@ -42,11 +42,13 @@
 
           <!-- prettier-ignore -->
 
-          <td class="open-modal position-relative" data-item='{{ item | tojson | safe }}' data-label="Devolução Prevista">
-            {{ item.return_date_formatted }}
-
-            {% if item.overdue %}
-              <div class="atrasado-tag mt-1">Devolução atrasada</div>
+          <!-- prettier-ignore -->
+          <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Retirada Prevista">
+            {{ item.rental_date_formatted }}
+            {% if item.rental_message %}
+              <div class="rental-message mt-1 {{ item.rental_message_color }}">
+                {{ item.rental_message }}
+              </div>
             {% endif %}
           </td>
           <!-- prettier-ignore -->

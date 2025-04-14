@@ -9,7 +9,7 @@
         href="{{ url_for('rent', item_id=item.item_id, rent='true') }}"
         onclick="return checkTransactionLimit(event);"
       >
-        Alugar/Reservar
+        Reservar/Retirar
       </a>
     </li>
     {% endif %} {% if show_mark_returned %}
@@ -28,7 +28,7 @@
     <a
       href="#"
       class="dropdown-item text-success"
-      title="Alugar"
+      title="Retirar"
       onclick="confirmarAcao('{{ url_for('mark_rented', transaction_id=item.transaction_id, next=request.url) }}'); return false;"
     >
       Marcar como retirado

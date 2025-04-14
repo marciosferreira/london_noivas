@@ -90,7 +90,7 @@ def init_status_routes(app, itens_table, transactions_table, users_table):
             ExpressionAttributeValues=expression_values,
         )
 
-        flash("Item <a href='/rented'>alugado</a> com sucesso.", "success")
+        flash("Item <a href='/rented'>retirado</a> com sucesso.", "success")
         return redirect(next_page)
 
     @app.route("/mark_archived/<item_id>", methods=["POST", "GET"])

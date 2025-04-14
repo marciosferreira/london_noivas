@@ -39,7 +39,7 @@ def init_item_routes(
         return listar_itens_per_transaction(
             ["rented"],
             "rented.html",
-            "Itens alugados (retirados)",
+            "Itens retirados",
             transactions_table,
             itens_table,
             users_table,
@@ -243,6 +243,10 @@ def init_item_routes(
                     Decimal(pagamento_str) if pagamento_str else Decimal("0.0") or None
                 ),
             }
+            # Se a transação foi marcada como "reserved", remove o campo dev_date
+
+            if new_data.get("transaction_status") in ["reserved", "rented"]:
+                new_data["dev_date"] = None
 
             # Adiciona o ret_date apenas se ele foi enviado
             if ret_date:
@@ -677,7 +681,7 @@ def init_item_routes(
             if transaction_status == "reserved":
                 flash("Item <a href='/reserved'>reservado</a> com sucesso!", "success")
             else:
-                flash("Item <a href='/rented'>alugado</a> com sucesso!", "success")
+                flash("Item <a href='/rented'>retirado</a> com sucesso!", "success")
 
             return redirect(url_for("inventory"))
 
@@ -952,7 +956,7 @@ def init_item_routes(
             print(previous_status)
 
             status_map = {
-                "rented": "Alugados",
+                "rented": "Retirados",
                 "returned": "Devolvidos",
                 "historic": "Histórico",
                 "inventory": "Inventário",
@@ -1004,7 +1008,7 @@ def init_item_routes(
             )
 
             status_map = {
-                "rented": "Alugados",
+                "rented": "Retirados",
                 "returned": "Devolvidos",
                 "historic": "Histórico",
                 "inventory": "Inventário",
@@ -1054,7 +1058,7 @@ def init_item_routes(
             )
 
             status_map = {
-                "rented": "Alugados",
+                "rented": "Retirados",
                 "returned": "Devolvidos",
             }
 
@@ -1207,7 +1211,7 @@ def init_item_routes(
             print("✅ Registros trocados com sucesso, mantendo os campos protegidos!")
 
             status_map = {
-                "rented": "Alugados",
+                "rented": "Retirados",
                 "returned": "Devolvidos",
             }
 
@@ -1406,7 +1410,9 @@ def listar_itens_per_transaction(
                 item[f"{key}_formatted"] = "N/A"
                 if key == "rental_date":
                     item["rental_date_obj"] = today
-
+        print("TTTTTTTToday")
+        print(today)
+        print(item["return_date_obj"])
         # Definir overdue
         if item.get("dev_date_obj"):
             item["overdue"] = False
@@ -1417,14 +1423,14 @@ def listar_itens_per_transaction(
 
         # Definir rental_message e rental_message_color
         rental_date = item.get("rental_date_obj")
-        if rental_date and item.get("transaction_status") != "retired":
+        if rental_date and item.get("transaction_status") not in ["rented"]:
             if rental_date == today:
                 item["rental_message"] = "Retirada é hoje"
                 item["rental_message_color"] = "orange"
             elif rental_date > today:
                 dias = (rental_date - today).days
                 item["rental_message"] = (
-                    "Faltam 1 dia" if dias == 1 else f"Faltam {dias} dias"
+                    "Falta 1 dia" if dias == 1 else f"Faltam {dias} dias"
                 )
                 item["rental_message_color"] = "blue" if dias > 1 else "yellow"
             elif rental_date < today:
