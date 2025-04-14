@@ -1641,14 +1641,15 @@ def listar_itens_per_transaction(
 def list_raw_itens(status_list, template, title, itens_table, transactions_table):
     if not session.get("logged_in"):
         return redirect(url_for("login"))
+    print("RAW")
 
     account_id = session.get("account_id")
     if not account_id:
         print("Erro: Usuário não autenticado corretamente.")
         return redirect(url_for("login"))
 
+    # Buscar transações relevantes
     total_relevant_transactions = 0
-
     try:
         response = transactions_table.query(
             IndexName="account_id-index",
@@ -1660,17 +1661,24 @@ def list_raw_itens(status_list, template, title, itens_table, transactions_table
         total_relevant_transactions = sum(
             1
             for txn in transactions
-            if txn.get("transaction_status") in ["rented", "returned"]
+            if txn.get("transaction_status") in ["rented", "returned", "reserved"]
         )
 
     except Exception as e:
         print(f"Erro ao consultar transações: {e}")
 
-    # Parâmetros de paginação
-    page = int(request.args.get("page", 1))
-    per_page = 5
+    # Buscar total de itens com status available ou archive (sem filtros)
+    total_items = 0
+    for status in ["available", "archive"]:
+        response = itens_table.query(
+            IndexName="account_id-status-index",
+            KeyConditionExpression="#account_id = :account_id AND #status = :status",
+            ExpressionAttributeNames={"#account_id": "account_id", "#status": "status"},
+            ExpressionAttributeValues={":account_id": account_id, ":status": status},
+        )
+        total_items += len(response.get("Items", []))
 
-    # Parâmetros de filtros opcionais
+    # Filtros opcionais
     item_custom_id = request.args.get("item_custom_id")
     description = request.args.get("description")
     item_obs = request.args.get("item_obs")
@@ -1678,18 +1686,13 @@ def list_raw_itens(status_list, template, title, itens_table, transactions_table
     max_valor = request.args.get("max_valor")
 
     filter_expressions = []
-    expression_attr_names = {"#account_id": "account_id"}
-    expression_attr_values = {":account_id": account_id}
-
-    # Filtrar por status "available" ou "archived"
-    status_filter = []
-    for i, status in enumerate(["available", "archived"]):
-        status_key = f":status{i}"
-        expression_attr_values[status_key] = status
-        status_filter.append(f"#status = {status_key}")
-
-    expression_attr_names["#status"] = "status"
-    filter_expressions.append(f"({' OR '.join(status_filter)})")
+    expression_attr_names = {
+        "#account_id": "account_id",
+        "#status": "status",
+    }
+    expression_attr_values = {
+        ":account_id": account_id,
+    }
 
     if item_custom_id:
         expression_attr_names["#item_custom_id"] = "item_custom_id"
@@ -1708,19 +1711,23 @@ def list_raw_itens(status_list, template, title, itens_table, transactions_table
 
     filter_expression = " AND ".join(filter_expressions) if filter_expressions else None
 
-    scan_kwargs = {
-        "IndexName": "account_id-index",
-        "KeyConditionExpression": "#account_id = :account_id",
-        "ExpressionAttributeNames": expression_attr_names,
-        "ExpressionAttributeValues": expression_attr_values,
-    }
+    # Buscar itens filtrados por cada status da status_list
+    items = []
+    for status in status_list:
+        scan_kwargs = {
+            "IndexName": "account_id-status-index",
+            "KeyConditionExpression": "#account_id = :account_id AND #status = :status",
+            "ExpressionAttributeNames": expression_attr_names,
+            "ExpressionAttributeValues": {**expression_attr_values, ":status": status},
+        }
 
-    if filter_expression:
-        scan_kwargs["FilterExpression"] = filter_expression
+        if filter_expression:
+            scan_kwargs["FilterExpression"] = filter_expression
 
-    response = itens_table.query(**scan_kwargs)
-    items = response.get("Items", [])
+        response = itens_table.query(**scan_kwargs)
+        items.extend(response.get("Items", []))
 
+    # Filtrar por valor
     try:
         min_valor = float(min_valor) if min_valor else None
         max_valor = float(max_valor) if max_valor else None
@@ -1745,8 +1752,6 @@ def list_raw_itens(status_list, template, title, itens_table, transactions_table
 
     items = filtered_items
 
-    total_items = len(items)
-
     if not items:
         flash("Nenhum item encontrado com os filtros aplicados.", "warning")
         return render_template(
@@ -1758,10 +1763,13 @@ def list_raw_itens(status_list, template, title, itens_table, transactions_table
             add_route=url_for("add_item"),
             next_url=request.url,
             total_relevant_transactions=total_relevant_transactions,
-            total_items=0,
+            total_items=total_items,
         )
 
-    total_pages = (total_items + per_page - 1) // per_page
+    # Paginação
+    page = int(request.args.get("page", 1))
+    per_page = 5
+    total_pages = (len(items) + per_page - 1) // per_page
     start = (page - 1) * per_page
     end = start + per_page
     paginated_items = items[start:end]

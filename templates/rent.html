@@ -398,4 +398,42 @@
   });
 </script>
 
+
+
+<script>
+  const clientNameInput = document.getElementById('client_name');
+  const clientIdInput = document.getElementById('client_id');
+
+  // Sempre que digitar no nome do cliente, limpa o client_id
+  clientNameInput.addEventListener('input', function () {
+    clientIdInput.value = "";
+  });
+
+  // Ao sair do campo, verifica se precisa alertar
+  clientNameInput.addEventListener('blur', function () {
+    const input = this;
+
+    setTimeout(() => {
+      const clientId = clientIdInput.value.trim();
+      const clientName = input.value.trim();
+
+      if (clientName && !clientId) {
+        const confirmCreate = confirm("O cliente informado não foi encontrado no banco de dados. Deseja criar um novo cliente com os dados preenchidos?");
+        if (!confirmCreate) {
+          input.value = "";
+          document.getElementById('client_tel').value = "";
+          document.getElementById('client_email').value = "";
+          document.getElementById('client_address').value = "";
+          document.getElementById('client_cpf').value = "";
+          document.getElementById('client_cnpj').value = "";
+          document.getElementById('client_obs').value = "";
+          clientIdInput.value = "";
+        }
+      }
+    }, 200); // espera 200ms pro clique na sugestão acontecer
+  });
+
+</script>
+
+
 {% endblock %}

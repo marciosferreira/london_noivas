@@ -106,7 +106,7 @@ def init_static_routes(app, ses_client, clients_table, transactions_table, itens
             username = session.get("username", None)
 
             response = itens_table.query(
-                IndexName="account_id-index",
+                IndexName="account_id-status-index",
                 KeyConditionExpression=Key("account_id").eq(account_id),
             )
 
