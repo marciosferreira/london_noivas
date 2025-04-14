@@ -1,4 +1,4 @@
-const CACHE_NAME = 'QQC-cache-v1';
+const CACHE_NAME = 'QQC-cache-v3';
 const urlsToCache = [
   '/static/style_base.css',
   '/static/style_header.css',
@@ -10,12 +10,9 @@ const urlsToCache = [
 ];
 
 // Instalação do Service Worker e cache dos recursos
-self.addEventListener('install', (event) => {
+self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      console.log('Abrindo cache');
-      return cache.addAll(urlsToCache);
-    })
+    caches.keys().then((cacheNames) => Promise.all(cacheNames.filter((name) => name !== CACHE_NAME).map((name) => caches.delete(name))))
   );
 });
 

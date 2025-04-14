@@ -1,22 +1,21 @@
-{% extends "base.html" %} {% block title %}Alugue QQC - Apresentação{% endblock %} {% block styles %}
+{% extends "base.html" %} {% block title %}Alugue QQC - Controle fácil dos seus aluguéis{% endblock %} {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='style_index.css') }}" />
 {% endblock %} {% block content %}
-<!-- Seção de destaque -->
-<section class="hero">
-  <h1>Alugue QQC</h1>
-  <h1>Gerenciador de aluguéis de itens diversos</h1>
-  <p>Alugue seus itens de forma simples e segura</p>
+<section class="hero text-center">
   {% if not session.get('logged_in') %}
-  <!-- Botão para login/cadastro se não estiver logado -->
-  <button class="btn btn-primary mt-3" onclick="window.location.href='{{ url_for('login') }}'">Entrar ou Cadastrar</button>
-  {% else %}
-
-  <!-- Event snippet for Clique cadastro conversion page -->
+  <h1>Alugue QQC</h1>
+  <h2>O sistema simples e barato para quem aluga qualquer coisa</h2>
+  <p class="mt-3">
+    Pare de perder tempo e dinheiro com sistemas complicados de gestão de aluguéis.
+    <br />
+    Aqui você controla tudo em poucos minutos, bem fácil.
+  </p>
+  <button class="btn btn-primary mt-4" onclick="window.location.href='{{ url_for('login') }}'">Entrar ou Criar Conta Grátis</button>
+  {% endif %} {% if session.get('logged_in') %}
   <script>
     gtag('event', 'conversion', { send_to: 'AW-1051093117/6kftCNiL_GUQ_dCZ9QM' });
   </script>
 
-  <!-- Tabela de estatísticas do usuário -->
   <div class="container mt-5 d-flex justify-content-center">
     <div class="table-responsive" style="max-width: 600px; width: 100%">
       <h4 class="text-center mb-3">Suas Estatísticas, {{ username }}</h4>
@@ -37,11 +36,11 @@
             <td>{{ stats.total_items }}</td>
           </tr>
           <tr>
-            <td><a href="{{ url_for('rented') }}" class="text-decoration-none">Transações iniciadas</a></td>
+            <td><a href="{{ url_for('rented') }}" class="text-decoration-none">Itens Reservados</a></td>
             <td>{{ stats.total_rented }}</td>
           </tr>
           <tr>
-            <td><a href="{{ url_for('returned') }}" class="text-decoration-none">Transações finalizadas</a></td>
+            <td><a href="{{ url_for('returned') }}" class="text-decoration-none">Itens devolvidos</a></td>
             <td>{{ stats.total_returned }}</td>
           </tr>
         </tbody>
@@ -50,26 +49,82 @@
   </div>
 
   {% endif %}
-</section>
 
-<!-- Seção com 3 colunas -->
-<section class="features container text-center mt-5">
-  <div class="row">
-    <div class="col-12 col-sm-6 col-md-4 d-flex flex-column align-items-center feature-box">
-      <img src="https://cdn-icons-png.flaticon.com/128/8781/8781533.png" alt="Grátis até 30 itens" class="feature-img" />
-      <h3 class="mt-3">Grátis até 30 transações</h3>
-      <p class="feature-text">Teste todo o sistema sem compromisso com até 30 transaçoes simultâneas.</p>
-    </div>
-    <div class="col-12 col-sm-6 col-md-4 d-flex flex-column align-items-center feature-box">
-      <img src="https://cdn-icons-png.flaticon.com/128/2954/2954893.png" alt="Fácil de usar" class="feature-img" />
-      <h3 class="mt-3">Controle total sobre seus itens</h3>
-      <p class="feature-text">Controle status, preços e datas de retirada e devolução, gere relatórios, etc.</p>
-    </div>
-    <div class="col-12 col-sm-6 col-md-4 d-flex flex-column align-items-center feature-box">
-      <img src="https://cdn-icons-png.flaticon.com/128/1161/1161388.png" alt="Segurança garantida" class="feature-img" />
-      <h3 class="mt-3">Segurança garantida para seu negócio</h3>
-      <p class="feature-text">Sistema que permite recuperação de dados em caso de deleção acidental de informações.</p>
+  <!-- Nova seção de acessos rápidos com imagens -->
+  <div class="container mt-5">
+    <div class="row row-cols-2 row-cols-sm-2 row-cols-md-4 g-4 text-center">
+      <div class="col">
+        <a href="{{ url_for('reserved') }}">
+          <img src="/static/icons/reserved.png" alt="Reservados" class="img-fluid mb-2 rounded shadow" />
+        </a>
+      </div>
+      <div class="col">
+        <a href="{{ url_for('rented') }}">
+          <img src="/static/icons/rented.png" alt="Retirados" class="img-fluid mb-2 rounded shadow" />
+        </a>
+      </div>
+      <div class="col">
+        <a href="{{ url_for('returned') }}">
+          <img src="/static/icons/returned.png" alt="Devolvidos" class="img-fluid mb-2 rounded shadow" />
+        </a>
+      </div>
+      <div class="col">
+        <a href="{{ url_for('inventory') }}">
+          <img src="/static/icons/inventory.png" alt="Inventário" class="img-fluid mb-2 rounded shadow" />
+        </a>
+      </div>
+      <div class="col">
+        <a href="{{ url_for('listar_clientes') }}">
+          <img src="/static/icons/clients.png" alt="Clientes" class="img-fluid mb-2 rounded shadow" />
+        </a>
+      </div>
+      <div class="col">
+        <a href="{{ url_for('reports') }}">
+          <img src="/static/icons/reports.png" alt="Relatórios" class="img-fluid mb-2 rounded shadow" />
+        </a>
+      </div>
+      <div class="col">
+        <a href="{{ url_for('archive') }}">
+          <img src="/static/icons/archive.png" alt="Arquivados" class="img-fluid mb-2 rounded shadow" />
+        </a>
+      </div>
+      <div class="col">
+        <a href="{{ url_for('adjustments') }}">
+          <img src="/static/icons/adjustments.png" alt="Ajustes" class="img-fluid mb-2 rounded shadow" />
+        </a>
+      </div>
     </div>
   </div>
 </section>
-{% endblock %}
+
+{% if not session.get('logged_in') %}
+
+<!-- Seção com 3 colunas -->
+<section class="features container text-center mt-5">
+  <h2 class="mb-4">Tudo o que você precisa em um só lugar</h2>
+  <div class="row">
+    <div class="col-12 col-sm-6 col-md-4 d-flex flex-column align-items-center feature-box">
+      <img src="/static/icons/icon_1.png" alt="Grátis até 30 itens" class="feature-img" />
+      <h3 class="mt-3">Grátis para começar</h3>
+      <p class="feature-text">
+        Até 30 transações simultâneas sem pagar nada. Teste à vontade o tempo que quiser, sem compromisso e sem precisar de cartão de crédito.
+      </p>
+    </div>
+    <div class="col-12 col-sm-6 col-md-4 d-flex flex-column align-items-center feature-box">
+      <img src="/static/icons/icon_2.png" alt="Fácil de usar" class="feature-img" />
+      <h3 class="mt-3">Controle total</h3>
+      <p class="feature-text">
+        Gerencie facilmente seus itens, preços, status e datas de retirada ou devolução. Não perca o controle do seu negócio.
+      </p>
+    </div>
+    <div class="col-12 col-sm-6 col-md-4 d-flex flex-column align-items-center feature-box">
+      <img src="/static/icons/icon_3.png" alt="Segurança garantida" class="feature-img" />
+      <h3 class="mt-3">Sem complicação</h3>
+      <p class="feature-text">
+        Esqueça sistemas caros e confusos, com funções que você nunca vai usar. Aqui tudo é direto ao ponto e você ainda tem segurança dos seus dados.
+      </p>
+    </div>
+  </div>
+</section>
+
+{% endif %} {% endblock %}
