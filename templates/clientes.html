@@ -3,7 +3,8 @@
 <div class="container mt-5 mb2">
   <h2 class="section-title mb-3">Clientes cadastrados</h2>
 
-  {% set show_add_button = True %} {% set add_route = url_for('add_item') %} {% include "components/client_filter_section.html" with context %}
+  {% set show_add_button = True %} {% set add_route = url_for('add_item') %} {% include "components/client_filter_section.html" with context %} {% if
+  clientes %}
 
   <!-- Tabela -->
   <div class="table-container mt-4">
@@ -50,6 +51,12 @@
       </tbody>
     </table>
   </div>
+
+  {% else %}
+
+  <p class="text-info ms-3" style="font-weight: bold; font-size: 1.2rem; margin-top: -2rem">Nada por aqui ainda!</p>
+
+  {% endif %}
 
   <!-- Pagination -->
   {% set route_name = 'listar_clientes' %} {% include 'components/pagination.html' with context %} {% include 'components/info_modal_client.html' %}

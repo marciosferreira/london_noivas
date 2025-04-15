@@ -5,6 +5,9 @@
 <div class="container my-3">
   <h2 class="mb-4">Itens devolvidos</h2>
 
+  {% if minha_lista %}
+  <!-- Aqui seu conteúdo da lista -->
+
   {% include "components/filter_section.html" with context %}
 
   <!-- Tabela -->
@@ -73,6 +76,10 @@
       </tbody>
     </table>
   </div>
+
+  {% else %}
+  <p class="text-info" style="font-weight: bold; font-size: 1.2rem">Nada por aqui ainda!</p>
+  {% endif %}
 
   <!-- Pagination -->
   {% set route_name = 'returned' %} {% include 'components/pagination.html' with context %}

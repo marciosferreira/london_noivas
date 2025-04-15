@@ -10,6 +10,11 @@
 
  {% include 'components/item_filter_section.html' %}
 
+ {% if itens %}
+
+
+
+
   <!-- Tabela (que vira "cards" no mobile) -->
   <div class="table-container mt-4">
     <table class="table table-hover responsive-table align-middle rounded-table">
@@ -58,7 +63,6 @@
               </td>
 
 
-             <!-- <pre>{{ item | tojson(indent=2) }}</pre> -->
 
 
 <!-- Botão de Restaurar -->
@@ -75,6 +79,8 @@
 <form id="form-restore" method="POST">
   <input type="hidden" name="item_data" id="restore_item_data">
 </form>
+
+
 
 <script>
   // 🔹 Mapeamento de status para português
@@ -169,6 +175,14 @@
       </tbody>
     </table>
   </div>
+
+
+
+ {% else %}
+
+ <p class="text-info" style="font-weight: bold; font-size: 1.2rem">Nada por aqui ainda!</p>
+
+ {% endif %}
 
   <!-- Paginação -->
   {% set route_name = 'trash_itens' %} {% include 'components/pagination.html' with context %}

@@ -4,7 +4,7 @@
 <div class="container mt-3">
   <h2 class="mb-4">{{ title }}</h2>
 
-  {% include "components/filter_section.html" with context %}
+  {% if itens %} {% include "components/filter_section.html" with context %}
 
   <!-- Tabela -->
   <div class="table-container mt-4">
@@ -92,6 +92,12 @@
       </tbody>
     </table>
   </div>
+
+  {% else %}
+
+  <p class="text-info" style="font-weight: bold; font-size: 1.2rem">Nada por aqui ainda!</p>
+
+  {% endif %}
 
   <!-- Paginação -->
   {% set route_name = 'reserved' %} {% include 'components/pagination.html' with context %}

@@ -5,7 +5,7 @@
 <div class="container mt-3">
   <h2 class="mb-4">Inventário de itens</h2>
 
-  {% set show_add_button = True %} {% set add_route = url_for('add_item') %} {% include 'components/item_filter_section.html' %}
+  {% set show_add_button = True %} {% set add_route = url_for('add_item') %} {% include 'components/item_filter_section.html' %} {% if itens %}
 
   <!-- Tabela (que vira "cards" no mobile) -->
   <div class="table-container mt-4">
@@ -69,6 +69,12 @@
       </div>
     </div>
   </div>
+
+  {% else %}
+
+  <p class="text-info" style="font-weight: bold; font-size: 1.2rem">Nada por aqui ainda!</p>
+
+  {% endif %}
 
   <!-- Paginação -->
   {% set route_name = 'inventory' %} {% include 'components/pagination.html' with context %}

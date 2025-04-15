@@ -3,8 +3,11 @@
 
 <!-- Container dos botões -->
 <div class="d-flex flex-wrap gap-2 align-items-center justify-content-end w-100 w-sm-auto">
+
+  {%if clientes %}
   <!-- Botão de Filtros -->
   <a href="#" class="btn btn-primary" id="filter-toggle" onclick="toggleFilters(event)">Filtros</a>
+  {% endif %}
 
   {% if show_add_button %}
   <!-- Botão de Adicionar -->

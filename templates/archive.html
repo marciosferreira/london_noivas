@@ -1,10 +1,10 @@
 {% extends "base.html" %} {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='style_archive.css') }}" />
 {% endblock %} {% block body_class %}archive{% endblock %} {% block content %}
-<div class="container my-2">
+<div class="container my-4">
   <h2 class="mb-4">Itens arquivados (não disponíveis)</h2>
 
-  {% include "components/item_filter_section.html" %}
+  {% include "components/item_filter_section.html" %} {% if itens %}
 
   <!-- Tabela (que vira "cards" no mobile) -->
   <div class="table-container mt-4">
@@ -48,6 +48,12 @@
       </tbody>
     </table>
   </div>
+
+  {% else %}
+
+  <p class="text-info ms-1" style="font-weight: bold; font-size: 1.2rem; margin-top: -1rem">Nada por aqui ainda!</p>
+
+  {% endif %}
 
   <!-- Paginação -->
   {% set route_name = 'archive' %} {% include 'components/pagination.html' with context %}

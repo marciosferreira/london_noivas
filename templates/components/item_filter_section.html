@@ -1,10 +1,10 @@
 <!-- Título e Botões Principais -->
 <div class="d-flex justify-content-between align-items-center mb-3">
   <div class="d-flex flex-wrap gap-2 align-items-center justify-content-end w-100 w-sm-auto">
+    {% if itens %}
     <a href="#" class="btn btn-primary" id="filter-toggle" onclick="toggleFilters(event)">Filtros</a>
-
-    {% if show_add_button %}
-    <a href="#" class="btn btn-primary" id="add-item-btn" data-add-url="{{ add_route }}?next={{ request.url }}">Adicionar</a>
+    {% endif %} {% if show_add_button %}
+    <a href="#" class="btn btn-primary" id="add-item-btn" data-add-url="{{ add_route }}?next={{ request.url }}">Adicionar item</a>
     {% endif %}
   </div>
 </div>
