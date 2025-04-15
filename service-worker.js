@@ -1,4 +1,5 @@
-const CACHE_NAME = 'QQC-cache-v8';
+const CACHE_NAME = 'QQC-cache-v10';
+
 const urlsToCache = [
   '/static/style_base.css',
   '/static/style_header.css',
@@ -17,30 +18,19 @@ const urlsToCache = [
   '/static/icons/adjustments.png',
   '/static/icons/archive.png',
   '/static/icons/clients.png',
-
   // Adicione outras URLs que deseja cachear
 ];
 
-// Instalação do Service Worker e cache dos recursos
-self.addEventListener('activate', (event) => {
+// Instalação do Service Worker e cache dos recursos iniciais
+self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => Promise.all(cacheNames.filter((name) => name !== CACHE_NAME).map((name) => caches.delete(name))))
-  );
-});
-
-// Intercepta requisições e serve os recursos do cache se disponíveis
-self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request).then((response) => {
-      if (response) {
-        return response;
-      }
-      return fetch(event.request);
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll(urlsToCache);
     })
   );
 });
 
-// Atualiza o cache quando o Service Worker é ativado
+// Ativação do Service Worker: remove caches antigos
 self.addEventListener('activate', (event) => {
   const cacheWhitelist = [CACHE_NAME];
   event.waitUntil(
@@ -52,6 +42,15 @@ self.addEventListener('activate', (event) => {
           }
         })
       );
+    })
+  );
+});
+
+// Intercepta requisições e serve os recursos do cache se disponíveis
+self.addEventListener('fetch', (event) => {
+  event.respondWith(
+    caches.match(event.request).then((response) => {
+      return response || fetch(event.request);
     })
   );
 });
