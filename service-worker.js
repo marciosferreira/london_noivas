@@ -1,4 +1,4 @@
-const CACHE_NAME = 'QQC-cache-v7';
+const CACHE_NAME = 'QQC-cache-v8';
 const urlsToCache = [
   '/static/style_base.css',
   '/static/style_header.css',
@@ -6,6 +6,18 @@ const urlsToCache = [
   '/static/manifest.json',
   '/static/icons/icon-192x192.png',
   '/static/icons/icon-512x512.png',
+  '/static/icons/icon_1.png',
+  '/static/icons/icon_2.png',
+  '/static/icons/icon_3.png',
+  '/static/icons/icon_5.png',
+  '/static/icons/icon_6.png',
+  '/static/icons/icon_7.png',
+  '/static/icons/icon_8.png',
+  '/static/icons/icon_9.png',
+  '/static/icons/adjustments.png',
+  '/static/icons/archive.png',
+  '/static/icons/clients.png',
+
   // Adicione outras URLs que deseja cachear
 ];
 
