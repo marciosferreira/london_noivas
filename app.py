@@ -97,6 +97,17 @@ def add_header(response):
     return response
 
 
+# Adiciona cache control para arquivos estáticos
+@app.after_request
+def add_header(response):
+    path = request.path
+    if path.startswith("/static/icons/"):
+        response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+    elif path.endswith(".css") or path.endswith(".js"):
+        response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+    return response
+
+
 if __name__ == "__main__":
     # Determina se está no localhost
     debug_mode = os.getenv("debug_env", "false").lower() == "true"
