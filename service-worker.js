@@ -10,7 +10,6 @@ const urlsToCache = [
   '/static/icons/icon_1.png',
   '/static/icons/icon_2.png',
   '/static/icons/icon_3.png',
-  '/static/icons/icon_8.png',
   '/static/icons/icon_9.png',
   '/static/icons/adjustments.png',
   '/static/icons/archive.png',
