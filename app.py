@@ -4,6 +4,7 @@ import boto3
 from dotenv import load_dotenv
 
 from flask import Flask
+from flask import Flask, request
 
 # Define o fuso horário de Manaus
 load_dotenv()  # only for setting up the env as debug
@@ -87,6 +88,13 @@ from flask import send_from_directory
 @app.route("/service-worker.js")
 def service_worker():
     return send_from_directory(".", "service-worker.js")
+
+
+@app.after_request
+def add_header(response):
+    if request.path.startswith("/static/icons/"):
+        response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+    return response
 
 
 if __name__ == "__main__":
