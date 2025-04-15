@@ -128,3 +128,42 @@ body {
   z-index: 10;
   display: inline-block; /* garante que é tratado como bloco */
 }
+
+/* Imagens - comportamento padrão (mobile first) */
+.img-quick-access {
+  width: 100%;
+  max-width: 120px; /* tamanho bom em mobile */
+  margin-bottom: 12px; /* espaço entre linhas menor */
+}
+
+/* Espaçamento padrão mobile */
+.img-quick-access {
+  width: 100%;
+  max-width: 120px;
+  margin-bottom: 12px;
+}
+
+/* Desktop */
+@media (min-width: 768px) {
+  .img-quick-access {
+    max-width: 160px;
+    margin-bottom: 24px;
+  }
+
+  /* Aumentar o espaço entre as linhas de imagens */
+  .row.g-4 {
+    row-gap: 48px; /* muito mais espaço entre as linhas */
+  }
+}
+
+/* Telas grandes */
+@media (min-width: 1200px) {
+  .img-quick-access {
+    max-width: 200px;
+    margin-bottom: 32px;
+  }
+
+  .row.g-4 {
+    row-gap: 32px; /* ainda mais espaço nas telas bem grandes */
+  }
+}
