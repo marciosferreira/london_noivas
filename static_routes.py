@@ -113,11 +113,16 @@ def init_static_routes(app, ses_client, clients_table, transactions_table, itens
             # Agora você filtra só os que tem status 'available' ou 'archive'
             items = response["Items"]
 
-            filtered_items = [
-                item for item in items if item.get("status") in ["available", "archive"]
+            filtered_items_available = [
+                item for item in items if item.get("status") in ["available"]
+            ]
+            stats["total_items_available"] = len(filtered_items_available)
+
+            filtered_items_archived = [
+                item for item in items if item.get("status") in ["archive"]
             ]
 
-            stats["total_items"] = len(filtered_items)
+            stats["total_items_archived"] = len(filtered_items_archived)
 
             # Contar transações "rented"
             rented_txn = transactions_table.query(
@@ -134,6 +139,14 @@ def init_static_routes(app, ses_client, clients_table, transactions_table, itens
                 & Key("transaction_status").eq("returned"),
             )
             stats["total_returned"] = returned_txn["Count"]
+
+            # Contar transações "reserved"
+            reserved_txn = transactions_table.query(
+                IndexName="account_id-transaction_status-index",
+                KeyConditionExpression=Key("account_id").eq(account_id)
+                & Key("transaction_status").eq("reserved"),
+            )
+            stats["total_reserved"] = reserved_txn["Count"]
 
             # Contar transações "returned"
             clients_txn = clients_table.query(

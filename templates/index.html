@@ -15,104 +15,102 @@
   <script>
     gtag('event', 'conversion', { send_to: 'AW-1051093117/6kftCNiL_GUQ_dCZ9QM' });
   </script>
+  <p></p>
+  <p></p>
+  <p></p>
 
-  <div class="container mt-5 d-flex justify-content-center">
-    <div class="table-responsive" style="max-width: 600px; width: 100%">
-      <h4 class="text-center mb-3">Suas Estatísticas, {{ username }}</h4>
-
-      <div class="container mt-4">
-        <div class="row g-3 text-center">
-          <div class="col-12 col-sm-6 col-md-3">
-            <a href="{{ url_for('listar_clientes') }}" class="text-decoration-none">
-              <div class="card shadow-sm h-100">
-                <div class="card-body">
-                  <h6 class="mb-1">Clientes Cadastrados</h6>
-                  <h2>{{ stats.total_clients }}</h2>
-                </div>
-              </div>
-            </a>
-          </div>
-
-          <div class="col-12 col-sm-6 col-md-3">
-            <a href="{{ url_for('inventory') }}" class="text-decoration-none">
-              <div class="card shadow-sm h-100">
-                <div class="card-body">
-                  <h6 class="mb-1">Produtos Cadastrados</h6>
-                  <h2>{{ stats.total_items }}</h2>
-                </div>
-              </div>
-            </a>
-          </div>
-
-          <div class="col-12 col-sm-6 col-md-3">
-            <a href="{{ url_for('rented') }}" class="text-decoration-none">
-              <div class="card shadow-sm h-100">
-                <div class="card-body">
-                  <h6 class="mb-1">Itens Reservados</h6>
-                  <h2>{{ stats.total_rented }}</h2>
-                </div>
-              </div>
-            </a>
-          </div>
-
-          <div class="col-12 col-sm-6 col-md-3">
-            <a href="{{ url_for('returned') }}" class="text-decoration-none">
-              <div class="card shadow-sm h-100">
-                <div class="card-body">
-                  <h6 class="mb-1">Itens Devolvidos</h6>
-                  <h2>{{ stats.total_returned }}</h2>
-                </div>
-              </div>
-            </a>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+  <h4 class="text-center mb-3">Olá, {{ username }} !</h4>
+  <h4 class="text-center mb-3">Aqui estão seus números gerais:</h4>
 
   {% endif %}
 
-  <!-- Nova seção de acessos rápidos com imagens -->
-  <div class="container mt-5">
+  <div class="container mt-4">
     <div class="row row-cols-2 row-cols-sm-2 row-cols-md-4 g-4 text-center">
       <div class="col">
-        <a href="{{ url_for('reserved') }}">
-          <img src="/static/icons/reserved.png" alt="Reservados" class="img-fluid img-quick-access mb-2 rounded shadow" />
+        <a href="{{ url_for('listar_clientes') }}">
+          <div class="position-relative">
+            {% if session.get('logged_in') %}
+            <span class="badge-counter">{{ stats.total_clients }}</span>
+            {% endif %}
+
+            <img src="/static/icons/clients.png" alt="Clientes" class="img-fluid img-quick-access mb-2 rounded shadow" />
+          </div>
         </a>
       </div>
-      <div class="col">
-        <a href="{{ url_for('rented') }}">
-          <img src="/static/icons/rented.png" alt="Retirados" class="img-fluid img-quick-access mb-2 rounded shadow" />
-        </a>
-      </div>
-      <div class="col">
-        <a href="{{ url_for('returned') }}">
-          <img src="/static/icons/returned.png" alt="Devolvidos" class="img-fluid img-quick-access mb-2 rounded shadow" />
-        </a>
-      </div>
+
       <div class="col">
         <a href="{{ url_for('inventory') }}">
-          <img src="/static/icons/inventory.png" alt="Inventário" class="img-fluid img-quick-access mb-2 rounded shadow" />
+          <div class="position-relative">
+            {% if session.get('logged_in') %}
+            <span class="badge-counter">{{ stats.total_items_available }}</span>
+            {% endif %}
+
+            <img src="/static/icons/inventory.png" alt="Disponíveis" class="img-fluid img-quick-access mb-2 rounded shadow" />
+          </div>
         </a>
       </div>
-      <div class="col">
-        <a href="{{ url_for('listar_clientes') }}">
-          <img src="/static/icons/clients.png" alt="Clientes" class="img-fluid img-quick-access mb-2 rounded shadow" />
-        </a>
-      </div>
-      <div class="col">
-        <a href="{{ url_for('reports') }}">
-          <img src="/static/icons/reports.png" alt="Relatórios" class="img-fluid img-quick-access mb-2 rounded shadow" />
-        </a>
-      </div>
+
       <div class="col">
         <a href="{{ url_for('archive') }}">
-          <img src="/static/icons/archive.png" alt="Arquivados" class="img-fluid img-quick-access mb-2 rounded shadow" />
+          <div class="position-relative">
+            {% if session.get('logged_in') %}
+            <span class="badge-counter">{{ stats.total_items_archived }}</span>
+            {% endif %}
+
+            <img src="/static/icons/archive.png" alt="Arquivados" class="img-fluid img-quick-access mb-2 rounded shadow" />
+          </div>
         </a>
       </div>
+
+      <div class="col">
+        <a href="{{ url_for('reserved') }}">
+          <div class="position-relative">
+            {% if session.get('logged_in') %}
+            <span class="badge-counter">{{ stats.total_reserved }}</span>
+            {% endif %}
+
+            <img src="/static/icons/reserved.png" alt="Reservados" class="img-fluid img-quick-access mb-2 rounded shadow" />
+          </div>
+        </a>
+      </div>
+
+      <div class="col">
+        <a href="{{ url_for('rented') }}">
+          <div class="position-relative">
+            {% if session.get('logged_in') %}
+
+            <span class="badge-counter">{{ stats.total_rented }}</span>
+            {% endif %}
+            <img src="/static/icons/rented.png" alt="Retirados" class="img-fluid img-quick-access mb-2 rounded shadow" />
+          </div>
+        </a>
+      </div>
+
+      <div class="col">
+        <a href="{{ url_for('returned') }}">
+          <div class="position-relative">
+            {% if session.get('logged_in') %}
+            <span class="badge-counter">{{ stats.total_returned }}</span>
+            {% endif %}
+
+            <img src="/static/icons/returned.png" alt="Devolvidos" class="img-fluid img-quick-access mb-2 rounded shadow" />
+          </div>
+        </a>
+      </div>
+
+      <div class="col">
+        <a href="{{ url_for('reports') }}">
+          <div class="position-relative">
+            <img src="/static/icons/reports.png" alt="Relatórios" class="img-fluid img-quick-access mb-2 rounded shadow" />
+          </div>
+        </a>
+      </div>
+
       <div class="col">
         <a href="{{ url_for('adjustments') }}">
-          <img src="/static/icons/adjustments.png" alt="Ajustes" class="img-fluid img-quick-access mb-2 rounded shadow" />
+          <div class="position-relative">
+            <img src="/static/icons/adjustments.png" alt="Ajustes" class="img-fluid img-quick-access mb-2 rounded shadow" />
+          </div>
         </a>
       </div>
     </div>

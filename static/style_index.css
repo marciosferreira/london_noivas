@@ -51,7 +51,7 @@ body {
 }
 
 .hero h1:first-of-type {
-  margin-top: 130px; /* Ajuste conforme necessário */
+  margin-top: 50px; /* Ajuste conforme necessário */
 }
 
 /* Ajuste do botão */
@@ -109,4 +109,22 @@ body {
 .img-quick-access {
   max-width: 150px; /* diminui o tamanho máximo */
   height: auto; /* mantém a proporção */
+}
+
+.position-relative {
+  display: inline-block; /* garante que a imagem + badge ficam juntas */
+}
+
+.badge-counter {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background-color: red;
+  color: white;
+  padding: 4px 8px;
+  font-size: 14px;
+  border-radius: 4px;
+  font-weight: bold;
+  z-index: 10;
+  display: inline-block; /* garante que é tratado como bloco */
 }
