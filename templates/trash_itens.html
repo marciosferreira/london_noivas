@@ -1,16 +1,18 @@
 {% extends "base.html" %} {% block title %}Itens Disponíveis{% endblock %} {% block styles %}
-<link rel="stylesheet" href="{{ url_for('static', filename='style_inventory.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='style_trash_itens.css') }}" />
 
 {% endblock %}
 
 
 {% block content %}
 <div class="container mt-3">
-  <h2 class="mb-4">Lixeira (itens)</h2>
+  <h2 class="mb-4">Lixeira de itens</h2>
+
+
+  {% if itens %}
 
  {% include 'components/item_filter_section.html' %}
 
- {% if itens %}
 
 
 
@@ -178,12 +180,13 @@
 
 
 
- {% else %}
 
- <p class="text-info" style="font-weight: bold; font-size: 1.2rem">Nada por aqui ainda!</p>
 
- {% endif %}
+  {% else %}
 
+  <p class="text-info" style="font-weight: bold; font-size: 1.2rem">Nada por aqui ainda!</p>
+
+  {% endif %}
   <!-- Paginação -->
   {% set route_name = 'trash_itens' %} {% include 'components/pagination.html' with context %}
   <div style="height: 3rem"></div>

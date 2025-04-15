@@ -1,7 +1,7 @@
 {% extends "base.html" %} {% block title %}Clientes{% endblock %} {% block styles %} {% endblock %} {% block content %}
 
-<div class="container mt-5 mb2">
-  <h2 class="section-title mb-3">Clientes cadastrados</h2>
+<div class="container my-3">
+  <h2 class="mb-4">Clientes cadastrados</h2>
 
   {% set show_add_button = True %} {% set add_route = url_for('add_item') %} {% include "components/client_filter_section.html" with context %} {% if
   clientes %}
