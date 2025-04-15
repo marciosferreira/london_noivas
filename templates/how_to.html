@@ -1,0 +1,139 @@
+{% extends "base.html" %} {% block title %}Como usar a plataforma - Alugue QQC{% endblock %} {% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='style_terms.css') }}" />
+{% endblock %} {% block body_class %}terms{% endblock %} {% block content %}
+
+<div class="terms-container">
+  <h1>Como usar a Plataforma Alugue QQC</h1>
+
+  <p class="lead">
+    O Alugue QQC foi criado para ser simples e rápido. Aqui está um passo a passo básico para você começar a usar a plataforma da melhor forma.
+  </p>
+
+  <hr />
+
+  <h2>1. Cadastre os Itens que você aluga</h2>
+  <p>
+    Cada item que você disponibiliza para aluguel deve ser criado na tela de
+    <strong>Itens</strong>
+    . Esses itens funcionam como um "molde" — eles armazenam as informações fixas do produto: nome, valor, foto, descrição etc.
+  </p>
+
+  <p>
+    Depois de cadastrar os itens, na mesma tela você verá um botão de
+    <strong>Ações</strong>
+    . É nele que você poderá fazer uma
+    <strong>Reserva</strong>
+    ou registrar uma
+    <strong>Retirada</strong>
+    , criando assim uma transação de aluguel.
+  </p>
+
+  <div class="alert alert-info">
+    <strong>Dica:</strong>
+    Toda transação de aluguel começa a partir de um item cadastrado!
+  </div>
+
+  <hr />
+
+  <h2>2. Crie Clientes previamente (se quiser)</h2>
+  <p>
+    Não é obrigatório cadastrar os clientes antes de iniciar um aluguel. Ao criar uma transação, basta digitar o nome do cliente no campo indicado. Se
+    o cliente já estiver cadastrado, o sistema irá sugerir automaticamente. Caso contrário, um novo cliente será criado com os dados informados.
+  </p>
+
+  <p>
+    Se preferir, você pode cadastrar seus clientes antecipadamente na tela de
+    <strong>Clientes</strong>
+    . Assim, no momento do aluguel, fica ainda mais fácil e rápido selecionar o cliente certo.
+  </p>
+
+  <hr />
+
+  <h2>3. Crie e Gerencie as Transações</h2>
+  <p>As transações representam os aluguéis que você realizou: quem alugou, qual item, por quanto tempo e por qual valor.</p>
+
+  <p>
+    É importante saber que os dados das transações são independentes dos dados originais dos itens e clientes cadastrados. Ou seja, se você editar um
+    item ou cliente depois, isso
+    <strong>não altera</strong>
+    automaticamente as transações que já foram feitas.
+  </p>
+
+  <p>
+    Isso é útil porque permite fazer ajustes específicos em cada transação, como por exemplo, dar um desconto especial em um item alugado ou alterar
+    uma informação apenas naquela locação.
+  </p>
+
+  <hr />
+
+  <h2>4. Atualizando Itens ou Clientes</h2>
+  <p>Quando você editar um item ou cliente, o sistema irá perguntar se você deseja:</p>
+
+  <ul>
+    <li>
+      <strong>Atualizar apenas o molde</strong>
+      — as mudanças serão aplicadas somente nos dados cadastrados, e vão aparecer apenas nas próximas transações.
+    </li>
+    <li>
+      <strong>Atualizar também as transações anteriores</strong>
+      — as mudanças serão aplicadas em todas as transações que usaram aquele item ou cliente.
+    </li>
+  </ul>
+
+  <p>
+    Isso é importante, por exemplo, quando você faz uma promoção e quer alterar o preço do item somente nas próximas locações, sem afetar as
+    transações já realizadas e pagas.
+  </p>
+
+  <hr />
+
+  <h2>5. Acompanhando suas Transações</h2>
+  <p>
+    Todas as transações ficam registradas e podem ser consultadas na tela de
+    <strong>Transações</strong>
+    .
+  </p>
+
+  <p>As transações são organizadas de acordo com o status do item:</p>
+
+  <ul>
+    <li>
+      <strong>Reservado</strong>
+      — o item está reservado, mas o cliente ainda não retirou.
+    </li>
+    <li>
+      <strong>Retirado</strong>
+      — o cliente já retirou o item e está com ele em posse.
+    </li>
+    <li>
+      <strong>Devolvido</strong>
+      — o item foi devolvido e o aluguel foi finalizado.
+    </li>
+  </ul>
+
+  <p>
+    Na tela de transações, você pode acompanhar todo o histórico de aluguéis, realizar devoluções, fazer ajustes ou editar informações quando
+    necessário.
+  </p>
+
+  <hr />
+
+  <h2>6. Arquivando Itens Temporariamente</h2>
+  <p>
+    Se algum item não puder ser alugado temporariamente — por exemplo, porque foi para manutenção, reparo, ou qualquer outro motivo — você pode
+    <strong>arquivar</strong>
+    esse item.
+  </p>
+
+  <p>
+    Ao arquivar um item, ele deixa de aparecer na lista de itens disponíveis para aluguel. Quando estiver tudo certo, basta editar o item e removê-lo
+    do arquivo, deixando-o novamente disponível para locação.
+  </p>
+
+  <hr />
+
+  <h2>Dúvidas ou Problemas?</h2>
+  <p>Se tiver qualquer dificuldade, entre em contato conosco.</p>
+</div>
+
+{% endblock %}

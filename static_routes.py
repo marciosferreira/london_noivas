@@ -169,3 +169,7 @@ def init_static_routes(app, ses_client, clients_table, transactions_table, itens
     def fees():
 
         return render_template("fees.html")
+
+    @app.route("/how_to")
+    def how_to():
+        return render_template("how_to.html")
