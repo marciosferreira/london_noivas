@@ -56,7 +56,7 @@ def init_auth_routes(app, users_table, reset_tokens_table):
             if success:
                 return render_template(
                     "login.html",
-                    message="Cadastro realizado com sucesso! Um e-mail de confirmação foi enviado. Confirme antes de fazer login.",
+                    message="Cadastro realizado com sucesso! <br> Confirme seu e-mail e faça login.",
                 )
             else:
                 return render_template(

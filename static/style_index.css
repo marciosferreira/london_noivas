@@ -119,14 +119,17 @@ body {
   position: absolute;
   top: 8px;
   left: 8px;
-  background-color: red;
+  width: 32px; /* largura e altura iguais */
+  height: 32px;
+  background-color: #c0392b;
   color: white;
-  padding: 4px 8px;
-  font-size: 14px;
-  border-radius: 4px;
+  font-size: 16px;
   font-weight: bold;
+  border-radius: 50%; /* deixa o badge circular */
   z-index: 10;
-  display: inline-block; /* garante que é tratado como bloco */
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Imagens - comportamento padrão (mobile first) */
