@@ -4,6 +4,7 @@ import secrets
 import datetime
 import pytz
 from utils import get_user_timezone
+from flask import session
 
 
 from flask import (
@@ -54,10 +55,8 @@ def init_auth_routes(app, users_table, reset_tokens_table):
 
             success = create_user(email, username, password, users_table, app)
             if success:
-                return render_template(
-                    "login.html",
-                    message="Cadastro realizado com sucesso! <br> Confirme seu e-mail e faça login.",
-                )
+                session["cadastro_sucesso"] = True
+                return redirect("/cadastro-sucesso")
             else:
                 return render_template(
                     "login.html",
@@ -141,6 +140,15 @@ def init_auth_routes(app, users_table, reset_tokens_table):
             flash("E-mail ou senha incorretos.", "danger")
 
         return render_template("login.html")
+
+    @app.route("/cadastro-sucesso")
+    def cadastro_sucesso():
+        if not session.get("cadastro_sucesso"):
+            return redirect("/login")  # ou para home, como preferir
+
+        # Limpa o flag da sessão para evitar acesso direto posterior
+        session.pop("cadastro_sucesso", None)
+        return render_template("cadastro_sucesso.html")
 
     # Email confirmation
     @app.route("/confirm_email/<token>")

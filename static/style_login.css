@@ -292,3 +292,6 @@ body {
   opacity: 0.7;
   cursor: pointer;
 }
+.login-container {
+  margin-top: 80px;
+}

@@ -108,7 +108,7 @@
 
     <!-- Formulário de Registro -->
     <div class="login-form" id="register-form">
-      <form action="/register" method="POST">
+      <form id="register-form-element" action="/register" method="POST" onsubmit="return gtag_report_conversion()">
         <!-- Campo de usuário -->
         <div class="form-group">
           <label for="reg-username">Nome de usuário</label>
@@ -322,4 +322,17 @@
     });
   }, 5000);
 </script>
+
+<script>
+  function gtag_report_conversion() {
+    gtag('event', 'conversion', {
+      send_to: 'AW-XXXXXXXXX/abcdefg123456', // Substitua pelo seu código
+      event_callback: function () {
+        document.getElementById('register-form-element').submit();
+      },
+    });
+    return false; // Impede o envio imediato até que a conversão seja disparada
+  }
+</script>
+
 {% endblock %}
