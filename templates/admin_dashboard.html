@@ -52,4 +52,23 @@
 
   <div class="row mb-3"></div>
 </div>
+
+<div class="mt-4 text-center">
+  <div class="btn-group" role="group">
+    {% if has_prev %}
+    <a class="btn btn-outline-secondary" href="{{ url_for('admin_dashboard') }}?page={{ page - 1 }}&nav_stack={{ nav_stack | urlencode }}">
+      ← Página Anterior
+    </a>
+    {% endif %}
+
+    <span class="btn btn-outline-dark disabled">Página {{ page }}</span>
+
+    {% if has_next %}
+    <a class="btn btn-outline-primary" href="{{ url_for('admin_dashboard') }}?page={{ page + 1 }}&nav_stack={{ nav_stack | urlencode }}">
+      Próxima Página →
+    </a>
+    {% endif %}
+  </div>
+</div>
+
 {% endblock %}

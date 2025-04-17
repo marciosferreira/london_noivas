@@ -18,7 +18,11 @@ from flask import (
 from werkzeug.security import generate_password_hash, check_password_hash
 from botocore.exceptions import ClientError
 
-from utils import send_confirmation_email, send_password_reset_email
+from utils import (
+    send_confirmation_email,
+    send_password_reset_email,
+    send_admin_notification_email,
+)
 
 
 def init_auth_routes(app, users_table, reset_tokens_table):
@@ -922,6 +926,14 @@ def create_user(email, username, password, users_table, app, role="admin"):
 
             confirm_url = url_for("confirm_email", token=email_token, _external=True)
             send_confirmation_email(email, username, confirm_url)
+
+            # ✉️ Notificar o administrador
+            send_admin_notification_email(
+                admin_email="marciosferreira@yahoo.com.br",  # coloque seu e-mail real aqui
+                new_user_email=email,
+                new_user_username=username,
+            )
+
             return True
 
         except ClientError as e:

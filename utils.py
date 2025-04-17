@@ -148,6 +148,32 @@ def send_confirmation_email(email, username, email_token):
         return False
 
 
+def send_admin_notification_email(admin_email, new_user_email, new_user_username):
+    from app import ses_client
+
+    subject = "Novo cadastro no sistema"
+    body_html = f"""
+    <html>
+        <body>
+            <h2>Novo usuário cadastrado</h2>
+            <p><strong>Usuário:</strong> {new_user_username}</p>
+            <p><strong>E-mail:</strong> {new_user_email}</p>
+        </body>
+    </html>
+    """
+
+    ses_client.send_email(
+        Source="nao_responda@alugueqqc.com.br",
+        Destination={"ToAddresses": [admin_email]},
+        Message={
+            "Subject": {"Data": subject},
+            "Body": {
+                "Html": {"Data": body_html},
+            },
+        },
+    )
+
+
 def upload_image_to_s3(image_file, prefix="images"):
     """Uploads an image to S3 and returns the URL."""
     if image_file:
