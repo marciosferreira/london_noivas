@@ -368,6 +368,26 @@ def add_client_common(
         user_id = session.get("user_id") if "user_id" in session else None
         user_utc = get_user_timezone(users_table, user_id)
 
+        # Verificação de duplicatas por nome, CPF ou CNPJ
+        existing_clients = clients_table.scan().get("Items", [])
+
+        for client in existing_clients:
+            if client.get("account_id") != account_id:
+                continue  # Ignorar clientes de outras contas
+
+            # Verifica duplicatas por nome, CPF ou CNPJ
+            if client.get("client_name") == client_name:
+                flash("Já existe um cliente com esse nome.", "error")
+                return redirect(request.url)
+
+            if client_cpf_digits and client.get("client_cpf") == client_cpf_digits:
+                flash("Já existe um cliente com esse CPF.", "error")
+                return redirect(request.url)
+
+            if client_cnpj_digits and client.get("client_cnpj") == client_cnpj_digits:
+                flash("Já existe um cliente com esse CNPJ.", "error")
+                return redirect(request.url)
+
         new_client = {
             "client_id": client_id,
             "account_id": account_id,
