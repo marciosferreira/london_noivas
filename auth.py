@@ -5,7 +5,8 @@ import datetime
 import pytz
 from utils import get_user_timezone
 from flask import session
-
+from flask import request
+import json
 
 from flask import (
     render_template,
@@ -785,37 +786,53 @@ def init_auth_routes(app, users_table, reset_tokens_table):
             timezones=timezones,
         )
 
-    # Admin dashboard
     @app.route("/admin-dashboard")
     def admin_dashboard():
         if not session.get("logged_in"):
             return redirect(url_for("login"))
 
-        # Verificar se o usuário tem permissão de general_admin
         if session.get("role") != "general_admin":
             flash("Você não tem permissão para acessar esta página.", "danger")
             return redirect(url_for("rented"))
 
-        # Importar as tabelas necessárias
         from app import itens_table, clients_table, transactions_table
 
-        # Obter todos os usuários
-        all_users = get_all_users(users_table)
+        # Pega informações da navegação
+        nav_stack_str = request.args.get("nav_stack", "[]")
+        page = int(request.args.get("page", 1))
+        nav_stack = json.loads(nav_stack_str)
 
-        # Adicionar estatísticas para cada usuário
+        # Define o last_key atual baseado na página
+        last_key = (
+            nav_stack[page - 2] if page > 1 and len(nav_stack) >= page - 1 else None
+        )
+
+        users_page, next_key = get_all_users(users_table, last_key)
+
+        # Atualiza a pilha de navegação
+        if next_key and len(nav_stack) < page:
+            nav_stack.append(next_key)
+
         users_with_stats = []
-        for user in all_users:
-            user_stats = get_user_stats(
+        for user in users_page:
+            stats = get_user_stats(
                 user["user_id"],
                 users_table,
                 itens_table,
                 clients_table,
                 transactions_table,
             )
-            if user_stats:
-                users_with_stats.append(user_stats)
+            if stats:
+                users_with_stats.append(stats)
 
-        return render_template("admin_dashboard.html", users=users_with_stats)
+        return render_template(
+            "admin_dashboard.html",
+            users=users_with_stats,
+            nav_stack=json.dumps(nav_stack),
+            page=page,
+            has_next=bool(next_key),
+            has_prev=page > 1,
+        )
 
     # Login as user (impersonation)
     @app.route("/login-as-user/<user_id>")
@@ -941,14 +958,30 @@ def create_user(email, username, password, users_table, app, role="admin"):
             raise
 
 
-def get_all_users(users_table):
-    """Function for administrators to get all users."""
+def get_all_users(users_table, last_evaluated_key=None, limit=5):
+    """Busca usuários admin com paginação."""
     try:
-        response = users_table.scan()
-        return response.get("Items", [])
+        query_kwargs = {
+            "IndexName": "role-index",
+            "KeyConditionExpression": "#r = :r",
+            "ExpressionAttributeNames": {"#r": "role"},
+            "ExpressionAttributeValues": {":r": "admin"},
+            "ProjectionExpression": "#r, user_id, username, email",
+            "Limit": limit,
+        }
+
+        if last_evaluated_key:
+            query_kwargs["ExclusiveStartKey"] = last_evaluated_key
+
+        response = users_table.query(**query_kwargs)
+        users = response.get("Items", [])
+        next_key = response.get("LastEvaluatedKey")
+
+        return users, next_key
+
     except Exception as e:
         print(f"Erro ao recuperar usuários: {e}")
-        return []
+        return [], None
 
 
 def get_user_stats(
