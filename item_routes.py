@@ -31,7 +31,14 @@ from utils import upload_image_to_s3, aplicar_filtro, copy_image_in_s3
 
 
 def init_item_routes(
-    app, itens_table, s3, s3_bucket_name, transactions_table, clients_table, users_table
+    app,
+    itens_table,
+    s3,
+    s3_bucket_name,
+    transactions_table,
+    clients_table,
+    users_table,
+    text_models_table,
 ):
 
     @app.route("/rented")
@@ -43,6 +50,7 @@ def init_item_routes(
             transactions_table,
             itens_table,
             users_table,
+            text_models_table,
             page="rented",
         )
 
@@ -55,6 +63,7 @@ def init_item_routes(
             transactions_table,
             users_table,
             itens_table,
+            text_models_table,
             page="reserved",
         )
 
@@ -67,6 +76,7 @@ def init_item_routes(
             transactions_table,
             users_table,
             itens_table,
+            text_models_table,
             page="returned",
         )
 
@@ -1407,6 +1417,7 @@ def listar_itens_per_transaction(
     transactions_table,
     users_table,
     itens_table,
+    text_models_table,
     client_id=None,
     page=None,
 ):
@@ -1448,9 +1459,7 @@ def listar_itens_per_transaction(
                 item[f"{key}_formatted"] = "N/A"
                 if key == "rental_date":
                     item["rental_date_obj"] = today
-        print("TTTTTTTToday")
-        print(today)
-        print(item["return_date_obj"])
+
         # Definir overdue
         if item.get("dev_date_obj"):
             item["overdue"] = False
@@ -1624,6 +1633,14 @@ def listar_itens_per_transaction(
 
     print(f"[DEBUG] Tempo total da função: {time.time() - start_total:.4f}s")
 
+    response = text_models_table.query(
+        IndexName="account_id-index",
+        KeyConditionExpression="account_id = :account_id",
+        ExpressionAttributeValues={":account_id": account_id},
+    )
+
+    saved_models = response.get("Items", [])
+
     return render_template(
         template,
         itens=paginados,
@@ -1633,8 +1650,8 @@ def listar_itens_per_transaction(
         title=title,
         add_route=url_for("trash_transactions"),
         next_url=request.url,
-        client_name=client_name,  # ✅ incluído no render
-        # ✅ adiciona aqui
+        client_name=client_name,
+        saved_models=saved_models,
     )
 
 

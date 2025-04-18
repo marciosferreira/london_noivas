@@ -21,7 +21,7 @@
         </tr>
       </thead>
       <tbody>
-        {% for item in itens %}
+        {% for item in itens %} {{item}}
         <tr>
           <td data-label="Imagem">
             {% if item.image_url and item.image_url != "N/A" %}
@@ -84,7 +84,7 @@
           <td data-label="Ações">
             <div class="d-flex flex-wrap gap-2 justify-content-center align-items-center">
               {% set show_delete_transaction = True %} {% set show_edit_transaction = True %} {% set show_ver_reservas = True %} {% set
-              show_mark_rented = True %} {% include 'components/action_buttons.html' with context %}
+              show_mark_rented = True %} {% set show_print = True %} {% include 'components/action_buttons.html' with context %}
             </div>
           </td>
         </tr>
@@ -138,6 +138,82 @@
       }
       // Se cancelar não faz nada
     });
+  }
+</script>
+
+<script>
+  function printConteudo() {
+    const conteudo = document.getElementById('print-area').innerHTML;
+
+    const janela = window.open('', '_blank', 'width=800,height=600');
+    if (!janela) {
+      alert('Não foi possível abrir a janela de impressão. Verifique se o bloqueador de pop-up está ativado.');
+      return;
+    }
+
+    janela.document.write(`
+  <html>
+    <head>
+      <title>Imprimir</title>
+      <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+
+        /* Oculta elementos com classe 'no-print' durante a impressão */
+        @media print {
+          .no-print {
+            display: none !important;
+          }
+        }
+      </style>
+    </head>
+    <body>
+      ${conteudo}
+      <script>
+        window.onload = function() {
+          setTimeout(function() {
+            window.print();
+            window.close();
+          }, 300);
+        }
+      <\/script>
+    </body>
+  </html>
+`);
+
+    janela.document.close();
+  }
+</script>
+
+<script>
+  let transacaoSelecionada = null;
+
+  function abrirModalModelo(transactionId) {
+    transacaoSelecionada = transactionId;
+    document.getElementById('print-area').innerHTML = "<p class='text-muted'>Nenhum modelo selecionado.</p>";
+    document.getElementById('select-modelo').value = '';
+  }
+
+  function carregarModeloSelecionado() {
+    const select = document.getElementById('select-modelo');
+    const textId = select.value;
+    const outputDiv = document.getElementById('print-area');
+
+    if (!textId || !transacaoSelecionada) {
+      outputDiv.innerHTML = "<p class='text-muted'>Selecione um modelo para visualizar.</p>";
+      return;
+    }
+
+    outputDiv.innerHTML = '<p>Carregando...</p>';
+
+    fetch(`/visualizar-modelo/${textId}/${transacaoSelecionada}`)
+      .then((response) => response.text())
+      .then((html) => {
+        outputDiv.innerHTML = html;
+      })
+      .catch((error) => {
+        outputDiv.innerHTML = "<p class='text-danger'>Erro ao carregar modelo.</p>";
+        console.error(error);
+      });
   }
 </script>
 

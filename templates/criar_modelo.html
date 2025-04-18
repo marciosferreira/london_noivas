@@ -1,0 +1,177 @@
+{% extends "base.html" %} {% block title %}Criar Modelo - Alugue QQC{% endblock %} {% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='style_terms.css') }}" />
+{% endblock %} {% block body_class %}criar-modelo{% endblock %} {% block content %}
+
+<!-- TinyMCE Editor -->
+<script src="https://cdn.tiny.cloud/1/n3lz85eq3xkybqjnojpt0e5z3lpcy40sayq85qn3zwxx4ghy/tinymce/7/tinymce.min.js" referrerpolicy="origin"></script>
+<script>
+  tinymce.init({
+    selector: 'textarea[name="conteudo"]',
+    height: 500,
+    plugins: [
+      'anchor autolink charmap codesample emoticons image link lists media searchreplace table visualblocks wordcount',
+      'checklist mediaembed casechange formatpainter pageembed a11ychecker tinymcespellchecker',
+      'permanentpen powerpaste advtable advcode editimage advtemplate ai mentions tinycomments',
+      'tableofcontents footnotes mergetags autocorrect typography inlinecss markdown importword exportword exportpdf',
+      'code', // <-- ESSENCIAL: adiciona suporte ao botão de HTML
+    ],
+    toolbar:
+      'undo redo | blocks fontfamily fontsize | bold italic underline strikethrough | link image media table mergetags | addcomment showcomments | spellcheckdialog a11ycheck typography | align lineheight | checklist numlist bullist indent outdent | emoticons charmap | removeformat | code', // <-- botão na barra
+    tinycomments_mode: 'embedded',
+    tinycomments_author: 'Usuário',
+    mergetags_list: [
+      { value: 'nome_cliente', title: 'Nome do Cliente' },
+      { value: 'nome_item', title: 'Nome do Item' },
+      { value: 'preco', title: 'Preço' },
+      { value: 'data_retirada', title: 'Data de Retirada' },
+      { value: 'data_devolucao', title: 'Data de Devolução' },
+    ],
+    ai_request: (request, respondWith) => respondWith.string(() => Promise.reject('AI Assistant não configurado')),
+  });
+</script>
+
+<hr class="my-5" />
+<h4>Tags disponíveis para uso</h4>
+<p class="text-muted">Use as variáveis abaixo no seu modelo. Elas serão substituídas automaticamente no momento da geração.</p>
+
+<!-- Seção Cliente -->
+<h5 class="mt-4 border-bottom pb-2">📇 Dados do Cliente</h5>
+<div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
+  <div class="col">
+    <div class="border rounded p-3 bg-light h-100">
+      <code>{{ '{{ client_name }}' }}</code>
+      <br />
+      <small class="text-muted">Nome do cliente</small>
+    </div>
+  </div>
+  <div class="col">
+    <div class="border rounded p-3 bg-light h-100">
+      <code>{{ '{{ client_email }}' }}</code>
+      <br />
+      <small class="text-muted">E-mail</small>
+    </div>
+  </div>
+  <div class="col">
+    <div class="border rounded p-3 bg-light h-100">
+      <code>{{ '{{ client_tel }}' }}</code>
+      <br />
+      <small class="text-muted">Telefone</small>
+    </div>
+  </div>
+  <div class="col">
+    <div class="border rounded p-3 bg-light h-100">
+      <code>{{ '{{ client_address }}' }}</code>
+      <br />
+      <small class="text-muted">Endereço</small>
+    </div>
+  </div>
+  <div class="col">
+    <div class="border rounded p-3 bg-light h-100">
+      <code>{{ '{{ client_cpf }}' }}</code>
+      <br />
+      <small class="text-muted">CPF</small>
+    </div>
+  </div>
+  <div class="col">
+    <div class="border rounded p-3 bg-light h-100">
+      <code>{{ '{{ client_cnpj }}' }}</code>
+      <br />
+      <small class="text-muted">CNPJ</small>
+    </div>
+  </div>
+</div>
+
+<!-- Seção Item -->
+<h5 class="mt-5 border-bottom pb-2">📦 Dados do Item</h5>
+<div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
+  <div class="col">
+    <div class="border rounded p-3 bg-light h-100">
+      <code>{{ '{{ description }}' }}</code>
+      <br />
+      <small class="text-muted">Descrição do item</small>
+    </div>
+  </div>
+  <div class="col">
+    <div class="border rounded p-3 bg-light h-100">
+      <code>{{ '{{ item_custom_id }}' }}</code>
+      <br />
+      <small class="text-muted">Código do item</small>
+    </div>
+  </div>
+  <div class="col">
+    <div class="border rounded p-3 bg-light h-100">
+      <code>{{ '{{ item_obs }}' }}</code>
+      <br />
+      <small class="text-muted">Observações do item</small>
+    </div>
+  </div>
+</div>
+
+<!-- Seção Transação -->
+<h5 class="mt-5 border-bottom pb-2">📑 Dados da Transação</h5>
+<div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
+  <div class="col">
+    <div class="border rounded p-3 bg-light h-100">
+      <code>{{ '{{ valor }}' }}</code>
+      <br />
+      <small class="text-muted">Valor total</small>
+    </div>
+  </div>
+  <div class="col">
+    <div class="border rounded p-3 bg-light h-100">
+      <code>{{ '{{ pagamento }}' }}</code>
+      <br />
+      <small class="text-muted">Valor pago</small>
+    </div>
+  </div>
+  <div class="col">
+    <div class="border rounded p-3 bg-light h-100">
+      <code>{{ '{{ transaction_obs }}' }}</code>
+      <br />
+      <small class="text-muted">Observações da transação</small>
+    </div>
+  </div>
+
+  <div class="col">
+    <div class="border rounded p-3 bg-light h-100">
+      <code>{{ '{{ rental_date_formatted }}' }}</code>
+      <br />
+      <small class="text-muted">Data retirada</small>
+    </div>
+  </div>
+  <div class="col">
+    <div class="border rounded p-3 bg-light h-100">
+      <code>{{ '{{ return_date_formatted }}' }}</code>
+      <br />
+      <small class="text-muted">Data devolução</small>
+    </div>
+  </div>
+
+  <div class="col">
+    <div class="border rounded p-3 bg-light h-100">
+      <code>{{'{{ data_hora_atual }}'}}</code>
+      <br />
+      <small class="text-muted">Data e horas atuais</small>
+    </div>
+  </div>
+</div>
+
+<div class="terms-container">
+  <h2 class="mb-4">{{ 'Editar Modelo' if modelo else 'Criar Modelo' }}</h2>
+  <form method="POST">
+    <div class="mb-3">
+      <label for="nome" class="form-label">Nome do modelo:</label>
+      <input type="text" class="form-control" name="nome" value="{{ modelo.nome if modelo else '' }}" required />
+    </div>
+
+    <div class="mb-3">
+      <label for="conteudo" class="form-label">Conteúdo:</label>
+      <textarea name="conteudo">{{ modelo.conteudo if modelo else '' }}</textarea>
+    </div>
+
+    <button type="submit" class="btn btn-success">{{ 'Salvar Alterações' if modelo else 'Salvar' }}</button>
+    <a href="{{ url_for('listar_modelos') }}" class="btn btn-outline-secondary ms-2">Voltar</a>
+  </form>
+</div>
+
+{% endblock %}

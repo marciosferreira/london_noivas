@@ -417,7 +417,7 @@
       const clientId = clientIdInput.value.trim();
       const clientName = input.value.trim();
 
-      if (clientName && !clientId) {
+      if (clientName && !clientId && !input.dataset.confirmed) {
         const confirmCreate = confirm("O cliente informado não foi encontrado no banco de dados. Deseja criar um novo cliente com os dados preenchidos?");
         if (!confirmCreate) {
           input.value = "";
@@ -428,10 +428,15 @@
           document.getElementById('client_cnpj').value = "";
           document.getElementById('client_obs').value = "";
           clientIdInput.value = "";
+          delete input.dataset.confirmed;
+        } else {
+          // Marca que o nome foi confirmado manualmente
+          input.dataset.confirmed = "true";
         }
       }
-    }, 200); // espera 200ms pro clique na sugestão acontecer
+    }, 200);
   });
+
 
 </script>
 

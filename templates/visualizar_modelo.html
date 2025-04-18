@@ -1,0 +1,86 @@
+{% extends "base.html" %} {% block title %}Visualizar Modelo - Alugue QQC{% endblock %} {% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='style_terms.css') }}" />
+
+<style>
+  @media print {
+    body * {
+      visibility: hidden !important;
+    }
+    #print-area,
+    #print-area * {
+      visibility: visible !important;
+    }
+    #print-area {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      background: white;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+  }
+</style>
+
+{% endblock %} {% block body_class %}visualizar-modelo{% endblock %} {% block content %}
+
+<!-- Modal -->
+<div class="modal fade show" id="modeloModal" tabindex="-1" aria-labelledby="modeloModalLabel" aria-modal="true" role="dialog" style="display: block">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modeloModalLabel">{{ modelo.nome }}</h5>
+        <a href="{{ url_for('listar_modelos') }}" class="btn-close" aria-label="Fechar"></a>
+      </div>
+      <div class="modal-body" id="print-area">{{ conteudo_renderizado|safe }}</div>
+      <div class="modal-footer">
+        <a href="{{ url_for('listar_modelos') }}" class="btn btn-secondary">Fechar</a>
+        <button type="button" class="btn btn-primary" onclick="printOnlyArea()">Imprimir</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Optional overlay to dim the background -->
+<div class="modal-backdrop fade show"></div>
+
+{% endblock %} {% block scripts %}
+<script>
+  function printOnlyArea() {
+    const conteudo = document.getElementById('print-area')?.innerHTML;
+    if (!conteudo) {
+      alert('Conteúdo de impressão não encontrado.');
+      return;
+    }
+
+    const janela = window.open('', '_blank', 'width=800,height=600');
+    janela.document.write(`
+      <html>
+        <head>
+          <title>Imprimir Modelo</title>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              font-size: 14px;
+              line-height: 1.5;
+              padding: 20px;
+              color: #000;
+              background-color: white;
+            }
+          </style>
+        </head>
+        <body>
+          ${conteudo}
+        </body>
+      </html>
+    `);
+
+    janela.document.close();
+    janela.onload = function () {
+      janela.focus();
+      janela.print();
+      janela.close();
+    };
+  }
+</script>
+{% endblock %}

@@ -67,6 +67,13 @@
                   Ajustes da Conta
                 </a>
               </li>
+
+              <li>
+                <a class="dropdown-item {% if request.endpoint == 'adjustments' %}active{% endif %}" href="{{ url_for('listar_modelos') }}">
+                  Contratos e recibos
+                </a>
+              </li>
+
               <li>
                 <a class="dropdown-item {% if request.endpoint == 'trash_itens' %}active{% endif %}" href="{{ url_for('trash_itens') }}">
                   Lixeira de itens

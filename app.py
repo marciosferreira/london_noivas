@@ -29,6 +29,7 @@ users_table = dynamodb.Table("alugueqqc_users")
 transactions_table = dynamodb.Table("alugueqqc_transactions")
 clients_table = dynamodb.Table("alugueqqc_clients")
 reset_tokens_table = dynamodb.Table("RentqqcResetTokens")
+text_models_table = dynamodb.Table("alugue_qqc_text_models")
 
 
 s3 = boto3.client(
@@ -72,14 +73,29 @@ from static_routes import init_static_routes
 # Initialize routes from modules
 init_auth_routes(app, users_table, reset_tokens_table)
 init_item_routes(
-    app, itens_table, s3, s3_bucket_name, transactions_table, clients_table, users_table
+    app,
+    itens_table,
+    s3,
+    s3_bucket_name,
+    transactions_table,
+    clients_table,
+    users_table,
+    text_models_table,
 )
 init_status_routes(app, itens_table, transactions_table, users_table)
 init_transaction_routes(
     app, itens_table, s3, s3_bucket_name, transactions_table, clients_table, users_table
 )
 init_client_routes(app, clients_table, transactions_table, itens_table, users_table)
-init_static_routes(app, ses_client, clients_table, transactions_table, itens_table)
+init_static_routes(
+    app,
+    ses_client,
+    clients_table,
+    transactions_table,
+    itens_table,
+    text_models_table,
+    users_table,
+)
 
 # Rota para servir o service-worker.js
 from flask import send_from_directory
