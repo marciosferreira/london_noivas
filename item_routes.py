@@ -1631,8 +1631,6 @@ def listar_itens_per_transaction(
                 client_name = txn.get("client_name")
                 break
 
-    print(f"[DEBUG] Tempo total da função: {time.time() - start_total:.4f}s")
-
     response = text_models_table.query(
         IndexName="account_id-index",
         KeyConditionExpression="account_id = :account_id",
