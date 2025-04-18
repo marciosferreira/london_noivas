@@ -143,44 +143,47 @@
 
 <script>
   function printConteudo() {
-    const conteudo = document.getElementById('print-area').innerHTML;
+    const conteudoHtml = document.getElementById('print-area').innerHTML;
 
-    const janela = window.open('', '_blank', 'width=800,height=600');
-    if (!janela) {
+    const win = window.open('', '_blank', 'width=800,height=600');
+
+    if (!win) {
       alert('Não foi possível abrir a janela de impressão. Verifique se o bloqueador de pop-up está ativado.');
       return;
     }
 
-    janela.document.write(`
-  <html>
-    <head>
-      <title>Imprimir</title>
-      <style>
-        body { font-family: Arial, sans-serif; padding: 20px; }
+    win.document.open();
+    win.document.write(`
+      <html>
+        <head>
+          <title>Imprimir</title>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              padding: 20px;
+            }
+            @media print {
+              .no-print {
+                display: none !important;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          ${conteudoHtml}
+        </body>
+      </html>
+    `);
 
-        /* Oculta elementos com classe 'no-print' durante a impressão */
-        @media print {
-          .no-print {
-            display: none !important;
-          }
-        }
-      </style>
-    </head>
-    <body>
-      ${conteudo}
-      <script>
-        window.onload = function() {
-          setTimeout(function() {
-            window.print();
-            window.close();
-          }, 300);
-        }
-      <\/script>
-    </body>
-  </html>
-`);
+    win.document.close();
 
-    janela.document.close();
+    // Esperar carregamento do conteúdo
+    win.onload = function () {
+      setTimeout(() => {
+        win.print();
+        win.close();
+      }, 300);
+    };
   }
 </script>
 

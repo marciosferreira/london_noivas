@@ -311,7 +311,7 @@ def init_static_routes(
         )
 
         return render_template(
-            "visualizar_modelo.html",
+            "visualizar_modelo_conteudo.html",
             modelo=modelo,
             conteudo_renderizado=conteudo_renderizado,
         )

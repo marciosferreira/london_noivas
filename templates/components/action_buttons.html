@@ -116,7 +116,7 @@
         Deletar transação
       </a>
     </li>
-    {% endif %} {% if show_delete_transaction %}
+    {% endif %} {% if show_print %}
     <li>
       <button class="dropdown-item" data-bs-toggle="modal" data-bs-target="#modalModelo" onclick="abrirModalModelo('{{ item.transaction_id }}')">
         Gerar Documento
@@ -148,11 +148,6 @@
         <div id="print-area">
           <p class="text-muted">Nenhum modelo selecionado.</p>
         </div>
-
-        <!-- ✅ botão de imprimir também dentro da modal -->
-        <div class="no-print mt-3">
-          <button class="btn btn-outline-secondary" onclick="printConteudo()">🖨️ Imprimir</button>
-        </div>
       </div>
     </div>
   </div>
@@ -167,5 +162,15 @@
       return false;
     }
     return true;
+  }
+
+  // ✅ Função para imprimir apenas a área de conteúdo do modal
+  function printConteudo() {
+    const conteudo = document.getElementById("print-area").innerHTML;
+    const original = document.body.innerHTML;
+    document.body.innerHTML = conteudo;
+    window.print();
+    document.body.innerHTML = original;
+    location.reload(); // para recarregar o estado original após imprimir
   }
 </script>

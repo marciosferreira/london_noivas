@@ -35,7 +35,7 @@
       <div class="modal-body" id="print-area">{{ conteudo_renderizado|safe }}</div>
       <div class="modal-footer">
         <a href="{{ url_for('listar_modelos') }}" class="btn btn-secondary">Fechar</a>
-        <button type="button" class="btn btn-primary" onclick="printOnlyArea()">Imprimir</button>
+        <button type="button" class="btn btn-primary" onclick="printConteudo()">Imprimir</button>
       </div>
     </div>
   </div>
@@ -44,43 +44,4 @@
 <!-- Optional overlay to dim the background -->
 <div class="modal-backdrop fade show"></div>
 
-{% endblock %} {% block scripts %}
-<script>
-  function printOnlyArea() {
-    const conteudo = document.getElementById('print-area')?.innerHTML;
-    if (!conteudo) {
-      alert('Conteúdo de impressão não encontrado.');
-      return;
-    }
-
-    const janela = window.open('', '_blank', 'width=800,height=600');
-    janela.document.write(`
-      <html>
-        <head>
-          <title>Imprimir Modelo</title>
-          <style>
-            body {
-              font-family: Arial, sans-serif;
-              font-size: 14px;
-              line-height: 1.5;
-              padding: 20px;
-              color: #000;
-              background-color: white;
-            }
-          </style>
-        </head>
-        <body>
-          ${conteudo}
-        </body>
-      </html>
-    `);
-
-    janela.document.close();
-    janela.onload = function () {
-      janela.focus();
-      janela.print();
-      janela.close();
-    };
-  }
-</script>
-{% endblock %}
+{% endblock %} {% block scripts %} {% endblock %}

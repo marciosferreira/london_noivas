@@ -98,4 +98,83 @@
     });
   });
 </script>
+
+<script>
+  function printConteudo() {
+    const conteudoHtml = document.getElementById('print-area').innerHTML;
+
+    const win = window.open('', '_blank', 'width=800,height=600');
+
+    if (!win) {
+      alert('Não foi possível abrir a janela de impressão. Verifique se o bloqueador de pop-up está ativado.');
+      return;
+    }
+
+    win.document.open();
+    win.document.write(`
+      <html>
+        <head>
+          <title>Imprimir</title>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              padding: 20px;
+            }
+            @media print {
+              .no-print {
+                display: none !important;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          ${conteudoHtml}
+        </body>
+      </html>
+    `);
+
+    win.document.close();
+
+    // Esperar carregamento do conteúdo
+    win.onload = function () {
+      setTimeout(() => {
+        win.print();
+        win.close();
+      }, 300);
+    };
+  }
+</script>
+
+<script>
+  let transacaoSelecionada = null;
+
+  function abrirModalModelo(transactionId) {
+    transacaoSelecionada = transactionId;
+    document.getElementById('print-area').innerHTML = "<p class='text-muted'>Nenhum modelo selecionado.</p>";
+    document.getElementById('select-modelo').value = '';
+  }
+
+  function carregarModeloSelecionado() {
+    const select = document.getElementById('select-modelo');
+    const textId = select.value;
+    const outputDiv = document.getElementById('print-area');
+
+    if (!textId || !transacaoSelecionada) {
+      outputDiv.innerHTML = "<p class='text-muted'>Selecione um modelo para visualizar.</p>";
+      return;
+    }
+
+    outputDiv.innerHTML = '<p>Carregando...</p>';
+
+    fetch(`/visualizar-modelo/${textId}/${transacaoSelecionada}`)
+      .then((response) => response.text())
+      .then((html) => {
+        outputDiv.innerHTML = html;
+      })
+      .catch((error) => {
+        outputDiv.innerHTML = "<p class='text-danger'>Erro ao carregar modelo.</p>";
+        console.error(error);
+      });
+  }
+</script>
 {% endblock %}
