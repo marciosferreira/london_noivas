@@ -187,12 +187,23 @@ def init_client_routes(
                 cliente["client_address"] = client_address
 
             # Usar os valores sem formatação (apenas dígitos)
+            # Usar os valores sem formatação (apenas dígitos)
+            cliente["client_cpf"] = client_cpf_digits if client_cpf_digits else None
+            cliente["client_cnpj"] = client_cnpj_digits if client_cnpj_digits else None
+
+            # valida se telefone tem 11 digitos
             if client_tel_digits:
-                cliente["client_tel"] = client_tel_digits
-            if client_cpf_digits:
-                cliente["client_cpf"] = client_cpf_digits
-            if client_cnpj_digits:
-                cliente["client_cnpj"] = client_cnpj_digits
+                if bool(re.fullmatch(r"\d{11}", client_tel_digits)):
+                    cliente["client_tel"] = client_tel_digits
+                else:
+                    flash(
+                        "Número de telefone inválido! Deve conter 11 dígitos.", "error"
+                    )
+                    return redirect(request.referrer)
+            else:
+                cliente["client_tel"] = (
+                    ""  # ou delete se preferir não manter campo vazio
+                )
 
             user_id = session.get("user_id") if "user_id" in session else None
             user_utc = get_user_timezone(users_table, user_id)
@@ -323,6 +334,8 @@ def init_client_routes(
 
     @app.template_filter("format_telefone")
     def format_telefone(value):
+        if not value:
+            return
         digits = "".join(filter(str.isdigit, value))
         if len(digits) == 11:
             return f"({digits[:2]}) {digits[2:7]}-{digits[7:]}"
@@ -420,3 +433,6 @@ def add_client_common(
             return redirect(request.url)
 
     return render_template(template)
+
+
+import re

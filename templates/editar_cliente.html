@@ -107,7 +107,6 @@
     </div>
 
     <script>
-      // Função para aplicar máscara ao CPF
       function formatCPF(cpf) {
         cpf = cpf.replace(/\D/g, '');
         if (cpf.length <= 11) {
@@ -118,7 +117,6 @@
         return cpf;
       }
 
-      // Função para aplicar máscara ao CNPJ
       function formatCNPJ(cnpj) {
         cnpj = cnpj.replace(/\D/g, '');
         if (cnpj.length <= 14) {
@@ -130,7 +128,6 @@
         return cnpj;
       }
 
-      // Função para aplicar máscara ao telefone
       function formatPhone(phone) {
         phone = phone.replace(/\D/g, '');
         if (phone.length > 10) {
@@ -140,78 +137,6 @@
         }
         return phone;
       }
-
-      // Aplicar máscaras nos campos quando já tiverem valores
-      window.addEventListener('DOMContentLoaded', function () {
-        // Formatar valores iniciais
-        const cpfInput = document.getElementById('client_cpf');
-        const cnpjInput = document.getElementById('client_cnpj');
-        const telInput = document.getElementById('client_tel');
-
-        // Certifique-se de que eles estão sendo formatados corretamente
-        if (cpfInput && cpfInput.value) {
-          const onlyDigits = cpfInput.value.replace(/\D/g, '');
-          cpfInput.value = formatCPF(onlyDigits);
-        }
-
-        if (cnpjInput && cnpjInput.value) {
-          const onlyDigits = cnpjInput.value.replace(/\D/g, '');
-          cnpjInput.value = formatCNPJ(onlyDigits);
-        }
-
-        if (telInput && telInput.value) {
-          const onlyDigits = telInput.value.replace(/\D/g, '');
-          telInput.value = formatPhone(onlyDigits);
-        }
-      });
-
-      // Aplicando máscaras nos campos durante digitação
-      document.getElementById('client_cpf').addEventListener('input', function (e) {
-        let value = e.target.value;
-        e.target.value = formatCPF(value);
-      });
-
-      document.getElementById('client_cnpj').addEventListener('input', function (e) {
-        let value = e.target.value;
-        e.target.value = formatCNPJ(value);
-      });
-
-      document.getElementById('client_tel').addEventListener('input', function (e) {
-        let value = e.target.value;
-        e.target.value = formatPhone(value);
-      });
-
-      // Validação e limpeza de formatação antes do envio
-      document.getElementById('editClientForm').addEventListener('submit', function (e) {
-        // Obter valores com formatação
-        const telFormatted = document.getElementById('client_tel').value;
-        const cpfFormatted = document.getElementById('client_cpf').value;
-        const cnpjFormatted = document.getElementById('client_cnpj').value;
-
-        // Remover formatação e manter apenas dígitos
-        const telDigits = telFormatted.replace(/\D/g, '');
-        const cpfDigits = cpfFormatted.replace(/\D/g, '');
-        const cnpjDigits = cnpjFormatted.replace(/\D/g, '');
-
-        // Preencher campos ocultos com apenas dígitos
-        document.getElementById('client_tel_digits').value = telDigits;
-        document.getElementById('client_cpf_digits').value = cpfDigits;
-        document.getElementById('client_cnpj_digits').value = cnpjDigits;
-
-        // Validar CPF se fornecido
-        if (cpfDigits && cpfDigits.length > 0 && !validaCPF(cpfDigits)) {
-          e.preventDefault();
-          alert('CPF inválido!');
-          return false;
-        }
-
-        // Validar CNPJ se fornecido
-        if (cnpjDigits && cnpjDigits.length > 0 && !validaCNPJ(cnpjDigits)) {
-          e.preventDefault();
-          alert('CNPJ inválido!');
-          return false;
-        }
-      });
 
       function validaCPF(cpf) {
         if (cpf.length !== 11 || /^(\d)\1+$/.test(cpf)) return false;
@@ -256,6 +181,85 @@
         resultado = soma % 11 < 2 ? 0 : 11 - (soma % 11);
         return resultado == parseInt(digitos.charAt(1));
       }
+
+      window.addEventListener('DOMContentLoaded', function () {
+        const cpfInput = document.getElementById('client_cpf');
+        const cnpjInput = document.getElementById('client_cnpj');
+        const telInput = document.getElementById('client_tel');
+
+        if (cpfInput) {
+          cpfInput.value = formatCPF(cpfInput.value);
+          cpfInput.addEventListener('input', (e) => (e.target.value = formatCPF(e.target.value)));
+        }
+
+        if (cnpjInput) {
+          cnpjInput.value = formatCNPJ(cnpjInput.value);
+          cnpjInput.addEventListener('input', (e) => (e.target.value = formatCNPJ(e.target.value)));
+        }
+
+        let bloqueiaProximoBlur = false;
+
+        if (telInput) {
+          telInput.value = formatPhone(telInput.value);
+
+          telInput.addEventListener('input', (e) => {
+            e.target.value = formatPhone(e.target.value);
+          });
+
+          telInput.addEventListener('blur', function (e) {
+            if (bloqueiaProximoBlur) {
+              bloqueiaProximoBlur = false;
+              return;
+            }
+
+            const telDigits = e.target.value.replace(/\D/g, '');
+            if (telDigits && telDigits.length !== 11) {
+              // ⚠️ Exibe alerta primeiro, depois prepara o bloqueio para o próximo blur
+              alert('Telefone inválido! O número deve ter 11 dígitos no formato (XX) XXXXX-XXXX.');
+
+              bloqueiaProximoBlur = true;
+              setTimeout(() => {
+                e.target.focus();
+              }, 50);
+            }
+          });
+        }
+
+        const form = document.getElementById('editClientForm');
+        if (form) {
+          form.addEventListener('submit', function (e) {
+            const telFormatted = telInput ? telInput.value : '';
+            const cpfFormatted = cpfInput ? cpfInput.value : '';
+            const cnpjFormatted = cnpjInput ? cnpjInput.value : '';
+
+            const telDigits = telFormatted.replace(/\D/g, '');
+            const cpfDigits = cpfFormatted.replace(/\D/g, '');
+            const cnpjDigits = cnpjFormatted.replace(/\D/g, '');
+
+            document.getElementById('client_tel_digits').value = telDigits;
+            document.getElementById('client_cpf_digits').value = cpfDigits;
+            document.getElementById('client_cnpj_digits').value = cnpjDigits;
+
+            if (cpfDigits && !validaCPF(cpfDigits)) {
+              e.preventDefault();
+              alert('CPF inválido!');
+              return false;
+            }
+
+            if (cnpjDigits && !validaCNPJ(cnpjDigits)) {
+              e.preventDefault();
+              alert('CNPJ inválido!');
+              return false;
+            }
+
+            if (telDigits && telDigits.length !== 11) {
+              e.preventDefault();
+              alert('Telefone inválido! O número deve ter 11 dígitos.');
+              return false;
+            }
+          });
+        }
+      });
     </script>
   </body>
 </html>
