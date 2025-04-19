@@ -4,8 +4,7 @@
 {% endblock %} {% block content %}
 <div class="container mt-3">
   <h2 class="mb-4">Inventário de itens</h2>
-  {{ total_relevant_transactions }} {% set show_add_button = True %} {% set add_route = url_for('add_item') %} {% include
-  'components/item_filter_section.html' %} {% if itens %}
+  {% set show_add_button = True %} {% set add_route = url_for('add_item') %} {% include 'components/item_filter_section.html' %} {% if itens %}
 
   <!-- Tabela (que vira "cards" no mobile) -->
   <div class="table-container mt-4">
