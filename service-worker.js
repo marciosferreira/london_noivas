@@ -1,4 +1,4 @@
-const CACHE_NAME = 'QQC-cache-v18';
+const CACHE_NAME = 'QQC-cache-v19';
 
 const urlsToCache = [
   '/static/style_base.css',
