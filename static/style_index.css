@@ -170,3 +170,33 @@ body {
     row-gap: 32px; /* ainda mais espaço nas telas bem grandes */
   }
 }
+
+/* Estilo dos minitextos abaixo das imagens na landing page */
+.card-description {
+  font-size: 0.85rem;
+  color: #555;
+  margin-top: 0.25rem;
+  line-height: 1.4;
+  opacity: 0.85;
+  min-height: 3.5em;
+}
+
+/* Estilizando os links dentro de quick access */
+a {
+  text-decoration: none; /* Remove o sublinhado padrão */
+  color: #333; /* Cor do texto do link */
+  font-weight: 600; /* Deixa o texto mais forte */
+  transition: all 0.3s ease; /* Adiciona transição suave */
+}
+
+/* Efeito de hover para os links */
+a:hover {
+  color: #007bff; /* Cor azul para o hover */
+  transform: scale(1.05); /* Aumenta um pouco o tamanho do link */
+}
+
+/* Efeito de foco para links acessíveis */
+a:focus {
+  outline: none; /* Remove o contorno padrão de foco */
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.5); /* Adiciona um sombreado sutil ao foco */
+}
