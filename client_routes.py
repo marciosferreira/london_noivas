@@ -95,8 +95,6 @@ def init_client_routes(
         )
         clientes = response.get("Items", [])
 
-        print(clientes)
-
         # 🔸 Aplicar filtros localmente
         def matches(cliente):
             return (

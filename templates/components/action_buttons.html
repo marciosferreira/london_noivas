@@ -342,7 +342,14 @@
   function printModalContent() {
     const conteudo = document.getElementById('print-preview-content').innerHTML;
 
-    const janela = window.open('', '', 'width=800,height=600');
+    // Verificar se a janela já foi aberta
+    let janela = window.open('', '', 'width=800,height=600');
+    if (!janela) {
+      // Caso a janela não tenha sido aberta corretamente, a função retorna
+      console.log('Erro ao abrir a janela de impressão.');
+      return;
+    }
+
     janela.document.write(`
       <html>
         <head>
@@ -360,16 +367,18 @@
           ${conteudo}
           <script>
             window.onload = function () {
+              // Verifica se a janela de impressão foi carregada
               setTimeout(function () {
                 window.print();
-                window.close();
-              }, 300);
+                window.close(); // Fecha a janela após a impressão
+              }, 300); // Ajuste o tempo conforme necessário
             }
           <\/script>
         </body>
       </html>
     `);
-    janela.document.close();
+
+    janela.document.close(); // Garantir que a janela seja fechada após o carregamento
   }
 </script>
 
