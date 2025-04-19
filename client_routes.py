@@ -16,7 +16,7 @@ from flask import (
 
 
 def init_client_routes(
-    app, clients_table, transactions_table, users_table, itens_table
+    app, clients_table, transactions_table, users_table, itens_table, text_models_table
 ):
 
     @app.route("/autocomplete_clients")
@@ -308,6 +308,7 @@ def init_client_routes(
             "Transações do cliente",
             transactions_table,
             itens_table,
+            text_models_table,
             users_table,
             client_id=client_id,
         )

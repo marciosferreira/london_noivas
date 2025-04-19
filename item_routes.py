@@ -109,6 +109,7 @@ def init_item_routes(
             transactions_table,
             users_table,
             itens_table,
+            text_models_table,
             page="trash_transactions",
         )
 
@@ -1406,6 +1407,22 @@ def init_item_routes(
 
         return jsonify({"status": "found", "data": item_data})
 
+    @app.route("/ver-item/<item_id>")
+    def ver_item_publico(item_id):
+        print("KKKKKKKKKKKKKKK")
+        try:
+            response = itens_table.get_item(Key={"item_id": item_id})
+            item = response.get("Item")
+
+            if item:
+                return render_template("view_public_item.html", item=item)
+            else:
+                return "Item não encontrado.", 404
+
+        except Exception as e:
+            print(f"Erro ao buscar item público: {str(e)}")
+            return "Erro interno ao tentar carregar o item.", 500
+
 
 import time  # 👈 necessário para medir o tempo
 
@@ -1657,21 +1674,6 @@ def list_raw_itens(status_list, template, title, itens_table, transactions_table
 
     item_id = request.args.get("item_id")
 
-    # Se há item_id e o usuário não está logado, mostrar visualização pública
-    if item_id and not session.get("logged_in"):
-        try:
-            response = itens_table.get_item(Key={"item_id": item_id})
-            item = response.get("Item")
-
-            if item:
-                return render_template("view_public_item.html", item=item)
-            else:
-                return "Item não encontrado.", 404
-
-        except Exception as e:
-            print(f"Erro ao buscar item público: {str(e)}")
-            return "Erro interno ao tentar carregar o item.", 500
-
     if not session.get("logged_in"):
         return redirect(url_for("login"))
 
@@ -1710,7 +1712,7 @@ def list_raw_itens(status_list, template, title, itens_table, transactions_table
         )
         total_items += len(response.get("Items", []))
 
-    if item_id:
+    if item_id:  # qrcode
         try:
             response = itens_table.get_item(Key={"item_id": item_id})
             item = response.get("Item")

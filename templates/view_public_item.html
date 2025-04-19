@@ -32,7 +32,7 @@
         margin-bottom: 0.8rem;
       }
 
-      img {
+      img.preview {
         margin-top: 1rem;
         border-radius: 6px;
         max-width: 300px;
@@ -49,27 +49,41 @@
         width: 100vw;
         height: 100vh;
         background: rgba(0, 0, 0, 0.9);
-        justify-content: center;
-        align-items: center;
         z-index: 1000;
-        overflow: auto;
+        overflow-y: auto;
+        box-sizing: border-box;
+        padding: 2rem;
+
+        /* centraliza conteúdo horizontalmente */
+        display: flex;
+        justify-content: center;
+        align-items: start; /* imagem começa no topo */
+      }
+
+      #modal-content {
+        position: relative;
+        max-width: 100%;
       }
 
       #modal-img {
         display: block;
-        margin: auto;
-        border-radius: 8px;
-        width: auto;
+        max-width: 100%;
         height: auto;
-        max-width: none;
-        max-height: none;
+        margin: 0 auto; /* esta linha garante centralização */
+        border-radius: 8px;
       }
 
-      @media (max-width: 768px) {
-        #modal-img {
-          max-width: 95vw;
-          height: auto;
-        }
+      #modal-close {
+        position: absolute;
+        top: -20px;
+        right: -20px;
+        background: #fff;
+        border: none;
+        font-size: 1.5rem;
+        border-radius: 50%;
+        width: 36px;
+        height: 36px;
+        cursor: pointer;
       }
     </style>
   </head>
@@ -86,15 +100,18 @@
       </p>
 
       {% if item.image_url and item.image_url != 'N/A' %}
-      <img src="{{ item.image_url }}" alt="Imagem do Item" onclick="openModal({{ item.image_url | tojson }})" />
+      <img class="preview" src="{{ item.image_url }}" alt="Imagem do Item" onclick="openModal(this.src)" />
       {% else %}
-      <img src="{{ url_for('static', filename='item-placeholder.png') }}" alt="Sem imagem" />
+      <img class="preview" src="{{ url_for('static', filename='item-placeholder.png') }}" alt="Sem imagem" />
       {% endif %}
     </div>
 
     <!-- Modal da imagem -->
-    <div id="modal" onclick="closeModal()">
-      <img id="modal-img" src="" alt="Visualização da Imagem" />
+    <div id="modal" onclick="closeModal(event)">
+      <div id="modal-content">
+        <button id="modal-close" onclick="closeModal(event)">✖</button>
+        <img id="modal-img" src="" alt="Visualização da Imagem" />
+      </div>
     </div>
 
     <script>
@@ -105,9 +122,11 @@
         modal.style.display = 'flex';
       }
 
-      function closeModal() {
-        const modal = document.getElementById('modal');
-        modal.style.display = 'none';
+      function closeModal(event) {
+        // Fechar apenas se clicou fora da imagem ou no botão
+        if (event.target.id === 'modal' || event.target.id === 'modal-close') {
+          document.getElementById('modal').style.display = 'none';
+        }
       }
     </script>
   </body>
