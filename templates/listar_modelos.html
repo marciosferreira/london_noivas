@@ -6,27 +6,27 @@
   <h2 class="mb-4">Modelos Disponíveis</h2>
 
   <!-- Seção de Exemplos -->
-  <h4 class="border-bottom pb-2">📌 Modelos de Exemplo</h4>
+  <h4 class="border-bottom pb-2">Modelos de Exemplo</h4>
   <ul class="list-group mb-4">
     {% for modelo in modelos if modelo.account_id == '3bcdb46a-a88f-4dfd-b97e-2fb07222e0f7' %}
     <li class="list-group-item">
       <div class="fw-bold mb-2">{{ modelo.nome }}</div>
       <div class="d-flex flex-wrap gap-2">
-        <a href="{{ url_for('visualizar_modelo_simples', text_id=modelo.text_id) }}" class="btn btn-sm btn-outline-primary">🔍 Ver Exemplo</a>
-        <a href="{{ url_for('editar_modelo', text_id=modelo.text_id) }}" class="btn btn-sm btn-outline-secondary">✏️ Ver codigo</a>
+        <a href="{{ url_for('visualizar_modelo_simples', text_id=modelo.text_id) }}" class="btn btn-sm btn-outline-primary">Ver Exemplo</a>
+        <a href="{{ url_for('editar_modelo', text_id=modelo.text_id) }}" class="btn btn-sm btn-outline-secondary">Ver codigo</a>
       </div>
     </li>
     {% endfor %}
   </ul>
 
   <!-- Seção do Usuário -->
-  <h4 class="border-bottom pb-2">📝 Seus Modelos</h4>
+  <h4 class="border-bottom pb-2">Seus Modelos</h4>
   <ul class="list-group mb-4">
     {% for modelo in modelos if modelo.account_id != '3bcdb46a-a88f-4dfd-b97e-2fb07222e0f7' %}
     <li class="list-group-item">
       <div class="fw-bold mb-2">{{ modelo.nome }}</div>
       <div class="d-flex flex-wrap gap-2">
-        <a href="{{ url_for('editar_modelo', text_id=modelo.text_id) }}" class="btn btn-sm btn-outline-secondary">✏️ Editar</a>
+        <a href="{{ url_for('editar_modelo', text_id=modelo.text_id) }}" class="btn btn-sm btn-outline-secondary">Editar</a>
         <form
           method="POST"
           action="{{ url_for('excluir_modelo', text_id=modelo.text_id) }}"

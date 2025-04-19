@@ -1,120 +1,92 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Ajustes da Conta</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+{% extends "base.html" %}
 
-    <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='style_adjustments.css') }}" />
+{% block title %}Ajustes da Conta{% endblock %}
 
-    <!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=AW-1051093117"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
+{% block styles %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='style_adjustments.css') }}" />
+{% endblock %}
 
-  gtag('config', 'AW-1051093117');
-</script>
+{% block content %}
+<div class="container mt-4">
+  <h2 class="text-center text-dark-blue">Ajustes da Conta</h2>
 
+  <div class="card mx-auto mt-4 shadow-sm" style="max-width: 500px">
+    <div class="card-body">
+      <h5 class="card-title text-center">Informações da Conta</h5>
 
-  </head>
-
-  <body class="adjustments">
-    <!-- Importa o Header -->
-    {% include 'header.html' %}
-
-    <div class="container mt-5">
-      <h2 class="text-center text-dark-blue">Ajustes da Conta</h2>
-
-      <!-- Card com todas as informações da conta -->
-      <div class="card mx-auto mt-4 shadow-sm" style="max-width: 500px">
-        <div class="card-body">
-          <h5 class="card-title text-center">Informações da Conta</h5>
-
-          <form method="POST" action="{{ url_for('change_username') }}">
-            <div class="mb-3">
-              <label class="form-label"><strong>Nome de Usuário Atual:</strong></label>
-              <input type="text" class="form-control" value="{{ username }}" disabled />
-            </div>
-            <div class="mb-3">
-              <label for="new_username" class="form-label">Novo Nome de Usuário:</label>
-              <input type="text" id="new_username" name="new_username" class="form-control" required minlength="3" maxlength="15" />
-            </div>
-            <button type="submit" class="btn btn-primary w-100">Atualizar Nome de Usuário</button>
-          </form>
-
-          <hr class="my-4" />
-
-          <form method="POST" action="{{ url_for('change_password') }}">
-            <h5 class="text-center">Alterar Senha</h5>
-            <p class="text-muted text-center">Por segurança, digite sua senha atual antes de criar uma nova.</p>
-            <div class="mb-3">
-              <label for="current_password" class="form-label">Senha Atual</label>
-              <input type="password" id="current_password" name="current_password" class="form-control" required />
-            </div>
-            <div class="mb-3">
-              <label for="new_password" class="form-label">Nova Senha</label>
-              <input type="password" id="new_password" name="new_password" class="form-control" required minlength="8" />
-            </div>
-            <div class="mb-3">
-              <label for="confirm_new_password" class="form-label">Confirme a Nova Senha</label>
-              <input type="password" id="confirm_new_password" name="confirm_new_password" class="form-control" required />
-            </div>
-            <button type="submit" class="btn btn-primary w-100">Alterar Senha</button>
-          </form>
-
-          <hr class="my-4" />
-
-          <form method="POST" action="{{ url_for('request_email_change') }}">
-            <h5 class="text-center">Alterar E-mail</h5>
-            <p class="text-muted text-center">Digite um novo endereço de e-mail para atualizar sua conta.</p>
-            <div class="mb-3">
-              <label class="form-label"><strong>E-mail Atual:</strong></label>
-              <input type="email" class="form-control" value="{{ email }}" disabled />
-            </div>
-            <div class="mb-3">
-              <label for="new_email" class="form-label">Novo E-mail</label>
-              <input type="email" id="new_email" name="new_email" class="form-control" required />
-            </div>
-            <button type="submit" class="btn btn-primary w-100">Atualizar E-mail</button>
-          </form>
-
-
-          <hr class="my-4" />
-
-          <form method="POST" action="{{ url_for('change_timezone') }}">
-            <h5 class="text-center">Fuso Horário</h5>
-            <p class="text-muted text-center">Escolha o seu fuso horário atual.</p>
-            <div class="mb-3">
-              <label for="timezone" class="form-label">Fuso Horário:</label>
-              <select id="timezone" name="timezone" class="form-select" required>
-                {% for tz in timezones %}
-                  <option value="{{ tz }}" {% if tz == current_timezone %}selected{% endif %}>{{ tz }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            <button type="submit" class="btn btn-primary w-100">Atualizar Fuso Horário</button>
-          </form>
-
-
-
-
-
-
+      <!-- Alterar nome de usuário -->
+      <form method="POST" action="{{ url_for('change_username') }}">
+        <div class="mb-3">
+          <label class="form-label"><strong>Nome de Usuário Atual:</strong></label>
+          <input type="text" class="form-control" value="{{ username }}" disabled />
         </div>
-      </div>
+        <div class="mb-3">
+          <label for="new_username" class="form-label">Novo Nome de Usuário:</label>
+          <input type="text" id="new_username" name="new_username" class="form-control" required minlength="3" maxlength="15" />
+        </div>
+        <button type="submit" class="btn btn-primary w-100">Atualizar Nome de Usuário</button>
+      </form>
+
+      <hr class="my-4" />
+
+      <!-- Alterar senha -->
+      <form method="POST" action="{{ url_for('change_password') }}">
+        <h5 class="text-center">Alterar Senha</h5>
+        <p class="text-muted text-center">Por segurança, digite sua senha atual antes de criar uma nova.</p>
+        <div class="mb-3">
+          <label for="current_password" class="form-label">Senha Atual</label>
+          <input type="password" id="current_password" name="current_password" class="form-control" required />
+        </div>
+        <div class="mb-3">
+          <label for="new_password" class="form-label">Nova Senha</label>
+          <input type="password" id="new_password" name="new_password" class="form-control" required minlength="8" />
+        </div>
+        <div class="mb-3">
+          <label for="confirm_new_password" class="form-label">Confirme a Nova Senha</label>
+          <input type="password" id="confirm_new_password" name="confirm_new_password" class="form-control" required />
+        </div>
+        <button type="submit" class="btn btn-primary w-100">Alterar Senha</button>
+      </form>
+
+      <hr class="my-4" />
+
+      <!-- Alterar e-mail -->
+      <form method="POST" action="{{ url_for('request_email_change') }}">
+        <h5 class="text-center">Alterar E-mail</h5>
+        <p class="text-muted text-center">Digite um novo endereço de e-mail para atualizar sua conta.</p>
+        <div class="mb-3">
+          <label class="form-label"><strong>E-mail Atual:</strong></label>
+          <input type="email" class="form-control" value="{{ email }}" disabled />
+        </div>
+        <div class="mb-3">
+          <label for="new_email" class="form-label">Novo E-mail</label>
+          <input type="email" id="new_email" name="new_email" class="form-control" required />
+        </div>
+        <button type="submit" class="btn btn-primary w-100">Atualizar E-mail</button>
+      </form>
+
+      <hr class="my-4" />
+
+      <!-- Alterar fuso horário -->
+      <form method="POST" action="{{ url_for('change_timezone') }}">
+        <h5 class="text-center">Fuso Horário</h5>
+        <p class="text-muted text-center">Escolha o seu fuso horário atual.</p>
+        <div class="mb-3">
+          <label for="timezone" class="form-label">Fuso Horário:</label>
+          <select id="timezone" name="timezone" class="form-select" required>
+            {% for tz in timezones %}
+              <option value="{{ tz }}" {% if tz == current_timezone %}selected{% endif %}>{{ tz }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <button type="submit" class="btn btn-primary w-100">Atualizar Fuso Horário</button>
+      </form>
+
     </div>
+  </div>
+</div>
+<div style="height: 50px"></div>
+{% endblock %}
 
-    <div style="height: 50px"></div>
-    <!-- Espaçamento extra no final -->
-
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
-    <!-- Importa o Footer -->
-    {% include 'footer.html' %}
-  </body>
-</html>
+{% block scripts %}
+{% endblock %}

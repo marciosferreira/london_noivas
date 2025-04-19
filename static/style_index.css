@@ -200,3 +200,67 @@ a:focus {
   outline: none; /* Remove o contorno padrão de foco */
   box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.5); /* Adiciona um sombreado sutil ao foco */
 }
+
+:root {
+  --header-height: 10px;
+}
+
+.wrapper {
+  padding-top: var(--header-height);
+}
+
+:root {
+  --header-height: 30px;
+}
+
+.wrapper {
+  padding-top: var(--header-height);
+}
+
+/* Animação de zoom e lift em imagens rápidas */
+.img-quick-access {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.img-quick-access:hover {
+  transform: scale(1.08);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+/* Animação nos cards (feature-box) */
+.feature-box {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.feature-box:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+}
+
+/* Animação suave no botão */
+.btn-primary {
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.btn-primary:hover {
+  transform: scale(1.04);
+  background-color: #0056b3; /* tom um pouco mais escuro no hover */
+}
+
+.image-wrapper {
+  border-radius: 12px;
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.image-wrapper:hover {
+  transform: scale(1.05);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+}
+
+.img-quick-access {
+  display: block;
+  width: 100%;
+  height: auto;
+  transition: transform 0.3s ease;
+}

@@ -33,17 +33,15 @@
     <br />
     <br />
 
-
     <label for="valor">Preço do aluguel (R$):</label>
     <input type="text" id="valor" name="valor" required />
 
-
-
     <br />
     <br />
 
+    {% set image_url = "" %}
     <label>Foto:</label>
-    <div id="image-container" style="text-align: center; margin: 10px 0 20px 0">
+    <div id="image-container" style="text-align: center; margin-bottom: 20px">
       <img
         id="item-image"
         src="{{ url_for('static', filename='item-placeholder.png') }}"
@@ -53,17 +51,12 @@
 
       <input type="text" name="image_url" id="image-url-input" value="" style="opacity: 0; position: absolute; left: -9999px" />
 
-      <button
-      type="button"
-      onclick="removeImage()"
-      id="remove-btn"
-      style="margin: 10px auto; display: none; display: block;"
-    >
-      Excluir imagem
-    </button>
+      <button type="button" onclick="removeImage()" id="remove-btn" style="margin: 10px auto; display: none">Excluir imagem</button>
+    </div>
 
-
+    <label for="image_file">Adicionar Imagem:</label>
     <input type="file" id="image_file" name="image_file" accept="image/*;capture=camera" />
+
     <br />
     <br />
 
@@ -73,11 +66,14 @@
 {% block scripts %}
 <script>
   function removeImage() {
+    const imageInput = document.getElementById('image-url-input');
     const imageElement = document.getElementById('item-image');
     const removeButton = document.getElementById('remove-btn');
-    const imageInput = document.getElementById('image-url-input');
 
-    // Voltar ao placeholder
+    if (imageInput) {
+      imageInput.value = 'DELETE_IMAGE';
+    }
+
     if (imageElement) {
       imageElement.src = "{{ url_for('static', filename='item-placeholder.png') }}";
     }
@@ -86,11 +82,6 @@
       removeButton.style.display = 'none';
     }
 
-    if (imageInput) {
-      imageInput.value = 'DELETE_IMAGE';
-    }
-
-    // Limpar o campo file (opcional)
     document.getElementById('image_file').value = '';
   }
 
@@ -105,17 +96,27 @@
         imageElement.src = e.target.result;
         imageElement.style.display = 'block';
         imageElement.style.margin = '0 auto';
-        if (removeButton) removeButton.style.display = 'block';
+        if (removeButton) {
+          removeButton.style.display = 'block';
+        }
       };
       reader.readAsDataURL(file);
     }
   });
-</script>
 
+  // Oculta o botão se estiver mostrando o placeholder ao carregar
+  window.addEventListener('load', function () {
+    const imageElement = document.getElementById('item-image');
+    const removeButton = document.getElementById('remove-btn');
+    if (imageElement.src.includes('item-placeholder.png') && removeButton) {
+      removeButton.style.display = 'none';
+    }
+  });
+</script>
 
 <script>
   function formatarCampoMonetario(input) {
-    input.addEventListener('input', function(e) {
+    input.addEventListener('input', function (e) {
       let value = e.target.value.replace(/\D/g, '');
 
       if (!value) {
@@ -133,11 +134,11 @@
   // Aplica em todos os campos que precisam
   const campos = [document.getElementById('valor')];
 
-  campos.forEach(campo => {
+  campos.forEach((campo) => {
     if (campo) {
       formatarCampoMonetario(campo);
     }
   });
-  </script>
+</script>
 
 {% endblock %} {% endblock %}

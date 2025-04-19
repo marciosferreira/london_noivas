@@ -1,9 +1,9 @@
-const CACHE_NAME = 'QQC-cache-v20';
+const CACHE_NAME = 'QQC-cache-v23';
 
 const urlsToCache = [
-  '/static/style_base.css',
-  '/static/style_header.css',
-  '/static/style_index.css',
+  //'/static/style_base.css',
+  //'/static/style_header.css',
+  //'/static/style_index.css',
   '/static/manifest.json',
   '/static/icons/icon-192x192.png',
   '/static/icons/icon-512x512.png',

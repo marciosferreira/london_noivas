@@ -1,176 +1,202 @@
-{% extends "base.html" %} {% block title %}Alugue QQC - Controle fácil dos seus aluguéis{% endblock %} {% block styles %}
+{% extends "base.html" %} {% block title %} Transações iniciadas (itens alugados) {% endblock %} {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='style_index.css') }}" />
 {% endblock %} {% block content %}
-<section class="hero text-center">
+<div class="wrapper">
+  <section class="hero text-center">
+    {% if not session.get('logged_in') %}
+    <h1>Alugue Qualquer Coisa com Facilidade</h1>
+    <h2>Sistema completo com plano gratuito para locadoras de todos os tipos</h2>
+    <p class="mt-3">
+      Gerencie seus clientes, itens e reservas em um só lugar, sem complicação.
+      <br />
+      Crie sua conta em segundos e comece a controlar seus aluguéis agora mesmo.
+    </p>
+
+    <button class="btn btn-primary mt-4" onclick="window.location.href='{{ url_for('login') }}'">Entrar ou Registrar</button>
+    {% endif %} {% if session.get('logged_in') %}
+    <script>
+      gtag('event', 'conversion', { send_to: 'AW-1051093117/6kftCNiL_GUQ_dCZ9QM' });
+    </script>
+    <p></p>
+    <p></p>
+    <p></p>
+
+    <h4 class="text-center mb-3">Olá, {{ username }} !</h4>
+    <h4 class="text-center mb-3">Aqui estão seus números gerais e seus links rápidos:</h4>
+
+    {% endif %} {% if not session.get('logged_in') %}
+    <h3 class="text-center mt-5 mb-4">Veja algumas das funcionalidades do Alugue QQC</h3>
+    {% endif %}
+
+    <div class="container mt-4">
+      <div class="row row-cols-2 row-cols-sm-2 row-cols-md-4 g-4 text-center">
+        <!-- Bloco 1 - Clientes -->
+        <div class="col">
+          <a href="{{ url_for('listar_clientes') }}">
+            <div class="position-relative">
+              {% if session.get('logged_in') %}
+              <span class="badge-counter">{{ stats.total_clients }}</span>
+              {% endif %}
+              <div class="image-wrapper">
+
+              <img src="/static/icons/clients.png" alt="Clientes" class="img-fluid img-quick-access mb-2 rounded shadow" />
+            </div>
+          </div>
+
+            {% if not session.get('logged_in') %}
+            <p class="card-description">Cadastre e acompanhe todos os seus clientes de forma prática.</p>
+            {% endif %}
+          </a>
+        </div>
+
+        <!-- Bloco 2 - Inventário -->
+        <div class="col">
+          <a href="{{ url_for('inventory') }}">
+            <div class="position-relative">
+              {% if session.get('logged_in') %}
+              <span class="badge-counter">{{ stats.total_items_available }}</span>
+              {% endif %}
+              <div class="image-wrapper">
+
+              <img src="/static/icons/inventory.png" alt="Disponíveis" class="img-fluid img-quick-access mb-2 rounded shadow" />
+            </div>
+            </div>
+            {% if not session.get('logged_in') %}
+            <p class="card-description">Gerencie seu inventário e imprima QRcodes para acesso rápido aos itens pelo celular.</p>
+            {% endif %}
+          </a>
+        </div>
+
+        <!-- Bloco 3 - Arquivados -->
+        <div class="col">
+          <a href="{{ url_for('archive') }}">
+            <div class="position-relative">
+              {% if session.get('logged_in') %}
+              <span class="badge-counter">{{ stats.total_items_archived }}</span>
+              {% endif %}
+              <div class="image-wrapper">
+
+              <img src="/static/icons/archive.png" alt="Arquivados" class="img-fluid img-quick-access mb-2 rounded shadow" />
+            </div>
+            </div>
+            {% if not session.get('logged_in') %}
+            <p class="card-description">Arquive itens que não estão em uso e mantenha seu inventário limpo.</p>
+            {% endif %}
+          </a>
+        </div>
+
+        <!-- Bloco 4 - Reservados -->
+        <div class="col">
+          <a href="{{ url_for('reserved') }}">
+            <div class="position-relative">
+              {% if session.get('logged_in') %}
+              <span class="badge-counter">{{ stats.total_reserved }}</span>
+              {% endif %}
+              <div class="image-wrapper">
+                <div class="image-wrapper">
+
+              <img src="/static/icons/reserved.png" alt="Reservados" class="img-fluid img-quick-access mb-2 rounded shadow" />
+            </div></div></div>
+            {% if not session.get('logged_in') %}
+            <p class="card-description">Visualize facilmente os itens reservados e as próximas retiradas.</p>
+            {% endif %}
+          </a>
+        </div>
+
+        <!-- Bloco 5 - Retirados -->
+        <div class="col">
+          <a href="{{ url_for('rented') }}">
+            <div class="position-relative">
+              {% if session.get('logged_in') %}
+              <span class="badge-counter">{{ stats.total_rented }}</span>
+              {% endif %}
+              <div class="image-wrapper">
+
+              <img src="/static/icons/rented.png" alt="Retirados" class="img-fluid img-quick-access mb-2 rounded shadow" />
+            </div>
+            </div>
+            {% if not session.get('logged_in') %}
+            <p class="card-description">Saiba quem está com cada item e veja alertas de dias até a retirada e atrasos na devolução.</p>
+            {% endif %}
+          </a>
+        </div>
+
+        <!-- Bloco 6 - Devolvidos -->
+        <div class="col">
+          <a href="{{ url_for('returned') }}">
+            <div class="position-relative">
+              {% if session.get('logged_in') %}
+              <span class="badge-counter">{{ stats.total_returned }}</span>
+              {% endif %}
+              <div class="image-wrapper">
+
+              <img src="/static/icons/returned.png" alt="Devolvidos" class="img-fluid img-quick-access mb-2 rounded shadow" />
+            </div>
+            </div>
+            {% if not session.get('logged_in') %}
+            <p class="card-description">Acompanhe os itens que já foram devolvidos e mantenha um histórico para consulta.</p>
+            {% endif %}
+          </a>
+        </div>
+
+        <!-- Bloco 7 - Relatórios -->
+        <div class="col">
+          <a href="{{ url_for('reports') }}">
+            <div class="position-relative">
+              <div class="image-wrapper">
+
+              <img src="/static/icons/reports.png" alt="Relatórios" class="img-fluid img-quick-access mb-2 rounded shadow" />
+            </div></div>
+            {% if not session.get('logged_in') %}
+            <p class="card-description">Gere relatórios completos de aluguéis e performance financeira.</p>
+            {% endif %}
+          </a>
+        </div>
+
+        <!-- Bloco 8 - Contratos -->
+        <div class="col">
+          <a href="{{ url_for('listar_modelos') }}">
+            <div class="position-relative">
+              <div class="image-wrapper">
+
+              <img src="/static/icons/contratos.png" alt="Contratos" class="img-fluid img-quick-access mb-2 rounded shadow" />
+            </div></div>
+            {% if not session.get('logged_in') %}
+            <p class="card-description">Imprima contratos e recibos automaticamente preenchidos, prontos para assinar.</p>
+            {% endif %}
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
   {% if not session.get('logged_in') %}
-  <h1>Alugue Qualquer Coisa com Facilidade</h1>
-  <h2>Sistema completo com plano gratuito para locadoras de todos os tipos</h2>
-  <p class="mt-3">
-    Gerencie seus clientes, itens e reservas em um só lugar, sem complicação.
-    <br />
-    Crie sua conta em segundos e comece a controlar seus aluguéis agora mesmo.
-  </p>
-
-  <button class="btn btn-primary mt-4" onclick="window.location.href='{{ url_for('login') }}'">Entrar ou Registrar</button>
-  {% endif %} {% if session.get('logged_in') %}
-  <script>
-    gtag('event', 'conversion', { send_to: 'AW-1051093117/6kftCNiL_GUQ_dCZ9QM' });
-  </script>
-  <p></p>
-  <p></p>
-  <p></p>
-
-  <h4 class="text-center mb-3">Olá, {{ username }} !</h4>
-  <h4 class="text-center mb-3">Aqui estão seus números gerais e seus links rápidos:</h4>
-
-  {% endif %} {% if not session.get('logged_in') %}
-  <h3 class="text-center mt-5 mb-4">Veja algumas das funcionalidades do Alugue QQC</h3>
+  <section class="features container text-center mt-5">
+    <h2 class="mb-4">Por que usar o Alugue QQC?</h2>
+    <div class="row">
+      <!-- Vantagem 1 -->
+      <div class="col-12 col-sm-6 col-md-4 d-flex flex-column align-items-center feature-box">
+        <img src="/static/icons/icon_1.png" alt="Plano gratuito" class="feature-img" />
+        <h3 class="mt-3">Plano gratuito de verdade</h3>
+        <p class="feature-text">Comece agora com até 50 itens e 30 transações. Sem cartão de crédito, sem pegadinhas.</p>
+      </div>
+      <!-- Vantagem 2 -->
+      <div class="col-12 col-sm-6 col-md-4 d-flex flex-column align-items-center feature-box">
+        <img src="/static/icons/icon_2.png" alt="Ideal para qualquer locadora" class="feature-img" />
+        <h3 class="mt-3">Serve para qualquer tipo de aluguel</h3>
+        <p class="feature-text">Vestidos, ferramentas, decoração, eletrônicos ou qualquer outro item: o sistema se adapta à sua realidade.</p>
+      </div>
+      <!-- Vantagem 3 -->
+      <div class="col-12 col-sm-6 col-md-4 d-flex flex-column align-items-center feature-box">
+        <img src="/static/icons/icon_3.png" alt="Fácil e seguro" class="feature-img" />
+        <h3 class="mt-3">Fácil, rápido, intuitivo e seguro</h3>
+        <p class="feature-text">Interface simples, funcionalidades diretas e seus dados protegidos com tecnologia de ponta.</p>
+      </div>
+    </div>
+  </section>
   {% endif %}
+</div>
+<!-- Fechamento correto da wrapper -->
 
-  <div class="container mt-4">
-    <div class="row row-cols-2 row-cols-sm-2 row-cols-md-4 g-4 text-center">
-      <!-- Bloco 1 - Clientes -->
-      <div class="col">
-        <a href="{{ url_for('listar_clientes') }}">
-          <div class="position-relative">
-            {% if session.get('logged_in') %}
-            <span class="badge-counter">{{ stats.total_clients }}</span>
-            {% endif %}
-            <img src="/static/icons/clients.png" alt="Clientes" class="img-fluid img-quick-access mb-2 rounded shadow" />
-          </div>
-          {% if not session.get('logged_in') %}
-          <p class="card-description">Cadastre e acompanhe todos os seus clientes de forma prática.</p>
-          {% endif %}
-        </a>
-      </div>
-
-      <!-- Bloco 2 - Inventário -->
-      <div class="col">
-        <a href="{{ url_for('inventory') }}">
-          <div class="position-relative">
-            {% if session.get('logged_in') %}
-            <span class="badge-counter">{{ stats.total_items_available }}</span>
-            {% endif %}
-            <img src="/static/icons/inventory.png" alt="Disponíveis" class="img-fluid img-quick-access mb-2 rounded shadow" />
-          </div>
-          {% if not session.get('logged_in') %}
-          <p class="card-description">Gerencie seu inventário e imprima QRcodes para acesso rápido aos itens pelo celular.</p>
-          {% endif %}
-        </a>
-      </div>
-
-      <!-- Bloco 3 - Arquivados -->
-      <div class="col">
-        <a href="{{ url_for('archive') }}">
-          <div class="position-relative">
-            {% if session.get('logged_in') %}
-            <span class="badge-counter">{{ stats.total_items_archived }}</span>
-            {% endif %}
-            <img src="/static/icons/archive.png" alt="Arquivados" class="img-fluid img-quick-access mb-2 rounded shadow" />
-          </div>
-          {% if not session.get('logged_in') %}
-          <p class="card-description">Arquive itens que não estão em uso e mantenha seu inventário limpo.</p>
-          {% endif %}
-        </a>
-      </div>
-
-      <!-- Bloco 4 - Reservados -->
-      <div class="col">
-        <a href="{{ url_for('reserved') }}">
-          <div class="position-relative">
-            {% if session.get('logged_in') %}
-            <span class="badge-counter">{{ stats.total_reserved }}</span>
-            {% endif %}
-            <img src="/static/icons/reserved.png" alt="Reservados" class="img-fluid img-quick-access mb-2 rounded shadow" />
-          </div>
-          {% if not session.get('logged_in') %}
-          <p class="card-description">Visualize facilmente os itens reservados e as próximas retiradas.</p>
-          {% endif %}
-        </a>
-      </div>
-
-      <!-- Bloco 5 - Retirados -->
-      <div class="col">
-        <a href="{{ url_for('rented') }}">
-          <div class="position-relative">
-            {% if session.get('logged_in') %}
-            <span class="badge-counter">{{ stats.total_rented }}</span>
-            {% endif %}
-            <img src="/static/icons/rented.png" alt="Retirados" class="img-fluid img-quick-access mb-2 rounded shadow" />
-          </div>
-          {% if not session.get('logged_in') %}
-          <p class="card-description">Saiba quem está com cada item e veja alertas de dias até a retirada e atrasos na devolução.</p>
-          {% endif %}
-        </a>
-      </div>
-
-      <!-- Bloco 6 - Devolvidos -->
-      <div class="col">
-        <a href="{{ url_for('returned') }}">
-          <div class="position-relative">
-            {% if session.get('logged_in') %}
-            <span class="badge-counter">{{ stats.total_returned }}</span>
-            {% endif %}
-            <img src="/static/icons/returned.png" alt="Devolvidos" class="img-fluid img-quick-access mb-2 rounded shadow" />
-          </div>
-          {% if not session.get('logged_in') %}
-          <p class="card-description">Acompanhe os itens que já foram devolvidos e mantenha um histórico para consulta.</p>
-          {% endif %}
-        </a>
-      </div>
-
-      <!-- Bloco 7 - Relatórios -->
-      <div class="col">
-        <a href="{{ url_for('reports') }}">
-          <div class="position-relative">
-            <img src="/static/icons/reports.png" alt="Relatórios" class="img-fluid img-quick-access mb-2 rounded shadow" />
-          </div>
-          {% if not session.get('logged_in') %}
-          <p class="card-description">Gere relatórios completos de aluguéis e performance financeira.</p>
-          {% endif %}
-        </a>
-      </div>
-
-      <!-- Bloco 8 - Contratos -->
-      <div class="col">
-        <a href="{{ url_for('listar_modelos') }}">
-          <div class="position-relative">
-            <img src="/static/icons/contratos.png" alt="Contratos" class="img-fluid img-quick-access mb-2 rounded shadow" />
-          </div>
-          {% if not session.get('logged_in') %}
-          <p class="card-description">Imprima contratos e recibos automaticamente preenchidos, prontos para assinar.</p>
-          {% endif %}
-        </a>
-      </div>
-    </div>
-  </div>
-</section>
-
-{% if not session.get('logged_in') %}
-
-<!-- Seção com 3 colunas -->
-<section class="features container text-center mt-5">
-  <h2 class="mb-4">Por que usar o Alugue QQC?</h2>
-  <div class="row">
-    <!-- Vantagem 1 -->
-    <div class="col-12 col-sm-6 col-md-4 d-flex flex-column align-items-center feature-box">
-      <img src="/static/icons/icon_1.png" alt="Plano gratuito" class="feature-img" />
-      <h3 class="mt-3">Plano gratuito de verdade</h3>
-      <p class="feature-text">Comece agora com até 50 itens e 30 transações. Sem cartão de crédito, sem pegadinhas.</p>
-    </div>
-    <!-- Vantagem 2 -->
-    <div class="col-12 col-sm-6 col-md-4 d-flex flex-column align-items-center feature-box">
-      <img src="/static/icons/icon_2.png" alt="Ideal para qualquer locadora" class="feature-img" />
-      <h3 class="mt-3">Serve para qualquer tipo de aluguel</h3>
-      <p class="feature-text">Vestidos, ferramentas, decoração, eletrônicos ou qualquer outro item: o sistema se adapta à sua realidade.</p>
-    </div>
-    <!-- Vantagem 3 -->
-    <div class="col-12 col-sm-6 col-md-4 d-flex flex-column align-items-center feature-box">
-      <img src="/static/icons/icon_3.png" alt="Fácil e seguro" class="feature-img" />
-      <h3 class="mt-3">Fácil, rápido, intuitivo e seguro</h3>
-      <p class="feature-text">Interface simples, funcionalidades diretas e seus dados protegidos com tecnologia de ponta.</p>
-    </div>
-  </div>
-</section>
-
-{% endif %} {% endblock %}
+  {% endblock %}
+</div>

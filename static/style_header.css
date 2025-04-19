@@ -8,7 +8,7 @@
 
 /* Estiliza a logo */
 .logo {
-  height: 50px; /* Ajuste ideal para tamanho pequeno */
+  height: 80px; /* Ajuste ideal para tamanho pequeno */
   width: auto;
   border-radius: 8px; /* Deixa a logo com bordas arredondadas */
   transition: transform 0.3s ease-in-out;

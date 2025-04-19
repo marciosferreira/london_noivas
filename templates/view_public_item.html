@@ -42,7 +42,7 @@
       }
 
       #modal {
-        display: none; /* <-- mantém assim */
+        display: none; /* começa invisível */
         position: fixed;
         top: 0;
         left: 0;
@@ -50,31 +50,28 @@
         height: 100vh;
         background: rgba(0, 0, 0, 0.9);
         z-index: 1000;
-        overflow-y: auto;
+        overflow: auto;
         box-sizing: border-box;
         padding: 2rem;
 
+        /* centraliza conteúdo horizontal e verticalmente */
         justify-content: center;
-        align-items: start;
+        align-items: center;
       }
 
-
-        /* centraliza conteúdo horizontalmente */
-        display: flex;
-        justify-content: center;
-        align-items: start; /* imagem começa no topo */
-      }
+      /* será ativado via JS: display: flex */
 
       #modal-content {
         position: relative;
         max-width: 100%;
+        margin-top: 100px; /* ⬅ desce um pouco o conteúdo */
       }
 
       #modal-img {
         display: block;
         max-width: 100%;
         height: auto;
-        margin: 0 auto; /* esta linha garante centralização */
+        margin: 0 auto;
         border-radius: 8px;
       }
 
@@ -126,15 +123,7 @@
         const modal = document.getElementById('modal');
         const modalImg = document.getElementById('modal-img');
 
-        // Esconde temporariamente o modal enquanto carrega
-        modal.style.display = 'none';
-        modalImg.src = ''; // Limpa para forçar recarregamento
-
-        // Garante que a imagem carregou antes de exibir
-        modalImg.onload = function () {
-          modal.style.display = 'flex';
-        };
-
+        modal.style.display = 'flex'; // agora sim é ativado via JS
         modalImg.src = src;
       }
 
