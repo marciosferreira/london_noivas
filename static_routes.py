@@ -254,9 +254,6 @@ def init_static_routes(
         if not transacao:
             return "Transação não encontrada."
 
-        print("[DEBUG] Transação:", transacao)
-        print("[DEBUG] Keys disponíveis:", list(transacao.keys()))
-
         for k, v in transacao.items():
             if isinstance(v, Decimal):
                 transacao[k] = float(v)

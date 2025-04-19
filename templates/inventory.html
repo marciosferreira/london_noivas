@@ -4,8 +4,8 @@
 {% endblock %} {% block content %}
 <div class="container mt-3">
   <h2 class="mb-4">Inventário de itens</h2>
-
-  {% set show_add_button = True %} {% set add_route = url_for('add_item') %} {% include 'components/item_filter_section.html' %} {% if itens %}
+  {{ total_relevant_transactions }} {% set show_add_button = True %} {% set add_route = url_for('add_item') %} {% include
+  'components/item_filter_section.html' %} {% if itens %}
 
   <!-- Tabela (que vira "cards" no mobile) -->
   <div class="table-container mt-4">
@@ -127,6 +127,20 @@
     });
 
     picker.show(); // já abre o calendário ao carregar
+  }
+</script>
+
+<script>
+  function checkTransactionLimit(event) {
+    // Verifica se a variável total_relevant_transactions existe
+    const totalTransactions = {{ total_relevant_transactions if total_relevant_transactions is not none else 0 | tojson }};
+
+    if (totalTransactions >= 30) {
+      alert("O limite de transações simultâneas foi atingido. Entre em contato conosco.");
+      event.preventDefault();
+      return false;
+    }
+    return true;
   }
 </script>
 

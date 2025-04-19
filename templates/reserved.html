@@ -106,16 +106,6 @@
   {% include 'components/info_modal_transaction.html' %} {% include 'components/image_modal.html' %}
 </div>
 {% endblock %} {% block scripts %}
-<script>
-  document.addEventListener('DOMContentLoaded', function () {
-    document.querySelectorAll('.action-button.danger').forEach((btn) => {
-      btn.addEventListener('click', function (e) {
-        e.stopPropagation(); // impede de subir para a tr/td com "open-modal"
-        // NÃO use preventDefault aqui, porque é um botão de submit
-      });
-    });
-  });
-</script>
 
 <!-- lib para um alert box com opçoes -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
