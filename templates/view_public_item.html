@@ -42,7 +42,7 @@
       }
 
       #modal {
-        display: none;
+        display: none; /* <-- mantém assim */
         position: fixed;
         top: 0;
         left: 0;
@@ -53,6 +53,11 @@
         overflow-y: auto;
         box-sizing: border-box;
         padding: 2rem;
+
+        justify-content: center;
+        align-items: start;
+      }
+
 
         /* centraliza conteúdo horizontalmente */
         display: flex;
@@ -74,16 +79,18 @@
       }
 
       #modal-close {
-        position: absolute;
-        top: -20px;
-        right: -20px;
+        position: fixed;
+        top: 20px;
+        right: 20px;
         background: #fff;
         border: none;
         font-size: 1.5rem;
         border-radius: 50%;
-        width: 36px;
-        height: 36px;
+        width: 40px;
+        height: 40px;
         cursor: pointer;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        z-index: 1100;
       }
     </style>
   </head>
@@ -118,12 +125,20 @@
       function openModal(src) {
         const modal = document.getElementById('modal');
         const modalImg = document.getElementById('modal-img');
+
+        // Esconde temporariamente o modal enquanto carrega
+        modal.style.display = 'none';
+        modalImg.src = ''; // Limpa para forçar recarregamento
+
+        // Garante que a imagem carregou antes de exibir
+        modalImg.onload = function () {
+          modal.style.display = 'flex';
+        };
+
         modalImg.src = src;
-        modal.style.display = 'flex';
       }
 
       function closeModal(event) {
-        // Fechar apenas se clicou fora da imagem ou no botão
         if (event.target.id === 'modal' || event.target.id === 'modal-close') {
           document.getElementById('modal').style.display = 'none';
         }
