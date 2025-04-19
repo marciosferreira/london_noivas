@@ -86,13 +86,16 @@ def init_client_routes(
         client_cpf = "".join(filter(str.isdigit, client_cpf)) if client_cpf else ""
         client_cnpj = "".join(filter(str.isdigit, client_cnpj)) if client_cnpj else ""
 
-        # 🔹 Buscar todos os clientes do usuário
+        # 🔹 Buscar todos os clientes do usuário em ordem alfabética
         response = clients_table.query(
-            IndexName="account_id-index",
+            IndexName="account_id-created_at-index",
             KeyConditionExpression="account_id = :account_id",
             ExpressionAttributeValues={":account_id": account_id},
+            ScanIndexForward=False,  # False = mais recentes primeiro
         )
         clientes = response.get("Items", [])
+
+        print(clientes)
 
         # 🔸 Aplicar filtros localmente
         def matches(cliente):

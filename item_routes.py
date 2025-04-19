@@ -134,7 +134,6 @@ def init_item_routes(
         # Extrair a última parte da URL de next_page
         origin = next_page.rstrip("/").split("/")[-1]
         origin_status = "available" if origin == "inventory" else "archive"
-        print(origin_status)
 
         # Obter o user_id e account_id do usuário logado da sessão
         user_id = session.get("user_id")
@@ -163,6 +162,8 @@ def init_item_routes(
             # Gerar um ID único para o item
             item_id = str(uuid.uuid4())
 
+            user_utc = get_user_timezone(users_table, user_id)
+
             # Adicionar o novo item ao DynamoDB
             item_data = {
                 "user_id": user_id,
@@ -174,6 +175,9 @@ def init_item_routes(
                 "status": origin_status,
                 "previous_status": status,
                 "valor": valor,
+                "created_at": datetime.datetime.now(user_utc).strftime(
+                    "%d/%m/%Y %H:%M:%S"
+                ),  # ← aqui
             }
 
             # 🟢 Incluir somente se não estiver vazio
@@ -463,9 +467,6 @@ def init_item_routes(
                 "image_url", ""
             ).strip()  # Indicação de exclusão (se houver)
             old_image_url = item.get("image_url", "N/A")
-
-            print("Arquivo recebido:", image_file)
-            print("URL recebida:", image_url)
 
             # 🔹 Se o usuário clicou em "Excluir imagem", apenas atualizamos para "N/A" no banco
             if image_url == "DELETE_IMAGE":
@@ -885,7 +886,6 @@ def init_item_routes(
     ##################################################################################################################
     @app.route("/restore_version_item", methods=["POST"])
     def restore_version_item():
-        print("restore Version")
         if not session.get("logged_in"):
             return redirect(url_for("login"))
 
@@ -958,13 +958,9 @@ def init_item_routes(
                 ExpressionAttributeValues=expression_values_version,
             )
 
-            print("before")
-            print(previous_status)
             previous_status = (
                 "inventory" if previous_status == "available" else previous_status
             )
-
-            print(previous_status)
 
             status_map = {
                 "rented": "Retirados",
@@ -988,7 +984,6 @@ def init_item_routes(
     ###################################################################################################
     @app.route("/restore_deleted_item", methods=["POST"])
     def restore_deleted_item():
-        print("restore deleted")
         if not session.get("logged_in"):
             return redirect(url_for("login"))
 
@@ -1040,7 +1035,6 @@ def init_item_routes(
 
     @app.route("/restore_deleted_transaction", methods=["POST"])
     def restore_deleted_transaction():
-        print("###############restore deleted transaction")
         if not session.get("logged_in"):
             return redirect(url_for("login"))
 
@@ -1052,8 +1046,6 @@ def init_item_routes(
                 return redirect(url_for("trash_transactions"))
 
             transaction = json.loads(transaction_data)
-            print("kkkkkkkkk")
-            print(transaction)
 
             transaction_id = transaction.get("transaction_id")
             transaction_previous_status = transaction.get("transaction_previous_status")
@@ -1085,7 +1077,6 @@ def init_item_routes(
 
     @app.route("/restore_version_transaction", methods=["POST"])
     def restore_version_transaction():
-        print("##############restore_version_transaction")
         if not session.get("logged_in"):
             return redirect(url_for("login"))
 
@@ -1225,8 +1216,6 @@ def init_item_routes(
                 "rented": "Retirados",
                 "returned": "Devolvidos",
             }
-
-            print("flasj okkkkkk")
 
             flash(
                 f"Item restaurado para <a href='{previous_transaction_status}'>{status_map[previous_transaction_status]}</a>.",  # status_map[previous_status]
@@ -1409,7 +1398,6 @@ def init_item_routes(
 
     @app.route("/ver-item/<item_id>")
     def ver_item_publico(item_id):
-        print("KKKKKKKKKKKKKKK")
         try:
             response = itens_table.get_item(Key={"item_id": item_id})
             item = response.get("Item")
@@ -1528,16 +1516,14 @@ def listar_itens_per_transaction(
         }
 
     def buscar_transacoes_por(account_id, status_list):
-        all_results = []
-        for status in status_list:
-            response = transactions_table.query(
-                IndexName="account_id-transaction_status-index",
-                KeyConditionExpression=Key("account_id").eq(account_id)
-                & Key("transaction_status").eq(status),
-            )
-            all_results.extend(response.get("Items", []))
-
-        return all_results
+        response = transactions_table.query(
+            IndexName="account_id-created_at-index",
+            KeyConditionExpression=Key("account_id").eq(account_id),
+            ScanIndexForward=False,  # Mais recentes primeiro
+        )
+        transacoes = response.get("Items", [])
+        # Filtro manual pelos status desejados
+        return [t for t in transacoes if t.get("transaction_status") in status_list]
 
     def montar_transacoes_com_imagem(transacoes, filtros):
         resultado = []
@@ -1602,7 +1588,6 @@ def listar_itens_per_transaction(
                 continue
 
             resultado.append(process_dates(txn, today))
-        print(resultado)
         return resultado
 
     def filtrar_por_categoria(itens, categoria):
@@ -1715,8 +1700,6 @@ def list_raw_itens(status_list, template, title, itens_table, transactions_table
             if item and item.get("account_id") == account_id:
                 item_status = item.get("status")
 
-                print(item_status)
-
                 # Redirecionar para rota adequada com base no status
                 if "inventory" in request.path and item_status == "archive":
                     return redirect(url_for("archive", item_id=item_id))
@@ -1798,19 +1781,21 @@ def list_raw_itens(status_list, template, title, itens_table, transactions_table
 
     # Buscar itens filtrados por cada status da status_list
     items = []
-    for status in status_list:
-        scan_kwargs = {
-            "IndexName": "account_id-status-index",
-            "KeyConditionExpression": "#account_id = :account_id AND #status = :status",
-            "ExpressionAttributeNames": expression_attr_names,
-            "ExpressionAttributeValues": {**expression_attr_values, ":status": status},
-        }
+    # Buscar todos os itens do usuário, ordenados do mais novo para o mais antigo
+    response = itens_table.query(
+        IndexName="account_id-created_at-index",
+        KeyConditionExpression=Key("account_id").eq(account_id),
+        ScanIndexForward=False,  # <- Ordena do mais novo para o mais antigo
+    )
 
-        if filter_expression:
-            scan_kwargs["FilterExpression"] = filter_expression
+    raw_itens = response.get("Items", [])
 
-        response = itens_table.query(**scan_kwargs)
-        items.extend(response.get("Items", []))
+    # como índice é apenas account_id + created_at, o filtro por status precisa ser feito manualmente, como:
+    items = []
+    for item in raw_itens:
+        if item.get("status") not in status_list:
+            continue
+        items.append(item)
 
     # Filtrar por valor
     try:
