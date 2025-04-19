@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Teste de Impressão com Modal</title>
+    <style>
+      /* Estilos básicos */
+      body {
+        font-family: Arial, sans-serif;
+        padding: 20px;
+        text-align: center;
+      }
+      /* Esconde o botão de impressão durante a impressão */
+      @media print {
+        #printButton {
+          display: none;
+        }
+        /* Esconde todo o conteúdo, exceto o modal */
+        body * {
+          visibility: hidden;
+        }
+        #modalContent,
+        #modalContent * {
+          visibility: visible;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Conteúdo Principal -->
+    <h1>Conteúdo da Página</h1>
+    <p>Este conteúdo não será impresso.</p>
+
+    <!-- Botão para abrir o modal -->
+    <button onclick="openModal()">Abrir Modal</button>
+
+    <!-- Modal -->
+    <div id="modal" style="display: none; padding: 20px; background-color: #f4f4f4; border: 1px solid #ddd">
+      <h2 id="modalContent">Conteúdo do Modal</h2>
+      <p>Este conteúdo será impresso!</p>
+      <button onclick="printPage()">Imprimir</button>
+      <button onclick="closeModal()">Fechar Modal</button>
+    </div>
+
+    <script>
+      // Função para abrir o modal
+      function openModal() {
+        document.getElementById('modal').style.display = 'block';
+      }
+
+      // Função para fechar o modal
+      function closeModal() {
+        document.getElementById('modal').style.display = 'none';
+      }
+
+      // Função que chama a impressão do conteúdo
+      function printPage() {
+        window.print(); // Chama a função de impressão do navegador
+      }
+    </script>
+  </body>
+</html>

@@ -192,6 +192,10 @@ def init_static_routes(
     def how_to():
         return render_template("how_to.html")
 
+    @app.route("/test_modal")
+    def test_modal():
+        return render_template("test_modal.html")
+
     @app.route("/modelos")
     def listar_modelos():
         if not session.get("logged_in"):
