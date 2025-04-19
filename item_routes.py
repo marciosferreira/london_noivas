@@ -1542,13 +1542,10 @@ def listar_itens_per_transaction(
     def montar_transacoes_com_imagem(transacoes, filtros):
         resultado = []
 
-        # se o usuario clicou em ver transaçoes d eum cliente especifico
         for txn in transacoes:
-
+            # 🔍 Filtro de client_id deve ser aplicado aqui
             if client_id and txn.get("client_id") != client_id:
                 continue
-
-        for txn in transacoes:
 
             if (
                 filtros["description"]
@@ -1573,14 +1570,12 @@ def listar_itens_per_transaction(
                 not in txn.get("client_obs", "").lower()
             ):
                 continue
-
             if (
                 filtros["transaction_obs"]
                 and filtros["transaction_obs"].lower()
                 not in txn.get("transaction_obs", "").lower()
             ):
                 continue
-
             if (
                 filtros["transaction_status"]
                 and filtros["transaction_status"].lower()
@@ -1607,7 +1602,7 @@ def listar_itens_per_transaction(
                 continue
 
             resultado.append(process_dates(txn, today))
-
+        print(resultado)
         return resultado
 
     def filtrar_por_categoria(itens, categoria):

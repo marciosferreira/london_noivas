@@ -2,7 +2,9 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='style_client_transactions.css') }}" />
 {% endblock %} {% block body_class %}client_transactions{% endblock %} {% block content %}
 <div class="container my-4">
-  <h2 class="section-title mb-3">{% if client_name %} Transações de: {{ client_name }} {% else %} Transações por cliente {% endif %}</h2>
+  <h2 class="section-title mb-3">
+    {% if item %} {% if client_name %} Transações de: {{ client_name }} {% else %} Transações por cliente {% endif %}
+  </h2>
 
   {% include "components/filter_section.html" with context %}
 
@@ -66,6 +68,12 @@
       </tbody>
     </table>
   </div>
+
+  {% else %}
+
+  <p style="color: #308be3; font-weight: bold; font-size: 1.2rem; margin-top: -1rem; margin-left: 0.25rem">Nenhuma transação deste cliente!</p>
+
+  {% endif %}
 </div>
 
 <!-- MODAL para mais informações -->
