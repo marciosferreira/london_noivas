@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Item para Visualização</title>
+    <style>
+      body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #f5f5f5;
+        margin: 0;
+        padding: 2rem;
+      }
+
+      .container {
+        max-width: 600px;
+        margin: auto;
+        background: white;
+        padding: 2rem;
+        border-radius: 8px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        text-align: center;
+      }
+
+      h2 {
+        margin-bottom: 1.5rem;
+        color: #333;
+      }
+
+      p {
+        font-size: 1.1rem;
+        color: #555;
+        margin-bottom: 0.8rem;
+      }
+
+      img {
+        margin-top: 1rem;
+        border-radius: 6px;
+        max-width: 300px;
+        height: auto;
+        cursor: pointer;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      }
+
+      #modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.9);
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        overflow: auto;
+      }
+
+      #modal-img {
+        display: block;
+        margin: auto;
+        border-radius: 8px;
+        width: auto;
+        height: auto;
+        max-width: none;
+        max-height: none;
+      }
+
+      @media (max-width: 768px) {
+        #modal-img {
+          max-width: 95vw;
+          height: auto;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2>{{ item.description or 'Item sem descrição' }}</h2>
+      <p>
+        <strong>ID:</strong>
+        {{ item.item_custom_id }}
+      </p>
+      <p>
+        <strong>Preço:</strong>
+        R$ {{ item.valor }}
+      </p>
+
+      {% if item.image_url and item.image_url != 'N/A' %}
+      <img src="{{ item.image_url }}" alt="Imagem do Item" onclick="openModal({{ item.image_url | tojson }})" />
+      {% else %}
+      <img src="{{ url_for('static', filename='item-placeholder.png') }}" alt="Sem imagem" />
+      {% endif %}
+    </div>
+
+    <!-- Modal da imagem -->
+    <div id="modal" onclick="closeModal()">
+      <img id="modal-img" src="" alt="Visualização da Imagem" />
+    </div>
+
+    <script>
+      function openModal(src) {
+        const modal = document.getElementById('modal');
+        const modalImg = document.getElementById('modal-img');
+        modalImg.src = src;
+        modal.style.display = 'flex';
+      }
+
+      function closeModal() {
+        const modal = document.getElementById('modal');
+        modal.style.display = 'none';
+      }
+    </script>
+  </body>
+</html>

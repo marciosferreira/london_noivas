@@ -13,6 +13,11 @@ import datetime
 from boto3.dynamodb.conditions import Key
 from flask import render_template_string
 from utils import get_user_timezone
+from flask import jsonify
+import qrcode
+import io
+import base64
+from flask import request
 
 
 def init_static_routes(
@@ -413,3 +418,43 @@ def init_static_routes(
             flash("Modelo não encontrado ou não autorizado.", "danger")
 
         return redirect(url_for("listar_modelos"))
+
+    @app.route("/qr-data/<item_id>")
+    def qr_data(item_id):
+        response = itens_table.get_item(Key={"item_id": item_id})
+        item = response.get("Item")
+        if not item:
+            return jsonify({"error": "Item não encontrado"}), 404
+
+        return jsonify(
+            {
+                "item_custom_id": item.get("item_custom_id", ""),
+                "description": item.get("description", ""),
+                "item_obs": item.get("item_obs", ""),
+                "image_url": item.get("image_url", ""),
+            }
+        )
+
+    @app.route("/imprimir-item/<item_id>")
+    def imprimir_item(item_id):
+        incluir = request.args.getlist("incluir")
+
+        response = itens_table.get_item(Key={"item_id": item_id})
+        item = response.get("Item")
+
+        if not item:
+            return "Item não encontrado", 404
+
+        # 👉 Gera o QR code dinamicamente em memória
+        qr_data = (
+            request.url_root.rstrip("/") + url_for("inventory") + f"?item_id={item_id}"
+        )
+        img = qrcode.make(qr_data)
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        qr_base64 = base64.b64encode(buf.getvalue()).decode("utf-8")
+        qr_data_url = f"data:image/png;base64,{qr_base64}"
+
+        return render_template(
+            "imprimir_item.html", item=item, incluir=incluir, qr_data_url=qr_data_url
+        )

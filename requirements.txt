@@ -6,6 +6,7 @@ flask==2.2.5
 python-dotenv
 pytz
 pillow
+qrcode[pil]
 
 
 

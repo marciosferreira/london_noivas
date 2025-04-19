@@ -1654,9 +1654,26 @@ def listar_itens_per_transaction(
 
 
 def list_raw_itens(status_list, template, title, itens_table, transactions_table):
+
+    item_id = request.args.get("item_id")
+
+    # Se há item_id e o usuário não está logado, mostrar visualização pública
+    if item_id and not session.get("logged_in"):
+        try:
+            response = itens_table.get_item(Key={"item_id": item_id})
+            item = response.get("Item")
+
+            if item:
+                return render_template("view_public_item.html", item=item)
+            else:
+                return "Item não encontrado.", 404
+
+        except Exception as e:
+            print(f"Erro ao buscar item público: {str(e)}")
+            return "Erro interno ao tentar carregar o item.", 500
+
     if not session.get("logged_in"):
         return redirect(url_for("login"))
-    print("RAW")
 
     account_id = session.get("account_id")
     if not account_id:
@@ -1692,6 +1709,62 @@ def list_raw_itens(status_list, template, title, itens_table, transactions_table
             ExpressionAttributeValues={":account_id": account_id, ":status": status},
         )
         total_items += len(response.get("Items", []))
+
+    if item_id:
+        try:
+            response = itens_table.get_item(Key={"item_id": item_id})
+            item = response.get("Item")
+
+            if item and item.get("account_id") == account_id:
+                item_status = item.get("status")
+
+                print(item_status)
+
+                # Redirecionar para rota adequada com base no status
+                if "inventory" in request.path and item_status == "archive":
+                    return redirect(url_for("archive", item_id=item_id))
+
+                if "archive" in request.path and item_status == "available":
+                    return redirect(url_for("inventory", item_id=item_id))
+
+                # Caso o status esteja coerente com a rota atual, exibir normalmente
+                return render_template(
+                    template,
+                    itens=[item],
+                    page=1,
+                    total_pages=1,
+                    title=title,
+                    add_route=url_for("add_item"),
+                    next_url=request.url,
+                    total_relevant_transactions=total_relevant_transactions,
+                    total_items=total_items,
+                )
+            else:
+                flash("Item não encontrado ou não pertence à sua conta.", "warning")
+                return render_template(
+                    template,
+                    itens=[],
+                    page=1,
+                    total_pages=1,
+                    title=title,
+                    add_route=url_for("add_item"),
+                    next_url=request.url,
+                    total_relevant_transactions=total_relevant_transactions,
+                    total_items=total_items,
+                )
+        except Exception as e:
+            flash(f"Erro ao buscar item por ID: {str(e)}", "danger")
+            return render_template(
+                template,
+                itens=[],
+                page=1,
+                total_pages=1,
+                title=title,
+                add_route=url_for("add_item"),
+                next_url=request.url,
+                total_relevant_transactions=total_relevant_transactions,
+                total_items=total_items,
+            )
 
     # Filtros opcionais
     item_custom_id = request.args.get("item_custom_id")

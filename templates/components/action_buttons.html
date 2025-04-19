@@ -122,6 +122,22 @@
         Gerar Documento
       </button>
     </li>
+    {% endif %} {% if show_qrcode %}
+    <li>
+      <button class="dropdown-item" data-bs-toggle="modal" data-bs-target="#qrModal" onclick="abrirModalQR('{{ item.item_id }}')">
+        Imprimir QR Code
+      </button>
+    </li>
+    {% endif %} {% if show_share %}
+    <li>
+      <a
+        class="dropdown-item"
+        href="#"
+        onclick="copiarLinkCompartilhamento('{{ url_for('inventory', item_id=item.item_id, _external=True) }}'); return false;"
+      >
+        Compartilhar link
+      </a>
+    </li>
     {% endif %}
   </ul>
 </div>
@@ -153,6 +169,62 @@
   </div>
 </div>
 
+<!-- modal qrcode -->
+
+<div class="modal fade" id="qrModal" tabindex="-1" aria-labelledby="qrModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Configurar impressão</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="qr-item-id" />
+
+        <p>Escolha o que incluir junto ao QR Code:</p>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" value="imagem" id="check-imagem" checked />
+          <label class="form-check-label" for="check-imagem">Imagem do item</label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" value="descricao" id="check-descricao" checked />
+          <label class="form-check-label" for="check-descricao">Descrição</label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" value="custom_id" id="check-custom_id" checked />
+          <label class="form-check-label" for="check-custom_id">ID personalizado</label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" value="obs" id="check-obs" checked />
+          <label class="form-check-label" for="check-obs">Observações</label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" onclick="gerarLayoutQRCode()">Visualizar para Impressão</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de impressão qrcode-->
+<div class="modal fade" id="modalPrintPreview" tabindex="-1" aria-labelledby="modalPrintPreviewLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Pré-visualização para impressão</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body" id="print-preview-content">
+        <p class="text-muted">Carregando...</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+        <button class="btn btn-primary" onclick="printModalContent()">🖨️ Imprimir</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
   function checkTransactionLimit(event) {
     const totalTransactions = {{ total_relevant_transactions }};
@@ -172,5 +244,145 @@
     window.print();
     document.body.innerHTML = original;
     location.reload(); // para recarregar o estado original após imprimir
+  }
+</script>
+
+<script>
+  function abrirModalQR(itemId) {
+    document.getElementById('qr-item-id').value = itemId;
+  }
+</script>
+
+<script>
+  function gerarLayoutQRCode() {
+    const itemId = document.getElementById('qr-item-id').value;
+    const checks = {
+      imagem: document.getElementById('check-imagem').checked,
+      descricao: document.getElementById('check-descricao').checked,
+      custom_id: document.getElementById('check-custom_id').checked,
+      obs: document.getElementById('check-obs').checked,
+    };
+
+    fetch(`/qr-data/${itemId}`)
+      .then((res) => res.json())
+      .then((data) => {
+        let html = `
+          <div style="text-align:center;">
+            <img src="/static/qrcodes/${itemId}.png" alt="QR Code"><hr>
+        `;
+
+        if (checks.imagem && data.image_url) {
+          html += `<img src="${data.image_url}" style="max-width:200px;"><br>`;
+        }
+        if (checks.descricao) {
+          html += `<strong>Descrição:</strong> ${data.description}<br>`;
+        }
+        if (checks.custom_id) {
+          html += `<strong>ID:</strong> ${data.item_custom_id}<br>`;
+        }
+        if (checks.obs) {
+          html += `<strong>Observações:</strong> ${data.item_obs}<br>`;
+        }
+
+        html += `</div>`;
+
+        const win = window.open('', '', 'width=600,height=800');
+        win.document.write(`<html><head><title>Imprimir</title></head><body>${html}<script>window.print();<\/script></body></html>`);
+        win.document.close();
+      });
+  }
+</script>
+
+<script>
+  // ✅ Função para imprimir qrcode
+
+  function gerarLayoutQRCode() {
+    const itemId = document.getElementById('qr-item-id').value;
+    const incluir = [];
+
+    if (document.getElementById('check-imagem').checked) incluir.push('imagem');
+    if (document.getElementById('check-descricao').checked) incluir.push('descricao');
+    if (document.getElementById('check-custom_id').checked) incluir.push('custom_id');
+    if (document.getElementById('check-obs').checked) incluir.push('obs');
+
+    const url = `/imprimir-item/${itemId}?` + incluir.map((i) => `incluir=${i}`).join('&');
+
+    console.log('🔍 URL gerada:', url); // 🔧 Verificar no console
+    window.open(url, '_blank');
+  }
+</script>
+
+<script>
+  // ✅ Função para imprimir qrcode
+
+  function gerarLayoutQRCode() {
+    const itemId = document.getElementById('qr-item-id').value;
+    const incluir = [];
+
+    if (document.getElementById('check-imagem').checked) incluir.push('imagem');
+    if (document.getElementById('check-descricao').checked) incluir.push('descricao');
+    if (document.getElementById('check-custom_id').checked) incluir.push('custom_id');
+    if (document.getElementById('check-obs').checked) incluir.push('obs');
+
+    const url = `/imprimir-item/${itemId}?` + incluir.map((i) => `incluir=${i}`).join('&');
+
+    fetch(url)
+      .then((response) => response.text())
+      .then((html) => {
+        document.getElementById('print-preview-content').innerHTML = html;
+        const modal = new bootstrap.Modal(document.getElementById('modalPrintPreview'));
+        modal.show();
+      });
+  }
+</script>
+
+<script>
+  // ✅ Função para imprimir qrcode
+
+  function printModalContent() {
+    const conteudo = document.getElementById('print-preview-content').innerHTML;
+
+    const janela = window.open('', '', 'width=800,height=600');
+    janela.document.write(`
+      <html>
+        <head>
+          <title>Imprimir</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; text-align: center; }
+            hr { margin: 20px 0; }
+            img { max-width: 200px; margin-bottom: 20px; display: block; margin-left: auto; margin-right: auto; }
+            @media print {
+              .no-print { display: none !important; }
+            }
+          </style>
+        </head>
+        <body>
+          ${conteudo}
+          <script>
+            window.onload = function () {
+              setTimeout(function () {
+                window.print();
+                window.close();
+              }, 300);
+            }
+          <\/script>
+        </body>
+      </html>
+    `);
+    janela.document.close();
+  }
+</script>
+
+<script>
+  function copiarLinkCompartilhamento(link) {
+    navigator.clipboard
+      .writeText(link)
+      .then(() => {
+        alert('Link copiado para a área de transferência!');
+      })
+      .catch((err) => {
+        console.error('Erro ao copiar o link:', err);
+        alert('Erro ao copiar o link. Tente novamente.');
+      });
   }
 </script>
