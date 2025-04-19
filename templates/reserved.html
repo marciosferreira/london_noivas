@@ -1,6 +1,17 @@
 {% extends "base.html" %} {% block title %} Transações iniciadas (itens alugados) {% endblock %} {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='style_reserved.css') }}" />
 {% endblock %} {% block content %}
+
+<!-- Botão para acionar a impressão -->
+<button id="printButton" onclick="printPage()">Imprimir</button>
+
+<script>
+  // Função que chama o método de impressão do navegador
+  function printPage() {
+    window.print(); // Chama a função de impressão do navegador
+  }
+</script>
+
 <div class="container mt-3">
   <h2 class="mb-4">{{ title }}</h2>
 
@@ -106,6 +117,16 @@
   {% include 'components/info_modal_transaction.html' %} {% include 'components/image_modal.html' %}
 </div>
 {% endblock %} {% block scripts %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.action-button.danger').forEach((btn) => {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation(); // impede de subir para a tr/td com "open-modal"
+        // NÃO use preventDefault aqui, porque é um botão de submit
+      });
+    });
+  });
+</script>
 
 <!-- lib para um alert box com opçoes -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
