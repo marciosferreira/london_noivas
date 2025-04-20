@@ -2,13 +2,17 @@
 
 <script>
   function printWithContent() {
-    // Adiciona o conteúdo adicional
+    // Cria um conteúdo adicional para impressão
     const content = '<h1>Conteúdo adicional para impressão</h1><p>Este conteúdo será impresso junto com a página atual.</p>';
 
-    // Escreve o conteúdo original da página mais o conteúdo adicional
-    const printWindow = window.open('', '', 'width=800,height=600');
-    printWindow.document.write(document.body.innerHTML + content);
-    printWindow.document.close();
-    printWindow.print();
+    // Adiciona o conteúdo adicional ao corpo da página
+    const originalContent = document.body.innerHTML;
+    document.body.innerHTML = originalContent + content;
+
+    // Inicia a impressão
+    window.print();
+
+    // Restaura o conteúdo original da página após a impressão
+    document.body.innerHTML = originalContent;
   }
 </script>
