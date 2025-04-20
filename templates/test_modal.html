@@ -14,21 +14,20 @@
     const janela = window.open('', '', 'width=800,height=600');
 
     // Adiciona o conteúdo à nova janela
-    janela.document.write(`
-      <html>
-        <head>
-          <title>Imprimir Modelo</title>
-          <style>
-            body { font-family: Arial, sans-serif; padding: 20px; text-align: center; }
-            hr { margin: 20px 0; }
-            /* Adicione mais estilos de impressão aqui, se necessário */
-          </style>
-        </head>
-        <body>
-          ${conteudo}
-        </body>
-      </html>
-    `);
+    janela.document.write(
+      '<html>' +
+        '<head>' +
+        '<title>Imprimir Modelo</title>' +
+        '<style>' +
+        'body { font-family: Arial, sans-serif; padding: 20px; text-align: center; }' +
+        'hr { margin: 20px 0; }' +
+        '</style>' +
+        '</head>' +
+        '<body>' +
+        conteudo + // Adiciona o conteúdo dinamicamente
+        '</body>' +
+        '</html>'
+    );
 
     // Fecha o documento da nova janela
     janela.document.close();
