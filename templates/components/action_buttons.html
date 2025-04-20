@@ -456,27 +456,23 @@
 
 <script>
   function printConteudo() {
-    // Obtém o conteúdo da div para imprimir
+    // Pega o conteúdo da div 'print-area'
     const conteudoHtml = document.getElementById('print-area').innerHTML;
 
-    // Exibe o conteúdo HTML na página para depuração
-    const previewDiv = document.getElementById('html-preview');
-    previewDiv.innerHTML = `<h3>Conteúdo HTML Gerado:</h3><pre>${conteudoHtml}</pre>`;
-
-    // Cria uma janela pop-up com conteúdo dinâmico
-    const win = window.open('', '_blank', 'width=800,height=600,scrollbars=yes');
+    // Cria uma nova janela para impressão
+    const win = window.open('', '', 'width=800,height=600,scrollbars=yes');
 
     if (!win) {
       alert('Não foi possível abrir a janela de impressão. Verifique se o bloqueador de pop-up está ativado.');
       return;
     }
 
-    // Escreve o conteúdo na nova janela
+    // Abre a nova janela e escreve o conteúdo
     win.document.open();
     win.document.write(`
       <html>
         <head>
-          <title>Imprimir</title>
+          <title>Imprimir Modelo</title>
           <style>
             body {
               font-family: Arial, sans-serif;
@@ -496,7 +492,7 @@
           </style>
         </head>
         <body>
-          ${conteudoHtml}  <!-- Insere o conteúdo dinâmico -->
+          ${conteudoHtml} <!-- Insere o conteúdo dinâmico diretamente -->
         </body>
       </html>
     `);
