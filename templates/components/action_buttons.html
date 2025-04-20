@@ -362,38 +362,68 @@
 
 <script>
   // ✅ Função para imprimir qrcode
-
   function printModalContent() {
     const conteudo = document.getElementById('print-preview-content').innerHTML;
 
-    const janela = window.open('', '', 'width=800,height=600');
-    janela.document.write(`
+    // Abre uma nova janela para impressão
+    const win = window.open('', '', 'width=600,height=800');
+
+    if (!win) {
+      alert('Não foi possível abrir a janela de impressão.');
+      return;
+    }
+
+    win.document.open();
+    win.document.write(`
       <html>
         <head>
           <title>Imprimir</title>
           <style>
-            body { font-family: Arial, sans-serif; padding: 20px; text-align: center; }
-            hr { margin: 20px 0; }
-            img { max-width: 200px; margin-bottom: 20px; display: block; margin-left: auto; margin-right: auto; }
+            body {
+              font-family: Arial, sans-serif;
+              padding: 20px;
+              background-color: #fff;
+              text-align: center;
+            }
+
+            hr {
+              margin: 20px 0;
+            }
+
+            img {
+              max-width: 200px;
+              margin-bottom: 20px;
+              display: block;
+              margin-left: auto;
+              margin-right: auto;
+            }
+
+            /* Ajustes para impressão */
             @media print {
-              .no-print { display: none !important; }
+              .no-print {
+                display: none !important;
+              }
+              body {
+                font-size: 14px;
+                line-height: 1.6;
+              }
+
+              @page {
+                size: A4;
+                margin: 20mm;
+              }
             }
           </style>
         </head>
         <body>
           ${conteudo}
-          <script>
-            window.onload = function () {
-              setTimeout(function () {
-                window.print();
-                window.close();
-              }, 300);
-            }
-          <\/script>
         </body>
       </html>
     `);
-    janela.document.close();
+    win.document.close();
+
+    // Chama a função de impressão
+    win.print();
   }
 </script>
 
@@ -459,12 +489,7 @@
   function printConteudo() {
     // Abre a janela para impressão
 
-    const conteudoHtml1 = `
-      <h1>Conteúdo de Teste</h1>
-      <p>Este é um conteúdo fixo que será impresso 11.</p>
-    `;
-
-    const conteudoHtml2 = document.getElementById('print-area').innerHTML;
+    const conteudoHtml = document.getElementById('print-area').innerHTML;
 
     const win = window.open('', '', 'width=600,height=800');
 
@@ -519,7 +544,7 @@
           </style>
         </head>
         <body>
-          ${conteudoHtml2}
+          ${conteudoHtml}
         </body>
       </html>
     `);
