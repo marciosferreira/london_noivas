@@ -142,13 +142,12 @@
   </ul>
 </div>
 
-<!-- Modals text templates -->
-
+<!-- Modal para Seleção do Modelo -->
 <div class="modal fade" id="modalModelo" tabindex="-1" aria-labelledby="modalModeloLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">Gerar documento</h5>
+        <h5 class="modal-title">Gerar Documento</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
       </div>
       <div class="modal-body">
@@ -160,14 +159,94 @@
           {% endfor %}
         </select>
 
-        <!-- ✅ MOVIDO PARA DENTRO DA MODAL -->
+        <!-- Área de conteúdo do modelo selecionado -->
         <div id="print-area">
           <p class="text-muted">Nenhum modelo selecionado.</p>
         </div>
       </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline-secondary" onclick="printConteudo()">🖨️ Imprimirx</button>
+      </div>
     </div>
   </div>
 </div>
+
+<!-- Modal para Seleção do Modelo -->
+<div class="modal fade" id="modalModelo" tabindex="-1" aria-labelledby="modalModeloLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Gerar Documento</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body">
+        <label for="select-modelo">Escolha um modelo:</label>
+        <select class="form-select mb-3" id="select-modelo" onchange="carregarModeloSelecionado()">
+          <option value="">Selecione...</option>
+          {% for modelo in saved_models %}
+          <option value="{{ modelo.text_id }}">{{ modelo.nome }}</option>
+          {% endfor %}
+        </select>
+
+        <!-- Área de conteúdo do modelo selecionado -->
+        <div id="print-area">
+          <p class="text-muted">Nenhum modelo selecionado.</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline-secondary" onclick="printConteudo()">🖨️ Imprimirb</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Função para carregar o modelo selecionado e mostrar o conteúdo no print-area
+  function carregarModeloSelecionado() {
+    const modeloId = document.getElementById('select-modelo').value;
+
+    if (modeloId) {
+      // Requisição Ajax para pegar o modelo
+      fetch(`/obter-modelo/${modeloId}`)
+        .then((response) => response.json())
+        .then((data) => {
+          // Preenche a área de print com o conteúdo do modelo
+          document.getElementById('print-area').innerHTML = data.conteudo;
+        })
+        .catch((error) => {
+          console.error('Erro ao carregar o modelo:', error);
+          document.getElementById('print-area').innerHTML = '<p class="text-muted">Erro ao carregar o modelo.</p>';
+        });
+    } else {
+      // Se nenhum modelo for selecionado, exibe uma mensagem padrão
+      document.getElementById('print-area').innerHTML = "<p class='text-muted'>Nenhum modelo selecionado.</p>";
+    }
+  }
+
+  // Função para imprimir o conteúdo do modelo exibido
+  function printConteudo() {
+    // Pega o conteúdo da div 'print-area'
+    const conteudo = document.getElementById('print-area').innerHTML;
+
+    // Abre uma nova janela para impressão
+    const janela = window.open('', '', 'width=800,height=600');
+
+    // Adiciona o conteúdo à nova janela
+    janela.document.write(`
+      <html>
+        <head><title>Imprimir Documento</title></head>
+        <body>${conteudo}</body>
+      </html>
+    `);
+
+    // Fecha o documento e inicia a impressão
+    janela.document.close();
+    janela.print();
+
+    // Fecha a janela após a impressão
+    janela.close();
+  }
+</script>
 
 <!-- modal qrcode -->
 
@@ -219,7 +298,7 @@
       </div>
       <div class="modal-footer">
         <button class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
-        <button class="btn btn-primary" onclick="printModalContent()">🖨️ Imprimir</button>
+        <button class="btn btn-primary" onclick="printModalContent()">🖨️ Imprimirs</button>
       </div>
     </div>
   </div>
