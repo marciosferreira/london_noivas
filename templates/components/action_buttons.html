@@ -456,35 +456,76 @@
 
 <script>
   function printConteudo() {
-    // Abre a janela para impressão
+    // Pega o conteúdo da div 'print-area'
+    const conteudoHtml = document.getElementById('print-area').innerHTML;
 
-    const conteudoHtml1 = `
-      <h1>Conteúdo de Teste</h1>
-      <p>Este é um conteúdo fixo que será impresso 11.</p>
-    `;
-
-    const conteudoHtml2 = document.getElementById('print-area').innerHTML;
-
-    const win = window.open('', '', 'width=600,height=800');
+    // Abre a janela de impressão, com largura e altura ajustados dinamicamente
+    const largura = window.innerWidth * 0.9; // 90% da largura da tela
+    const altura = window.innerHeight * 0.9; // 90% da altura da tela
+    const win = window.open('', '', `width=${largura},height=${altura},scrollbars=yes`);
 
     if (!win) {
       alert('Não foi possível abrir a janela de impressão.');
       return;
     }
 
+    // Adiciona o conteúdo à janela de impressão
     win.document.open();
     win.document.write(`
       <html>
         <head>
           <title>Imprimir</title>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              padding: 20px;
+              background-color: #fff;
+            }
+
+            /* Estilos específicos para impressão */
+            @media print {
+              body {
+                font-size: 14px;
+                line-height: 1.6;
+              }
+
+              .no-print {
+                display: none !important; /* Esconde elementos com a classe no-print */
+              }
+
+              /* Ajuste de tamanho de página */
+              @page {
+                size: A4;
+                margin: 20mm;
+              }
+
+              /* Ajusta o conteúdo para ocupar toda a página */
+              .modelo-gerado {
+                width: 100%;
+                margin: 0 auto;
+                padding: 10px;
+              }
+            }
+
+            /* Melhor visualização na tela */
+            .modelo-gerado {
+              width: 100%;
+              margin: 0 auto;
+              padding: 10px;
+            }
+          </style>
         </head>
         <body>
-          ${conteudoHtml2}
+          ${conteudoHtml}
         </body>
       </html>
     `);
     win.document.close();
 
-    win.print();
+    // Espera o conteúdo ser carregado e chama a impressão
+    win.onload = function () {
+      win.print();
+      win.close(); // Fecha a janela após a impressão
+    };
   }
 </script>
