@@ -93,7 +93,10 @@ def init_auth_routes(app, users_table, reset_tokens_table):
 
             items = response.get("Items", [])
             if not items:
-                flash("E-mail ou senha incorretos.", "danger")
+                flash(
+                    "E-mail ou senha incorretos. Se ainda não tem conta, clique em 'Cadastre-se'",
+                    "danger",
+                )
                 return redirect(url_for("login"))
 
             user_id = items[0]["user_id"]  # Obtendo o user_id correspondente ao email
@@ -102,7 +105,10 @@ def init_auth_routes(app, users_table, reset_tokens_table):
             response = users_table.get_item(Key={"user_id": user_id})
 
             if "Item" not in response:
-                flash("E-mail ou senha incorretos.", "danger")
+                flash(
+                    "E-mail ou senha incorretos. Se ainda não tem conta, clique em 'Cadastre-se'",
+                    "danger",
+                )
                 return redirect(url_for("login"))
 
             user = response["Item"]
@@ -142,7 +148,10 @@ def init_auth_routes(app, users_table, reset_tokens_table):
                 flash("Você esta logado agora!", "info")
                 return redirect(url_for("index"))
 
-            flash("E-mail ou senha incorretos.", "danger")
+            flash(
+                "E-mail ou senha incorretos. Se ainda não tem conta, clique em 'Cadastre-se'",
+                "danger",
+            )
 
         return render_template("login.html")
 
