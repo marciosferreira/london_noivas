@@ -1,4 +1,27 @@
-<body>
-  <!-- Seu conteúdo aqui -->
-  <div class="modelo-gerado" id="print-area">{{ conteudo_renderizado | safe }}</div>
-</body>
+<div class="modelo-gerado" id="print-area">
+  <!-- Exibe o conteúdo renderizado -->
+  {{ conteudo_renderizado | safe }}
+
+  <div class="no-print mt-4 text-end">
+    <button class="btn btn-outline-secondary" onclick="printConteudo()">🖨️ Imprimir</button>
+  </div>
+</div>
+
+<script>
+  function printConteudo() {
+    // Pega o conteúdo da div 'print-area'
+    const conteudo = document.getElementById('print-area').innerHTML;
+
+    // Armazena o conteúdo original da página
+    const originalContent = document.body.innerHTML;
+
+    // Adiciona o conteúdo da div 'print-area' ao corpo da página
+    document.body.innerHTML = conteudo;
+
+    // Inicia a impressão
+    window.print();
+
+    // Restaura o conteúdo original da página após a impressão
+    document.body.innerHTML = originalContent;
+  }
+</script>
