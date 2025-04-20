@@ -17,14 +17,14 @@
       <!-- Alterar nome de usuário -->
       <form method="POST" action="{{ url_for('change_username') }}">
         <div class="mb-3">
-          <label class="form-label"><strong>Nome de Usuário Atual:</strong></label>
+          <label class="form-label"><strong>Nome atual da sua Loja:</strong></label>
           <input type="text" class="form-control" value="{{ username }}" disabled />
         </div>
         <div class="mb-3">
-          <label for="new_username" class="form-label">Novo Nome de Usuário:</label>
+          <label for="new_username" class="form-label">Novo nome da sua loja:</label>
           <input type="text" id="new_username" name="new_username" class="form-control" required minlength="3" maxlength="15" />
         </div>
-        <button type="submit" class="btn btn-primary w-100">Atualizar Nome de Usuário</button>
+        <button type="submit" class="btn btn-primary w-100">Atualizar nome da loja</button>
       </form>
 
       <hr class="my-4" />

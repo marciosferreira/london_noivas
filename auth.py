@@ -575,6 +575,8 @@ def init_auth_routes(app, users_table, reset_tokens_table):
                 ExpressionAttributeValues={":new_username": new_username},
             )
 
+            session["username"] = new_username
+
             flash("Nome de usuário atualizado com sucesso!", "success")
             return redirect(url_for("adjustments"))
 
