@@ -26,18 +26,17 @@
         </head>
         <body>
           ${conteudo}
-          <script>
-            // Função para garantir que o conteúdo tenha carregado antes de imprimir
-            document.addEventListener("DOMContentLoaded", function() {
-              window.print();  // Inicia a impressão
-              window.close();  // Fecha a janela após a impressão
-            });
-          </script>
         </body>
       </html>
     `);
 
-    // Fecha o documento da nova janela e inicia a impressão
+    // Fecha o documento da nova janela
     janela.document.close();
+
+    // Usar setTimeout para garantir que o conteúdo seja carregado antes de chamar a impressão
+    setTimeout(function () {
+      janela.print(); // Inicia a impressão
+      janela.close(); // Fecha a janela após a impressão
+    }, 500);
   }
 </script>
