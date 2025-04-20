@@ -458,12 +458,14 @@
   function printConteudo() {
     // Abre a janela para impressão
 
-    const conteudoHtml = `
+    const conteudoHtml1 = `
       <h1>Conteúdo de Teste</h1>
       <p>Este é um conteúdo fixo que será impresso 11.</p>
     `;
 
-    const win = window.open('', '', 'width=600,height=400');
+    const conteudoHtml2 = document.getElementById('print-area').innerHTML;
+
+    const win = window.open('', '', 'width=600,height=800');
 
     if (!win) {
       alert('Não foi possível abrir a janela de impressão.');
@@ -477,7 +479,7 @@
           <title>Imprimir</title>
         </head>
         <body>
-          ${conteudoHtml}
+          ${conteudoHtml2}
         </body>
       </html>
     `);
