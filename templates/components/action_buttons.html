@@ -457,6 +457,12 @@
 <script>
   function printConteudo() {
     // Abre a janela para impressão
+
+    const conteudoHtml = `
+      <h1>Conteúdo de Teste</h1>
+      <p>Este é um conteúdo fixo que será impresso 11.</p>
+    `;
+
     const win = window.open('', '', 'width=600,height=400');
 
     if (!win) {
@@ -471,8 +477,7 @@
           <title>Imprimir</title>
         </head>
         <body>
-          <h1>Conteúdo de Teste</h1>
-      <p>Este é um conteúdo fixo que será impresso 10.</p>
+          ${conteudoHtml}
         </body>
       </html>
     `);
