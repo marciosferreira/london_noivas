@@ -1,13 +1,22 @@
 <button onclick="printWithContent()">🖨️ Imprimir</button>
 
+<div class="modelo-gerado" id="print-area">
+  {{ conteudo_renderizado | safe }}
+  <div class="no-print mt-4 text-end">
+    <!-- O botão de impressão dentro da div foi removido, já que temos um único botão global -->
+  </div>
+</div>
+
 <script>
   function printWithContent() {
-    // Cria um conteúdo adicional para impressão
-    const content = '<h1>Conteúdo adicional para impressão</h1><p>Este conteúdo será impresso junto com a página atual.</p>';
+    // Pega o conteúdo da div 'print-area'
+    const content = document.getElementById('print-area').innerHTML;
 
-    // Adiciona o conteúdo adicional ao corpo da página
+    // Armazena o conteúdo original da página
     const originalContent = document.body.innerHTML;
-    document.body.innerHTML = originalContent + content;
+
+    // Adiciona o conteúdo da div 'print-area' ao corpo da página
+    document.body.innerHTML = content;
 
     // Inicia a impressão
     window.print();

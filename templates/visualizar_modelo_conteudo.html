@@ -1,42 +1,28 @@
 <div class="modelo-gerado" id="print-area">
   {{ conteudo_renderizado | safe }}
   <div class="no-print mt-4 text-end">
-    <button class="btn btn-outline-secondary" onclick="printConteudo()">🖨️ Imprimir</button>
+    <!-- Aqui é o conteúdo da div que você quer imprimir -->
+    <button class="btn btn-outline-secondary">🖨️ Imprimir</button>
   </div>
 </div>
 
 <script>
-  function printConteudo() {
-    // Pega o conteúdo da área de impressão
-    const conteudo = document.getElementById('print-area').innerHTML;
+  // Verificando o conteúdo de conteudo_renderizado
 
-    // Abre uma nova janela para impressão
-    const janela = window.open('', '', 'width=800,height=600');
+  function printWithContent() {
+    // Pega o conteúdo da div 'print-area'
+    const content = document.getElementById('print-area').innerHTML;
 
-    // Adiciona o conteúdo à nova janela
-    janela.document.write(`
-      <html>
-        <head>
-          <title>Imprimir Modelo</title>
-          <style>
-            body { font-family: Arial, sans-serif; padding: 20px; text-align: center; }
-            hr { margin: 20px 0; }
-            /* Adicione mais estilos de impressão aqui, se necessário */
-          </style>
-        </head>
-        <body>
-          ${conteudo}
-        </body>
-      </html>
-    `);
+    // Armazena o conteúdo original da página
+    const originalContent = document.body.innerHTML;
 
-    // Fecha o documento da nova janela
-    janela.document.close();
+    // Adiciona o conteúdo da div 'print-area' ao corpo da página
+    document.body.innerHTML = content;
 
-    // Usar setTimeout para garantir que o conteúdo seja carregado antes de chamar a impressão
-    setTimeout(function () {
-      janela.print(); // Inicia a impressão
-      janela.close(); // Fecha a janela após a impressão
-    }, 500);
+    // Inicia a impressão
+    window.print();
+
+    // Restaura o conteúdo original da página após a impressão
+    document.body.innerHTML = originalContent;
   }
 </script>
