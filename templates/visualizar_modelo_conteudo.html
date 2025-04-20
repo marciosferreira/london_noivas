@@ -7,36 +7,11 @@
 
 <script>
   function printConteudo() {
-    // Pega o conteúdo gerado
-    const conteudo = document.getElementById("print-area").innerHTML;
-
-    // Cria uma nova janela ou aba com o conteúdo a ser impresso
-    const janela = window.open('', '', 'width=800,height=600');
-
-    // Insere o conteúdo na nova janela
-    janela.document.write(`
-      <html>
-        <head>
-          <title>Imprimir</title>
-          <style>
-            body { font-family: Arial, sans-serif; padding: 20px; text-align: center; }
-            hr { margin: 20px 0; }
-            .no-print { display: none; }
-            /* Aqui você pode adicionar mais estilos para personalizar a impressão */
-          </style>
-        </head>
-        <body>
-          ${conteudo}
-          <script>
-            window.onload = function() {
-              window.print();
-              window.close();
-            }
-          </script>
-        </body>
-      </html>
-    `);
-
-    janela.document.close(); // Fecha o documento
+    const conteudo = document.getElementById('print-area').innerHTML;
+    const original = document.body.innerHTML;
+    document.body.innerHTML = conteudo;
+    window.print();
+    document.body.innerHTML = original;
+    location.reload(); // para recarregar o estado original após imprimir
   }
 </script>

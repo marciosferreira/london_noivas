@@ -237,14 +237,6 @@
   }
 
   // ✅ Função para imprimir apenas a área de conteúdo do modal
-  function printConteudo() {
-    const conteudo = document.getElementById("print-area").innerHTML;
-    const original = document.body.innerHTML;
-    document.body.innerHTML = conteudo;
-    window.print();
-    document.body.innerHTML = original;
-    location.reload(); // para recarregar o estado original após imprimir
-  }
 </script>
 
 <script>
