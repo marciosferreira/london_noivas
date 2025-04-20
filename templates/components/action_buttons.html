@@ -442,3 +442,84 @@
       });
   }
 </script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    // Evita que clique no botão "Deletar" ative o modal
+    document.querySelectorAll('.action-button.danger').forEach((btn) => {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+      });
+    });
+  });
+</script>
+
+<script>
+  function printConteudo() {
+    const conteudoHtml = document.getElementById('print-area').innerHTML;
+
+    // Calcula a largura e altura da janela com base no tamanho da tela do dispositivo
+    const largura = window.innerWidth * 0.9; // 90% da largura da tela
+    const altura = window.innerHeight * 0.9; // 90% da altura da tela
+
+    // Abre a janela de impressão com tamanho dinâmico
+    const win = window.open('', '', `width=${largura},height=${altura},scrollbars=yes`);
+
+    if (!win) {
+      alert('Não foi possível abrir a janela de impressão. Verifique se o bloqueador de pop-up está ativado.');
+      return;
+    }
+
+    win.document.open();
+    win.document.write(`
+      <html>
+        <head>
+          <title>Imprimir</title>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              padding: 20px;
+              background: #fff;
+            }
+
+            @media print {
+              body {
+                font-size: 14px;
+              }
+
+              .no-print {
+                display: none !important;
+              }
+
+              @page {
+                size: A4;
+                margin: 20mm;
+              }
+            }
+
+            /* Garante que o conteúdo se ajusta em diferentes tamanhos de tela */
+            .modelo-gerado {
+              width: 100%;
+              margin: 0 auto;
+              padding: 10px;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="modelo-gerado">
+            ${conteudoHtml}
+          </div>
+        </body>
+      </html>
+    `);
+    win.document.close();
+
+    // Espera o conteúdo ser carregado e chama a impressão
+    win.onload = function () {
+      setTimeout(() => {
+        win.print();
+        win.close();
+      }, 500);
+    };
+  }
+</script>
