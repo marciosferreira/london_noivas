@@ -247,52 +247,37 @@ def init_static_routes(
         if not session.get("logged_in"):
             return redirect(url_for("login"))
 
-        # Buscar o modelo no banco de dados
+        # Recupera o modelo a partir do banco de dados
         response = text_models_table.get_item(Key={"text_id": text_id})
         modelo = response.get("Item")
         if not modelo:
-            return "Modelo não encontrado."
+            return "Modelo não encontrado.", 404
 
-        # Buscar a transação no banco de dados
+        # Recupera a transação do banco de dados
         response = transactions_table.get_item(Key={"transaction_id": transacao_id})
         transacao = response.get("Item")
 
         if not transacao:
-            return "Transação não encontrada."
+            return "Transação não encontrada.", 404
 
-        # Corrigir os valores do tipo Decimal para float
-        for k, v in transacao.items():
-            if isinstance(v, Decimal):
-                transacao[k] = float(v)
-
-        # Formatar as datas
-        def formatar_data(valor):
-            try:
-                data = datetime.datetime.strptime(valor, "%Y-%m-%d")
-                return data.strftime("%d/%m/%Y")
-            except Exception:
-                return valor
-
-        if "rental_date" in transacao:
-            transacao["rental_date_formatted"] = formatar_data(transacao["rental_date"])
-        if "return_date" in transacao:
-            transacao["return_date_formatted"] = formatar_data(transacao["return_date"])
-
-        # Obter a hora atual formatada
-        user_id = session.get("user_id")
-        user_utc = get_user_timezone(users_table, user_id)
-        data_hora_atual = datetime.datetime.now(user_utc).strftime("%d/%m/%Y %H:%M")
-        transacao["data_hora_atual"] = data_hora_atual
-
-        # O conteúdo do modelo é obtido
+        # Substitui as variáveis no conteúdo do modelo
         conteudo_renderizado = modelo["conteudo"]
 
-        # Passando o conteúdo renderizado e a transação para o template
+        # Substitui as variáveis do template com os dados da transação
+        conteudo_renderizado = conteudo_renderizado.replace(
+            "{{ client_name }}", transacao.get("client_name", "Nome não disponível")
+        )
+        conteudo_renderizado = conteudo_renderizado.replace(
+            "{{ rental_date }}", transacao.get("rental_date", "Data não disponível")
+        )
+        conteudo_renderizado = conteudo_renderizado.replace(
+            "{{ return_date }}", transacao.get("return_date", "Data não disponível")
+        )
+        # Adicione mais substituições conforme necessário...
+
+        # Passa o conteúdo renderizado para o template
         return render_template(
-            "visualizar_modelo_conteudo.html",
-            modelo=modelo,
-            conteudo_renderizado=conteudo_renderizado,
-            transacao=transacao,
+            "visualizar_modelo_conteudo.html", conteudo_renderizado=conteudo_renderizado
         )
 
     @app.route("/visualizar-modelo/<text_id>")
