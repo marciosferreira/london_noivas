@@ -458,11 +458,6 @@
 
 <script>
   function printConteudo() {
-    const conteudoHtml = `
-      <h1>Conteúdo de Teste</h1>
-      <p>Este é um conteúdo fixo que será impresso.</p>
-    `;
-
     // Abre a janela para impressão
     const win = window.open('', '', 'width=600,height=400');
 
@@ -478,18 +473,13 @@
           <title>Imprimir</title>
         </head>
         <body>
-          ${conteudoHtml}
+          <h1>Conteúdo de Teste</h1>
+      <p>Este é um conteúdo fixo que será impresso 10.</p>
         </body>
       </html>
     `);
     win.document.close();
 
-    // Espera o conteúdo ser carregado e chama a impressão
-    win.onload = function () {
-      setTimeout(() => {
-        win.print();
-        win.close();
-      }, 500); // Ajuste o tempo se necessário
-    };
+    win.print();
   }
 </script>
