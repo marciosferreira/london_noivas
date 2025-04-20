@@ -460,7 +460,7 @@
     const conteudoHtml = document.getElementById('print-area').innerHTML;
 
     // Cria uma nova janela para impressão
-    const win = window.open('', '', 'width=800,height=600,scrollbars=yes');
+    const win = window.open('', '', 'width=500,height=500,scrollbars=yes');
 
     if (!win) {
       alert('Não foi possível abrir a janela de impressão. Verifique se o bloqueador de pop-up está ativado.');
@@ -468,34 +468,6 @@
     }
 
     // Abre a nova janela e escreve o conteúdo
-    win.document.open();
-    win.document.write(`
-      <html>
-        <head>
-          <title>Imprimir Modelo</title>
-          <style>
-            body {
-              font-family: Arial, sans-serif;
-              padding: 20px;
-              background-color: #fff;
-            }
-            /* Garantir que o conteúdo se ajuste ao tamanho da tela */
-            @media print {
-              body {
-                font-size: 14px;
-              }
-              /* Remover qualquer coisa que não deva ser impressa */
-              .no-print {
-                display: none !important;
-              }
-            }
-          </style>
-        </head>
-        <body>
-        </body>
-      </html>
-    `);
-    win.document.close();
 
     // Espera o conteúdo ser carregado e chama a impressão
     win.onload = function () {
