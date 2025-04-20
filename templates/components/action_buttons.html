@@ -454,72 +454,34 @@
   });
 </script>
 
+<button onclick="printConteudo()">🖨️ Imprimir</button>
+
 <script>
   function printConteudo() {
-    // Conteúdo estático para impressão
     const conteudoHtml = `
-          <h1>Conteúdo Estático para Impressão</h1>
-          <p>Este é um exemplo de conteúdo que será impresso.</p>
-          <p><strong>Descrição:</strong> Teste de impressão com conteúdo estático.</p>
-          <p><strong>ID do Item:</strong> 1234567890</p>
-        `;
+      <h1>Conteúdo de Teste</h1>
+      <p>Este é um conteúdo fixo que será impresso.</p>
+    `;
 
-    const conteudo = document.getElementById('print-area').innerHTML;
-
-    // Calcula a largura e altura da janela com base no tamanho da tela do dispositivo
-    const largura = window.innerWidth * 0.9; // 90% da largura da tela
-    const altura = window.innerHeight * 0.9; // 90% da altura da tela
-
-    // Abre a janela de impressão com tamanho dinâmico
-    const win = window.open('', '', `width=${largura},height=${altura},scrollbars=yes`);
+    // Abre a janela para impressão
+    const win = window.open('', '', 'width=600,height=400');
 
     if (!win) {
-      alert('Não foi possível abrir a janela de impressão. Verifique se o bloqueador de pop-up está ativado.');
+      alert('Não foi possível abrir a janela de impressão.');
       return;
     }
 
     win.document.open();
     win.document.write(`
-          <html>
-            <head>
-              <title>Imprimir</title>
-              <style>
-                body {
-                  font-family: Arial, sans-serif;
-                  padding: 20px;
-                  background: #fff;
-                }
-
-                @media print {
-                  body {
-                    font-size: 14px;
-                  }
-
-                  .no-print {
-                    display: none !important;
-                  }
-
-                  @page {
-                    size: A4;
-                    margin: 20mm;
-                  }
-                }
-
-                /* Garante que o conteúdo se ajusta em diferentes tamanhos de tela */
-                .modelo-gerado {
-                  width: 100%;
-                  margin: 0 auto;
-                  padding: 10px;
-                }
-              </style>
-            </head>
-            <body>
-              <div class="modelo-gerado">
-                ${conteudo}
-              </div>
-            </body>
-          </html>
-        `);
+      <html>
+        <head>
+          <title>Imprimir</title>
+        </head>
+        <body>
+          ${conteudoHtml}
+        </body>
+      </html>
+    `);
     win.document.close();
 
     // Espera o conteúdo ser carregado e chama a impressão
@@ -527,7 +489,7 @@
       setTimeout(() => {
         win.print();
         win.close();
-      }, 500);
+      }, 500); // Ajuste o tempo se necessário
     };
   }
 </script>
