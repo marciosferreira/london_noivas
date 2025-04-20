@@ -141,6 +141,7 @@ button.btn:hover {
 .tabs {
   display: flex;
   margin-bottom: 20px;
+  align-items: center; /* Alinha verticalmente os itens */
 }
 
 .tab {
@@ -261,4 +262,14 @@ body {
 
 .form-check-label {
   margin-bottom: 0; /* evita que o texto "afunde" */
+}
+
+.ou-separator {
+  color: #6c757d; /* Cor cinza */
+  display: inline-block; /* Faz com que o "ou" se comporte como um link */
+  vertical-align: middle; /* Alinha verticalmente com os links */
+  margin: 0 10px; /* Espaçamento à esquerda e à direita */
+  line-height: 1; /* Garante que o "ou" esteja no mesmo nível de linha */
+  font-weight: normal; /* Ajusta o peso da fonte */
+  font-size: 16px; /* Tamanho da fonte */
 }
