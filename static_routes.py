@@ -247,19 +247,25 @@ def init_static_routes(
         if not session.get("logged_in"):
             return redirect(url_for("login"))
 
-        # Buscar o modelo
+        # Buscar o modelo no banco de dados
         response = text_models_table.get_item(Key={"text_id": text_id})
         modelo = response.get("Item")
         if not modelo:
             return "Modelo não encontrado."
 
-        # Buscar a transação
+        # Buscar a transação no banco de dados
         response = transactions_table.get_item(Key={"transaction_id": transacao_id})
         transacao = response.get("Item")
+
         if not transacao:
             return "Transação não encontrada."
 
-        # Corrigir formatação das datas
+        # Corrigir os valores do tipo Decimal para float
+        for k, v in transacao.items():
+            if isinstance(v, Decimal):
+                transacao[k] = float(v)
+
+        # Formatar as datas
         def formatar_data(valor):
             try:
                 data = datetime.datetime.strptime(valor, "%Y-%m-%d")
@@ -272,15 +278,16 @@ def init_static_routes(
         if "return_date" in transacao:
             transacao["return_date_formatted"] = formatar_data(transacao["return_date"])
 
-        # Gerar a hora atual
+        # Obter a hora atual formatada
         user_id = session.get("user_id")
         user_utc = get_user_timezone(users_table, user_id)
         data_hora_atual = datetime.datetime.now(user_utc).strftime("%d/%m/%Y %H:%M")
         transacao["data_hora_atual"] = data_hora_atual
 
+        # O conteúdo do modelo é obtido
         conteudo_renderizado = modelo["conteudo"]
 
-        # Passa os dados do modelo e da transação para o template
+        # Passando o conteúdo renderizado e a transação para o template
         return render_template(
             "visualizar_modelo_conteudo.html",
             modelo=modelo,
