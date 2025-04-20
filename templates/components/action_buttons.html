@@ -415,7 +415,7 @@
 
   function abrirModalModelo(transactionId) {
     transacaoSelecionada = transactionId;
-    document.getElementById('print-area').innerHTML = "<p class='text-muted'>Nenhum modelo selecionado1.</p>";
+    document.getElementById('print-area').innerHTML = "<p class='text-muted'>Nenhum modelo selecionado2.</p>";
     document.getElementById('select-modelo').value = '';
   }
 
@@ -425,7 +425,7 @@
     const outputDiv = document.getElementById('print-area');
 
     if (!textId || !transacaoSelecionada) {
-      outputDiv.innerHTML = "<p class='text-muted'>Selecione um modelo para visualizar1.</p>";
+      outputDiv.innerHTML = "<p class='text-muted'>Selecione um modelo para visualizar2.</p>";
       return;
     }
 
@@ -525,5 +525,6 @@
     win.document.close();
 
     win.print();
+    win.close(); // Fecha a janela após a impressão
   }
 </script>
