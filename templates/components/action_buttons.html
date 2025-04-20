@@ -165,7 +165,7 @@
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-outline-secondary" onclick="printConteudo()">🖨️ Imprimirx</button>
+        <button class="btn btn-outline-secondary" onclick="printConteudo()">🖨️ Imprimir</button>
       </div>
     </div>
   </div>
@@ -278,6 +278,7 @@
 
 <script>
   function gerarLayoutQRCode() {
+    console.log('OKKKKKKK');
     const itemId = document.getElementById('qr-item-id').value;
     const checks = {
       imagem: document.getElementById('check-imagem').checked,
@@ -328,7 +329,7 @@
     if (document.getElementById('check-custom_id').checked) incluir.push('custom_id');
     if (document.getElementById('check-obs').checked) incluir.push('obs');
 
-    const url = `/imprimir-item/${itemId}?` + incluir.map((i) => `incluir=${i}`).join('&');
+    const url = `/imprimir_qrcode/${itemId}?` + incluir.map((i) => `incluir=${i}`).join('&');
 
     console.log('🔍 URL gerada:', url); // 🔧 Verificar no console
     window.open(url, '_blank');
@@ -347,7 +348,7 @@
     if (document.getElementById('check-custom_id').checked) incluir.push('custom_id');
     if (document.getElementById('check-obs').checked) incluir.push('obs');
 
-    const url = `/imprimir-item/${itemId}?` + incluir.map((i) => `incluir=${i}`).join('&');
+    const url = `/imprimir_qrcode/${itemId}?` + incluir.map((i) => `incluir=${i}`).join('&');
 
     fetch(url)
       .then((response) => response.text())
@@ -525,6 +526,5 @@
     win.document.close();
 
     win.print();
-    win.close(); // Fecha a janela após a impressão
   }
 </script>

@@ -263,16 +263,107 @@ def init_static_routes(
         # Substitui as variáveis no conteúdo do modelo
         conteudo_renderizado = modelo["conteudo"]
 
+        def formatar_data(valor):
+            try:
+                data = datetime.datetime.strptime(
+                    valor, "%Y-%m-%d"
+                )  # ou %Y/%m/%d dependendo da origem
+                return data.strftime("%d/%m/%Y")
+            except Exception:
+                return valor
+
+        if "rental_date" in transacao:
+            transacao["rental_date_formatted"] = formatar_data(transacao["rental_date"])
+        if "return_date" in transacao:
+            transacao["return_date_formatted"] = formatar_data(transacao["return_date"])
+
+        # send the current time to tempalte
+        user_id = session.get("user_id")
+        user_utc = get_user_timezone(users_table, user_id)
+
+        # Gera a hora atual formatada (DD/MM/AAAA HH:MM)
+        data_hora_atual = datetime.datetime.now(user_utc).strftime("%d/%m/%Y %H:%M")
+        transacao["data_hora_atual"] = data_hora_atual
+
+        # Substitui as variáveis do template com os dados da transação
         # Substitui as variáveis do template com os dados da transação
         conteudo_renderizado = conteudo_renderizado.replace(
-            "{{ client_name }}", transacao.get("client_name", "Nome não disponível")
+            "{{ client_name }}",
+            str(transacao.get("client_name", "Nome não disponível")),
         )
         conteudo_renderizado = conteudo_renderizado.replace(
-            "{{ rental_date }}", transacao.get("rental_date", "Data não disponível")
+            "{{ client_email }}",
+            str(transacao.get("client_email", "E-mail não disponível")),
         )
         conteudo_renderizado = conteudo_renderizado.replace(
-            "{{ return_date }}", transacao.get("return_date", "Data não disponível")
+            "{{ client_tel }}",
+            str(transacao.get("client_tel", "Telefone não disponível")),
         )
+        conteudo_renderizado = conteudo_renderizado.replace(
+            "{{ client_address }}",
+            str(transacao.get("client_address", "Endereço não disponível")),
+        )
+        conteudo_renderizado = conteudo_renderizado.replace(
+            "{{ client_cpf }}", str(transacao.get("client_cpf", "CPF não disponível"))
+        )
+        conteudo_renderizado = conteudo_renderizado.replace(
+            "{{ client_cnpj }}",
+            str(transacao.get("client_cnpj", "CNPJ não disponível")),
+        )
+
+        # Dados do item
+        conteudo_renderizado = conteudo_renderizado.replace(
+            "{{ description }}",
+            str(transacao.get("description", "Descrição não disponível")),
+        )
+        conteudo_renderizado = conteudo_renderizado.replace(
+            "{{ item_custom_id }}",
+            str(transacao.get("item_custom_id", "Código do item não disponível")),
+        )
+        conteudo_renderizado = conteudo_renderizado.replace(
+            "{{ item_obs }}",
+            str(transacao.get("item_obs", "Observações do item não disponíveis")),
+        )
+
+        # Dados da transação
+        conteudo_renderizado = conteudo_renderizado.replace(
+            "{{ valor }}", str(transacao.get("valor", "Valor não disponível"))
+        )
+        conteudo_renderizado = conteudo_renderizado.replace(
+            "{{ pagamento }}",
+            str(transacao.get("pagamento", "Valor pago não disponível")),
+        )
+        conteudo_renderizado = conteudo_renderizado.replace(
+            "{{ transaction_obs }}",
+            str(
+                transacao.get(
+                    "transaction_obs", "Observações da transação não disponíveis"
+                )
+            ),
+        )
+
+        # Datas formatadas
+        conteudo_renderizado = conteudo_renderizado.replace(
+            "{{ rental_date_formatted }}",
+            str(
+                transacao.get(
+                    "rental_date_formatted", "Data de retirada não disponível"
+                )
+            ),
+        )
+        conteudo_renderizado = conteudo_renderizado.replace(
+            "{{ return_date_formatted }}",
+            str(
+                transacao.get(
+                    "return_date_formatted", "Data de devolução não disponível"
+                )
+            ),
+        )
+        conteudo_renderizado = conteudo_renderizado.replace(
+            "{{ data_hora_atual }}",
+            str(transacao.get("data_hora_atual", "Data e hora atuais não disponíveis")),
+        )
+
         # Adicione mais substituições conforme necessário...
 
         # Passa o conteúdo renderizado para o template
@@ -408,10 +499,11 @@ def init_static_routes(
         # Retornar o conteúdo gerado para exibição/impressão
         return conteudo_renderizado
 
-    @app.route("/qr-data/<item_id>")
+    @app.route("/qr_data/<item_id>")
     def qr_data(item_id):
         response = itens_table.get_item(Key={"item_id": item_id})
         item = response.get("Item")
+        print(item)
         if not item:
             return jsonify({"error": "Item não encontrado"}), 404
 
@@ -424,7 +516,7 @@ def init_static_routes(
             }
         )
 
-    @app.route("/imprimir-qrcode/<item_id>")
+    @app.route("/imprimir_qrcode/<item_id>")
     def imprimir_qrcode(item_id):
         incluir = request.args.getlist(
             "incluir"

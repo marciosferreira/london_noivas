@@ -1,13 +1,15 @@
 <div style="text-align: center">
-  <h2>Impressão do QR Code - Item {{ item.item_custom_id }}</h2>
-  <img src="{{ qr_data_url }}" alt="QR Code" />
+  <!-- Ajuste do tamanho do QR Code -->
+  <img src="{{ qr_data_url }}" alt="QR Code" style="max-width: 100%; max-height: 100px" />
+
   <hr />
 
   {% if 'imagem' in incluir %} {% if item.image_url and item.image_url != "N/A" %}
-  <img src="{{ item.image_url }}" alt="Imagem do item" style="max-width: 200px" />
+  <!-- Ajuste do tamanho da imagem do item -->
+  <img src="{{ item.image_url }}" alt="Imagem do item" style="max-width: 100px; max-height: 100px" />
   <br />
   {% else %}
-  <img src="{{ url_for('static', filename='item-placeholder.png') }}" alt="Imagem do item" style="max-width: 200px" />
+  <img src="{{ url_for('static', filename='item-placeholder.png') }}" alt="Imagem do item" style="max-width: 100px; max-height: 100px" />
   <br />
   {% endif %} {% endif %} {% if 'descricao' in incluir %}
   <strong>Descrição:</strong>
@@ -24,5 +26,4 @@
   {% endif %}
 
   <hr />
-  <button onclick="window.print()">Imprimir QR Code</button>
 </div>
