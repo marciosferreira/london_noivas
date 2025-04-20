@@ -436,26 +436,30 @@ def init_static_routes(
             }
         )
 
-    @app.route("/imprimir-item/<item_id>")
-    def imprimir_item(item_id):
-        incluir = request.args.getlist("incluir")
+    @app.route("/imprimir-qrcode/<item_id>")
+    def imprimir_qrcode(item_id):
+        incluir = request.args.getlist(
+            "incluir"
+        )  # Obtém os parâmetros de inclusão da URL
 
+        # Buscar o item pelo ID
         response = itens_table.get_item(Key={"item_id": item_id})
         item = response.get("Item")
 
         if not item:
             return "Item não encontrado", 404
 
-        # 👉 Gera o QR code dinamicamente em memória
+        # Gerar o QR Code dinamicamente
         qr_data = (
             request.url_root.rstrip("/") + url_for("inventory") + f"?item_id={item_id}"
         )
-        img = qrcode.make(qr_data)
-        buf = io.BytesIO()
+        img = qrcode.make(qr_data)  # Gerando o QR Code
+        buf = io.BytesIO()  # Usando buffer para armazenar a imagem
         img.save(buf, format="PNG")
         qr_base64 = base64.b64encode(buf.getvalue()).decode("utf-8")
         qr_data_url = f"data:image/png;base64,{qr_base64}"
 
+        # Renderize o template do QR Code com os dados do item e as opções de impressão
         return render_template(
-            "imprimir_item.html", item=item, incluir=incluir, qr_data_url=qr_data_url
+            "imprimir_qrcode.html", item=item, incluir=incluir, qr_data_url=qr_data_url
         )

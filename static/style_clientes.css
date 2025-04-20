@@ -88,3 +88,23 @@
     border-bottom: none;
   }
 }
+
+.table.rounded-table {
+  overflow: visible !important;
+}
+
+tr,
+td {
+  overflow: visible !important;
+}
+
+.table-container,
+.container {
+  overflow: visible !important;
+  position: relative;
+}
+
+.dropdown-menu {
+  position: absolute !important;
+  z-index: 9999;
+}
