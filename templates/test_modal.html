@@ -20,32 +20,24 @@
     // Pega o conteúdo da área de impressão
     const conteudo = document.getElementById('print-area').innerHTML;
 
-    // Abre uma nova janela para impressão
-    const janela = window.open('', '', 'width=800,height=600');
+    // Cria um iframe invisível para impressão
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'absolute';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = 'none';
+    document.body.appendChild(iframe);
 
-    // Adiciona o conteúdo à nova janela
-    janela.document.write(
-      '<html>' +
-        '<head>' +
-        '<title>Imprimir Modelo</title>' +
-        '<style>' +
-        'body { font-family: Arial, sans-serif; padding: 20px; text-align: center; }' +
-        'hr { margin: 20px 0; }' +
-        '</style>' +
-        '</head>' +
-        '<body>' +
-        conteudo + // Adiciona o conteúdo dinamicamente
-        '</body>' +
-        '</html>'
-    );
+    // Escreve o conteúdo no iframe
+    const doc = iframe.contentWindow.document;
+    doc.open();
+    doc.write('<html><head><title>Imprimir Modelo</title></head><body>' + conteudo + '</body></html>');
+    doc.close();
 
-    // Fecha o documento da nova janela
-    janela.document.close();
+    // Imprime o conteúdo do iframe
+    iframe.contentWindow.print();
 
-    // Usar setTimeout para garantir que o conteúdo seja carregado antes de chamar a impressão
-    setTimeout(function () {
-      janela.print(); // Inicia a impressão
-      janela.close(); // Fecha a janela após a impressão
-    }, 500);
+    // Remove o iframe após a impressão
+    document.body.removeChild(iframe);
   }
 </script>
