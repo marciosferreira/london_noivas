@@ -420,6 +420,36 @@ def init_static_routes(
 
         return redirect(url_for("listar_modelos"))
 
+    @app.route("/imprimir-modelo/<item_id>/<modelo_id>")
+    def imprimir_modelo(item_id, modelo_id):
+        # Buscar o item pelo ID
+        response = itens_table.get_item(Key={"item_id": item_id})
+        item = response.get("Item")
+
+        if not item:
+            return "Item não encontrado", 404
+
+        # Buscar o modelo selecionado na tabela `text_models_table`
+        response = text_models_table.get_item(Key={"text_id": modelo_id})
+        modelo = response.get("Item")
+
+        if not modelo:
+            return "Modelo não encontrado", 404
+
+        # Obter o conteúdo do modelo armazenado no banco
+        conteudo = modelo.get("conteudo")
+
+        # Verifica se o conteúdo do modelo está presente
+        if not conteudo:
+            return "Conteúdo do modelo não encontrado", 404
+
+        # Renderizar o conteúdo com os dados do item
+        # O conteúdo do modelo pode ter variáveis, como {{ item.item_custom_id }}, que serão substituídas com os dados do item
+        conteudo_renderizado = render_template_string(conteudo, item=item)
+
+        # Retornar o conteúdo gerado para exibição/impressão
+        return conteudo_renderizado
+
     @app.route("/qr-data/<item_id>")
     def qr_data(item_id):
         response = itens_table.get_item(Key={"item_id": item_id})

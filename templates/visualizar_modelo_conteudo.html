@@ -4,3 +4,39 @@
     <button class="btn btn-outline-secondary" onclick="printConteudo()">🖨️ Imprimir</button>
   </div>
 </div>
+
+<script>
+  function printConteudo() {
+    // Pega o conteúdo gerado
+    const conteudo = document.getElementById("print-area").innerHTML;
+
+    // Cria uma nova janela ou aba com o conteúdo a ser impresso
+    const janela = window.open('', '', 'width=800,height=600');
+
+    // Insere o conteúdo na nova janela
+    janela.document.write(`
+      <html>
+        <head>
+          <title>Imprimir</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; text-align: center; }
+            hr { margin: 20px 0; }
+            .no-print { display: none; }
+            /* Aqui você pode adicionar mais estilos para personalizar a impressão */
+          </style>
+        </head>
+        <body>
+          ${conteudo}
+          <script>
+            window.onload = function() {
+              window.print();
+              window.close();
+            }
+          </script>
+        </body>
+      </html>
+    `);
+
+    janela.document.close(); // Fecha o documento
+  }
+</script>
