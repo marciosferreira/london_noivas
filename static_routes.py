@@ -247,27 +247,22 @@ def init_static_routes(
         if not session.get("logged_in"):
             return redirect(url_for("login"))
 
+        # Buscar o modelo
         response = text_models_table.get_item(Key={"text_id": text_id})
         modelo = response.get("Item")
         if not modelo:
             return "Modelo não encontrado."
 
+        # Buscar a transação
         response = transactions_table.get_item(Key={"transaction_id": transacao_id})
         transacao = response.get("Item")
-
         if not transacao:
             return "Transação não encontrada."
-
-        for k, v in transacao.items():
-            if isinstance(v, Decimal):
-                transacao[k] = float(v)
 
         # Corrigir formatação das datas
         def formatar_data(valor):
             try:
-                data = datetime.datetime.strptime(
-                    valor, "%Y-%m-%d"
-                )  # ou %Y/%m/%d dependendo da origem
+                data = datetime.datetime.strptime(valor, "%Y-%m-%d")
                 return data.strftime("%d/%m/%Y")
             except Exception:
                 return valor
@@ -277,49 +272,20 @@ def init_static_routes(
         if "return_date" in transacao:
             transacao["return_date_formatted"] = formatar_data(transacao["return_date"])
 
-        # send the current time to tempalte
+        # Gerar a hora atual
         user_id = session.get("user_id")
         user_utc = get_user_timezone(users_table, user_id)
-
-        # Gera a hora atual formatada (DD/MM/AAAA HH:MM)
         data_hora_atual = datetime.datetime.now(user_utc).strftime("%d/%m/%Y %H:%M")
         transacao["data_hora_atual"] = data_hora_atual
-        conteudo_renderizado = render_template_string(
-            modelo["conteudo"]
-            + """
-            <br>
-            <script>
-              function printConteudo() {
-                const conteudo = document.getElementById("print-area").innerHTML;
-                const janela = window.open('', '', 'width=800,height=600');
-                janela.document.write(`
-                  <html>
-                    <head>
-                      <title>Imprimir</title>
-                      <style>
-                        body { font-family: Arial, sans-serif; padding: 20px; }
-                      </style>
-                    </head>
-                    <body>
-                      ${conteudo}
-                    </body>
-                  </html>
-                `);
-                janela.document.close();
-                janela.focus();
-                janela.print();
-                janela.close();
-              }
-            </script>
-            """,
-            **transacao,
-            modelo=modelo,
-        )
 
+        conteudo_renderizado = modelo["conteudo"]
+
+        # Passa os dados do modelo e da transação para o template
         return render_template(
             "visualizar_modelo_conteudo.html",
             modelo=modelo,
             conteudo_renderizado=conteudo_renderizado,
+            transacao=transacao,
         )
 
     @app.route("/visualizar-modelo/<text_id>")
