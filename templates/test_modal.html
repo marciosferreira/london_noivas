@@ -1,63 +1,43 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Teste de Impressão com Modal</title>
-    <style>
-      /* Estilos básicos */
-      body {
-        font-family: Arial, sans-serif;
-        padding: 20px;
-        text-align: center;
-      }
-      /* Esconde o botão de impressão durante a impressão */
-      @media print {
-        #printButton {
-          display: none;
-        }
-        /* Esconde todo o conteúdo, exceto o modal */
-        body * {
-          visibility: hidden;
-        }
-        #modalContent,
-        #modalContent * {
-          visibility: visible;
-        }
-      }
-    </style>
-  </head>
-  <body>
-    <!-- Conteúdo Principal -->
-    <h1>Conteúdo da Página</h1>
-    <p>Este conteúdo não será impresso.</p>
+<div class="modelo-gerado" id="print-area">
+  {{ conteudo_renderizado | safe }}
+  <div class="no-print mt-4 text-end">
+    <button class="btn btn-outline-secondary" onclick="printConteudo()">🖨️ Imprimir</button>
+  </div>
+</div>
 
-    <!-- Botão para abrir o modal -->
-    <button onclick="openModal()">Abrir Modal</button>
+<script>
+  function printConteudo() {
+    // Pega o conteúdo da área de impressão
+    const conteudo = document.getElementById('print-area').innerHTML;
 
-    <!-- Modal -->
-    <div id="modal" style="display: none; padding: 20px; background-color: #f4f4f4; border: 1px solid #ddd">
-      <h2 id="modalContent">Conteúdo do Modal</h2>
-      <p>Este conteúdo será impresso!</p>
-      <button onclick="printPage()">Imprimir</button>
-      <button onclick="closeModal()">Fechar Modal</button>
-    </div>
+    // Abre uma nova janela para impressão
+    const janela = window.open('', '', 'width=800,height=600');
 
-    <script>
-      // Função para abrir o modal
-      function openModal() {
-        document.getElementById('modal').style.display = 'block';
-      }
+    // Adiciona o conteúdo à nova janela
+    janela.document.write(`
+      <html>
+        <head>
+          <title>Imprimir Modelo</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; text-align: center; }
+            hr { margin: 20px 0; }
+            /* Adicione mais estilos de impressão aqui, se necessário */
+          </style>
+        </head>
+        <body>
+          ${conteudo}
+          <script>
+            // Função para garantir que o conteúdo tenha carregado antes de imprimir
+            document.addEventListener("DOMContentLoaded", function() {
+              window.print();  // Inicia a impressão
+              window.close();  // Fecha a janela após a impressão
+            });
+          </script>
+        </body>
+      </html>
+    `);
 
-      // Função para fechar o modal
-      function closeModal() {
-        document.getElementById('modal').style.display = 'none';
-      }
-
-      // Função que chama a impressão do conteúdo
-      function printPage() {
-        window.print(); // Chama a função de impressão do navegador
-      }
-    </script>
-  </body>
-</html>
+    // Fecha o documento da nova janela e inicia a impressão
+    janela.document.close();
+  }
+</script>
