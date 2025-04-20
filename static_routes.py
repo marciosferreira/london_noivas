@@ -322,18 +322,6 @@ def init_static_routes(
             conteudo_renderizado=conteudo_renderizado,
         )
 
-    @app.route("/obter-modelo/<modelo_id>", methods=["GET"])
-    def obter_modelo(modelo_id):
-        # Busca o modelo na tabela text_models_table com base no modelo_id
-        response = text_models_table.get_item(Key={"text_id": modelo_id})
-        modelo = response.get("Item")
-
-        if not modelo:
-            return jsonify({"error": "Modelo não encontrado"}), 404
-
-        # Retorna o conteúdo do modelo para ser exibido na página
-        return jsonify({"conteudo": modelo.get("conteudo", "")})
-
     @app.route("/visualizar-modelo/<text_id>")
     def visualizar_modelo_simples(text_id):
         if not session.get("logged_in"):

@@ -200,54 +200,6 @@
   </div>
 </div>
 
-<script>
-  // Função para carregar o modelo selecionado e mostrar o conteúdo no print-area
-  function carregarModeloSelecionado() {
-    const modeloId = document.getElementById('select-modelo').value;
-
-    if (modeloId) {
-      // Requisição Ajax para pegar o modelo
-      fetch(`/obter-modelo/${modeloId}`)
-        .then((response) => response.json())
-        .then((data) => {
-          // Preenche a área de print com o conteúdo do modelo
-          document.getElementById('print-area').innerHTML = data.conteudo;
-        })
-        .catch((error) => {
-          console.error('Erro ao carregar o modelo:', error);
-          document.getElementById('print-area').innerHTML = '<p class="text-muted">Erro ao carregar o modelo.</p>';
-        });
-    } else {
-      // Se nenhum modelo for selecionado, exibe uma mensagem padrão
-      document.getElementById('print-area').innerHTML = "<p class='text-muted'>Nenhum modelo selecionado.</p>";
-    }
-  }
-
-  // Função para imprimir o conteúdo do modelo exibido
-  function printConteudo() {
-    // Pega o conteúdo da div 'print-area'
-    const conteudo = document.getElementById('print-area').innerHTML;
-
-    // Abre uma nova janela para impressão
-    const janela = window.open('', '', 'width=800,height=600');
-
-    // Adiciona o conteúdo à nova janela
-    janela.document.write(`
-      <html>
-        <head><title>Imprimir Documento</title></head>
-        <body>${conteudo}</body>
-      </html>
-    `);
-
-    // Fecha o documento e inicia a impressão
-    janela.document.close();
-    janela.print();
-
-    // Fecha a janela após a impressão
-    janela.close();
-  }
-</script>
-
 <!-- modal qrcode -->
 
 <div class="modal fade" id="qrModal" tabindex="-1" aria-labelledby="qrModalLabel" aria-hidden="true">
