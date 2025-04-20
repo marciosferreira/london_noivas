@@ -7,11 +7,38 @@
 
 <script>
   function printConteudo() {
+    // Pega o conteúdo da área de impressão
     const conteudo = document.getElementById('print-area').innerHTML;
-    const original = document.body.innerHTML;
-    document.body.innerHTML = conteudo;
-    window.print();
-    document.body.innerHTML = original;
-    location.reload(); // para recarregar o estado original após imprimir
+
+    // Abre uma nova janela para impressão
+    const janela = window.open('', '', 'width=800,height=600');
+
+    // Adiciona o conteúdo à nova janela
+    janela.document.write(`
+      <html>
+        <head>
+          <title>Imprimir Modelo</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; text-align: center; }
+            hr { margin: 20px 0; }
+          </style>
+        </head>
+        <body>
+          ${conteudo}
+          <script>
+            window.onload = function () {
+              setTimeout(function () {
+                window.print();
+                window.close();
+              }, 300);
+            }
+          </script>
+        </body>
+      </html>
+    `);
+
+    // Fecha o documento da nova janela e inicia a impressão
+    janela.document.close();
   }
+
 </script>
