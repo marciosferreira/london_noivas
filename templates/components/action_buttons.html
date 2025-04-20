@@ -456,7 +456,13 @@
 
 <script>
   function printConteudo() {
-    const conteudoHtml = document.getElementById('print-area').innerHTML;
+    // Conteúdo estático para impressão
+    const conteudoHtml = `
+      <h1>Conteúdo Estático para Impressão</h1>
+      <p>Este é um exemplo de conteúdo que será impresso.</p>
+      <p><strong>Descrição:</strong> Teste de impressão com conteúdo estático.</p>
+      <p><strong>ID do Item:</strong> 123456789</p>
+    `;
 
     // Calcula a largura e altura da janela com base no tamanho da tela do dispositivo
     const largura = window.innerWidth * 0.9; // 90% da largura da tela
@@ -518,8 +524,10 @@
     win.onload = function () {
       setTimeout(() => {
         win.print();
-        win.close();
       }, 500);
     };
   }
 </script>
+
+<!-- Botão para testar a impressão -->
+<button onclick="printConteudo()">🖨️ Imprimir</button>
