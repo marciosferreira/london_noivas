@@ -21,17 +21,17 @@
           <style>
             body { font-family: Arial, sans-serif; padding: 20px; text-align: center; }
             hr { margin: 20px 0; }
+            /* Adicione mais estilos de impressão aqui, se necessário */
           </style>
         </head>
         <body>
           ${conteudo}
           <script>
-            window.onload = function () {
-              setTimeout(function () {
-                window.print();
-                window.close();
-              }, 300);
-            }
+            // Função para garantir que o conteúdo tenha carregado antes de imprimir
+            document.addEventListener("DOMContentLoaded", function() {
+              window.print();  // Inicia a impressão
+              window.close();  // Fecha a janela após a impressão
+            });
           </script>
         </body>
       </html>
@@ -40,5 +40,4 @@
     // Fecha o documento da nova janela e inicia a impressão
     janela.document.close();
   }
-
 </script>
