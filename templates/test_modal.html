@@ -1,1 +1,14 @@
-<button onclick="window.print()">🖨️ Imprimir</button>
+<button onclick="printWithContent()">🖨️ Imprimir</button>
+
+<script>
+  function printWithContent() {
+    // Adiciona o conteúdo adicional
+    const content = '<h1>Conteúdo adicional para impressão</h1><p>Este conteúdo será impresso junto com a página atual.</p>';
+
+    // Escreve o conteúdo original da página mais o conteúdo adicional
+    const printWindow = window.open('', '', 'width=800,height=600');
+    printWindow.document.write(document.body.innerHTML + content);
+    printWindow.document.close();
+    printWindow.print();
+  }
+</script>
