@@ -2,6 +2,7 @@
 <div class="dropdown dropend">
   <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">Ações</button>
   <ul class="dropdown-menu dropdown-menu-end">
+    <!-- 🟩 AÇÕES PRINCIPAIS -->
     {% if show_rent %}
     <li>
       <a
@@ -10,6 +11,17 @@
         onclick="return checkTransactionLimit(event);"
       >
         Reservar/Retirar
+      </a>
+    </li>
+    {% endif %} {% if show_mark_rented %}
+    <li>
+      <a
+        href="#"
+        class="dropdown-item text-success"
+        title="Retirar"
+        onclick="confirmarAcao('{{ url_for('mark_rented', transaction_id=item.transaction_id, next=request.url) }}'); return false;"
+      >
+        Marcar como retirado
       </a>
     </li>
     {% endif %} {% if show_mark_returned %}
@@ -22,27 +34,16 @@
         Marcar como devolvido
       </a>
     </li>
-    {% endif %} {% if show_mark_rented %}
+    {% endif %}
 
-    <!-- Botão rented com opcóes-->
-    <a
-      href="#"
-      class="dropdown-item text-success"
-      title="Retirar"
-      onclick="confirmarAcao('{{ url_for('mark_rented', transaction_id=item.transaction_id, next=request.url) }}'); return false;"
-    >
-      Marcar como retirado
-    </a>
-
-    {% endif %} {% if show_edit_item %}
-    <li><a class="dropdown-item" href="{{ url_for('edit_item', item_id=item.item_id, next=request.url) }}">Editar item</a></li>
-    {% endif %} {% if show_item %}
-    <li><a class="dropdown-item" href="{{ url_for('listar_clientes') }}?client_id={{ item.client_id }}">Ver cliente</a></li>
-    {% endif %} {% if show_client %}
-    <li><a class="dropdown-item" href="{{ url_for('inventory') }}?item_id={{ item.item_id }}">Ver item</a></li>
-    {% endif %} {% if show_edit_transaction %}
+    <!-- ✏️ EDIÇÃO -->
+    {% if show_edit_transaction %}
     <li>
       <a class="dropdown-item" href="{{ url_for('edit_transaction', transaction_id=item.transaction_id, next=request.url) }}">Editar transação</a>
+    </li>
+    {% endif %} {% if show_edit_item %}
+    <li>
+      <a class="dropdown-item" href="{{ url_for('edit_item', item_id=item.item_id, next=request.url) }}">Editar item</a>
     </li>
     {% endif %} {% if show_edit_client %}
     <li>
@@ -53,13 +54,48 @@
         Editar cliente
       </a>
     </li>
+    {% endif %}
+
+    <!-- 🔎 VISUALIZAÇÃO -->
+    {% if show_item %}
+    <li><a class="dropdown-item" href="{{ url_for('listar_clientes') }}?client_id={{ item.client_id }}">Ver cliente</a></li>
+    {% endif %} {% if show_client %}
+    <li><a class="dropdown-item" href="{{ url_for('inventory') }}?item_id={{ item.item_id }}">Ver item</a></li>
     {% endif %} {% if show_client_transactions %}
     <li><a class="dropdown-item" href="{{ url_for('client_transactions', client_id=item.client_id) }}">Transações do cliente</a></li>
     {% endif %} {% if show_item_transactions %}
     <li><a class="dropdown-item" href="{{ url_for('all_transactions') }}?item_id={{ item.item_id }}">Transações com o item</a></li>
     {% endif %} {% if show_consult or show_ver_reservas %}
     <li><a class="dropdown-item" href="{{ url_for('view_calendar', item_id=item.item_id, next=request.url) }}">Ver reservas do item</a></li>
-    {% endif %} {% if show_archive %}
+    {% endif %}
+
+    <!-- 🧾 GERAÇÃO / IMPRESSÃO -->
+    {% if show_print %}
+    <li>
+      <button class="dropdown-item" data-bs-toggle="modal" data-bs-target="#modalModelo" onclick="abrirModalModelo('{{ item.transaction_id }}')">
+        Gerar Documento
+      </button>
+    </li>
+    {% endif %} {% if show_qrcode %}
+    <li>
+      <button class="dropdown-item" data-bs-toggle="modal" data-bs-target="#qrModal" onclick="abrirModalQR('{{ item.item_id }}')">
+        Imprimir QR Code
+      </button>
+    </li>
+    {% endif %} {% if show_share %}
+    <li>
+      <a
+        class="dropdown-item"
+        href="#"
+        onclick="copiarLinkCompartilhamento('{{ url_for('ver_item_publico', item_id=item.item_id, _external=True) }}'); return false;"
+      >
+        Compartilhar link
+      </a>
+    </li>
+    {% endif %}
+
+    <!-- 📦 STATUS / GESTÃO -->
+    {% if show_archive %}
     <li>
       <a
         class="dropdown-item"
@@ -80,17 +116,19 @@
       </a>
     </li>
     {% endif %} {% if show_mark_available %}
+    <li>
+      <a
+        href="{{ url_for('mark_available', item_id=item.item_id, next=request.url) }}"
+        class="dropdown-item"
+        onclick="return confirm('Tem certeza que deseja tornar este item disponível novamente?');"
+      >
+        Disponibilizar item
+      </a>
+    </li>
+    {% endif %}
 
-    <!-- Botão Disponível -->
-    <a
-      href="{{ url_for('mark_available', item_id=item.item_id, next=request.url) }}"
-      class="dropdown-item"
-      title="Tornar disponível"
-      onclick="return confirm('Tem certeza que deseja tornar este item disponível novamente?');"
-    >
-      Diponibilizar item
-    </a>
-    {% endif %} {% if show_delete_item or show_delete_transaction %} {% endif %} {% if show_delete_item %}
+    <!-- 🗑️ EXCLUSÃO -->
+    {% if show_delete_item %}
     <li>
       <form method="POST" action="{{ url_for('delete', item_id=item.item_id, next=request.url) }}" style="display: inline">
         <button type="submit" class="dropdown-item text-danger" onclick="return confirm('Tem certeza de que deseja deletar este item?');">
@@ -122,28 +160,6 @@
         Deletar transação
       </a>
     </li>
-    {% endif %} {% if show_print %}
-    <li>
-      <button class="dropdown-item" data-bs-toggle="modal" data-bs-target="#modalModelo" onclick="abrirModalModelo('{{ item.transaction_id }}')">
-        Gerar Documento
-      </button>
-    </li>
-    {% endif %} {% if show_qrcode %}
-    <li>
-      <button class="dropdown-item" data-bs-toggle="modal" data-bs-target="#qrModal" onclick="abrirModalQR('{{ item.item_id }}')">
-        Imprimir QR Code
-      </button>
-    </li>
-    {% endif %} {% if show_share %}
-    <li>
-      <a
-        class="dropdown-item"
-        href="#"
-        onclick="copiarLinkCompartilhamento('{{ url_for('ver_item_publico', item_id=item.item_id, _external=True) }}'); return false;"
-      >
-        Compartilhar link
-      </a>
-    </li>
     {% endif %}
   </ul>
 </div>
@@ -152,10 +168,14 @@
 <div class="modal fade" id="modalModelo" tabindex="-1" aria-labelledby="modalModeloLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-scrollable">
     <div class="modal-content">
+      <!-- Cabeçalho fixo do modal -->
       <div class="modal-header">
         <h5 class="modal-title">Gerar Documento</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
       </div>
+
+      {% if saved_models %}
+      <!-- Corpo do modal (com modelos salvos) -->
       <div class="modal-body">
         <label for="select-modelo">Escolha um modelo:</label>
         <select class="form-select mb-3" id="select-modelo" onchange="carregarModeloSelecionado()">
@@ -170,38 +190,19 @@
           <p class="text-muted">Nenhum modelo selecionado.</p>
         </div>
       </div>
+
+      <!-- Rodapé com botão de imprimir -->
       <div class="modal-footer">
         <button class="btn btn-outline-secondary" onclick="printConteudo()">🖨️ Imprimir</button>
       </div>
-    </div>
-  </div>
-</div>
 
-<!-- Modal para Seleção do Modelo -->
-<div class="modal fade" id="modalModelo" tabindex="-1" aria-labelledby="modalModeloLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg modal-dialog-scrollable">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Gerar Documento</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      {% else %}
+      <!-- Corpo alternativo do modal (sem modelos) -->
+      <div class="modal-body text-center">
+        <p class="text-muted mb-3">Você ainda não criou modelos para impressão!</p>
+        <a href="{{ url_for('listar_modelos') }}" class="btn btn-primary">Criar modelo</a>
       </div>
-      <div class="modal-body">
-        <label for="select-modelo">Escolha um modelo:</label>
-        <select class="form-select mb-3" id="select-modelo" onchange="carregarModeloSelecionado()">
-          <option value="">Selecione...</option>
-          {% for modelo in saved_models %}
-          <option value="{{ modelo.text_id }}">{{ modelo.nome }}</option>
-          {% endfor %}
-        </select>
-
-        <!-- Área de conteúdo do modelo selecionado -->
-        <div id="print-area">
-          <p class="text-muted">Nenhum modelo selecionado.</p>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-outline-secondary" onclick="printConteudo()">🖨️ Imprimir</button>
-      </div>
+      {% endif %}
     </div>
   </div>
 </div>

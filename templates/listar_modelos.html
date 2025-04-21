@@ -3,7 +3,7 @@
 {% endblock %} {% block body_class %}templates{% endblock %} {% block content %}
 
 <div class="terms-container">
-  <h2 class="mb-4">Modelos Disponíveis</h2>
+  <h3 class="mb-4">Modelos disponíveis para impressão/pdf</h3>
 
   <!-- Seção de Exemplos -->
   <h4 class="border-bottom pb-2">Modelos de Exemplo</h4>
@@ -23,6 +23,7 @@
   <!-- Seção do Usuário -->
   <h4 class="mb-1">Seus Modelos</h4>
   <small class="text-muted d-block mb-3">Depois de criá-los, use-os na tela de transações (gerar documentos)</small>
+  <small class="text-muted d-block mb-3">Seu modelo será auto-completado com os dados da transação, pronto para impressão/pdf.</small>
 
   <ul class="list-group mb-4">
     {% for modelo in modelos if modelo.account_id != '3bcdb46a-a88f-4dfd-b97e-2fb07222e0f7' %}
