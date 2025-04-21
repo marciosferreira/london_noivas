@@ -220,7 +220,6 @@ a:focus {
 }
 
 .img-quick-access {
-  border: 5px solid #4ca99d;
   border-radius: 12px;
   background-color: #fff;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
@@ -332,9 +331,11 @@ a:hover {
   padding: 0.6rem 1.2rem;
   border-radius: 8px;
   transition: background-color 0.3s ease, transform 0.2s ease;
+  border: 3px solid rgb(139, 139, 139); /* Aqui está a borda branca */
   border-radius: 8px;
 }
 
 .btn-aqua:hover {
+  background-color: #83d9c3;
   transform: scale(1.03);
 }
