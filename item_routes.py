@@ -67,6 +67,19 @@ def init_item_routes(
             page="reserved",
         )
 
+    @app.route("/all_transactions")
+    def all_transactions():
+        return listar_itens_per_transaction(
+            ["reserved", "rented", "returned"],
+            "all_transactions.html",
+            "Todas as transações",
+            transactions_table,
+            users_table,
+            itens_table,
+            text_models_table,
+            page="all_transactions",
+        )
+
     @app.route("/returned")
     def returned():
         return listar_itens_per_transaction(
@@ -1497,6 +1510,8 @@ def listar_itens_per_transaction(
     def apply_filtros_request():
         return {
             "filter": request.args.get("filter", "todos"),
+            "item_id": request.args.get("item_id"),
+            "client_id": request.args.get("client_id"),
             "item_custom_id": request.args.get("item_custom_id"),
             "description": request.args.get("description"),
             "client_name": request.args.get("client_name"),
@@ -1550,6 +1565,20 @@ def listar_itens_per_transaction(
                 not in (txn.get("item_custom_id") or "").lower()
             ):
                 continue
+
+            if (
+                filtros["item_id"]
+                and filtros["item_id"].lower() not in (txn.get("item_id") or "").lower()
+            ):
+                continue
+
+            if (
+                filtros["client_id"]
+                and filtros["client_id"].lower()
+                not in (txn.get("client_id") or "").lower()
+            ):
+                continue
+
             if (
                 filtros["client_obs"]
                 and filtros["client_obs"].lower()
@@ -1597,9 +1626,6 @@ def listar_itens_per_transaction(
             return [i for i in itens if i.get("transaction_status") == "version"]
 
         return itens
-
-    # Medição de tempo
-    start_total = time.time()
 
     filtros = apply_filtros_request()
 
@@ -1748,24 +1774,26 @@ def list_raw_itens(status_list, template, title, itens_table, transactions_table
 
     # Filtros opcionais
     item_custom_id = request.args.get("item_custom_id")
+    item_id = request.args.get("item_id")
     description = request.args.get("description")
     item_obs = request.args.get("item_obs")
     min_valor = request.args.get("min_valor")
     max_valor = request.args.get("max_valor")
 
+    # Montar filtros opcionais
+    expression_attr_names = {}
+    expression_attr_values = {}
     filter_expressions = []
-    expression_attr_names = {
-        "#account_id": "account_id",
-        "#status": "status",
-    }
-    expression_attr_values = {
-        ":account_id": account_id,
-    }
 
     if item_custom_id:
         expression_attr_names["#item_custom_id"] = "item_custom_id"
         expression_attr_values[":item_custom_id"] = item_custom_id.lower()
         filter_expressions.append("contains(#item_custom_id, :item_custom_id)")
+
+    if item_id:
+        expression_attr_names["#item_id"] = "item_id"
+        expression_attr_values[":item_id"] = item_id.lower()
+        filter_expressions.append("contains(#item_id, :item_id)")
 
     if description:
         expression_attr_names["#description"] = "description"
@@ -1777,17 +1805,24 @@ def list_raw_itens(status_list, template, title, itens_table, transactions_table
         expression_attr_values[":item_obs"] = item_obs.lower()
         filter_expressions.append("contains(lower(#item_obs), :item_obs)")
 
+    # Construir filtro final
     filter_expression = " AND ".join(filter_expressions) if filter_expressions else None
 
-    # Buscar itens filtrados por cada status da status_list
-    items = []
-    # Buscar todos os itens do usuário, ordenados do mais novo para o mais antigo
-    response = itens_table.query(
-        IndexName="account_id-created_at-index",
-        KeyConditionExpression=Key("account_id").eq(account_id),
-        ScanIndexForward=False,  # <- Ordena do mais novo para o mais antigo
-    )
+    # Montar parâmetros da query
+    query_params = {
+        "IndexName": "account_id-created_at-index",
+        "KeyConditionExpression": Key("account_id").eq(account_id),
+        "ScanIndexForward": False,
+    }
 
+    # Adiciona filtros se houver
+    if filter_expression:
+        query_params["FilterExpression"] = filter_expression
+        query_params["ExpressionAttributeNames"] = expression_attr_names
+        query_params["ExpressionAttributeValues"] = expression_attr_values
+
+    # Executar a query
+    response = itens_table.query(**query_params)
     raw_itens = response.get("Items", [])
 
     # como índice é apenas account_id + created_at, o filtro por status precisa ser feito manualmente, como:

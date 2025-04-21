@@ -1,0 +1,223 @@
+{% extends "base.html" %} {% block title %} Transações iniciadas (itens alugados) {% endblock %} {% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='style_reserved.css') }}" />
+{% endblock %} {% block content %}
+
+<div class="container mt-3">
+  <h2 class="mb-4">{{ title }}</h2>
+  {% include "components/filter_section.html" with context %} {% if itens %}
+
+  <!-- Tabela -->
+  <div class="table-container mt-4">
+    <table class="table table-hover responsive-table align-middle rounded-table">
+      <thead>
+        <tr>
+          <th>Imagem</th>
+          <th>Cliente</th>
+          <th>Retirada Prevista</th>
+          <th>Preço (R$)</th>
+          <th>Pago (R$)</th>
+          <th>Observações</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in itens %}
+        <tr>
+          <td data-label="Imagem">
+            {% if item.image_url and item.image_url != "N/A" %}
+            <img src="{{ item.image_url }}" alt="Imagem do item" class="img-fluid item-thumbnail" style="max-width: 100px; cursor: pointer" />
+            {% else %}
+            <img
+              src="{{ url_for('static', filename='item-placeholder.png') }}"
+              alt="Sem Imagem"
+              class="img-fluid item-thumbnail"
+              style="max-width: 100px; cursor: pointer"
+            />
+            {% endif %}
+          </td>
+          <!-- prettier-ignore -->
+          <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Cliente">
+            {{ item.client_name | default('', true) | truncate(10, True) }}
+          </td>
+
+          <!-- prettier-ignore -->
+
+          <!-- prettier-ignore -->
+          <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Retirada Prevista">
+            {{ item.rental_date_formatted }}
+            {% if item.rental_message %}
+              <div class="rental-message mt-1 {{ item.rental_message_color }}">
+                {{ item.rental_message }}
+              </div>
+            {% endif %}
+          </td>
+          <!-- prettier-ignore -->
+          <td class="open-modal position-relative" data-item='{{ item | tojson | safe }}' data-label="Preço (R$)">
+            {{ item.valor | round(2) | string | replace('.', ',') }}
+          </td>
+
+          <!-- prettier-ignore -->
+          <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Pagamento">
+            {{ item.pagamento | round(2) | string | replace('.', ',') }}
+
+            {% if item.pagamento and item.valor %}
+              {% set pagamento_float = item.pagamento | float %}
+              {% set valor_float = item.valor | float %}
+              {% if pagamento_float == valor_float %}
+                (Pagamento Total)
+              {% elif pagamento_float > 0 and pagamento_float < valor_float %}
+                (Pagamento Parcial)
+              {% else %}
+                (Não Pago)
+              {% endif %}
+            {% else %}
+              (Não Pago)
+            {% endif %}
+          </td>
+
+          <!-- prettier-ignore -->
+          <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Observações">
+            {{ item.comments | default('', true) | truncate(10, True) }}
+          </td>
+
+          <!--botoes de açao -->
+          <td data-label="Ações">
+            <div class="d-flex flex-wrap gap-2 justify-content-center align-items-center">
+              {% set show_delete_transaction = True %} {% set show_edit_transaction = True %} {% set show_ver_reservas = True %} {% set
+              show_mark_rented = True %} {% set show_print = True %} {% include 'components/action_buttons.html' with context %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% else %}
+
+  <p style="color: #308be3; font-weight: bold; font-size: 1.2rem; margin-top: -1rem; margin-left: 0.25rem">Nada por aqui ainda!</p>
+
+  {% endif %}
+
+  <!-- Paginação -->
+  {% set route_name = 'reserved' %} {% include 'components/pagination.html' with context %}
+
+  <!-- Modals -->
+  {% include 'components/info_modal_transaction.html' %} {% include 'components/image_modal.html' %}
+</div>
+{% endblock %} {% block scripts %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.action-button.danger').forEach((btn) => {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation(); // impede de subir para a tr/td com "open-modal"
+        // NÃO use preventDefault aqui, porque é um botão de submit
+      });
+    });
+  });
+</script>
+
+<!-- lib para um alert box com opçoes -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+  function confirmarAcao(urlBase) {
+    Swal.fire({
+      text: 'Cliente está pagando integralmente o item?',
+      showCancelButton: true,
+      showDenyButton: true,
+      confirmButtonText: 'Pago 100%',
+      denyButtonText: 'Apenas retirando',
+      cancelButtonText: 'Cancelar',
+    }).then((result) => {
+      if (result.isConfirmed) {
+        const urlFinal = urlBase.includes('?') ? urlBase + '&pago_total=1' : urlBase + '?pago_total=1';
+        window.location.href = urlFinal;
+      } else if (result.isDenied) {
+        window.location.href = urlBase;
+      }
+      // Se cancelar não faz nada
+    });
+  }
+</script>
+
+<script>
+  function printConteudo() {
+    const conteudoHtml = document.getElementById('print-area').innerHTML;
+
+    const win = window.open('', '_blank', 'width=800,height=600');
+
+    if (!win) {
+      alert('Não foi possível abrir a janela de impressão. Verifique se o bloqueador de pop-up está ativado.');
+      return;
+    }
+
+    win.document.open();
+    win.document.write(`
+      <html>
+        <head>
+          <title>Imprimir</title>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              padding: 20px;
+            }
+            @media print {
+              .no-print {
+                display: none !important;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          ${conteudoHtml}
+        </body>
+      </html>
+    `);
+
+    win.document.close();
+
+    // Esperar carregamento do conteúdo
+    win.onload = function () {
+      setTimeout(() => {
+        win.print();
+        win.close();
+      }, 300);
+    };
+  }
+</script>
+
+<script>
+  let transacaoSelecionada = null;
+
+  function abrirModalModelo(transactionId) {
+    transacaoSelecionada = transactionId;
+    document.getElementById('print-area').innerHTML = "<p class='text-muted'>Nenhum modelo selecionado.</p>";
+    document.getElementById('select-modelo').value = '';
+  }
+
+  function carregarModeloSelecionado() {
+    const select = document.getElementById('select-modelo');
+    const textId = select.value;
+    const outputDiv = document.getElementById('print-area');
+
+    if (!textId || !transacaoSelecionada) {
+      outputDiv.innerHTML = "<p class='text-muted'>Selecione um modelo para visualizar.</p>";
+      return;
+    }
+
+    outputDiv.innerHTML = '<p>Carregando...</p>';
+
+    fetch(`/visualizar-modelo/${textId}/${transacaoSelecionada}`)
+      .then((response) => response.text())
+      .then((html) => {
+        outputDiv.innerHTML = html;
+      })
+      .catch((error) => {
+        outputDiv.innerHTML = "<p class='text-danger'>Erro ao carregar modelo.</p>";
+        console.error(error);
+      });
+  }
+</script>
+
+{% endblock %}
