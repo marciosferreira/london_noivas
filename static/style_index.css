@@ -85,7 +85,8 @@ body {
 }
 
 .hero h1 {
-  margin-top: 30px; /* Ajuste conforme necessário */
+  margin-top: 300px;
+  color: #4a4a4a; /* cinza escuro que combina com azul */
 }
 
 .table {
@@ -174,7 +175,8 @@ body {
 /* Estilo dos minitextos abaixo das imagens na landing page */
 .card-description {
   font-size: 0.85rem;
-  color: #555;
+  color: #6e5d50; /* tom terroso suave */
+
   margin-top: 0.25rem;
   line-height: 1.4;
   opacity: 0.85;
@@ -210,15 +212,17 @@ a:focus {
 }
 
 :root {
-  --header-height: 30px;
+  --header-height: 10px;
 }
 
 .wrapper {
   padding-top: var(--header-height);
 }
 
-/* Animação de zoom e lift em imagens rápidas */
 .img-quick-access {
+  border: 5px solid #4ca99d;
+  border-radius: 12px;
+  background-color: #fff;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
@@ -263,4 +267,76 @@ a:focus {
   width: 100%;
   height: auto;
   transition: transform 0.3s ease;
+}
+
+.full-width-bar {
+  width: 80vw; /* ocupa a tela inteira */
+  padding: 0 2vw;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-sizing: border-box;
+}
+
+.styled-img {
+  max-width: 110px;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1 / 1;
+  object-fit: contain;
+  border-radius: 10px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.styled-img:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+@media (max-width: 768px) {
+  .styled-img {
+    max-width: 70px;
+  }
+}
+
+@media (max-width: 480px) {
+  .styled-img {
+    max-width: 45px;
+  }
+}
+
+.icon-header {
+  background-color: #ffffff;
+  padding: 20px 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.styled-img:hover {
+  transform: translateY(-5px) scale(1.05);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+
+.hero h2,
+.hero p {
+  color: #5e6c84; /* azul acinzentado suave */
+}
+
+a:hover {
+  color: #007bff;
+}
+
+.btn-aqua {
+  background-color: #20c997;
+  color: white;
+  font-weight: 600;
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+  border: 3px solid rgb(23, 176, 97); /* Aqui está a borda branca */
+  border-radius: 8px;
+}
+
+.btn-aqua:hover {
+  background-color: #83d9c3;
+  transform: scale(1.03);
 }

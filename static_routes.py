@@ -289,79 +289,67 @@ def init_static_routes(
         # Substitui as variáveis do template com os dados da transação
         conteudo_renderizado = conteudo_renderizado.replace(
             "{{ client_name }}",
-            str(transacao.get("client_name", "Nome não disponível")),
+            str(transacao.get("client_name", " ")),
         )
         conteudo_renderizado = conteudo_renderizado.replace(
             "{{ client_email }}",
-            str(transacao.get("client_email", "E-mail não disponível")),
+            str(transacao.get("client_email", " ")),
         )
         conteudo_renderizado = conteudo_renderizado.replace(
             "{{ client_tel }}",
-            str(transacao.get("client_tel", "Telefone não disponível")),
+            str(transacao.get("client_tel", " ")),
         )
         conteudo_renderizado = conteudo_renderizado.replace(
             "{{ client_address }}",
-            str(transacao.get("client_address", "Endereço não disponível")),
+            str(transacao.get("client_address", " ")),
         )
         conteudo_renderizado = conteudo_renderizado.replace(
-            "{{ client_cpf }}", str(transacao.get("client_cpf", "CPF não disponível"))
+            "{{ client_cpf }}", str(transacao.get("client_cpf", " "))
         )
         conteudo_renderizado = conteudo_renderizado.replace(
             "{{ client_cnpj }}",
-            str(transacao.get("client_cnpj", "CNPJ não disponível")),
+            str(transacao.get("client_cnpj", " ")),
         )
 
         # Dados do item
         conteudo_renderizado = conteudo_renderizado.replace(
             "{{ description }}",
-            str(transacao.get("description", "Descrição não disponível")),
+            str(transacao.get("description", " ")),
         )
         conteudo_renderizado = conteudo_renderizado.replace(
             "{{ item_custom_id }}",
-            str(transacao.get("item_custom_id", "Código do item não disponível")),
+            str(transacao.get("item_custom_id", " ")),
         )
         conteudo_renderizado = conteudo_renderizado.replace(
             "{{ item_obs }}",
-            str(transacao.get("item_obs", "Observações do item não disponíveis")),
+            str(transacao.get("item_obs", " ")),
         )
 
         # Dados da transação
         conteudo_renderizado = conteudo_renderizado.replace(
-            "{{ valor }}", str(transacao.get("valor", "Valor não disponível"))
+            "{{ valor }}", str(transacao.get("valor", " "))
         )
         conteudo_renderizado = conteudo_renderizado.replace(
             "{{ pagamento }}",
-            str(transacao.get("pagamento", "Valor pago não disponível")),
+            str(transacao.get("pagamento", " ")),
         )
         conteudo_renderizado = conteudo_renderizado.replace(
             "{{ transaction_obs }}",
-            str(
-                transacao.get(
-                    "transaction_obs", "Observações da transação não disponíveis"
-                )
-            ),
+            str(transacao.get("transaction_obs", " ")),
         )
 
         # Datas formatadas
         conteudo_renderizado = conteudo_renderizado.replace(
             "{{ rental_date_formatted }}",
-            str(
-                transacao.get(
-                    "rental_date_formatted", "Data de retirada não disponível"
-                )
-            ),
+            str(transacao.get("rental_date_formatted", " ")),
         )
         conteudo_renderizado = conteudo_renderizado.replace(
             "{{ return_date_formatted }}",
-            str(
-                transacao.get(
-                    "return_date_formatted", "Data de devolução não disponível"
-                )
-            ),
+            str(transacao.get("return_date_formatted", " ")),
         )
         conteudo_renderizado = conteudo_renderizado.replace(
             "{{ data_hora_atual }}",
-            str(transacao.get("data_hora_atual", "Data e hora atuais não disponíveis")),
+            str(transacao.get("data_hora_atual", " ")),
         )
 
         # Adicione mais substituições conforme necessário...

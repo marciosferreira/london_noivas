@@ -23,6 +23,7 @@ from utils import (
     send_confirmation_email,
     send_password_reset_email,
     send_admin_notification_email,
+    send_confirmation_email,
 )
 
 
