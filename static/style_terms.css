@@ -18,3 +18,20 @@ body.terms {
   border-radius: 8px;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
+
+.btn-aqua {
+  display: inline-block;
+  background-color: #20c997; /* verde água */
+  color: white;
+  font-weight: bold;
+  padding: 0.6rem 1.2rem;
+  border: none;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.btn-aqua:hover {
+  background-color: #83d9c3;
+  transform: scale(1.03);
+}
