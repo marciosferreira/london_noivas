@@ -1,341 +1,215 @@
-/* Define o fundo do body para todas as páginas */
-body {
-  background: linear-gradient(120deg, #dce3ea 0%, #edf2f7 100%);
-  margin: 0;
-  padding: 0;
-}
-
-.btn-primary {
-  font-size: 1.2rem;
-  padding: 10px 20px;
-}
-
-.modal-content {
-  border-radius: 10px;
-}
-
-/* Limita a largura das colunas para evitar que fiquem muito largas */
-.feature-box {
-  max-width: 300px; /* Máximo de 300px para cada bloco */
-  margin: auto; /* Mantém o alinhamento centralizado */
-}
-
-/* Ajuste das imagens */
-.feature-img {
-  width: 80px; /* Tamanho uniforme */
-  height: auto;
-  margin-bottom: 10px;
-}
-
-/* Wrapper configurado para centralizar conteúdo */
-.wrapper {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-  width: 100%;
-  padding: 0;
-  margin: 0 auto;
-  max-width: 100%;
-}
-
-.hero {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  padding: 0px 20px; /* ajuste aqui a distância do topo */
-  width: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-.hero h1:first-of-type {
-  margin-top: 50px; /* Ajuste conforme necessário */
-}
-
-/* Ajuste do botão */
-.hero .btn-primary {
-  margin-bottom: 20px;
-}
-
-/* Ajuste para a seção de recursos */
-.features {
-  padding-top: 10px;
-  padding-bottom: 40px;
-  margin-top: -20px; /* Traz a seção mais perto */
-  width: 100%;
-  max-width: 1200px; /* Limita a largura máxima */
-  margin-left: auto;
-  margin-right: auto;
-}
-
-/* Centraliza os elementos na grid */
-.feature-box {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-}
-
-/* Ajuste das imagens */
-.feature-img {
-  max-width: 100px;
-  height: auto;
-}
-
-.hero h1 {
-  margin-top: 300px;
-  color: #4a4a4a; /* cinza escuro que combina com azul */
-}
-
-.table {
-  font-size: 1rem;
-}
-
-.table th,
-.table td {
-  vertical-align: middle;
-  padding: 0.75rem 1rem;
-}
-
-.table thead th {
-  background-color: #f8f9fa;
-}
-
-body {
-  background-color: #e9eff5; /* corzinha suave */
-}
-
-.img-quick-access {
-  max-width: 150px; /* diminui o tamanho máximo */
-  height: auto; /* mantém a proporção */
-}
-
-.position-relative {
-  display: inline-block; /* garante que a imagem + badge ficam juntas */
-}
-
-.badge-counter {
-  position: absolute;
-  top: 8px;
-  left: 8px;
-  width: 32px; /* largura e altura iguais */
-  height: 32px;
-  background-color: #c0392b;
-  color: white;
-  font-size: 16px;
-  font-weight: bold;
-  border-radius: 50%; /* deixa o badge circular */
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* Imagens - comportamento padrão (mobile first) */
-.img-quick-access {
-  width: 100%;
-  max-width: 120px; /* tamanho bom em mobile */
-  margin-bottom: 12px; /* espaço entre linhas menor */
-}
-
-/* Espaçamento padrão mobile */
-.img-quick-access {
-  width: 100%;
-  max-width: 120px;
-  margin-bottom: 12px;
-}
-
-/* Desktop */
-@media (min-width: 768px) {
-  .img-quick-access {
-    max-width: 160px;
-    margin-bottom: 24px;
-  }
-
-  /* Aumentar o espaço entre as linhas de imagens */
-  .row.g-4 {
-    row-gap: 48px; /* muito mais espaço entre as linhas */
-  }
-}
-
-/* Telas grandes */
-@media (min-width: 1200px) {
-  .img-quick-access {
-    max-width: 200px;
-    margin-bottom: 32px;
-  }
-
-  .row.g-4 {
-    row-gap: 32px; /* ainda mais espaço nas telas bem grandes */
-  }
-}
-
-/* Estilo dos minitextos abaixo das imagens na landing page */
-.card-description {
-  font-size: 0.85rem;
-  color: #6e5d50; /* tom terroso suave */
-
-  margin-top: 0.25rem;
-  line-height: 1.4;
-  opacity: 0.85;
-  min-height: 3.5em;
-}
-
-/* Estilizando os links dentro de quick access */
-a {
-  text-decoration: none; /* Remove o sublinhado padrão */
-  color: #333; /* Cor do texto do link */
-  font-weight: 600; /* Deixa o texto mais forte */
-  transition: all 0.3s ease; /* Adiciona transição suave */
-}
-
-/* Efeito de hover para os links */
-a:hover {
-  color: #007bff; /* Cor azul para o hover */
-  transform: scale(1.05); /* Aumenta um pouco o tamanho do link */
-}
-
-/* Efeito de foco para links acessíveis */
-a:focus {
-  outline: none; /* Remove o contorno padrão de foco */
-  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.5); /* Adiciona um sombreado sutil ao foco */
-}
-
-:root {
-  --header-height: 10px;
-}
-
-.wrapper {
-  padding-top: var(--header-height);
-}
-
-:root {
-  --header-height: 10px;
-}
-
-.wrapper {
-  padding-top: var(--header-height);
-}
-
-.img-quick-access {
-  border-radius: 12px;
-  background-color: #fff;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.img-quick-access:hover {
-  transform: scale(1.08);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
-}
-
-/* Animação nos cards (feature-box) */
-.feature-box {
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.feature-box:hover {
-  transform: translateY(-8px);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
-}
-
-/* Animação suave no botão */
-.btn-primary {
-  transition: background-color 0.3s ease, transform 0.2s ease;
-}
-
-.btn-primary:hover {
-  transform: scale(1.04);
-  background-color: #0056b3; /* tom um pouco mais escuro no hover */
-}
-
-.image-wrapper {
-  border-radius: 12px;
-  overflow: hidden;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.image-wrapper:hover {
-  transform: scale(1.05);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
-}
-
-.img-quick-access {
-  display: block;
-  width: 100%;
-  height: auto;
-  transition: transform 0.3s ease;
-}
-
-.full-width-bar {
-  width: 80vw; /* ocupa a tela inteira */
-  padding: 0 2vw;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+/* === RESET E BASE === */
+* {
   box-sizing: border-box;
 }
 
+/* === CONTAINER PRINCIPAL === */
+.page-container {
+  max-width: 1200px;
+  width: 90%;
+  margin: 40px auto;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  padding: 40px 30px;
+}
+
+/* === WRAPPER GERAL === */
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* === BARRA DE ÍCONES (INÍCIO) === */
+.full-width-bar {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 20px 0;
+  border-radius: 12px;
+  background-color: #fdfdfd;
+  margin-bottom: 30px;
+}
+
 .styled-img {
-  max-width: 110px;
-  width: 100%;
+  max-width: 80px;
   height: auto;
-  aspect-ratio: 1 / 1;
-  object-fit: contain;
-  border-radius: 10px;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
 .styled-img:hover {
   transform: scale(1.05);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
 }
 
-@media (max-width: 768px) {
-  .styled-img {
-    max-width: 70px;
-  }
+/* === HERO (TÍTULOS E BOTÃO) === */
+.hero h1 {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+  color: #2c3e50;
 }
 
-@media (max-width: 480px) {
-  .styled-img {
-    max-width: 45px;
-  }
+.hero h3,
+.hero h4 {
+  font-weight: 400;
+  color: #666;
+  margin-bottom: 1.5rem;
 }
 
-.icon-header {
-  background-color: #ffffff;
-  padding: 20px 0;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
-}
-
-.styled-img:hover {
-  transform: translateY(-5px) scale(1.05);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
-}
-
-.hero h2,
-.hero p {
-  color: #5e6c84; /* azul acinzentado suave */
-}
-
-a:hover {
-  color: #007bff;
-}
-
+/* === BOTÃO PRINCIPAL === */
 .btn-aqua {
   background-color: #20c997;
   color: white;
   font-weight: 600;
-  padding: 0.6rem 1.2rem;
-  border-radius: 8px;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  cursor: pointer;
   transition: background-color 0.3s ease, transform 0.2s ease;
-  border: 3px solid rgb(139, 139, 139); /* Aqui está a borda branca */
-  border-radius: 8px;
 }
 
+/* === ################################################ === */
+
 .btn-aqua:hover {
-  background-color: #83d9c3;
-  transform: scale(1.03);
+  background-color: #17a589;
+  transform: scale(1.04);
+}
+
+.image-wrapper {
+  background-color: #f8f9fa;
+  border-radius: 12px;
+  overflow: hidden;
+  padding: 12px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* === ################################################ === */
+
+/* === BADGE ESTATÍSTICO === */
+.badge-counter {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background-color: #c0392b;
+  color: white;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+
+/* === DESCRIÇÃO DOS CARDS === */
+.card-description {
+  font-size: 0.9rem;
+  margin-top: 8px;
+  color: #555;
+  min-height: 3em;
+}
+
+/* === SEÇÃO DE VANTAGENS === */
+.features h2 {
+  color: #34495e;
+  margin-bottom: 1.5rem;
+}
+
+.feature-box {
+  background-color: #ffffff;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.05);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.feature-box:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+}
+
+.feature-img {
+  width: 80px;
+  margin-bottom: 12px;
+}
+
+.feature-text {
+  font-size: 0.95rem;
+  color: #555;
+  margin-top: 10px;
+  line-height: 1.5;
+}
+
+/* === RESPONSIVIDADE === */
+@media (max-width: 768px) {
+  .page-container {
+    padding: 20px 16px;
+  }
+
+  .hero h1 {
+    font-size: 2rem;
+  }
+
+  .styled-img {
+    max-width: 60px;
+  }
+
+  .feature-box {
+    padding: 16px;
+  }
+}
+
+.btn-outline-aqua {
+  background-color: transparent;
+  color: #20c997;
+  font-weight: 600;
+  padding: 0.75rem 1.5rem;
+  border: 2px solid #20c997;
+  border-radius: 10px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.3s ease, color 0.3s ease, transform 0.2s ease;
+}
+
+.btn-outline-aqua:hover {
+  background-color: #20c997;
+  color: white;
+  transform: scale(1.04);
+}
+
+.btn-login-register {
+  min-width: 140px; /* Largura mínima padronizada */
+  text-align: center;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  flex: 1 1 140px; /* Responsivo: permite crescer, mas tem base */
+  max-width: 200px;
+}
+
+.btn-login-register {
+  width: 180px;
+  text-align: center;
+}
+
+.login-form#forgot-password-form,
+.login-form#reset-password-form {
+  display: block;
+  text-align: center;
+}
+
+.login-form#forgot-password-form h2,
+.login-form#reset-password-form h2 {
+  margin-bottom: 1rem;
+  color: #2c3e50;
+}
+
+.login-form#forgot-password-form p,
+.login-form#reset-password-form p {
+  margin-bottom: 2rem;
+  font-size: 1rem;
+  color: #555;
 }

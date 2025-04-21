@@ -17,16 +17,6 @@
   z-index: 1050; /* maior que o menu */
 }
 
-.wrapper {
-  flex: 1;
-  padding-bottom: 30px;
-  width: 100%;
-  max-width: 1200px;
-  margin: 40px auto 0 auto; /* ADICIONE este margin-top: 40px */
-  padding-left: 15px;
-  padding-right: 15px;
-}
-
 .custom-button:hover {
   background-color: white;
   color: #007bff;
@@ -179,4 +169,14 @@ body {
     background: white;
     z-index: 9999;
   }
+}
+
+.page-container {
+  max-width: 1200px;
+  width: 90%;
+  margin: 40px auto;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  padding: 40px 30px;
 }

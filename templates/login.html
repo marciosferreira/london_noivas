@@ -1,14 +1,25 @@
 {% extends "base.html" %} {% block title %}Alugue QQC - Login/Cadastro{% endblock %} {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='style_login.css') }}" />
 {% endblock %} {% block content %}
+
 <div class="login-container">
+  {% set tab = request.args.get('tab', 'login') %}
+
   <!-- Cabeçalho com título e logo -->
   <header class="login-header">
     <a href="/">
       <img src="/static/icons/icon-512x512.png" alt="Bugigangas" class="login-logo" />
     </a>
     <h1>Alugue QQC</h1>
-    <p>Login/Cadastro</p>
+    {% set tab = request.args.get('tab', 'login') %} {% if tab == 'register' %}
+    <p>Cadastro</p>
+    {% elif tab == 'reset-password' %}
+    <p>Redefinir Senha</p>
+    {% elif tab == 'forgot-password' %}
+    <p>Recuperar Senha</p>
+    {% else %}
+    <p>Login</p>
+    {% endif %}
   </header>
 
   {% if error %}
@@ -23,15 +34,12 @@
   </div>
   {% endif %}
 
-  <!-- Abas para alternar entre login e registro -->
-  <div class="tabs" id="main-tabs">
-    <div class="tab active" id="login-tab" onclick="showTab('login')" style="color: #007bff">Já tenho conta</div>
-    <span class="ou-separator">ou</span>
-    <!-- Adicionando a classe CSS para o "ou" -->
-    <div class="tab" id="register-tab" onclick="showTab('register')" style="color: #007bff">Cadastrar-se</div>
-  </div>
+  <!-- Abas ocultas (mantemos para o JS saber qual formulário mostrar) -->
+  <div id="main-tabs" style="display: none"></div>
 
   <div class="form-container">
+    {% if tab != 'forgot-password' and tab != 'reset-password' %}
+
     <!-- Formulário de Login -->
     <div class="login-form" id="login-form">
       <form action="/login" method="POST">
@@ -114,6 +122,8 @@
       </form>
     </div>
 
+    {% endif %}
+
     <!-- Formulário de Recuperação de Senha -->
     <div class="login-form" id="forgot-password-form">
       <h2>Recuperar Senha</h2>
@@ -154,129 +164,155 @@
 </div>
 {% endblock %} {% block scripts %}
 <script>
-  // No início do script, verifique se devemos mostrar registro ou reset
+
+
+
   document.addEventListener('DOMContentLoaded', function() {
-    {% if register %}
-      showTab('register');
-    {% endif %}
+    const urlParams = new URLSearchParams(window.location.search);
+    const tabParam = urlParams.get('tab');
+
+    // Pega a label para exibir no cabeçalho
+    const labelElement = document.getElementById('page-mode-label');
+
+    // Prioridade: URL > variável Jinja2
+    let tab = tabParam;
 
     {% if reset_password %}
-      showTab('reset-password');
-      document.getElementById('main-tabs').style.display = 'none';
+      tab = 'reset-password';
     {% endif %}
-  });
 
-  function showTab(tabName) {
-    // Esconder todos os formulários
-    document.getElementById('login-form').style.display = 'none';
-    document.getElementById('register-form').style.display = 'none';
-    document.getElementById('forgot-password-form').style.display = 'none';
-    document.getElementById('reset-password-form').style.display = 'none';
-
-    // Remover classes ativas das abas
-    document.getElementById('login-tab')?.classList.remove('active');
-    document.getElementById('register-tab')?.classList.remove('active');
-
-    // Mostrar o formulário selecionado e ajustar espaçamento
-    if (tabName === 'login') {
-        document.getElementById('login-form').style.display = 'block';
-        document.getElementById('login-tab').classList.add('active');
-        document.getElementById('main-tabs').style.display = 'flex';
-    } else if (tabName === 'register') {
-        let registerForm = document.getElementById('register-form');
-        registerForm.style.display = 'block';
-        registerForm.classList.add('active'); // Garante o espaçamento correto
-        document.getElementById('register-tab').classList.add('active');
-        document.getElementById('main-tabs').style.display = 'flex';
-    } else if (tabName === 'forgot-password') {
-        document.getElementById('forgot-password-form').style.display = 'block';
-        document.getElementById('main-tabs').style.display = 'none';
-    } else if (tabName === 'reset-password') {
-        document.getElementById('reset-password-form').style.display = 'block';
-        document.getElementById('main-tabs').style.display = 'none';
-    }
-  }
-
-  // Verificar se as senhas coincidem no registro
-  document.getElementById('confirm-password').addEventListener('input', function () {
-    const password = document.getElementById('reg-password').value;
-    const confirmPassword = this.value;
-    const errorElement = document.getElementById('password-error');
-    const registerButton = document.getElementById('register-btn');
-
-    if (password !== confirmPassword) {
-      errorElement.style.display = 'block';
-      registerButton.disabled = true;
+    if (tab === 'register') {
+      showTab('register');
+      labelElement.textContent = 'Cadastro';
+    } else if (tab === 'reset-password') {
+      showTab('reset-password');
+      labelElement.textContent = 'Redefinir Senha';
+      document.getElementById('main-tabs').style.display = 'none';
     } else {
-      errorElement.style.display = 'none';
-      registerButton.disabled = !document.getElementById('terms-checkbox').checked;
+      showTab('login');
+      labelElement.textContent = 'Login';
     }
   });
 
-  // Verificar se as senhas coincidem na redefinição
-  document.getElementById('confirm-new-password').addEventListener('input', function () {
-    const password = document.getElementById('new-password').value;
-    const confirmPassword = this.value;
-    const errorElement = document.getElementById('reset-password-error');
-    const resetButton = document.getElementById('reset-btn');
 
-    if (password !== confirmPassword) {
-      errorElement.style.display = 'block';
-      resetButton.disabled = true;
-    } else {
-      errorElement.style.display = 'none';
-      resetButton.disabled = false;
+
+
+
+
+
+
+
+    function showTab(tabName) {
+      // Esconder todos os formulários
+      document.getElementById('login-form').style.display = 'none';
+      document.getElementById('register-form').style.display = 'none';
+      document.getElementById('forgot-password-form').style.display = 'none';
+      document.getElementById('reset-password-form').style.display = 'none';
+
+      // Remover classes ativas das abas
+      document.getElementById('login-tab')?.classList.remove('active');
+      document.getElementById('register-tab')?.classList.remove('active');
+
+      // Mostrar o formulário selecionado e ajustar espaçamento
+      if (tabName === 'login') {
+          document.getElementById('login-form').style.display = 'block';
+          document.getElementById('login-tab').classList.add('active');
+          document.getElementById('main-tabs').style.display = 'flex';
+      } else if (tabName === 'register') {
+          let registerForm = document.getElementById('register-form');
+          registerForm.style.display = 'block';
+          registerForm.classList.add('active'); // Garante o espaçamento correto
+          document.getElementById('register-tab').classList.add('active');
+          document.getElementById('main-tabs').style.display = 'flex';
+      } else if (tabName === 'forgot-password') {
+          document.getElementById('forgot-password-form').style.display = 'block';
+          document.getElementById('main-tabs').style.display = 'none';
+      } else if (tabName === 'reset-password') {
+          document.getElementById('reset-password-form').style.display = 'block';
+          document.getElementById('main-tabs').style.display = 'none';
+      }
     }
-  });
 
-  // Limitar tamanhos de campos
-  document.getElementById('reg-username').addEventListener('input', function () {
-    let maxLength = 15;
-    if (this.value.length > maxLength) {
-      this.value = this.value.slice(0, maxLength);
-    }
-  });
+    // Verificar se as senhas coincidem no registro
+    document.getElementById('confirm-password').addEventListener('input', function () {
+      const password = document.getElementById('reg-password').value;
+      const confirmPassword = this.value;
+      const errorElement = document.getElementById('password-error');
+      const registerButton = document.getElementById('register-btn');
 
-  document.getElementById('reg-password').addEventListener('input', function () {
-    let maxLength = 64;
-    if (this.value.length > maxLength) {
-      this.value = this.value.slice(0, maxLength);
-    }
-  });
-
-  document.getElementById('confirm-password').addEventListener('input', function () {
-    let maxLength = 64;
-    if (this.value.length > maxLength) {
-      this.value = this.value.slice(0, maxLength);
-    }
-  });
-
-  // Verificar termos e condições
-  document.getElementById('terms-checkbox').addEventListener('change', function () {
-    const password = document.getElementById('reg-password').value;
-    const confirmPassword = document.getElementById('confirm-password').value;
-
-    if (password === confirmPassword) {
-      document.getElementById('register-btn').disabled = !this.checked;
-    }
-  });
-
-  // Verificar se a URL tem parâmetros
-  const urlParams = new URLSearchParams(window.location.search);
-  if (urlParams.get('register') === 'true') {
-    showTab('register');
-  }
-  if (urlParams.get('reset') === 'true') {
-    showTab('reset-password');
-  }
-
-  // Auto-fechar alertas
-  setTimeout(function () {
-    let alerts = document.querySelectorAll('.alert');
-    alerts.forEach((alert) => {
-      let bsAlert = new bootstrap.Alert(alert);
-      bsAlert.close();
+      if (password !== confirmPassword) {
+        errorElement.style.display = 'block';
+        registerButton.disabled = true;
+      } else {
+        errorElement.style.display = 'none';
+        registerButton.disabled = !document.getElementById('terms-checkbox').checked;
+      }
     });
-  }, 5000);
+
+    // Verificar se as senhas coincidem na redefinição
+    document.getElementById('confirm-new-password').addEventListener('input', function () {
+      const password = document.getElementById('new-password').value;
+      const confirmPassword = this.value;
+      const errorElement = document.getElementById('reset-password-error');
+      const resetButton = document.getElementById('reset-btn');
+
+      if (password !== confirmPassword) {
+        errorElement.style.display = 'block';
+        resetButton.disabled = true;
+      } else {
+        errorElement.style.display = 'none';
+        resetButton.disabled = false;
+      }
+    });
+
+    // Limitar tamanhos de campos
+    document.getElementById('reg-username').addEventListener('input', function () {
+      let maxLength = 15;
+      if (this.value.length > maxLength) {
+        this.value = this.value.slice(0, maxLength);
+      }
+    });
+
+    document.getElementById('reg-password').addEventListener('input', function () {
+      let maxLength = 64;
+      if (this.value.length > maxLength) {
+        this.value = this.value.slice(0, maxLength);
+      }
+    });
+
+    document.getElementById('confirm-password').addEventListener('input', function () {
+      let maxLength = 64;
+      if (this.value.length > maxLength) {
+        this.value = this.value.slice(0, maxLength);
+      }
+    });
+
+    // Verificar termos e condições
+    document.getElementById('terms-checkbox').addEventListener('change', function () {
+      const password = document.getElementById('reg-password').value;
+      const confirmPassword = document.getElementById('confirm-password').value;
+
+      if (password === confirmPassword) {
+        document.getElementById('register-btn').disabled = !this.checked;
+      }
+    });
+
+    // Verificar se a URL tem parâmetros
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('register') === 'true') {
+      showTab('register');
+    }
+    if (urlParams.get('reset') === 'true') {
+      showTab('reset-password');
+    }
+
+    // Auto-fechar alertas
+    setTimeout(function () {
+      let alerts = document.querySelectorAll('.alert');
+      alerts.forEach((alert) => {
+        let bsAlert = new bootstrap.Alert(alert);
+        bsAlert.close();
+      });
+    }, 5000);
 </script>
 {% endblock %}

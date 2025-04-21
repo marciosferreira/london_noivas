@@ -1,275 +1,203 @@
-/* Ajuste global do body */
+/* === RESET E BASE === */
+* {
+  box-sizing: border-box;
+}
+
+html,
 body {
-  font-family: Arial, sans-serif;
   margin: 0;
   padding: 0;
-  background: linear-gradient(120deg, #dce3ea 0%, #edf2f7 100%);
-  display: flex;
-  justify-content: flex-start; /* Evita centralizar verticalmente */
-  align-items: center; /* Mantém a centralização horizontal */
-  height: 100vh;
-  padding-top: 0px;
+  background: linear-gradient(120deg, #e5ebf0 0%, #f4f7f9 100%);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: #333;
 }
 
-/* Garante que os formulários ocupem exatamente o mesmo espaço */
-#login-form,
-#register-form,
-#forgot-password-form,
-#reset-password-form {
-  width: 100%;
-  min-width: 300px; /* Define um mínimo para evitar ajustes */
-  max-width: 350px; /* Mantém um tamanho fixo */
-}
-
-/* Contêiner principal da página de login */
+/* === CONTAINER CENTRAL === */
 .login-container {
-  background-color: #ffffff; /* Fundo branco */
-  width: 90%; /* Largura ajustável para dispositivos móveis */
-  max-width: 400px; /* Limite em telas maiores */
-  padding: 20px;
-  border-radius: 10px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); /* Sombra suave */
-  text-align: center;
-  margin: 0 auto;
+  width: 90%;
+  max-width: 500px;
+  margin: 60px auto;
+  background: #fff;
+  border-radius: 16px;
+  padding: 40px 30px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
 }
 
-/* Ajuste para evitar que o formulário de registro fique colado no topo */
-#register-form {
-  display: none;
-  margin-top: 20px; /* Pequeno espaço inicial */
-}
-
-#register-form.active {
-  display: block;
-  margin-top: 50px; /* Dá mais espaço quando está ativo */
-}
-
-/* Cabeçalho do login */
+/* === CABEÇALHO === */
 .login-header {
-  margin-bottom: 20px;
+  text-align: center;
+  margin-bottom: 2rem;
 }
 
-.login-header .login-logo {
-  width: 300px; /* Tamanho da logo */
-  height: auto;
+.login-logo {
+  width: 72px;
+  height: 72px;
   margin-bottom: 10px;
 }
 
 .login-header h1 {
-  font-size: 24px;
-  color: #4caf50; /* Verde elegante */
+  font-size: 1.8rem;
+  color: #2c3e50;
   margin: 0;
 }
 
 .login-header p {
-  font-size: 14px;
-  color: #555; /* Cinza suave */
-  margin-top: 5px;
+  color: #666;
+  font-size: 1rem;
 }
 
-/* Formulário */
+/* === FORMULÁRIOS === */
 .login-form {
-  margin-top: 20px;
+  display: none;
 }
 
-.login-form h2 {
-  font-size: 20px;
-  color: #333;
-  margin-bottom: 20px;
+.login-form.active {
+  display: block;
 }
 
 .form-group {
-  margin-bottom: 15px;
-  text-align: left; /* Alinha os rótulos à esquerda */
+  margin-bottom: 1.2rem;
 }
 
 .form-group label {
   display: block;
-  font-size: 14px;
-  color: #333;
-  margin-bottom: 5px;
+  margin-bottom: 6px;
+  font-weight: 600;
+  color: #555;
 }
 
-.form-group input {
+input[type='email'],
+input[type='password'],
+input[type='text'] {
   width: 100%;
   padding: 10px;
-  font-size: 14px;
-  border: 1px solid #ced4da; /* Borda cinza */
-  border-radius: 5px;
-  box-sizing: border-box; /* Inclui padding no cálculo da largura */
-}
-
-.form-group input:focus {
-  outline: none;
-  border-color: #80bdff; /* Azul claro */
-  box-shadow: 0 0 5px rgba(0, 123, 255, 0.5); /* Brilho leve */
-}
-
-/* Botão de login */
-button.btn {
-  width: 100%; /* Botão ocupa toda a largura */
-  padding: 12px;
-  font-size: 16px;
-  color: #fff;
-  background-color: #4caf50; /* Verde */
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  transition: background-color 0.3s;
-}
-
-button.btn:hover {
-  background-color: #45a049; /* Verde mais escuro */
-}
-
-/* Responsividade */
-@media (max-width: 600px) {
-  .login-container {
-    width: 95%; /* Ocupa quase toda a tela em dispositivos móveis */
-  }
-
-  .login-header h1 {
-    font-size: 20px;
-  }
-
-  button.btn {
-    font-size: 18px; /* Botão maior em telas menores */
-  }
-}
-
-/* Adicione estes estilos ao seu CSS existente ou inclua diretamente aqui */
-.tabs {
-  display: flex;
-  margin-bottom: 20px;
-  align-items: center; /* Alinha verticalmente os itens */
-}
-
-.tab {
-  flex: 1;
-  text-align: center;
-  padding: 10px;
-  cursor: pointer;
-  border-bottom: 2px solid #ddd;
-  transition: all 0.3s ease;
-}
-
-.tab.active {
-  border-bottom: 2px solid #19b81e;
-  font-weight: bold;
-}
-.form-container {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 0 20px 20px 20px;
-  background-color: #fff;
+  border: 1px solid #ccc;
   border-radius: 10px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  font-size: 1rem;
+  transition: border-color 0.3s ease;
 }
 
-#register-form,
-#forgot-password-form,
-#reset-password-form {
-  display: none;
+input:focus {
+  border-color: #20c997;
+  outline: none;
 }
 
-.message {
-  background-color: #f8d7da;
-  color: #721c24;
-  padding: 10px;
-  border-radius: 5px;
-  margin-bottom: 15px;
-  text-align: center;
+/* === BOTÕES === */
+.btn {
+  width: 100%;
+  padding: 12px;
+  background-color: #20c997;
+  border: none;
+  color: #fff;
+  font-weight: bold;
+  border-radius: 10px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.2s ease;
 }
 
-.success-message {
-  background-color: #d4edda;
-  color: #155724;
+.btn:hover {
+  background-color: #17a589;
+  transform: scale(1.02);
 }
 
+.btn:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+/* === ALERTAS === */
+.alert {
+  margin-bottom: 1rem;
+  font-size: 0.95rem;
+}
+
+.btn-close {
+  float: right;
+  background: none;
+  border: none;
+}
+
+/* === LINK DE RECUPERAÇÃO === */
 .forgot-password-link {
   text-align: right;
-  margin-top: -10px;
-  margin-bottom: 15px;
-  font-size: 0.85em;
+  margin-bottom: 1rem;
 }
 
-.forgot-password-link a {
-  color: #19b81e;
+.forgot-password-link a,
+.back-button a {
+  font-size: 0.9rem;
+  color: #007bff;
   text-decoration: none;
 }
 
-.forgot-password-link a:hover {
+.forgot-password-link a:hover,
+.back-button a:hover {
   text-decoration: underline;
 }
 
-.back-button {
-  font-size: 0.85em;
-  margin-top: 15px;
+/* === TERMOS === */
+.terms-container {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 0.9rem;
+}
+
+.terms-container a {
+  color: #007bff;
+  text-decoration: none;
+}
+
+.terms-container a:hover {
+  text-decoration: underline;
+}
+
+/* === RESPONSIVO === */
+@media (max-width: 480px) {
+  .login-container {
+    padding: 30px 20px;
+  }
+
+  .login-header h1 {
+    font-size: 1.5rem;
+  }
+}
+
+/* Centraliza o conteúdo da tela de recuperação e redefinição */
+#forgot-password-form,
+#reset-password-form {
   text-align: center;
+  padding-top: 20px;
+}
+
+/* Estilo para o título e descrição */
+#forgot-password-form h2,
+#reset-password-form h2 {
+  color: #2c3e50;
+  font-size: 1.5rem;
+  margin-bottom: 10px;
+}
+
+#forgot-password-form p,
+#reset-password-form p {
+  font-size: 1rem;
+  color: #555;
+  margin-bottom: 30px;
+}
+
+/* Espaço entre botão e link de voltar */
+.back-button {
+  margin-top: 24px;
 }
 
 .back-button a {
-  color: #666;
+  display: inline-block;
+  font-size: 0.95rem;
+  color: #007bff;
   text-decoration: none;
 }
 
 .back-button a:hover {
   text-decoration: underline;
-}
-
-html,
-body {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-.login-container {
-  flex-grow: 1; /* Faz com que a caixa de login cresça e empurre o rodapé para baixo */
-}
-
-.footer {
-  text-align: center;
-  padding: 15px;
-  font-size: 0.9em;
-  color: #555;
-  background: #f8f9fa;
-  width: 100%;
-  position: relative;
-  bottom: 0;
-}
-
-.terms-container {
-  display: flex;
-  align-items: center;
-  gap: 5px; /* Espaço menor entre o checkbox e o texto */
-  font-size: 0.9em;
-}
-
-.terms-container input[type='checkbox'] {
-  width: 16px; /* Define um tamanho fixo menor */
-  height: 16px; /* Para manter a proporção correta */
-  margin: 0;
-  cursor: pointer;
-}
-
-.form-check {
-  display: flex;
-  align-items: center;
-  gap: 10px; /* espaço entre a checkbox e o texto */
-  justify-content: flex-start; /* alinha tudo à esquerda */
-}
-
-.form-check-label {
-  margin-bottom: 0; /* evita que o texto "afunde" */
-}
-
-.ou-separator {
-  color: #6c757d; /* Cor cinza */
-  display: inline-block; /* Faz com que o "ou" se comporte como um link */
-  vertical-align: middle; /* Alinha verticalmente com os links */
-  margin: 0 10px; /* Espaçamento à esquerda e à direita */
-  line-height: 1; /* Garante que o "ou" esteja no mesmo nível de linha */
-  font-weight: normal; /* Ajusta o peso da fonte */
-  font-size: 16px; /* Tamanho da fonte */
 }
