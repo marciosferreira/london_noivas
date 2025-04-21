@@ -261,3 +261,19 @@ h1.h3 {
 .status-cell.returned {
   background-color: #26ca7e; /* Verde */
 }
+
+@media (max-width: 576px) {
+  .status-cell {
+    writing-mode: initial !important;
+    transform: none !important;
+    font-size: 0.9rem;
+    text-align: left;
+    padding-left: 0.75rem;
+    padding-top: 0.25rem;
+    width: auto;
+  }
+
+  .status-text {
+    padding: 0;
+  }
+}

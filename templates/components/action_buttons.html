@@ -53,8 +53,10 @@
         Editar cliente
       </a>
     </li>
-    {% endif %} {% if show_view_transactions %}
+    {% endif %} {% if show_client_transactions %}
     <li><a class="dropdown-item" href="{{ url_for('client_transactions', client_id=cliente.client_id) }}">Transações do cliente</a></li>
+    {% endif %} {% if show_item_transactions %}
+    <li><a class="dropdown-item" href="{{ url_for('all_transactions') }}?item_id={{ item.item_id }}">Transações com o item</a></li>
     {% endif %} {% if show_consult or show_ver_reservas %}
     <li><a class="dropdown-item" href="{{ url_for('view_calendar', item_id=item.item_id, next=request.url) }}">Ver reservas do item</a></li>
     {% endif %} {% if show_archive %}
