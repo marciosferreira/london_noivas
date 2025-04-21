@@ -391,14 +391,17 @@ from flask import session, has_request_context
 
 
 def get_user_timezone(users_table, user_id=None, fallback_tz="America/Sao_Paulo"):
+    print(users_table)
     if not user_id and has_request_context():
         user_id = session.get("user_id")
 
     if not user_id:
         return pytz.timezone(fallback_tz)
-
+    print("the user ID")
+    print(user_id)
     try:
         response = users_table.get_item(Key={"user_id": user_id})
+        print(response)
         user = response.get("Item", {})
         user_timezone = user.get("timezone", fallback_tz)
         return pytz.timezone(user_timezone)

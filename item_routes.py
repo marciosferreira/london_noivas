@@ -372,43 +372,6 @@ def init_item_routes(
                 ExpressionAttributeNames=expression_names,
             )
 
-            # Caso o usuário decida alterar todos os itens no db
-            # Campos do cliente que precisam ser atualizados nas transações
-            if request.form.get("update_all_transactions"):
-                item_fields = [
-                    "description",
-                    "image_url",
-                    "item_custom_id",
-                    "item_obs",
-                    "valor",
-                ]
-
-                # Filtrar os campos que foram alterados e fazem parte de item_fields
-                item_changes = {
-                    key: value for key, value in changes.items() if key in item_fields
-                }
-
-                if item_changes:
-                    response = transactions_table.query(
-                        IndexName="item_id-index",
-                        KeyConditionExpression="item_id = :item_id_val",
-                        ExpressionAttributeValues={":item_id_val": item_id},
-                    )
-
-                    transacoes_relacionadas = response.get("Items", [])
-
-                    for transacao in transacoes_relacionadas:
-                        update_expr = [f"{key} = :{key}" for key in item_changes.keys()]
-                        expr_values = {
-                            f":{key}": value for key, value in item_changes.items()
-                        }
-
-                        transactions_table.update_item(
-                            Key={"transaction_id": transacao["transaction_id"]},
-                            UpdateExpression="SET " + ", ".join(update_expr),
-                            ExpressionAttributeValues=expr_values,
-                        )
-
             flash("Item atualizado com sucesso.", "success")
             return redirect(next_page)
 
@@ -544,6 +507,43 @@ def init_item_routes(
                 UpdateExpression="SET " + ", ".join(update_expression),
                 ExpressionAttributeValues=expression_values,
             )
+
+            # Caso o usuário decida alterar todos os itens no db
+            # Campos do cliente que precisam ser atualizados nas transações
+            if request.form.get("update_all_transactions"):
+                item_fields = [
+                    "description",
+                    "image_url",
+                    "item_custom_id",
+                    "item_obs",
+                    "valor",
+                ]
+
+                # Filtrar os campos que foram alterados e fazem parte de item_fields
+                item_changes = {
+                    key: value for key, value in changes.items() if key in item_fields
+                }
+
+                if item_changes:
+                    response = transactions_table.query(
+                        IndexName="item_id-index",
+                        KeyConditionExpression="item_id = :item_id_val",
+                        ExpressionAttributeValues={":item_id_val": item_id},
+                    )
+
+                    transacoes_relacionadas = response.get("Items", [])
+
+                    for transacao in transacoes_relacionadas:
+                        update_expr = [f"{key} = :{key}" for key in item_changes.keys()]
+                        expr_values = {
+                            f":{key}": value for key, value in item_changes.items()
+                        }
+
+                        transactions_table.update_item(
+                            Key={"transaction_id": transacao["transaction_id"]},
+                            UpdateExpression="SET " + ", ".join(update_expr),
+                            ExpressionAttributeValues=expr_values,
+                        )
 
             flash("Item atualizado com sucesso.", "success")
             return redirect(next_page)
@@ -1787,23 +1787,23 @@ def list_raw_itens(status_list, template, title, itens_table, transactions_table
 
     if item_custom_id:
         expression_attr_names["#item_custom_id"] = "item_custom_id"
-        expression_attr_values[":item_custom_id"] = item_custom_id.lower()
+        expression_attr_values[":item_custom_id"] = item_custom_id
         filter_expressions.append("contains(#item_custom_id, :item_custom_id)")
 
     if item_id:
         expression_attr_names["#item_id"] = "item_id"
-        expression_attr_values[":item_id"] = item_id.lower()
+        expression_attr_values[":item_id"] = item_id
         filter_expressions.append("contains(#item_id, :item_id)")
 
     if description:
         expression_attr_names["#description"] = "description"
-        expression_attr_values[":description"] = description.lower()
-        filter_expressions.append("contains(lower(#description), :description)")
+        expression_attr_values[":description"] = description
+        filter_expressions.append("contains(#description, :description)")
 
     if item_obs:
         expression_attr_names["#item_obs"] = "item_obs"
-        expression_attr_values[":item_obs"] = item_obs.lower()
-        filter_expressions.append("contains(lower(#item_obs), :item_obs)")
+        expression_attr_values[":item_obs"] = item_obs
+        filter_expressions.append("contains(#item_obs, :item_obs)")
 
     # Construir filtro final
     filter_expression = " AND ".join(filter_expressions) if filter_expressions else None

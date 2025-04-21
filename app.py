@@ -89,6 +89,8 @@ init_transaction_routes(
 init_client_routes(
     app, clients_table, transactions_table, itens_table, users_table, text_models_table
 )
+
+
 init_static_routes(
     app,
     ses_client,

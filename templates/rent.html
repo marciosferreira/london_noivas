@@ -318,6 +318,30 @@
     autocompleteCliente();
     iniciarDatePicker();
     configurarValidacao();
+
+    // 🧼 Aplicar máscara de telefone ao digitar
+  const telInput = document.getElementById('client_tel');
+  if (telInput) {
+    telInput.addEventListener('input', (e) => {
+      e.target.value = maskPhone(e.target.value);
+    });
+  }
+
+  // 🧼 Aplicar máscara de CPF ao digitar
+  const cpfInput = document.getElementById('client_cpf');
+  if (cpfInput) {
+    cpfInput.addEventListener('input', (e) => {
+      e.target.value = maskCPF(e.target.value);
+    });
+  }
+
+  // 🧼 Aplicar máscara de CNPJ ao digitar
+  const cnpjInput = document.getElementById('client_cnpj');
+  if (cnpjInput) {
+    cnpjInput.addEventListener('input', (e) => {
+      e.target.value = maskCNPJ(e.target.value);
+    });
+  }
   });
 </script>
 

@@ -491,7 +491,6 @@ def init_static_routes(
     def qr_data(item_id):
         response = itens_table.get_item(Key={"item_id": item_id})
         item = response.get("Item")
-        print(item)
         if not item:
             return jsonify({"error": "Item não encontrado"}), 404
 

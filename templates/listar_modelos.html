@@ -13,14 +13,17 @@
       <div class="fw-bold mb-2">{{ modelo.nome }}</div>
       <div class="d-flex flex-wrap gap-2">
         <a href="{{ url_for('visualizar_modelo_simples', text_id=modelo.text_id) }}" class="btn btn-sm btn-outline-primary">Ver Exemplo</a>
-        <a href="{{ url_for('editar_modelo', text_id=modelo.text_id) }}" class="btn btn-sm btn-outline-secondary">Ver codigo</a>
+        <a href="{{ url_for('editar_modelo', text_id=modelo.text_id) }}" class="btn btn-sm btn-outline-secondary">Como construir</a>
       </div>
     </li>
     {% endfor %}
   </ul>
 
   <!-- Seção do Usuário -->
-  <h4 class="border-bottom pb-2">Seus Modelos</h4>
+  <!-- Seção do Usuário -->
+  <h4 class="mb-1">Seus Modelos</h4>
+  <small class="text-muted d-block mb-3">Depois de criá-los, use-os na tela de transações (gerar documentos)</small>
+
   <ul class="list-group mb-4">
     {% for modelo in modelos if modelo.account_id != '3bcdb46a-a88f-4dfd-b97e-2fb07222e0f7' %}
     <li class="list-group-item">

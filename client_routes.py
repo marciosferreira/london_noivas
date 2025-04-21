@@ -16,7 +16,7 @@ from flask import (
 
 
 def init_client_routes(
-    app, clients_table, transactions_table, users_table, itens_table, text_models_table
+    app, clients_table, transactions_table, itens_table, users_table, text_models_table
 ):
 
     @app.route("/autocomplete_clients")
@@ -74,6 +74,7 @@ def init_client_routes(
 
         # Filtros do formulário
         client_name = request.args.get("client_name", "").strip()
+        client_id = request.args.get("client_id", "").strip()
         client_tel = request.args.get("client_tel", "").strip()
         client_email = request.args.get("client_email", "").strip()
         client_address = request.args.get("client_address", "").strip()
@@ -112,6 +113,10 @@ def init_client_routes(
                     or client_address.lower()
                     in cliente.get("client_address", "").lower()
                 )
+                and (
+                    not client_id
+                    or client_id.lower() in cliente.get("client_id", "").lower()
+                )
                 and (not client_cpf or client_cpf in cliente.get("client_cpf", ""))
                 and (not client_cnpj or client_cnpj in cliente.get("client_cnpj", ""))
                 and (
@@ -138,7 +143,8 @@ def init_client_routes(
                 client_address,
                 client_cpf,
                 client_cnpj,
-                client_obs,  # ✅ incluído aqui também
+                client_obs,
+                client_id,
             ]
         )
 

@@ -35,7 +35,9 @@
       <div class="modal-body" id="print-area">{{ conteudo_renderizado|safe }}</div>
       <div class="modal-footer">
         <a href="{{ url_for('listar_modelos') }}" class="btn btn-secondary">Fechar</a>
+        {% if modelo.account_id != '3bcdb46a-a88f-4dfd-b97e-2fb07222e0f7' %}
         <button type="button" class="btn btn-primary" onclick="printConteudo()">Imprimir</button>
+        {% endif %}
       </div>
     </div>
   </div>

@@ -36,6 +36,10 @@
 
     {% endif %} {% if show_edit_item %}
     <li><a class="dropdown-item" href="{{ url_for('edit_item', item_id=item.item_id, next=request.url) }}">Editar item</a></li>
+    {% endif %} {% if show_item %}
+    <li><a class="dropdown-item" href="{{ url_for('listar_clientes') }}?client_id={{ item.client_id }}">Ver cliente</a></li>
+    {% endif %} {% if show_client %}
+    <li><a class="dropdown-item" href="{{ url_for('inventory') }}?item_id={{ item.item_id }}">Ver item</a></li>
     {% endif %} {% if show_edit_transaction %}
     <li>
       <a class="dropdown-item" href="{{ url_for('edit_transaction', transaction_id=item.transaction_id, next=request.url) }}">Editar transação</a>
@@ -194,7 +198,7 @@
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-outline-secondary" onclick="printConteudo()">🖨️ Imprimirb</button>
+        <button class="btn btn-outline-secondary" onclick="printConteudo()">🖨️ Imprimir</button>
       </div>
     </div>
   </div>
@@ -446,7 +450,7 @@
 
   function abrirModalModelo(transactionId) {
     transacaoSelecionada = transactionId;
-    document.getElementById('print-area').innerHTML = "<p class='text-muted'>Nenhum modelo selecionado2.</p>";
+    document.getElementById('print-area').innerHTML = "<p class='text-muted'>Nenhum modelo selecionado.</p>";
     document.getElementById('select-modelo').value = '';
   }
 

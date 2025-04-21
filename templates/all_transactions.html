@@ -1,28 +1,36 @@
 {% extends "base.html" %} {% block title %} Transações iniciadas (itens alugados) {% endblock %} {% block styles %}
-<link rel="stylesheet" href="{{ url_for('static', filename='style_reserved.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='style_all_transactions.css') }}" />
 {% endblock %} {% block content %}
 
 <div class="container mt-3">
   <h2 class="mb-4">{{ title }}</h2>
-  {% include "components/filter_section.html" with context %} {% if itens %}
+
+  {% if itens %} {% include "components/filter_section.html" with context %}
 
   <!-- Tabela -->
   <div class="table-container mt-4">
     <table class="table table-hover responsive-table align-middle rounded-table">
       <thead>
         <tr>
+          <th class="status-col">Status</th>
           <th>Imagem</th>
           <th>Cliente</th>
           <th>Retirada Prevista</th>
+          <th>Devolução Prevista</th>
           <th>Preço (R$)</th>
           <th>Pago (R$)</th>
           <th>Observações</th>
           <th></th>
         </tr>
       </thead>
+
       <tbody>
-        {% for item in itens %}
+        {% set status_map = { 'reserved': 'Reservado', 'rented': 'Retirado', 'returned': 'Retornado' } %} {% for item in itens %}
         <tr>
+          <td data-label="Status" class="status-cell {{ item.transaction_status }}">
+            <div class="status-text">{{ status_map[item.transaction_status] }}</div>
+          </td>
+
           <td data-label="Imagem">
             {% if item.image_url and item.image_url != "N/A" %}
             <img src="{{ item.image_url }}" alt="Imagem do item" class="img-fluid item-thumbnail" style="max-width: 100px; cursor: pointer" />
@@ -42,15 +50,23 @@
 
           <!-- prettier-ignore -->
 
-          <!-- prettier-ignore -->
           <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Retirada Prevista">
-            {{ item.rental_date_formatted }}
+            <div class="rental-date">{{ item.rental_date_formatted }}</div>
             {% if item.rental_message %}
               <div class="rental-message mt-1 {{ item.rental_message_color }}">
                 {{ item.rental_message }}
               </div>
             {% endif %}
           </td>
+          <!-- prettier-ignore -->
+
+          <td class="open-modal position-relative" data-item='{{ item | tojson | safe }}' data-label="Devolução Prevista">
+            <div class="return-date">{{ item.return_date_formatted }}</div>
+            {% if item.overdue %}
+              <div class="atrasado-tag mt-1">Devolução atrasada</div>
+            {% endif %}
+          </td>
+
           <!-- prettier-ignore -->
           <td class="open-modal position-relative" data-item='{{ item | tojson | safe }}' data-label="Preço (R$)">
             {{ item.valor | round(2) | string | replace('.', ',') }}
@@ -64,14 +80,14 @@
               {% set pagamento_float = item.pagamento | float %}
               {% set valor_float = item.valor | float %}
               {% if pagamento_float == valor_float %}
-                (Pagamento Total)
+                <br>(Pagamento Total)
               {% elif pagamento_float > 0 and pagamento_float < valor_float %}
-                (Pagamento Parcial)
+                <br>(Pagamento Parcial)
               {% else %}
                 (Não Pago)
               {% endif %}
             {% else %}
-              (Não Pago)
+              <br>(Não Pago)
             {% endif %}
           </td>
 
@@ -83,8 +99,11 @@
           <!--botoes de açao -->
           <td data-label="Ações">
             <div class="d-flex flex-wrap gap-2 justify-content-center align-items-center">
-              {% set show_delete_transaction = True %} {% set show_edit_transaction = True %} {% set show_ver_reservas = True %} {% set
-              show_mark_rented = True %} {% set show_print = True %} {% include 'components/action_buttons.html' with context %}
+              {% set show_delete_transaction = True %} {% set show_edit_transaction = True %} {% set show_ver_reservas = True %} {% if
+              item.transaction_status == 'reserved' %} {% set show_mark_rented = True %} {% set show_mark_returned = False %} {% elif
+              item.transaction_status == 'rented' %} {% set show_mark_rented = False %} {% set show_mark_returned = True %} {% else %} {% set
+              show_mark_rented = False %} {% set show_mark_returned = False %} {% endif %} {% set show_print = True %} {% set show_item = True %} {%
+              set show_client = True %} {% include 'components/action_buttons.html' with context %}
             </div>
           </td>
         </tr>

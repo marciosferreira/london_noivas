@@ -107,6 +107,24 @@
     </div>
 
     <script>
+      const telInput = document.getElementById('client_tel');
+
+      if (telInput) {
+        telInput.addEventListener('input', function (e) {
+          let input = e.target.value.replace(/\D/g, ''); // Remove tudo que não for número
+
+          if (input.length > 11) input = input.slice(0, 11); // Limita a 11 dígitos
+
+          let formatted = '';
+
+          if (input.length > 0) formatted += '(' + input.substring(0, 2);
+          if (input.length >= 3) formatted += ') ' + input.substring(2, 7);
+          if (input.length >= 8) formatted += '-' + input.substring(7);
+
+          e.target.value = formatted;
+        });
+      }
+
       function formatCPF(cpf) {
         cpf = cpf.replace(/\D/g, '');
         if (cpf.length <= 11) {
@@ -126,16 +144,6 @@
           cnpj = cnpj.replace(/(\d{4})(\d)/, '$1-$2');
         }
         return cnpj;
-      }
-
-      function formatPhone(phone) {
-        phone = phone.replace(/\D/g, '');
-        if (phone.length > 10) {
-          phone = phone.replace(/^(\d{2})(\d{5})(\d{4})$/, '($1) $2-$3');
-        } else {
-          phone = phone.replace(/^(\d{2})(\d{4})(\d{4})$/, '($1) $2-$3');
-        }
-        return phone;
       }
 
       function validaCPF(cpf) {

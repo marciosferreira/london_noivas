@@ -13,18 +13,22 @@
     <table class="table table-hover responsive-table align-middle rounded-table">
       <thead>
         <tr>
+          <th class="status-col">Status</th>
           <th>Imagem</th>
           <th>Cliente</th>
           <th>Retirada prevista</th>
           <th>Devolução Prevista</th>
-          <th>Pago?</th>
+          <th>Pago (R$)</th>
           <th>Obs. Transação</th>
           <th></th>
         </tr>
       </thead>
       <tbody>
-        {% for item in itens %}
+        {% set status_map = { 'reserved': 'Reservado', 'rented': 'Retirado', 'returned': 'Retornado' } %} {% for item in itens %}
         <tr>
+          <td data-label="Status" class="status-cell {{ item.transaction_status }}">
+            <div class="status-text">{{ status_map[item.transaction_status] }}</div>
+          </td>
           <td data-label="Imagem">
             {% if item.image_url and item.image_url != "N/A" %}
             <img

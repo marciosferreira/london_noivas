@@ -29,16 +29,31 @@
       <!-- Menu principal -->
       <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
         <ul class="navbar-nav">
-          <li class="nav-item">
-            <a class="nav-link {% if request.endpoint == 'reserved' %}active{% endif %}" href="{{ url_for('reserved') }}">Reservados</a>
+          <!-- Dropdown Menu Transações -->
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" id="menuDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+              Transações
+            </a>
+            <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end">
+              <li>
+                <a class="dropdown-item {% if request.endpoint == 'all_transactions' %}active{% endif %}" href="{{ url_for('all_transactions') }}">
+                  Todos
+                </a>
+              </li>
+
+              <li>
+                <a class="dropdown-item {% if request.endpoint == 'reserved' %}active{% endif %}" href="{{ url_for('reserved') }}">Reservados</a>
+              </li>
+              <li>
+                <a class="dropdown-item {% if request.endpoint == 'rented' %}active{% endif %}" href="{{ url_for('rented') }}">Retirados</a>
+              </li>
+              <li>
+                <a class="dropdown-item {% if request.endpoint == 'returned' %}active{% endif %}" href="{{ url_for('returned') }}">Devolvidos</a>
+              </li>
+            </ul>
           </li>
 
-          <li class="nav-item">
-            <a class="nav-link {% if request.endpoint == 'rented' %}active{% endif %}" href="{{ url_for('rented') }}">Retirados</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link {% if request.endpoint == 'returned' %}active{% endif %}" href="{{ url_for('returned') }}">Devolvidos</a>
-          </li>
+          <!-- Dropdown End -->
 
           <li class="nav-item">
             <a class="nav-link {% if request.endpoint == 'inventory' %}active{% endif %}" href="{{ url_for('inventory') }}">Inventário</a>
@@ -48,9 +63,9 @@
             <a class="nav-link {% if request.endpoint == 'listar_clientes' %}active{% endif %}" href="{{ url_for('listar_clientes') }}">Clientes</a>
           </li>
 
-          <!-- Dropdown Menu -->
+          <!-- Dropdown Menu general -->
           <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" href="#" id="menuDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">Menu</a>
+            <a class="nav-link dropdown-toggle" href="#" id="menuDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">Mais</a>
             <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end">
               <li>
                 <a class="dropdown-item {% if request.endpoint == 'reports' %}active{% endif %}" href="{{ url_for('reports') }}">
