@@ -1746,7 +1746,10 @@ def list_raw_itens(status_list, template, title, itens_table, transactions_table
                     total_items=total_items,
                 )
             else:
-                flash("Item não encontrado ou não pertence à sua conta.", "warning")
+                flash(
+                    "Item parece ter sido excluído ou não pertence a sua conta!.",
+                    "warning",
+                )
                 return render_template(
                     template,
                     itens=[],

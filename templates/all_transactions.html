@@ -103,7 +103,8 @@
               item.transaction_status == 'reserved' %} {% set show_mark_rented = True %} {% set show_mark_returned = False %} {% elif
               item.transaction_status == 'rented' %} {% set show_mark_rented = False %} {% set show_mark_returned = True %} {% else %} {% set
               show_mark_rented = False %} {% set show_mark_returned = False %} {% endif %} {% set show_print = True %} {% set show_item = True %} {%
-              set show_client = True %} {% include 'components/action_buttons.html' with context %}
+              set show_client = True %} {% set show_item_transactions = True %} {% set show_client_transactions = True %}{% include
+              'components/action_buttons.html' with context %}
             </div>
           </td>
         </tr>

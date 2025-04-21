@@ -4,7 +4,7 @@
   <h2 class="mb-4">Clientes cadastrados</h2>
 
   {% set show_add_button = True %} {% set add_route = url_for('add_item') %} {% include "components/client_filter_section.html" with context %} {% if
-  clientes %}
+  itens %}
 
   <!-- Tabela -->
   <div class="table-container mt-4">
@@ -21,21 +21,21 @@
         </tr>
       </thead>
       <tbody>
-        {% if clientes %} {% for cliente in clientes %}
+        {% if itens %} {% for item in itens %}
 
         <tr>
           <!-- prettier-ignore -->
-          <td class="open-modal" data-item='{{ cliente | tojson | safe }}' data-label="Cliente">
-            {{ cliente.client_name | default('', true) | truncate(10, True) }}
+          <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Cliente">
+            {{ item.client_name | default('', true) | truncate(10, True) }}
           </td>
           <!-- prettier-ignore -->
-          <td class="open-modal" data-item='{{ cliente | tojson | safe }}' data-label="Criado em">{{ cliente.created_at | format_brasil_data }}</td>
+          <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Criado em">{{ item.created_at | format_brasil_data }}</td>
           <!-- prettier-ignore -->
-          <td class="open-modal" data-item='{{ cliente | tojson | safe }}' data-label="Telefone">{{ cliente.client_tel | format_telefone}}</td>
+          <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Telefone">{{ item.client_tel | format_telefone}}</td>
 
           <!-- prettier-ignore -->
-          <td class="open-modal" data-item='{{ cliente | tojson | safe }}' data-label="Observações">
-            {{ cliente.client_obs | default('', true) | truncate(15, True) }}
+          <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Observações">
+            {{ item.client_obs | default('', true) | truncate(15, True) }}
           </td>
 
           <td data-label="Ações">

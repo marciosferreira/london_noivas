@@ -150,7 +150,7 @@ def init_client_routes(
 
         return render_template(
             "clientes.html",
-            clientes=paginated_clientes,
+            itens=paginated_clientes,
             page=page,
             total_pages=total_pages,
             has_filters=has_filters,

@@ -54,7 +54,7 @@
       </a>
     </li>
     {% endif %} {% if show_client_transactions %}
-    <li><a class="dropdown-item" href="{{ url_for('client_transactions', client_id=cliente.client_id) }}">Transações do cliente</a></li>
+    <li><a class="dropdown-item" href="{{ url_for('client_transactions', client_id=item.client_id) }}">Transações do cliente</a></li>
     {% endif %} {% if show_item_transactions %}
     <li><a class="dropdown-item" href="{{ url_for('all_transactions') }}?item_id={{ item.item_id }}">Transações com o item</a></li>
     {% endif %} {% if show_consult or show_ver_reservas %}
@@ -102,7 +102,7 @@
     <li>
       <form
         method="POST"
-        action="{{ url_for('deletar_cliente', client_id=cliente.client_id) }}"
+        action="{{ url_for('deletar_cliente', client_id=item.client_id) }}"
         onsubmit="return confirm('Tem certeza que deseja deletar este cliente? Esta ação não poderá ser desfeita.');"
         style="display: inline"
       >

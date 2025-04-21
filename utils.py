@@ -397,8 +397,7 @@ def get_user_timezone(users_table, user_id=None, fallback_tz="America/Sao_Paulo"
 
     if not user_id:
         return pytz.timezone(fallback_tz)
-    print("the user ID")
-    print(user_id)
+
     try:
         response = users_table.get_item(Key={"user_id": user_id})
         print(response)
