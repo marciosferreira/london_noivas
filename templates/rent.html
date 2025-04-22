@@ -1,7 +1,10 @@
-{% extends "base.html" %} {% block title %}Alugar Item{% endblock %} {% block styles %}
+{% extends "base.html" %}
+{% block title %}Alugar Item{% endblock %}
+{% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='style_rent.css') }}" />
+{% endblock %}
 
-{% endblock %} {% block content %}
+{% block content %}
 <div class="form-container">
   <h1>Alugar item</h1>
   <a href="{{ url_for('inventory') }}" class="cancel-link">Sair sem Finalizar</a>
@@ -18,40 +21,39 @@
         <input type="text" id="client_name" name="client_name" autocomplete="off" class="form-control" required />
         <div id="client_suggestions" class="autocomplete-suggestions"></div>
       </div>
-      <br />
-      <input type="hidden" name="client_id" id="client_id" />
-      <label for="client_tel">Telefone do Cliente:</label>
-      <input type="tel" id="client_tel" name="client_tel" class="form-control" placeholder="(xx) xxxxx-xxxx" required />
-
-      <label for="client_email">E-mail do Cliente:</label>
-      <input type="email" id="client_email" name="client_email" class="form-control" placeholder="cliente@email.com" />
-
-      <label for="client_cpf">CPF:</label>
-      <input type="text" id="client_cpf" name="client_cpf" maxlength="14" placeholder="000.000.000-00" class="form-control" />
-      <label for="client_cnpj">CNPJ:</label>
-      <input type="text" id="client_cnpj" name="client_cnpj" maxlength="18" placeholder="00.000.000/0000-00" class="form-control" />
-      <label for="client_address">Endereço do Cliente:</label>
-      <input type="text" id="client_address" name="client_address" class="form-control" placeholder="Rua Exemplo, 123 - Bairro - Cidade" />
-
-      <label for="client_obs">Observações do Cliente:</label>
-      <textarea id="client_obs" name="client_obs" class="form-control" rows="2" placeholder="Observações relevantes sobre o cliente..."></textarea>
-
-      <input type="hidden" id="client_tel_digits" name="client_tel_digits" />
-      <input type="hidden" id="client_cpf_digits" name="client_cpf_digits" />
-      <input type="hidden" id="client_cnpj_digits" name="client_cnpj_digits" />
+      <!-- Tarja de mensagem de status -->
+      <div id="client-status-message" class="status-message"></div>
     </div>
 
+    <br />
+    <input type="hidden" name="client_id" id="client_id" />
+    <label for="client_tel">Telefone do Cliente:</label>
+    <input type="tel" id="client_tel" name="client_tel" class="form-control" placeholder="(xx) xxxxx-xxxx" required />
+
+    <label for="client_email">E-mail do Cliente:</label>
+    <input type="email" id="client_email" name="client_email" class="form-control" placeholder="cliente@email.com" />
+
+    <label for="client_cpf">CPF:</label>
+    <input type="text" id="client_cpf" name="client_cpf" maxlength="14" placeholder="000.000.000-00" class="form-control" />
+    <label for="client_cnpj">CNPJ:</label>
+    <input type="text" id="client_cnpj" name="client_cnpj" maxlength="18" placeholder="00.000.000/0000-00" class="form-control" />
+    <label for="client_address">Endereço do Cliente:</label>
+    <input type="text" id="client_address" name="client_address" class="form-control" placeholder="Rua Exemplo, 123 - Bairro - Cidade" />
+
+    <label for="client_obs">Observações do Cliente:</label>
+    <textarea id="client_obs" name="client_obs" class="form-control" rows="2" placeholder="Observações relevantes sobre o cliente..."></textarea>
+
+    <input type="hidden" id="client_tel_digits" name="client_tel_digits" />
+    <input type="hidden" id="client_cpf_digits" name="client_cpf_digits" />
+    <input type="hidden" id="client_cnpj_digits" name="client_cnpj_digits" />
+
     <div id="tab-transacao" class="tab-content">
-
-
       <label for="transaction_status">Status da Transação:</label>
       <select id="transaction_status" name="transaction_status" class="form-control" required>
         <option value="" disabled selected>Selecione o status</option>
         <option value="reserved" {% if item.transaction_status == 'reserved' %}selected{% endif %}>Reservado</option>
         <option value="rented" {% if item.transaction_status == 'rented' %}selected{% endif %}>Alugado</option>
       </select>
-
-
 
       <label for="datepicker">Defina as datas:</label>
       <input id="datepicker" name="range_date" class="form-control" />
@@ -63,15 +65,10 @@
       <input type="text" class="form-control" id="pagamento" name="pagamento" value="{{ item.pagamento or '' }}" />
 
       <label for="transaction_obs">Observações da Transação:</label>
-      <textarea
-        id="transaction_obs"
-        name="transaction_obs"
-        class="form-control"
-        rows="2"
-        placeholder="Ex: combinado com o cliente que ..."
-      ></textarea>
+      <textarea id="transaction_obs" name="transaction_obs" class="form-control" rows="2" placeholder="Ex: combinado com o cliente que ..."></textarea>
     </div>
 
+    <!-- Botão de envio do formulário dentro da tag form -->
     <br />
     <button type="submit">Salvar</button>
   </form>
@@ -122,31 +119,29 @@
   // 🧠 Autocomplete de cliente
   function autocompleteCliente() {
     const clientInput = document.getElementById("client_name");
-    const telInput = document.getElementById("client_tel");
-    const idInput = document.getElementById("client_id");
-    const emailInput = document.getElementById("client_email");
-    const cpfInput = document.getElementById("client_cpf");
-    const cnpjInput = document.getElementById("client_cnpj");
-    const addressInput = document.getElementById("client_address");
+    const statusMessage = document.getElementById("client-status-message");
     const suggestionsBox = document.getElementById("client_suggestions");
-    const obsInput = document.getElementById("client_obs");
 
+    let suggestionSelected = false; // Flag para verificar se uma sugestão foi selecionada
 
-    if (!clientInput || !suggestionsBox) return;
+    if (!clientInput || !statusMessage || !suggestionsBox) return;
 
+    // Exibe sugestões enquanto o usuário digita
     clientInput.addEventListener("input", async () => {
       const term = clientInput.value.trim();
-      if (term.length < 2) {
-        suggestionsBox.innerHTML = "";
+      if (term.length < 1) {
+        suggestionsBox.innerHTML = ""; // Limpa as sugestões se o termo for muito curto
+        statusMessage.style.display = 'none';  // Esconde a faixa de status
         return;
       }
 
       try {
         const res = await fetch(`/autocomplete_clients?term=${encodeURIComponent(term)}`);
         const clients = await res.json();
-        suggestionsBox.innerHTML = "";
 
-        clients.forEach((client) => {
+        // Exibe as sugestões
+        suggestionsBox.innerHTML = "";
+        clients.forEach(client => {
           const div = document.createElement("div");
           div.className = "autocomplete-item";
           div.innerHTML = `<strong>${client.client_name}</strong>
@@ -155,32 +150,56 @@
             ${client.client_cpf ? `<div><small>🆔 CPF: ${client.client_cpf}</small></div>` : ""}
             ${client.client_cnpj ? `<div><small>🏢 CNPJ: ${client.client_cnpj}</small></div>` : ""}`;
 
+          // Ao clicar numa sugestão, preenche os campos com os dados do cliente
           div.addEventListener("click", () => {
             clientInput.value = client.client_name || "";
-            telInput.value = client.client_tel ? maskPhone(client.client_tel) : "";
-            if (idInput) idInput.value = client.client_id || "";
-            if (emailInput) emailInput.value = client.client_email || "";
-            cpfInput.value = client.client_cpf ? maskCPF(client.client_cpf) : "";
-            cnpjInput.value = client.client_cnpj ? maskCNPJ(client.client_cnpj) : "";
-            addressInput.value = client.client_address || "";
-            obsInput.value = client.client_obs || "";
-
-            suggestionsBox.innerHTML = "";
+            suggestionSelected = true; // Marca que uma sugestão foi selecionada
+            suggestionsBox.innerHTML = ""; // Limpa as sugestões após a seleção
+            statusMessage.className = 'status-message user-found'; // Exibe como "Usuário encontrado"
+            statusMessage.innerHTML = 'Usuário encontrado';
+            statusMessage.style.display = 'block'; // Exibe a faixa de status
           });
 
           suggestionsBox.appendChild(div);
         });
+
+        // Verificação do "Usuário encontrado" ou "Usuário novo"
+        const exactMatch = clients.find(client => client.client_name.trim().toLowerCase() === term.toLowerCase());
+
+        // Atualiza a faixa de status conforme o valor inserido
+        if (exactMatch) {
+          statusMessage.className = 'status-message user-found';
+          statusMessage.innerHTML = 'Usuário encontrado';
+          statusMessage.style.display = 'block';
+        } else {
+          statusMessage.className = 'status-message user-new';
+          statusMessage.innerHTML = 'Usuário novo';
+          statusMessage.style.display = 'block';
+        }
+
       } catch (error) {
         console.error("Erro ao buscar clientes:", error);
       }
     });
 
+    // Ao clicar fora do campo, as sugestões desaparecem
     document.addEventListener("click", (e) => {
       if (!clientInput.contains(e.target) && !suggestionsBox.contains(e.target)) {
-        suggestionsBox.innerHTML = "";
+        suggestionsBox.innerHTML = ""; // Limpa as sugestões se clicar fora do campo
       }
     });
+
+    // Se o usuário começar a editar o nome após selecionar uma sugestão, restabelece a flag
+    clientInput.addEventListener("focus", () => {
+      suggestionSelected = false; // Resetando a flag quando o usuário começa a digitar
+    });
   }
+
+  // Inicializar a função de auto-completar ao carregar a página
+  autocompleteCliente();
+
+
+
 
   // 📆 Datepicker com datas bloqueadas
   function iniciarDatePicker() {
@@ -315,7 +334,6 @@
 
   // 🚀 Inicializar tudo quando a página carregar
   window.addEventListener('DOMContentLoaded', () => {
-    autocompleteCliente();
     iniciarDatePicker();
     configurarValidacao();
 
@@ -433,33 +451,6 @@
     clientIdInput.value = "";
   });
 
-  // Ao sair do campo, verifica se precisa alertar
-  clientNameInput.addEventListener('blur', function () {
-    const input = this;
-
-    setTimeout(() => {
-      const clientId = clientIdInput.value.trim();
-      const clientName = input.value.trim();
-
-      if (clientName && !clientId && !input.dataset.confirmed) {
-        const confirmCreate = confirm("O cliente informado não foi encontrado no banco de dados. Deseja criar um novo cliente com os dados preenchidos?");
-        if (!confirmCreate) {
-          input.value = "";
-          document.getElementById('client_tel').value = "";
-          document.getElementById('client_email').value = "";
-          document.getElementById('client_address').value = "";
-          document.getElementById('client_cpf').value = "";
-          document.getElementById('client_cnpj').value = "";
-          document.getElementById('client_obs').value = "";
-          clientIdInput.value = "";
-          delete input.dataset.confirmed;
-        } else {
-          // Marca que o nome foi confirmado manualmente
-          input.dataset.confirmed = "true";
-        }
-      }
-    }, 200);
-  });
 
 
 </script>

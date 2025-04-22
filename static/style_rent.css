@@ -333,4 +333,20 @@ input.form-control {
     border: 2px solid red !important;
     background-color: #ffe6e6;
   }
+  .status-message {
+    font-size: 14px;
+    padding: 5px;
+    margin-top: 5px; /* Pequena margem para não colidir com o campo */
+    border-radius: 3px;
+    color: white;
+    display: none; /* Inicialmente, escondido */
+    width: 100%; /* A faixa ocupa a largura total do campo */
+  }
 
+  .status-message.user-new {
+    background-color: #dc3545; /* Vermelho para "Usuário novo" */
+  }
+
+  .status-message.user-found {
+    background-color: #28a745; /* Verde para "Usuário encontrado" */
+  }
