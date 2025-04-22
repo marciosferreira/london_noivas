@@ -105,11 +105,21 @@
 }
 
 /* === DESCRIÇÃO DOS CARDS === */
+/* Estilo para as descrições dos cards */
 .card-description {
-  font-size: 0.9rem;
-  margin-top: 8px;
-  color: #555;
+  font-size: 1rem; /* Aumenta o tamanho da fonte para melhorar a leitura */
+  margin-top: 10px; /* Distância maior para não grudar nos ícones */
+  color: #333; /* Torna o texto mais escuro para melhor contraste */
   min-height: 3em;
+  line-height: 1.5; /* Melhora o espaçamento entre as linhas */
+  text-decoration: none; /* Garante que não haja sublinhado */
+  font-weight: 500; /* Aumenta o peso da fonte para dar mais destaque */
+}
+
+/* Estilo para links dentro de .card-description */
+.card-description a {
+  text-decoration: none; /* Remove qualquer estilo de link, como sublinhado */
+  color: #333; /* Garante que o link tenha a mesma cor do texto normal */
 }
 
 /* === SEÇÃO DE VANTAGENS === */
@@ -240,19 +250,15 @@
   padding: 20px;
 }
 
-.screenshot-container img {
-  width: 100%;
-  max-width: 250px;
-  height: auto;
-  border-radius: 8px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-  object-fit: cover;
-  cursor: pointer;
+.screenshot-container {
+  display: flex;
+  gap: 10px;
 }
 
-.screenshot-wrapper {
-  flex: 1 1 200px;
-  max-width: 250px;
+.screenshot-wrapper img {
+  height: 200px; /* Defina a altura desejada */
+  width: auto; /* A largura se ajusta automaticamente mantendo a proporção */
+  object-fit: contain; /* Garante que a imagem não será cortada */
 }
 
 /* Tamanho do Modal */

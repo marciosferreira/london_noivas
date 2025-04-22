@@ -13,7 +13,7 @@
         <tr>
           <th>Imagem</th>
           <th>Cliente</th>
-          <th>Devolução Prevista</th>
+          <th>Devolução P.</th>
           <th>Preço (R$)</th>
           <th>Pago (R$)</th>
           <th>Observações</th>
@@ -42,7 +42,7 @@
 
           <!-- prettier-ignore -->
 
-          <td class="open-modal position-relative" data-item='{{ item | tojson | safe }}' data-label="Devolução Prevista">
+          <td class="open-modal position-relative" data-item='{{ item | tojson | safe }}' data-label="Devolução P.">
             {{ item.return_date_formatted }}
 
             {% if item.overdue %}

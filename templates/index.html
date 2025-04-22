@@ -2,7 +2,6 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='style_index.css') }}" />
 {% endblock %} {% block content %}
 <div class="wrapper">
-  <div class="page-container">
     {# Barra com ícones se não estiver logado #} {% if not session.get('logged_in') %}
     <div class="full-width-bar">
       <img src="/static/icons/vestido.png" alt="Vestido" class="styled-img" />
@@ -31,138 +30,135 @@
 
     <section class="container mt-4">
       <div class="row row-cols-2 row-cols-sm-2 row-cols-md-4 g-4 text-center">
-        <!-- Bloco 1 - Clientes -->
         <div class="col">
-          <a href="{{ url_for('listar_clientes') }}">
-            <div class="position-relative">
-              {% if session.get('logged_in') %}
-              <span class="badge-counter">{{ stats.total_clients }}</span>
-              {% endif %}
+          <div class="position-relative">
+            <a href="{{ url_for('listar_clientes') }}">
               <div class="image-wrapper">
                 <img src="/static/icons/clients.png" alt="Clientes" class="img-fluid img-quick-access mb-2 rounded shadow" />
               </div>
-            </div>
-
-            {% if not session.get('logged_in') %}
-            <p class="card-description">Cadastre e acompanhe todos os seus clientes de forma prática.</p>
+            </a>
+            {% if session.get('logged_in') %}
+            <span class="badge-counter">{{ stats.total_clients }}</span>
             {% endif %}
-          </a>
+          </div>
+          {% if not session.get('logged_in') %}
+          <p class="card-description">Cadastre e gerencie seus clientes com facilidade, mantendo tudo organizado e acessível.</p>
+          {% endif %}
         </div>
 
         <!-- Bloco 2 - Inventário -->
         <div class="col">
-          <a href="{{ url_for('inventory') }}">
-            <div class="position-relative">
-              {% if session.get('logged_in') %}
-              <span class="badge-counter">{{ stats.total_items_available }}</span>
-              {% endif %}
+          <div class="position-relative">
+            <a href="{{ url_for('inventory') }}">
               <div class="image-wrapper">
-                <img src="/static/icons/inventory.png" alt="Disponíveis" class="img-fluid img-quick-access mb-2 rounded shadow" />
+                <img src="/static/icons/inventory.png" alt="Inventário" class="img-fluid img-quick-access mb-2 rounded shadow" />
               </div>
-            </div>
-            {% if not session.get('logged_in') %}
-            <p class="card-description">Gerencie seu inventário com QRcodes para acesso rápido aos itens pelo celular.</p>
+            </a>
+            {% if session.get('logged_in') %}
+            <span class="badge-counter">{{ stats.total_items_available }}</span>
             {% endif %}
-          </a>
+          </div>
+          {% if not session.get('logged_in') %}
+          <p class="card-description">Gerencie seu inventário de itens de forma eficiente, com acesso rápido através de QR Codes.</p>
+          {% endif %}
         </div>
 
         <!-- Bloco 3 - Arquivados -->
         <div class="col">
-          <a href="{{ url_for('archive') }}">
-            <div class="position-relative">
-              {% if session.get('logged_in') %}
-              <span class="badge-counter">{{ stats.total_items_archived }}</span>
-              {% endif %}
+          <div class="position-relative">
+            <a href="{{ url_for('archive') }}">
               <div class="image-wrapper">
                 <img src="/static/icons/archive.png" alt="Arquivados" class="img-fluid img-quick-access mb-2 rounded shadow" />
               </div>
-            </div>
-            {% if not session.get('logged_in') %}
-            <p class="card-description">Arquive itens que não estão em uso e mantenha seu inventário limpo.</p>
+            </a>
+            {% if session.get('logged_in') %}
+            <span class="badge-counter">{{ stats.total_items_archived }}</span>
             {% endif %}
-          </a>
+          </div>
+          {% if not session.get('logged_in') %}
+          <p class="card-description">Mantenha seu inventário limpo e organizado arquivando itens que não estão em uso.</p>
+          {% endif %}
         </div>
 
         <!-- Bloco 4 - Reservados -->
         <div class="col">
-          <a href="{{ url_for('reserved') }}">
-            <div class="position-relative">
-              {% if session.get('logged_in') %}
-              <span class="badge-counter">{{ stats.total_reserved }}</span>
-              {% endif %}
+          <div class="position-relative">
+            <a href="{{ url_for('reserved') }}">
               <div class="image-wrapper">
-                <div class="image-wrapper">
-                  <img src="/static/icons/reserved.png" alt="Reservados" class="img-fluid img-quick-access mb-2 rounded shadow" />
-                </div>
+                <img src="/static/icons/reserved.png" alt="Reservados" class="img-fluid img-quick-access mb-2 rounded shadow" />
               </div>
-            </div>
-            {% if not session.get('logged_in') %}
-            <p class="card-description">Visualize facilmente os itens reservados e as próximas retiradas.</p>
+            </a>
+            {% if session.get('logged_in') %}
+            <span class="badge-counter">{{ stats.total_reserved }}</span>
             {% endif %}
-          </a>
+          </div>
+          {% if not session.get('logged_in') %}
+          <p class="card-description">Acompanhe os itens reservados e visualize facilmente as próximas retiradas.</p>
+          {% endif %}
         </div>
 
         <!-- Bloco 5 - Retirados -->
         <div class="col">
-          <a href="{{ url_for('rented') }}">
-            <div class="position-relative">
-              {% if session.get('logged_in') %}
-              <span class="badge-counter">{{ stats.total_rented }}</span>
-              {% endif %}
+          <div class="position-relative">
+            <a href="{{ url_for('rented') }}">
               <div class="image-wrapper">
                 <img src="/static/icons/rented.png" alt="Retirados" class="img-fluid img-quick-access mb-2 rounded shadow" />
               </div>
-            </div>
-            {% if not session.get('logged_in') %}
-            <p class="card-description">Saiba quem está com cada item e veja alertas de dias até a retirada e atrasos na devolução.</p>
+            </a>
+            {% if session.get('logged_in') %}
+            <span class="badge-counter">{{ stats.total_rented }}</span>
             {% endif %}
-          </a>
+          </div>
+          {% if not session.get('logged_in') %}
+          <p class="card-description">Saiba exatamente quem está com cada item e receba alertas sobre prazos de retirada e devolução.</p>
+          {% endif %}
         </div>
 
         <!-- Bloco 6 - Devolvidos -->
         <div class="col">
-          <a href="{{ url_for('returned') }}">
-            <div class="position-relative">
-              {% if session.get('logged_in') %}
-              <span class="badge-counter">{{ stats.total_returned }}</span>
-              {% endif %}
+          <div class="position-relative">
+            <a href="{{ url_for('returned') }}">
               <div class="image-wrapper">
                 <img src="/static/icons/returned.png" alt="Devolvidos" class="img-fluid img-quick-access mb-2 rounded shadow" />
               </div>
-            </div>
-            {% if not session.get('logged_in') %}
-            <p class="card-description">Acompanhe os itens que já foram devolvidos e mantenha um histórico para consulta.</p>
+            </a>
+            {% if session.get('logged_in') %}
+            <span class="badge-counter">{{ stats.total_returned }}</span>
             {% endif %}
-          </a>
+          </div>
+          {% if not session.get('logged_in') %}
+          <p class="card-description">Acompanhe os itens que já foram devolvidos e mantenha um histórico de todos os processos de locação.</p>
+          {% endif %}
         </div>
 
         <!-- Bloco 7 - Relatórios -->
         <div class="col">
-          <a href="{{ url_for('reports') }}">
-            <div class="position-relative">
+          <div class="position-relative">
+            <a href="{{ url_for('reports') }}">
               <div class="image-wrapper">
                 <img src="/static/icons/reports.png" alt="Relatórios" class="img-fluid img-quick-access mb-2 rounded shadow" />
               </div>
-            </div>
-            {% if not session.get('logged_in') %}
-            <p class="card-description">Gere relatórios completos de aluguéis e performance financeira.</p>
-            {% endif %}
-          </a>
+            </a>
+          </div>
+          {% if not session.get('logged_in') %}
+          <p class="card-description">Gere relatórios completos de aluguéis, transações e desempenho financeiro da sua locadora.</p>
+          {% endif %}
         </div>
 
         <!-- Bloco 8 - Contratos -->
         <div class="col">
-          <a href="{{ url_for('listar_modelos') }}">
-            <div class="position-relative">
+          <div class="position-relative">
+            <a href="{{ url_for('listar_modelos') }}">
               <div class="image-wrapper">
                 <img src="/static/icons/contratos.png" alt="Contratos" class="img-fluid img-quick-access mb-2 rounded shadow" />
               </div>
-            </div>
-            {% if not session.get('logged_in') %}
-            <p class="card-description">Imprima contratos e recibos preenchidos, prontos para assinar.</p>
-            {% endif %}
-          </a>
+            </a>
+          </div>
+          {% if not session.get('logged_in') %}
+          <p class="card-description">Imprima contratos e recibos já preenchidos, prontos para assinatura.</p>
+          {% endif %}
         </div>
+
 
         <!-- Adicione os demais blocos como você já tinha: arquivados, reservados, etc. -->
       </div>
@@ -222,7 +218,6 @@
         <img id="modalImage" src="" alt="Imagem Modal" class="img-fluid" />
       </div>
     </div>
-  </div>
 </div>
 
 {% endblock %} {% block scripts %}

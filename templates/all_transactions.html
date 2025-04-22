@@ -14,8 +14,8 @@
           <th class="status-col">Status</th>
           <th>Imagem</th>
           <th>Cliente</th>
-          <th>Retirada Prevista</th>
-          <th>Devolução Prevista</th>
+          <th>Retirada P.</th>
+          <th>Devolução P.</th>
           <th>Preço (R$)</th>
           <th>Pago (R$)</th>
           <th>Observações</th>
@@ -48,7 +48,7 @@
 
           <!-- prettier-ignore -->
 
-          <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Retirada Prevista">
+          <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Retirada P.">
             <div class="rental-date">{{ item.rental_date_formatted }}</div>
             {% if item.rental_message %}
               <div class="rental-message mt-1 {{ item.rental_message_color }}">
@@ -58,7 +58,7 @@
           </td>
           <!-- prettier-ignore -->
 
-          <td class="open-modal position-relative" data-item='{{ item | tojson | safe }}' data-label="Devolução Prevista">
+          <td class="open-modal position-relative" data-item='{{ item | tojson | safe }}' data-label="Devolução P.">
             <div class="return-date">{{ item.return_date_formatted }}</div>
             {% if item.overdue %}
               <div class="atrasado-tag mt-1">Devolução atrasada</div>

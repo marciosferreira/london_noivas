@@ -70,7 +70,7 @@ def init_client_routes(
 
         # Paginação
         page = int(request.args.get("page", 1))
-        per_page = 5
+        per_page = 10
 
         # Filtros do formulário
         client_name = request.args.get("client_name", "").strip()

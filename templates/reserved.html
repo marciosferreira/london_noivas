@@ -14,7 +14,7 @@
         <tr>
           <th>Imagem</th>
           <th>Cliente</th>
-          <th>Retirada Prevista</th>
+          <th>Retirada P.</th>
           <th>Preço (R$)</th>
           <th>Pago (R$)</th>
           <th>Observações</th>
@@ -44,7 +44,7 @@
           <!-- prettier-ignore -->
 
           <!-- prettier-ignore -->
-          <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Retirada Prevista">
+          <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Retirada P.">
             {{ item.rental_date_formatted }}
             {% if item.rental_message %}
               <div class="rental-message mt-1 {{ item.rental_message_color }}">
