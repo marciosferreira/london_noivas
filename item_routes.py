@@ -18,6 +18,7 @@ from decimal import Decimal
 
 from utils import get_user_timezone
 
+from boto3.dynamodb.conditions import Key, Attr
 
 ALLOWED_EXTENSIONS = {"jpeg", "jpg", "png", "gif", "webp"}
 
@@ -214,15 +215,14 @@ def init_item_routes(
 
     @app.route("/edit_transaction/<transaction_id>", methods=["GET", "POST"])
     def edit_transaction(transaction_id):
-
         if not session.get("logged_in"):
             return redirect(url_for("login"))
 
         valor_str = request.form.get("valor", "").replace(",", ".")
         pagamento_str = request.form.get("pagamento", "").replace(",", ".")
-
         next_page = request.args.get("next", url_for("index"))
 
+        # Buscar a transação atual
         response = transactions_table.get_item(Key={"transaction_id": transaction_id})
         transaction = response.get("Item")
 
@@ -232,13 +232,15 @@ def init_item_routes(
 
         item_id = transaction.get("item_id")
 
+        # Obter todas as transações relacionadas ao item
         response = transactions_table.query(
             IndexName="item_id-index",
             KeyConditionExpression="item_id = :item_id_val",
             ExpressionAttributeValues={":item_id_val": item_id},
         )
-
         all_transaction = response.get("Items", [])
+
+        # Reservar intervalos de datas para aluguéis
         reserved_ranges = [
             [tx["rental_date"], tx["return_date"]]
             for tx in all_transaction
@@ -249,7 +251,7 @@ def init_item_routes(
         ]
 
         if request.method == "POST":
-            # capturar campos do form
+            # Captura dos novos dados do formulário
             ret_date = request.form.get("ret_date")
             range_date = request.form.get("range_date")
             rental_str, return_str = range_date.split(" - ")
@@ -260,6 +262,7 @@ def init_item_routes(
                 return_str.strip(), "%d/%m/%Y"
             ).strftime("%Y-%m-%d")
 
+            # Criação de um dicionário com os dados atualizados
             new_data = {
                 "rental_date": rental_date,
                 "return_date": return_date,
@@ -271,18 +274,16 @@ def init_item_routes(
                     Decimal(pagamento_str) if pagamento_str else Decimal("0.0") or None
                 ),
             }
-            # Se a transação foi marcada como "reserved", remove o campo dev_date
 
+            # Se a transação for "reserved", remove o campo dev_date
             if new_data.get("transaction_status") in ["reserved", "rented"]:
                 new_data["dev_date"] = None
 
-            # Adiciona o ret_date apenas se ele foi enviado
+            # Adiciona o ret_date apenas se foi enviado
             if ret_date:
                 new_data["ret_date"] = ret_date
 
-            # Detectar mudanças ignorando alguns campos
-            # Detectar mudanças ignorando transaction_status e pagamento para criar cópia
-            # Detectar mudanças ignorando transaction_status e pagamento para criar cópia
+            # Detectar as mudanças ignorando campos específicos
             changes = {
                 key: value
                 for key, value in new_data.items()
@@ -290,6 +291,12 @@ def init_item_routes(
                 and not (transaction.get(key) == "" and value is None)
             }
 
+            # Verifique se há mudanças antes de atualizar
+            if not changes:
+                flash("Nenhuma alteração foi feita.", "warning")
+                return redirect(next_page)
+
+            # Atualizar campos no banco de dados se houver alterações
             if set(changes.keys()).issubset({"transaction_status", "pagamento"}):
                 update_expression = []
                 expression_values = {}
@@ -309,27 +316,11 @@ def init_item_routes(
                 )
 
                 flash("Item atualizado com sucesso.", "success")
-                return redirect(next_page)
+                return redirect(
+                    next_page
+                )  # Redireciona para a página de origem após sucesso
 
-            if not changes:
-                flash("Nenhuma alteração foi feita.", "warning")
-                return redirect(next_page)
-
-            # caso seja alteração apenas de'transaction_status' ou ambos, nao gera copia para trash, apenas atualiza
-
-            # caso seja alteração apenas de 'transaction_status'
-            if set(changes.keys()) == {"transaction_status"}:
-                transactions_table.update_item(
-                    Key={"transaction_id": transaction_id},
-                    UpdateExpression="SET transaction_status = :status",
-                    ExpressionAttributeValues={
-                        ":status": new_data["transaction_status"],
-                    },
-                )
-                flash("Item atualizado com sucesso.", "success")
-                return redirect(next_page)
-
-            # se houver outras alterações → cria cópia
+            # Se houver outras alterações, cria uma nova transação como versão
             new_transaction_id = str(uuid.uuid4())
             copied_item = {
                 k: v
@@ -353,7 +344,7 @@ def init_item_routes(
 
             transactions_table.put_item(Item=copied_item)
 
-            # atualizar item original
+            # Atualizar o item original com as mudanças
             update_expression = []
             expression_values = {}
             expression_names = {}
@@ -365,19 +356,48 @@ def init_item_routes(
                 expression_values[value_alias] = value
                 expression_names[field_alias] = key
 
-            transactions_table.update_item(
-                Key={"transaction_id": transaction_id},
-                UpdateExpression="SET " + ", ".join(update_expression),
-                ExpressionAttributeValues=expression_values,
-                ExpressionAttributeNames=expression_names,
+            # Se houver valores a atualizar, faça a atualização
+            if expression_values:
+                transactions_table.update_item(
+                    Key={"transaction_id": transaction_id},
+                    UpdateExpression="SET " + ", ".join(update_expression),
+                    ExpressionAttributeValues=expression_values,
+                    ExpressionAttributeNames=expression_names,
+                )
+
+                flash("Item atualizado com sucesso.", "success")
+            else:
+                flash("Nenhuma alteração foi feita.", "warning")
+
+            # Prepare a transação para enviar ao template
+            transaction_copy = transaction.copy()
+            transaction_copy["range_date"] = (
+                f"{datetime.datetime.strptime(transaction['rental_date'], '%Y-%m-%d').strftime('%d/%m/%Y')} - "
+                f"{datetime.datetime.strptime(transaction['return_date'], '%Y-%m-%d').strftime('%d/%m/%Y')}"
             )
 
-            flash("Item atualizado com sucesso.", "success")
-            return redirect(next_page)
+            return redirect(
+                next_page
+            )  # Redirecionar para a página de origem após o processo de cópia ou atualização
 
+        # Caso seja uma requisição GET, renderize o template com a transação
         transaction_copy = transaction.copy()
         transaction_copy["range_date"] = (
-            f"{datetime.datetime.strptime(transaction['rental_date'], '%Y-%m-%d').strftime('%d/%m/%Y')} - {datetime.datetime.strptime(transaction['return_date'], '%Y-%m-%d').strftime('%d/%m/%Y')}"
+            f"{datetime.datetime.strptime(transaction['rental_date'], '%Y-%m-%d').strftime('%d/%m/%Y')} - "
+            f"{datetime.datetime.strptime(transaction['return_date'], '%Y-%m-%d').strftime('%d/%m/%Y')}"
+        )
+
+        return render_template(
+            "edit_transaction.html",
+            item=transaction_copy,
+            reserved_ranges=reserved_ranges,
+        )  # Retorna a página de edição se for um GET
+
+        # Caso seja uma requisição GET, renderize o template com a transação
+        transaction_copy = transaction.copy()
+        transaction_copy["range_date"] = (
+            f"{datetime.datetime.strptime(transaction['rental_date'], '%Y-%m-%d').strftime('%d/%m/%Y')} - "
+            f"{datetime.datetime.strptime(transaction['return_date'], '%Y-%m-%d').strftime('%d/%m/%Y')}"
         )
 
         return render_template(
@@ -1246,16 +1266,53 @@ def init_item_routes(
         if not session.get("logged_in"):
             return redirect(url_for("login"))
 
-        # Obter o e-mail do usuário logado
         account_id = session.get("account_id")
         if not account_id:
-            print("Erro: Usuário não autenticado corretamente.")  # 🔍 Depuração
+            print("Erro: Usuário não autenticado corretamente.")
             return redirect(url_for("login"))
 
         user_id = session.get("user_id") if "user_id" in session else None
         user_utc = get_user_timezone(users_table, user_id)
+        username = session.get("username", None)
 
-        # Valores padrão para data inicial e final (últimos 30 dias)
+        # Estatísticas integradas (da antiga rota /home)
+        stats = {}
+        response = itens_table.query(
+            IndexName="account_id-status-index",
+            KeyConditionExpression=Key("account_id").eq(account_id),
+        )
+        items = response["Items"]
+        stats["total_items_available"] = len(
+            [item for item in items if item.get("status") == "available"]
+        )
+        stats["total_items_archived"] = len(
+            [item for item in items if item.get("status") == "archive"]
+        )
+
+        stats["total_rented"] = transactions_table.query(
+            IndexName="account_id-transaction_status-index",
+            KeyConditionExpression=Key("account_id").eq(account_id)
+            & Key("transaction_status").eq("rented"),
+        )["Count"]
+
+        stats["total_returned"] = transactions_table.query(
+            IndexName="account_id-transaction_status-index",
+            KeyConditionExpression=Key("account_id").eq(account_id)
+            & Key("transaction_status").eq("returned"),
+        )["Count"]
+
+        stats["total_reserved"] = transactions_table.query(
+            IndexName="account_id-transaction_status-index",
+            KeyConditionExpression=Key("account_id").eq(account_id)
+            & Key("transaction_status").eq("reserved"),
+        )["Count"]
+
+        stats["total_clients"] = clients_table.query(
+            IndexName="account_id-index",
+            KeyConditionExpression=Key("account_id").eq(account_id),
+        )["Count"]
+
+        # Datas iniciais e finais (30 dias)
         end_date = datetime.datetime.now(user_utc).date()
         start_date = end_date - datetime.timedelta(days=30)
 
@@ -1276,27 +1333,19 @@ def init_item_routes(
                     total_general=0,
                     start_date=start_date,
                     end_date=end_date,
+                    stats=stats,
+                    username=username,
                 )
 
         response = transactions_table.query(
-            IndexName="account_id-index",  # Usando o GSI para buscar por account_id
-            KeyConditionExpression="#account_id = :account_id",
-            FilterExpression="#transaction_status IN (:rented, :returned, :reserved)",
-            ExpressionAttributeNames={
-                "#account_id": "account_id",
-                "#transaction_status": "transaction_status",
-            },
-            ExpressionAttributeValues={
-                ":account_id": account_id,
-                ":rented": "rented",
-                ":returned": "returned",
-                ":reserved": "reserved",
-            },
+            IndexName="account_id-index",
+            KeyConditionExpression=Key("account_id").eq(account_id),
+            FilterExpression=Attr("transaction_status").is_in(
+                ["rented", "returned", "reserved"]
+            ),
         )
-
         transactions = response.get("Items", [])
 
-        # Buscar novos clientes no período
         clients_response = users_table.query(
             IndexName="account_id-index",
             KeyConditionExpression=Key("account_id").eq(account_id),
@@ -1329,22 +1378,18 @@ def init_item_routes(
                 ).date()
 
                 if start_date <= transaction_date <= end_date:
-                    # Soma transações válidas no período
                     num_transactions += 1
-
                     valor = float(transaction.get("valor", 0))
                     pagamento = float(transaction.get("pagamento", 0))
 
                     total_paid += pagamento
                     total_due += max(0, valor - pagamento)
-                    sum_valor += valor  # Total dos valores dos itens (para preço médio)
+                    sum_valor += valor
 
-                    # Contador por status
                     status_counter[
                         transaction.get("transaction_status", "unknown")
                     ] += 1
 
-                    # Itens mais alugados
                     item_id = transaction.get("item_id")
                     if item_id:
                         item_counter[item_id] = item_counter.get(item_id, 0) + 1
@@ -1352,11 +1397,7 @@ def init_item_routes(
             except (ValueError, TypeError):
                 continue
 
-        # Preço médio das transações (baseado no valor do item)
         preco_medio = sum_valor / num_transactions if num_transactions else 0
-        total_general = total_paid + total_due
-
-        # Total geral: recebido + a receber
         total_general = total_paid + total_due
 
         if request.method == "POST":
@@ -1374,6 +1415,8 @@ def init_item_routes(
             num_new_clients=num_new_clients,
             status_counter=status_counter,
             item_counter=item_counter,
+            stats=stats,
+            username=username,
         )
 
     @app.route("/query", methods=["POST"])

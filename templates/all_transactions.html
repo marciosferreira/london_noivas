@@ -4,7 +4,6 @@
 
 <div class="container mt-3">
   <h2 class="mb-4">{{ title }}</h2>
-
   {% if itens %} {% include "components/filter_section.html" with context %}
 
   <!-- Tabela -->
@@ -23,7 +22,6 @@
           <th></th>
         </tr>
       </thead>
-
       <tbody>
         {% set status_map = { 'reserved': 'Reservado', 'rented': 'Retirado', 'returned': 'Retornado' } %} {% for item in itens %}
         <tr>
@@ -93,7 +91,7 @@
 
           <!-- prettier-ignore -->
           <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Observações">
-            {{ item.comments | default('', true) | truncate(10, True) }}
+            {{ item.item_obs | default('', true) | truncate(10, True) }}
           </td>
 
           <!--botoes de açao -->
@@ -120,7 +118,7 @@
   {% endif %}
 
   <!-- Paginação -->
-  {% set route_name = 'reserved' %} {% include 'components/pagination.html' with context %}
+  {% set route_name = 'all_transactions' %} {% include 'components/pagination.html' with context %}
 
   <!-- Modals -->
   {% include 'components/info_modal_transaction.html' %} {% include 'components/image_modal.html' %}

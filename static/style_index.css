@@ -7,7 +7,7 @@
 .page-container {
   max-width: 1200px;
   width: 90%;
-  margin: 40px auto;
+  margin: 0px auto;
   background: #ffffff;
   border-radius: 16px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
@@ -212,4 +212,57 @@
   margin-bottom: 2rem;
   font-size: 1rem;
   color: #555;
+}
+
+.img-quick-access {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.img-quick-access:hover {
+  transform: scale(1.05);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+.image-wrapper {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.image-wrapper:hover {
+  transform: scale(1.03);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+}
+
+.screenshot-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 20px;
+  padding: 20px;
+}
+
+.screenshot-container img {
+  width: 100%;
+  max-width: 250px;
+  height: auto;
+  border-radius: 8px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  object-fit: cover;
+  cursor: pointer;
+}
+
+.screenshot-wrapper {
+  flex: 1 1 200px;
+  max-width: 250px;
+}
+
+/* Tamanho do Modal */
+.modal-dialog {
+  max-width: 80%; /* Aumentando a largura do modal */
+  margin: 30px auto;
+}
+
+.modal-body img {
+  width: 100%; /* Imagem ocupa 100% do tamanho do modal */
+  height: auto; /* Mantém a proporção da imagem */
+  object-fit: contain; /* Faz a imagem se ajustar sem distorcer */
 }

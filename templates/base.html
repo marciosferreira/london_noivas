@@ -49,7 +49,7 @@
     </script>
   </head>
 
-  <body class="{% block body_class %}{% endblock %}">
+  <body class="body_class">
     {% if request.endpoint != 'login' and request.endpoint != 'register' %} {% if session.get('impersonated_by') %}
     <!-- Impersonation bar -->
     <div class="admin-impersonation-bar">...</div>

@@ -190,9 +190,53 @@
       </div>
     </section>
     {% endif %}
+
+    <h3 class="text-center mt-5 mb-4">Veja algumas telas</h3>
+
+    <section class="screenshot-container">
+      <div class="screenshot-wrapper">
+        <img src="/static/icons/xxx.png" alt="Tela Transações" data-bs-toggle="modal" data-bs-target="#imageModal" />
+      </div>
+      <div class="screenshot-wrapper">
+        <img src="/static/icons/yyy.png" alt="Tela Inventário" data-bs-toggle="modal" data-bs-target="#imageModal" />
+      </div>
+      <div class="screenshot-wrapper">
+        <img src="/static/icons/zzz.png" alt="Tela Clientes" data-bs-toggle="modal" data-bs-target="#imageModal" />
+      </div>
+      <div class="screenshot-wrapper">
+        <img src="/static/icons/www.png" alt="Tela Relatórios" data-bs-toggle="modal" data-bs-target="#imageModal" />
+      </div>
+    </section>
   </div>
 </div>
-{% endblock %} {% block scripts %} {% if session.get('logged_in') %}
+
+<!-- Modal -->
+<div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="imageModalLabel">Tela do Sistema</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body">
+        <img id="modalImage" src="" alt="Imagem Modal" class="img-fluid" />
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %} {% block scripts %}
+<script>
+  // Adiciona o evento de clique nas imagens
+  const images = document.querySelectorAll('.screenshot-container img');
+  images.forEach((img) => {
+    img.addEventListener('click', function () {
+      const modalImage = document.getElementById('modalImage');
+      modalImage.src = this.src; // Define a imagem clicada no modal
+    });
+  });
+</script>
+{% if session.get('logged_in') %}
 <script>
   gtag('event', 'conversion', { send_to: 'AW-1051093117/6kftCNiL_GUQ_dCZ9QM' });
 </script>

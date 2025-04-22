@@ -94,6 +94,85 @@
     {% endif %}
   </div>
 </div>
+<br />
+<br />
+<h3 class="mb-4 text-center">Totais Gerais no momento</h3>
+
+<section class="container mt-4">
+  <div class="row row-cols-2 row-cols-sm-2 row-cols-md-4 g-4 text-center">
+    <!-- Bloco 1 - Clientes -->
+    <div class="col">
+      <a href="{{ url_for('listar_clientes') }}">
+        <div class="position-relative">
+          <span class="badge-counter">{{ stats.total_clients }}</span>
+          <div class="image-wrapper">
+            <img src="/static/icons/clients.png" alt="Clientes" class="img-fluid img-quick-access mb-2 rounded shadow" />
+          </div>
+        </div>
+      </a>
+    </div>
+
+    <!-- Bloco 2 - Inventário -->
+    <div class="col">
+      <a href="{{ url_for('inventory') }}">
+        <div class="position-relative">
+          <span class="badge-counter">{{ stats.total_items_available }}</span>
+          <div class="image-wrapper">
+            <img src="/static/icons/inventory.png" alt="Disponíveis" class="img-fluid img-quick-access mb-2 rounded shadow" />
+          </div>
+        </div>
+      </a>
+    </div>
+
+    <!-- Bloco 3 - Arquivados -->
+    <div class="col">
+      <a href="{{ url_for('archive') }}">
+        <div class="position-relative">
+          <span class="badge-counter">{{ stats.total_items_archived }}</span>
+          <div class="image-wrapper">
+            <img src="/static/icons/archive.png" alt="Arquivados" class="img-fluid img-quick-access mb-2 rounded shadow" />
+          </div>
+        </div>
+      </a>
+    </div>
+
+    <!-- Bloco 4 - Reservados -->
+    <div class="col">
+      <a href="{{ url_for('reserved') }}">
+        <div class="position-relative">
+          <span class="badge-counter">{{ stats.total_reserved }}</span>
+          <div class="image-wrapper">
+            <img src="/static/icons/reserved.png" alt="Reservados" class="img-fluid img-quick-access mb-2 rounded shadow" />
+          </div>
+        </div>
+      </a>
+    </div>
+
+    <!-- Bloco 5 - Retirados -->
+    <div class="col">
+      <a href="{{ url_for('rented') }}">
+        <div class="position-relative">
+          <span class="badge-counter">{{ stats.total_rented }}</span>
+          <div class="image-wrapper">
+            <img src="/static/icons/rented.png" alt="Retirados" class="img-fluid img-quick-access mb-2 rounded shadow" />
+          </div>
+        </div>
+      </a>
+    </div>
+
+    <!-- Bloco 6 - Devolvidos -->
+    <div class="col">
+      <a href="{{ url_for('returned') }}">
+        <div class="position-relative">
+          <span class="badge-counter">{{ stats.total_returned }}</span>
+          <div class="image-wrapper">
+            <img src="/static/icons/returned.png" alt="Devolvidos" class="img-fluid img-quick-access mb-2 rounded shadow" />
+          </div>
+        </div>
+      </a>
+    </div>
+  </div>
+</section>
 {% endblock %} {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>

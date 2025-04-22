@@ -1,15 +1,3 @@
-/* --------------------------------------------------
-   RESET & BASE
--------------------------------------------------- */
-html,
-body {
-  height: 100%;
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  padding-top: 30px; /* Ajuste conforme necessário para evitar sobreposição */
-}
-
 /* Aplicar o estilo (degradê, fonte) apenas em body.reports */
 body.reports {
   /* Altura mínima da tela */
@@ -25,143 +13,88 @@ body.reports {
   font-family: Arial, sans-serif;
 }
 
-/* Se quiser alguma cor de fundo adicional,
-   descomente e ajuste:
-   background-color: #f8f9fa;
-*/
-
-/* Caso queira um container com max-width menor,
-   use .container { max-width: 90%; margin: 0 auto; } etc.
-   Aqui deixamos livre para o Bootstrap gerenciar. */
-
-/* --------------------------------------------------
-   TIPOGRAFIA E UTILITÁRIOS
--------------------------------------------------- */
-/* Exemplo de cor de texto para .text-dark-blue */
-.text-dark-blue {
-  color: #2c3e50; /* Ajuste se quiser outro tom */
-}
-
-/* Estilo básico para alerts (caso apareçam) */
-.alert {
-  margin-bottom: 1rem;
-}
-
-/* --------------------------------------------------
-   EXEMPLOS DE ESTILOS DE TABELA (se precisar)
--------------------------------------------------- */
-/* Se, futuramente, quiser exibir alguma tabela em relatórios
-   e manter o mesmo estilo responsivo. Se não houver tabela,
-   pode remover esta parte. */
-
-/* Container de tabela para limitar largura */
-.table-container {
-  max-width: 100%;
-  margin: 0 auto;
-}
-
-.responsive-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.table.rounded-table {
-  border-radius: 10px;
+.image-wrapper {
+  background-color: #f8f9fa;
+  border-radius: 12px;
   overflow: hidden;
-  border: 1px solid #dee2e6;
-}
-
-.table-danger {
-  background-color: #f8d7da !important;
-}
-
-.table-warning {
-  background-color: #fff3cd !important;
-}
-
-/* Miniaturas de imagem */
-.dress-thumbnail {
-  cursor: pointer;
-  transition: transform 0.2s;
-}
-.dress-thumbnail:hover {
-  transform: scale(1.03);
-}
-
-/* "Virar cards" no mobile, caso necessário */
-@media (max-width: 576px) {
-  .responsive-table thead {
-    display: none;
-  }
-  .responsive-table,
-  .responsive-table tbody,
-  .responsive-table tr,
-  .responsive-table td {
-    display: block;
-    width: 100%;
-  }
-  .responsive-table tr {
-    margin-bottom: 1rem;
-    border: 1px solid #dee2e6;
-    border-radius: 0.5rem;
-    padding: 0.5rem;
-    background-color: #fff;
-  }
-  .responsive-table td {
-    position: relative;
-    padding-left: 50%;
-    margin-bottom: 0.75rem;
-    text-align: left;
-    min-height: 2.5rem;
-  }
-  .responsive-table td::before {
-    content: attr(data-label) ': ';
-    position: absolute;
-    left: 1rem;
-    font-weight: bold;
-  }
-}
-
-/* --------------------------------------------------
-   BOTOES, FILTRO E OUTRAS CLASSES OPCIONAIS
--------------------------------------------------- */
-/* Se quiser usar ícones em btn-sm, por exemplo */
-.btn.btn-sm svg {
-  vertical-align: middle;
-  margin-right: 0;
-}
-
-/* Se, por algum motivo, for usar filtro em relatórios */
-#filter-toggle {
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  padding: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-#filter-section {
-  margin-top: 1rem;
-}
-
-/* --------------------------------------------------
-   AJUSTES ESPECÍFICOS PARA CARTÕES, TÍTULOS, ETC.
--------------------------------------------------- */
-/* Ajusta o título principal */
-h1 {
-  font-weight: 600; /* ou 700, se preferir mais grosso */
-}
-
-/* Caso queira mexer no card .card usado no resumo financeiro:
-   .card {
-     background: rgba(255, 255, 255, 0.8);
-   }
-*/
-/* Container para botões de ação */
-.d-flex {
+  padding: 10px; /* Ajuste para espaçamento adequado ao redor das imagens */
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px; /* Reduz o espaçamento entre os botões */
+  justify-content: center;
+  align-items: center;
+  position: relative; /* Certifica-se que o badge ficará posicionado corretamente */
 }
+
+.image-wrapper:hover {
+  transform: scale(1.05); /* Aumenta a imagem levemente no hover */
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+}
+
+.img-quick-access {
+  width: 100%; /* Usando 100% para que a imagem ocupe o tamanho do contêiner */
+  max-width: 160px; /* Define o tamanho máximo da imagem */
+  height: auto; /* Manter a proporção da imagem */
+  display: block;
+  margin: 0 auto;
+  object-fit: contain; /* Ajuste da imagem para não distorcer */
+}
+
+.badge-counter {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background-color: #c0392b;
+  color: white;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-weight: bold;
+  font-size: 0.9rem;
+  z-index: 10; /* Garantir que o badge apareça sobre as imagens */
+}
+
+/* === DESCRIÇÃO DOS CARDS === */
+.card-description {
+  font-size: 0.9rem;
+  margin-top: 8px;
+  color: #555;
+  text-align: center;
+  min-height: 3em;
+}
+
+/* === SEÇÃO DE VANTAGENS === */
+.features h2 {
+  color: #34495e;
+  margin-bottom: 1.5rem;
+}
+
+.feature-box {
+  background-color: #ffffff;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.05);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.feature-box:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+}
+
+.feature-img {
+  width: 80px;
+  margin-bottom: 12px;
+}
+
+.feature-text {
+  font-size: 0.95rem;
+  color: #555;
+  margin-top: 10px;
+  line-height: 1.5;
+}
+
+/* === RESPONSIVIDADE === */
