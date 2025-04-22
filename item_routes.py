@@ -1485,7 +1485,7 @@ def listar_itens_per_transaction(
 
     if not session.get("logged_in"):
         return redirect(url_for("login"))
-
+    username = session.get("username", None)
     account_id = session.get("account_id")
     if not account_id:
         print("Erro: Usuário não autenticado corretamente.")
@@ -1716,6 +1716,7 @@ def listar_itens_per_transaction(
         next_url=request.url,
         client_name=client_name,
         saved_models=saved_models,
+        username=username,
     )
 
 
