@@ -1,11 +1,55 @@
 <!-- Título e Botões Principais -->
 <div class="d-flex justify-content-between align-items-center mb-3">
   <div class="d-flex flex-wrap gap-2 align-items-center justify-content-end w-100 w-sm-auto">
-    {% if itens %}
-    <a href="#" class="btn btn-primary" id="filter-toggle" onclick="toggleFilters(event)">Filtros</a>
-    {% endif %} {% if show_add_button %}
-    <a href="#" class="btn btn-primary" id="add-item-btn" data-add-url="{{ add_route }}?next={{ request.url }}">Adicionar item</a>
-    {% endif %}
+    {% if show_add_button %} {% if itens == [] %}
+    <!-- Contêiner para botão + tooltip -->
+    <div style="position: relative; display: inline-block">
+      <!-- Botão -->
+      <a href="#" class="btn btn-primary" id="add-item-btn" data-add-url="{{ add_route }}?next={{ request.url }}">Adicionar item</a>
+
+      <!-- Tooltip flutuante acima e à esquerda do botão -->
+      <div
+        id="tooltip-add-item"
+        style="
+          position: absolute;
+          bottom: 100%;
+          left: 0;
+          transform: translate(-1rem, -0.75rem);
+          background-color: #e7f1ff;
+          border: 1px solid #308ce4;
+          color: #0c4f91;
+          padding: 0.75rem 1rem;
+          border-radius: 0.5rem;
+          font-size: 0.9rem;
+          max-width: 280px;
+          box-shadow: 0 0 6px rgba(0, 0, 0, 0.1);
+          z-index: 1050;
+        "
+      >
+        <button
+          onclick="document.getElementById('tooltip-add-item').style.display='none';"
+          style="
+            position: absolute;
+            top: 0.25rem;
+            right: 0.5rem;
+            background: none;
+            border: none;
+            color: #0c4f91;
+            font-size: 1.1rem;
+            cursor: pointer;
+            line-height: 1;
+          "
+          title="Fechar"
+        >
+          ×
+        </button>
+        Você precisa adicionar um item antes de iniciar uma transação.
+      </div>
+    </div>
+    {% else %}
+    <!-- Caso tenha itens: botão sem balão -->
+    <a href="#" class="btn btn-primary" id="add-item-btn" data-add-url="{{ add_route }}?next=all_transactions">Adicionar item</a>
+    {% endif %} {% endif %}
   </div>
 </div>
 

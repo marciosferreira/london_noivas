@@ -3,6 +3,24 @@
 {% endblock %} {% block content %}
 <h4 class="text-center mb-3" style="text-decoration: underline">Olá, {{ username }} !</h4>
 
+{% if itens == [] %}
+<div
+  style="
+    background-color: #e7f1ff;
+    border: 1px solid #308ce4;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+  "
+>
+  <span style="color: #0c4f91; font-weight: 500">Você ainda não tem transações, que tal criar a primeira?</span>
+  <a href="{{ url_for('inventory') }}" class="btn btn-primary btn-sm">Criar</a>
+</div>
+{% endif %}
+
 <div class="container mt-3">
   <h2 class="mb-4">{{ title }}</h2>
   {% if itens %} {% include "components/filter_section.html" with context %}

@@ -729,7 +729,7 @@ def init_item_routes(
             else:
                 flash("Item <a href='/rented'>retirado</a> com sucesso!", "success")
 
-            return redirect(url_for("inventory"))
+            return redirect(url_for("all_transactions"))
 
         return render_template("rent.html", item=item, reserved_ranges=reserved_ranges)
 
