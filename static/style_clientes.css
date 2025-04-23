@@ -98,13 +98,20 @@ td {
   overflow: visible !important;
 }
 
-.table-container,
-.container {
-  overflow: visible !important;
-  position: relative;
+/* Container para botões de ação */
+.d-flex {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px; /* Reduz o espaçamento entre os botões */
 }
 
-.dropdown-menu {
-  position: absolute !important;
-  z-index: 9999;
+/* Exemplo style_inventory.css ou global */
+.action-button.neutral {
+  background-color: #6c757d; /* cinza Bootstrap */
+  color: #fff;
+}
+/* Garantindo que o overflow da tabela seja visível */
+.table.rounded-table {
+  overflow: visible !important;
+  position: relative; /* Isso ajuda a garantir que o dropdown se expanda fora da tabela */
 }

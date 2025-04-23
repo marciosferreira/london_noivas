@@ -87,7 +87,35 @@ def init_client_routes(
         client_cpf = "".join(filter(str.isdigit, client_cpf)) if client_cpf else ""
         client_cnpj = "".join(filter(str.isdigit, client_cnpj)) if client_cnpj else ""
 
-        # 🔹 Buscar todos os clientes do usuário em ordem alfabética
+        # 🔹 Verificar se foi passado `client_id`
+        print("client_id")
+        print(client_id)
+        if client_id:
+
+            print(client_id)
+            # Buscar o cliente diretamente pelo client_id
+            response = clients_table.query(
+                IndexName="account_id-client_id-index",  # Certifique-se de ter o índice correto no DynamoDB
+                KeyConditionExpression="account_id = :account_id AND client_id = :client_id",
+                ExpressionAttributeValues={
+                    ":account_id": account_id,
+                    ":client_id": client_id,
+                },
+            )
+            cliente = response.get("Items", [])
+
+            if cliente:
+                print(cliente)
+                return render_template(
+                    "clientes.html", itens=cliente, page=page, total_pages=1
+                )
+
+            else:
+                flash("Cliente não encontrado ou já deletado.", "warning")
+                return redirect(request.referrer)
+
+        # nao tem client_id, entao nao é cliente unico, buscar todo os clientes
+        # 🔸 Buscar todos os clientes do usuário em ordem alfabética
         response = clients_table.query(
             IndexName="account_id-created_at-index",
             KeyConditionExpression="account_id = :account_id",
@@ -268,6 +296,42 @@ def init_client_routes(
                 flash("Erro ao atualizar cliente. Tente novamente.", "danger")
                 return redirect(next_page)
                 # return redirect(request.url)
+
+        # formatar cpf, teleofne e cnpj pra passar pro front exe 25.013.698-24
+        def format_phone(phone):
+            # Se cnpj for None ou vazio, retorna o próprio valor sem formatação
+            if not phone:
+                return phone
+            # Remove todos os caracteres não numéricos
+            phone = re.sub(r"\D", "", phone)
+            # Formata como (XX) XXXXX-XXXX
+            if len(phone) == 11:
+                return f"({phone[:2]}) {phone[2:7]}-{phone[7:]}"
+            return phone
+
+        def format_cpf(cpf):
+            if not cpf:
+                return cpf
+            # Remove todos os caracteres não numéricos
+            cpf = re.sub(r"\D", "", cpf)
+            # Formata como XXX.XXX.XXX-XX
+            if len(cpf) == 11:
+                return f"{cpf[:3]}.{cpf[3:6]}.{cpf[6:9]}-{cpf[9:]}"
+            return cpf
+
+        def format_cnpj(cnpj):
+            if not cnpj:
+                return cnpj
+            # Remove todos os caracteres não numéricos
+            cnpj = re.sub(r"\D", "", cnpj)
+            # Formata como XX.XXX.XXX/0001-XX
+            if len(cnpj) == 14:
+                return f"{cnpj[:2]}.{cnpj[2:5]}.{cnpj[5:8]}/{cnpj[8:12]}-{cnpj[12:]}"
+            return cnpj
+
+        cliente["client_tel"] = format_phone(cliente["client_tel"])
+        cliente["client_cpf"] = format_cpf(cliente["client_cpf"])
+        cliente["client_cnpj"] = format_cnpj(cliente["client_cnpj"])
 
         return render_template("editar_cliente.html", cliente=cliente)
 

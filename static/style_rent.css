@@ -350,3 +350,6 @@ input.form-control {
   .status-message.user-found {
     background-color: #28a745; /* Verde para "Usuário encontrado" */
   }
+  #datepicker {
+    cursor: pointer !important;
+  }

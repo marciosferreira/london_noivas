@@ -195,44 +195,41 @@
         const cnpjInput = document.getElementById('client_cnpj');
         const telInput = document.getElementById('client_tel');
 
-        if (cpfInput) {
-          cpfInput.value = formatCPF(cpfInput.value);
-          cpfInput.addEventListener('input', (e) => (e.target.value = formatCPF(e.target.value)));
+        // Função para formatar o CPF
+        function formatCPF(cpf) {
+          cpf = cpf.replace(/\D/g, ''); // Remove tudo o que não é número
+          if (cpf.length <= 11) {
+            cpf = cpf.replace(/(\d{3})(\d)/, '$1.$2');
+            cpf = cpf.replace(/(\d{3})(\d)/, '$1.$2');
+            cpf = cpf.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+          }
+          return cpf;
         }
 
-        if (cnpjInput) {
-          cnpjInput.value = formatCNPJ(cnpjInput.value);
-          cnpjInput.addEventListener('input', (e) => (e.target.value = formatCNPJ(e.target.value)));
+        // Função para formatar o CNPJ
+        function formatCNPJ(cnpj) {
+          cnpj = cnpj.replace(/\D/g, ''); // Remove tudo o que não é número
+          if (cnpj.length <= 14) {
+            cnpj = cnpj.replace(/^(\d{2})(\d)/, '$1.$2');
+            cnpj = cnpj.replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3');
+            cnpj = cnpj.replace(/\.(\d{3})(\d)/, '.$1/$2');
+            cnpj = cnpj.replace(/(\d{4})(\d)/, '$1-$2');
+          }
+          return cnpj;
         }
 
-        let bloqueiaProximoBlur = false;
-
-        if (telInput) {
-          telInput.value = formatPhone(telInput.value);
-
-          telInput.addEventListener('input', (e) => {
-            e.target.value = formatPhone(e.target.value);
-          });
-
-          telInput.addEventListener('blur', function (e) {
-            if (bloqueiaProximoBlur) {
-              bloqueiaProximoBlur = false;
-              return;
-            }
-
-            const telDigits = e.target.value.replace(/\D/g, '');
-            if (telDigits && telDigits.length !== 11) {
-              // ⚠️ Exibe alerta primeiro, depois prepara o bloqueio para o próximo blur
-              alert('Telefone inválido! O número deve ter 11 dígitos no formato (XX) XXXXX-XXXX.');
-
-              bloqueiaProximoBlur = true;
-              setTimeout(() => {
-                e.target.focus();
-              }, 50);
-            }
-          });
+        // Função para formatar o telefone
+        function formatPhone(phone) {
+          phone = phone.replace(/\D/g, ''); // Remove tudo o que não é número
+          if (phone.length > 11) phone = phone.slice(0, 11); // Limita a 11 dígitos
+          let formatted = '';
+          if (phone.length > 0) formatted += '(' + phone.substring(0, 2);
+          if (phone.length >= 3) formatted += ') ' + phone.substring(2, 7);
+          if (phone.length >= 8) formatted += '-' + phone.substring(7);
+          return formatted;
         }
 
+        // Preenchendo os campos ocultos com valores sem formatação
         const form = document.getElementById('editClientForm');
         if (form) {
           form.addEventListener('submit', function (e) {
@@ -240,14 +237,16 @@
             const cpfFormatted = cpfInput ? cpfInput.value : '';
             const cnpjFormatted = cnpjInput ? cnpjInput.value : '';
 
-            const telDigits = telFormatted.replace(/\D/g, '');
+            const telDigits = telFormatted.replace(/\D/g, ''); // Remove a formatação e pega os dígitos
             const cpfDigits = cpfFormatted.replace(/\D/g, '');
             const cnpjDigits = cnpjFormatted.replace(/\D/g, '');
 
+            // Preenche os campos ocultos com os valores limpos
             document.getElementById('client_tel_digits').value = telDigits;
             document.getElementById('client_cpf_digits').value = cpfDigits;
             document.getElementById('client_cnpj_digits').value = cnpjDigits;
 
+            // Validação dos valores
             if (cpfDigits && !validaCPF(cpfDigits)) {
               e.preventDefault();
               alert('CPF inválido!');

@@ -11,6 +11,7 @@ from flask import (
     session,
     flash,
     jsonify,
+    current_app,
 )
 import json
 
@@ -1721,18 +1722,18 @@ def listar_itens_per_transaction(
 
 
 def list_raw_itens(status_list, template, title, itens_table, transactions_table):
-
     item_id = request.args.get("item_id")
 
     if not session.get("logged_in"):
         return redirect(url_for("login"))
 
     account_id = session.get("account_id")
+
     if not account_id:
         print("Erro: Usuário não autenticado corretamente.")
         return redirect(url_for("login"))
 
-    # Buscar transações relevantes
+    # checa quantos itens o usuario ja tem por motivos d eplano
     total_relevant_transactions = 0
     try:
         response = transactions_table.query(
@@ -1751,6 +1752,49 @@ def list_raw_itens(status_list, template, title, itens_table, transactions_table
     except Exception as e:
         print(f"Erro ao consultar transações: {e}")
 
+    # 🔍 Verificar se item_id foi passado e buscar diretamente no banco
+    if item_id:
+        try:
+            response = itens_table.get_item(Key={"item_id": item_id})
+            item = response.get("Item")
+            print(item)
+
+            if item:
+                # Listar todas as rotas registradas (útil para debug)
+                for rule in current_app.url_map.iter_rules():
+                    print(rule.endpoint, rule.rule)
+                item_status = item.get("status")
+                print("SSSSSSSSSSSS")
+                print(item_status)
+                # Gerar a URL da rota correspondente com segurança
+                with current_app.app_context():
+                    if item_status == "archive":
+                        template = "archive.html"
+                    elif item_status == "available":
+                        template = "inventory.html"
+                    else:
+                        template = "trash_itens.html"
+
+                print(template)
+                return render_template(
+                    template,
+                    itens=[item],
+                    page=1,
+                    total_pages=1,
+                    title=title,
+                )
+            else:
+
+                flash("Item não encontrado ou já deletado.", "warning")
+                return redirect(request.referrer or url_for("inventory"))
+
+        except Exception as e:
+            print(f"Erro ao buscar item por ID: {e}")
+            flash("Erro ao buscar item.", "danger")
+            return redirect(request.referrer or url_for("inventory"))
+
+    # Continua com a lógica normal da função (sem item_id)
+
     # Buscar total de itens com status available ou archive (sem filtros)
     total_items = 0
     for status in ["available", "archive"]:
@@ -1761,63 +1805,6 @@ def list_raw_itens(status_list, template, title, itens_table, transactions_table
             ExpressionAttributeValues={":account_id": account_id, ":status": status},
         )
         total_items += len(response.get("Items", []))
-
-    if item_id:  # qrcode
-        try:
-            response = itens_table.get_item(Key={"item_id": item_id})
-            item = response.get("Item")
-
-            if item and item.get("account_id") == account_id:
-                item_status = item.get("status")
-
-                # Redirecionar para rota adequada com base no status
-                if "inventory" in request.path and item_status == "archive":
-                    return redirect(url_for("archive", item_id=item_id))
-
-                if "archive" in request.path and item_status == "available":
-                    return redirect(url_for("inventory", item_id=item_id))
-
-                # Caso o status esteja coerente com a rota atual, exibir normalmente
-                return render_template(
-                    template,
-                    itens=[item],
-                    page=1,
-                    total_pages=1,
-                    title=title,
-                    add_route=url_for("add_item"),
-                    next_url=request.url,
-                    total_relevant_transactions=total_relevant_transactions,
-                    total_items=total_items,
-                )
-            else:
-                flash(
-                    "Item parece ter sido excluído ou não pertence a sua conta!.",
-                    "warning",
-                )
-                return render_template(
-                    template,
-                    itens=[],
-                    page=1,
-                    total_pages=1,
-                    title=title,
-                    add_route=url_for("add_item"),
-                    next_url=request.url,
-                    total_relevant_transactions=total_relevant_transactions,
-                    total_items=total_items,
-                )
-        except Exception as e:
-            flash(f"Erro ao buscar item por ID: {str(e)}", "danger")
-            return render_template(
-                template,
-                itens=[],
-                page=1,
-                total_pages=1,
-                title=title,
-                add_route=url_for("add_item"),
-                next_url=request.url,
-                total_relevant_transactions=total_relevant_transactions,
-                total_items=total_items,
-            )
 
     # Filtros opcionais
     item_custom_id = request.args.get("item_custom_id")

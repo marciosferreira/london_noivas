@@ -23,29 +23,32 @@
       </div>
       <!-- Tarja de mensagem de status -->
       <div id="client-status-message" class="status-message"></div>
+      <input type="hidden" name="client_id" id="client_id" />
+      <label for="client_tel">Telefone do Cliente:</label>
+      <input type="tel" id="client_tel" name="client_tel" class="form-control" placeholder="(xx) xxxxx-xxxx" required />
+
+      <label for="client_email">E-mail do Cliente:</label>
+      <input type="email" id="client_email" name="client_email" class="form-control" placeholder="cliente@email.com" />
+
+      <label for="client_cpf">CPF:</label>
+      <input type="text" id="client_cpf" name="client_cpf" maxlength="14" placeholder="000.000.000-00" class="form-control" />
+      <label for="client_cnpj">CNPJ:</label>
+      <input type="text" id="client_cnpj" name="client_cnpj" maxlength="18" placeholder="00.000.000/0000-00" class="form-control" />
+      <label for="client_address">Endereço do Cliente:</label>
+      <input type="text" id="client_address" name="client_address" class="form-control" placeholder="Rua Exemplo, 123 - Bairro - Cidade" />
+
+      <label for="client_obs">Observações do Cliente:</label>
+      <textarea id="client_obs" name="client_obs" class="form-control" rows="2" placeholder="Observações relevantes sobre o cliente..."></textarea>
+
+      <input type="hidden" id="client_tel_digits" name="client_tel_digits" />
+      <input type="hidden" id="client_cpf_digits" name="client_cpf_digits" />
+      <input type="hidden" id="client_cnpj_digits" name="client_cnpj_digits" />
+
+
+
     </div>
 
     <br />
-    <input type="hidden" name="client_id" id="client_id" />
-    <label for="client_tel">Telefone do Cliente:</label>
-    <input type="tel" id="client_tel" name="client_tel" class="form-control" placeholder="(xx) xxxxx-xxxx" required />
-
-    <label for="client_email">E-mail do Cliente:</label>
-    <input type="email" id="client_email" name="client_email" class="form-control" placeholder="cliente@email.com" />
-
-    <label for="client_cpf">CPF:</label>
-    <input type="text" id="client_cpf" name="client_cpf" maxlength="14" placeholder="000.000.000-00" class="form-control" />
-    <label for="client_cnpj">CNPJ:</label>
-    <input type="text" id="client_cnpj" name="client_cnpj" maxlength="18" placeholder="00.000.000/0000-00" class="form-control" />
-    <label for="client_address">Endereço do Cliente:</label>
-    <input type="text" id="client_address" name="client_address" class="form-control" placeholder="Rua Exemplo, 123 - Bairro - Cidade" />
-
-    <label for="client_obs">Observações do Cliente:</label>
-    <textarea id="client_obs" name="client_obs" class="form-control" rows="2" placeholder="Observações relevantes sobre o cliente..."></textarea>
-
-    <input type="hidden" id="client_tel_digits" name="client_tel_digits" />
-    <input type="hidden" id="client_cpf_digits" name="client_cpf_digits" />
-    <input type="hidden" id="client_cnpj_digits" name="client_cnpj_digits" />
 
     <div id="tab-transacao" class="tab-content">
       <label for="transaction_status">Status da Transação:</label>
