@@ -6,8 +6,8 @@
 {% if itens == [] %}
 <div
   style="
-    background-color: #e7f1ff;
-    border: 1px solid #308ce4;
+    background-color: rgba(255, 193, 7, 0.3);
+    border: 1px solid #ffc107;
     padding: 1rem;
     border-radius: 0.5rem;
     display: flex;
@@ -16,7 +16,7 @@
     margin-bottom: 1rem;
   "
 >
-  <span style="color: #0c4f91; font-weight: 500">Você ainda não tem transações, que tal criar a primeira?</span>
+  <span style="color: #664d03; font-weight: 500">Você ainda não tem transações, que tal criar a primeira?</span>
   <a href="{{ url_for('inventory') }}" class="btn btn-primary btn-sm">Criar</a>
 </div>
 {% endif %}

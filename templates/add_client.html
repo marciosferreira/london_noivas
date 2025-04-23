@@ -1,60 +1,72 @@
 {% extends "base.html" %} {% block title %}Adicionar Cliente{% endblock %} {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='style_add_client.css') }}" />
 {% endblock %} {% block content %}
-<div class="form-container">
-  <h1>Novo Cliente</h1>
-  <a href="{{ request.args.get('next', url_for('listar_clientes')) }}" class="cancel-link">Cancelar</a>
+<body>
+  <div class="page-wrapper">
+    <div class="form-container">
+      <h1>Novo Cliente</h1>
+      <a href="{{ request.args.get('next', url_for('listar_clientes')) }}" class="cancel-link">Cancelar</a>
 
-  <form method="POST" id="clientForm">
-    <label for="client_name">Nome:</label>
-    <input type="text" id="client_name" name="client_name" class="form-control" required />
+      <form method="POST" id="clientForm">
+        <label for="client_name">Nome:</label>
+        <div class="position-relative">
+          <input type="text" id="client_name" name="client_name" class="form-control" autocomplete="off" required />
+          <div id="client-suggestions-title" class="suggestions-title" style="display: none">Clientes encontrados:</div>
+          <div id="client_suggestions" class="autocomplete-suggestions"></div>
+        </div>
+        <div id="client-status-message" class="status-message mt-2"></div>
 
-    <label for="client_tel">Telefone:</label>
-    <input type="tel" id="client_tel" name="client_tel" class="form-control" placeholder="(xx) xxxxx-xxxx" data-only-digits="true" />
+        <br />
 
-    <label for="client_email">E-mail:</label>
-    <input type="email" id="client_email" name="client_email" class="form-control" placeholder="exemplo@email.com" />
+        <label for="client_tel">Telefone:</label>
+        <input type="tel" id="client_tel" name="client_tel" class="form-control" placeholder="(xx) xxxxx-xxxx" data-only-digits="true" />
 
-    <label for="client_address">Endereço:</label>
-    <input type="text" id="client_address" name="client_address" class="form-control" />
+        <label for="client_email">E-mail:</label>
+        <input type="email" id="client_email" name="client_email" class="form-control" placeholder="exemplo@email.com" />
 
-    <label for="client_cpf">CPF:</label>
-    <input
-      type="text"
-      id="client_cpf"
-      name="client_cpf"
-      maxlength="14"
-      placeholder="000.000.000-00"
-      class="form-control"
-      data-only-digits="true"
-      data-mask="cpf"
-    />
+        <label for="client_address">Endereço:</label>
+        <input type="text" id="client_address" name="client_address" class="form-control" />
 
-    <label for="client_cnpj">CNPJ:</label>
-    <input
-      type="text"
-      id="client_cnpj"
-      name="client_cnpj"
-      maxlength="18"
-      placeholder="00.000.000/0000-00"
-      class="form-control"
-      data-only-digits="true"
-      data-mask="cnpj"
-    />
+        <label for="client_cpf">CPF:</label>
+        <input
+          type="text"
+          id="client_cpf"
+          name="client_cpf"
+          maxlength="14"
+          placeholder="000.000.000-00"
+          class="form-control"
+          data-only-digits="true"
+          data-mask="cpf"
+        />
 
-    <label for="client_obs">Observações do cliente:</label>
-    <input type="text" id="client_obs" name="client_obs" class="form-control" />
+        <label for="client_cnpj">CNPJ:</label>
+        <input
+          type="text"
+          id="client_cnpj"
+          name="client_cnpj"
+          maxlength="18"
+          placeholder="00.000.000/0000-00"
+          class="form-control"
+          data-only-digits="true"
+          data-mask="cnpj"
+        />
 
-    <!-- Campo oculto para telefone -->
-    <input type="hidden" id="client_tel_digits" name="client_tel_digits" />
-    <!-- Campo oculto para CPF -->
-    <input type="hidden" id="client_cpf_digits" name="client_cpf_digits" />
-    <!-- Campo oculto para CNPJ -->
-    <input type="hidden" id="client_cnpj_digits" name="client_cnpj_digits" />
+        <label for="client_obs">Observações do cliente:</label>
+        <input type="text" id="client_obs" name="client_obs" class="form-control" />
 
-    <button type="submit">Salvar</button>
-  </form>
-</div>
+        <!-- Campo oculto para telefone -->
+        <input type="hidden" id="client_tel_digits" name="client_tel_digits" />
+        <!-- Campo oculto para CPF -->
+        <input type="hidden" id="client_cpf_digits" name="client_cpf_digits" />
+        <!-- Campo oculto para CNPJ -->
+        <input type="hidden" id="client_cnpj_digits" name="client_cnpj_digits" />
+
+        <button type="submit">Salvar</button>
+      </form>
+    </div>
+  </div>
+</body>
+
 {% endblock %} {% block scripts %}
 <script>
   // Função para aplicar máscara ao CPF
@@ -189,4 +201,74 @@
     e.target.value = formatted;
   });
 </script>
+
+<script>
+  function autocompleteClienteRedirect() {
+    const clientInput = document.getElementById('client_name');
+    const statusMessage = document.getElementById('client-status-message');
+    const suggestionsBox = document.getElementById('client_suggestions');
+    const titleBox = document.getElementById('client-suggestions-title'); // ⬅️ fora do loop!
+
+    let suggestionClicked = false;
+
+    if (!clientInput || !statusMessage || !suggestionsBox || !titleBox) return;
+
+    clientInput.addEventListener('input', async () => {
+      suggestionClicked = false;
+      const term = clientInput.value.trim();
+
+      suggestionsBox.innerHTML = '';
+      titleBox.style.display = 'none';
+      statusMessage.style.display = 'none';
+
+      if (term.length < 1) return;
+
+      try {
+        const res = await fetch(`/autocomplete_clients?term=${encodeURIComponent(term)}`);
+        const clients = await res.json();
+
+        if (clients.length === 0) return;
+
+        // 🟡 Mostrar "Clientes encontrados:"
+        titleBox.style.display = 'block';
+
+        clients.forEach((client) => {
+          const div = document.createElement('div');
+          div.className = 'autocomplete-item';
+          div.innerHTML = `<strong>${client.client_name}</strong>
+            ${client.client_tel ? `<div><small>📞 ${client.client_tel}</small></div>` : ''}`;
+          div.addEventListener('click', () => {
+            suggestionClicked = true;
+            window.location.href = `/editar_cliente/${client.client_id}`;
+          });
+          suggestionsBox.appendChild(div);
+        });
+      } catch (err) {
+        console.error('Erro no autocomplete:', err);
+      }
+    });
+
+    clientInput.addEventListener('blur', () => {
+      setTimeout(() => {
+        if (!suggestionClicked && clientInput.value.trim().length > 0) {
+          suggestionsBox.innerHTML = '';
+          titleBox.style.display = 'none';
+          statusMessage.className = 'status-message user-new';
+          statusMessage.innerHTML = 'Novo cliente será criado.';
+          statusMessage.style.display = 'block';
+        }
+      }, 200);
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!clientInput.contains(e.target) && !suggestionsBox.contains(e.target)) {
+        suggestionsBox.innerHTML = '';
+        titleBox.style.display = 'none';
+      }
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', autocompleteClienteRedirect);
+</script>
+
 {% endblock %}

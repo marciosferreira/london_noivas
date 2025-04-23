@@ -9,7 +9,7 @@ body {
 
 /* Centraliza o formulário com espaço do topo */
 .form-container {
-  margin: 100px auto 50px; /* Espaço de 100px no topo, 50px no fundo */
+  margin: 0px auto 50px; /* Espaço de 100px no topo, 50px no fundo */
 }
 
 /* Contêiner do Formulário */

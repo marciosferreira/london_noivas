@@ -5,9 +5,6 @@ body {
   padding: 0;
   background: linear-gradient(120deg, #dce3ea 0%, #edf2f7 100%);
   min-height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
 }
 
 /* Container do formulário */
@@ -19,6 +16,7 @@ body {
   border-radius: 10px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
   text-align: center;
+  margin: 0px auto 50px;
 }
 
 /* Título */
@@ -84,6 +82,83 @@ button[type='submit'] {
   border-radius: 5px;
   cursor: pointer;
 }
+button[type='submit']:hover {
+  background-color: #218838;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  background: linear-gradient(120deg, #dce3ea 0%, #edf2f7 100%);
+  min-height: 100vh;
+}
+
+/* Centraliza o formulário com espaçamento do topo */
+.form-container {
+  background-color: #ffffff;
+  width: 90%;
+  max-width: 400px;
+  margin: 0px auto 50px;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+/* Título do formulário */
+.form-container h1 {
+  font-size: 24px;
+  color: #343a40;
+  margin-bottom: 20px;
+}
+
+/* Botão cancelar */
+.cancel-link {
+  display: inline-block;
+  font-size: 14px;
+  color: #dc3545;
+  text-decoration: none;
+  margin-bottom: 20px;
+}
+
+.cancel-link:hover {
+  text-decoration: underline;
+}
+
+/* Inputs */
+input[type='text'],
+input[type='tel'],
+input[type='email'],
+textarea {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 15px;
+  font-size: 14px;
+  border: 1px solid #ced4da;
+  border-radius: 5px;
+  box-sizing: border-box;
+}
+
+input:focus,
+textarea:focus {
+  outline: none;
+  border-color: #80bdff;
+  box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+}
+
+/* Botão de envio */
+button[type='submit'] {
+  background-color: #28a745;
+  color: #fff;
+  border: none;
+  padding: 12px 20px;
+  font-size: 16px;
+  border-radius: 5px;
+  cursor: pointer;
+  width: 100%;
+}
+
 button[type='submit']:hover {
   background-color: #218838;
 }

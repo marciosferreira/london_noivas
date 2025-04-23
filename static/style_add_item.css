@@ -7,6 +7,10 @@ body {
   min-height: 100vh;
 }
 
+body {
+  padding-top: 10px;
+}
+
 .form-container {
   background-color: #ffffff;
   width: 90%;
@@ -14,7 +18,7 @@ body {
   padding: 20px;
   border-radius: 10px;
   box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
-  margin: 80px auto; /* 🔥 Isso vai centralizar horizontalmente e dar respiro no topo */
+  margin: 0px auto; /* 🔥 Isso vai centralizar horizontalmente e dar respiro no topo */
   text-align: left;
 }
 
@@ -24,7 +28,7 @@ body {
   text-align: center;
   color: #343a40; /* Cinza escuro */
   margin-bottom: 20px;
-  margin: 60px auto; /* Centraliza no viewport */
+  margin: 20px auto; /* Centraliza no viewport */
 }
 
 /* Links de cancelar */
