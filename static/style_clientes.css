@@ -115,3 +115,11 @@ td {
   overflow: visible !important;
   position: relative; /* Isso ajuda a garantir que o dropdown se expanda fora da tabela */
 }
+
+.icon-customer {
+  width: 50px;
+  height: 50px;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto;
+}

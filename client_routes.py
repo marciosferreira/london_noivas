@@ -189,6 +189,8 @@ def init_client_routes(
         if not session.get("logged_in"):
             return redirect(url_for("login"))
 
+        print("---- FORM DATA ----")
+        print(request.form.to_dict())  # Campos do formulário
         next_page = request.args.get("next", url_for("index"))
 
         response = clients_table.get_item(Key={"client_id": client_id})
@@ -329,9 +331,17 @@ def init_client_routes(
                 return f"{cnpj[:2]}.{cnpj[2:5]}.{cnpj[5:8]}/{cnpj[8:12]}-{cnpj[12:]}"
             return cnpj
 
-        cliente["client_tel"] = format_phone(cliente["client_tel"])
-        cliente["client_cpf"] = format_cpf(cliente["client_cpf"])
-        cliente["client_cnpj"] = format_cnpj(cliente["client_cnpj"])
+        print("CCCCCCCCCC")
+        print(cliente)
+
+        if "client_tel" in cliente:
+            cliente["client_tel"] = format_phone(cliente["client_tel"])
+
+        if "client_cpf" in cliente:
+            cliente["client_cpf"] = format_cpf(cliente["client_cpf"])
+
+        if "client_cnpj" in cliente:
+            cliente["client_cnpj"] = format_cnpj(cliente["client_cnpj"])
 
         return render_template("editar_cliente.html", cliente=cliente)
 

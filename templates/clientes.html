@@ -1,4 +1,6 @@
-{% extends "base.html" %} {% block title %}Clientes{% endblock %} {% block styles %} {% endblock %} {% block content %}
+{% extends "base.html" %} {% block title %}Clientes{% endblock %}{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='style_clientes.css') }}" />
+{% endblock %} {% block content %}
 
 <div class="container my-3">
   <h2 class="mb-4">Clientes cadastrados</h2>
@@ -12,6 +14,7 @@
       <table class="table table-hover responsive-table align-middle rounded-table">
         <thead>
           <tr>
+            <th></th>
             <th>Nome</th>
             <th>Criado em</th>
             <th>Telefone</th>
@@ -23,30 +26,37 @@
         </thead>
         <tbody>
           {% if itens %} {% for item in itens %}
-
           <tr>
-            <!-- prettier-ignore -->
-            <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Cliente">
-            {{ item.client_name | default('', true) | truncate(10, True) }}
-          </td>
-            <!-- prettier-ignore -->
-            <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Criado em">{{ item.created_at | format_brasil_data }}</td>
-            <!-- prettier-ignore -->
-            <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Telefone">{{ item.client_tel | format_telefone}}</td>
+            <td>
+              <img src="{{ url_for('static', filename='icons/user-icon.png') }}" alt="Ícone Cliente" class="icon-customer" />
+            </td>
 
-            <!-- prettier-ignore -->
+            <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Cliente">
+              {{ item.client_name | default('', true) | truncate(10, True) }}
+            </td>
+
+            <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Criado em">
+              {{ item.created_at | format_brasil_data }}
+            </td>
+
+            <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Telefone">
+              {{ item.client_tel | format_telefone }}
+            </td>
+
             <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Observações">
-            {{ item.client_obs | default('', true) | truncate(15, True) }}
-          </td>
+              {{ item.client_obs | default('', true) | truncate(15, True) }}
+            </td>
 
             <td data-label="Ações">
               <div class="d-flex flex-wrap gap-2 justify-content-center align-items-center">
-                {% set show_delete_client = True %} {% set show_edit_client = True %} {% set show_client_transactions = True %} {% include
-                'components/action_buttons.html' with context %}
+                {% set show_delete_client = True %}
+                {% set show_edit_client = True %}
+                {% set show_client_transactions = True %}
+                {% include 'components/action_buttons.html' with context %}
               </div>
-
             </td>
           </tr>
+
           {% endfor %} {% else %}
           <div class="alert alert-warning">Nenhum cliente encontrado.</div>
           {% endif %}

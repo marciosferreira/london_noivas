@@ -268,7 +268,9 @@
 }
 
 .modal-body img {
-  width: 100%; /* Imagem ocupa 100% do tamanho do modal */
-  height: auto; /* Mantém a proporção da imagem */
-  object-fit: contain; /* Faz a imagem se ajustar sem distorcer */
+  max-width: 100%; /* Não ultrapassa o tamanho do modal */
+  height: auto; /* Mantém proporção */
+  object-fit: contain; /* Segurança extra para evitar cortes */
+  display: block; /* Remove espaçamentos indesejados abaixo da imagem */
+  margin: 0 auto; /* Centraliza horizontalmente */
 }

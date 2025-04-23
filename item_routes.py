@@ -745,8 +745,8 @@ def init_item_routes(
         item = response.get("Item")
 
         if not item:
-            flash("Item não encontrado.", "danger")
-            return redirect(url_for("inventory"))
+            flash("Item não encontrado ou já deletado.", "danger")
+            return redirect(request.referrer or url_for("inventory"))
 
         response = transactions_table.query(
             IndexName="item_id-index",
