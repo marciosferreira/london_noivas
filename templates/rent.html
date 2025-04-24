@@ -159,7 +159,7 @@
             suggestionSelected = true; // Marca que uma sugestão foi selecionada
             suggestionsBox.innerHTML = ""; // Limpa as sugestões após a seleção
             statusMessage.className = 'status-message user-found'; // Exibe como "Usuário encontrado"
-            statusMessage.innerHTML = 'Usuário encontrado';
+            statusMessage.innerHTML = 'Cliente encontrado';
             statusMessage.style.display = 'block'; // Exibe a faixa de status
           });
 
@@ -172,11 +172,11 @@
         // Atualiza a faixa de status conforme o valor inserido
         if (exactMatch) {
           statusMessage.className = 'status-message user-found';
-          statusMessage.innerHTML = 'Usuário encontrado';
+          statusMessage.innerHTML = 'Cliente encontrado';
           statusMessage.style.display = 'block';
         } else {
           statusMessage.className = 'status-message user-new';
-          statusMessage.innerHTML = 'Usuário novo';
+          statusMessage.innerHTML = 'Cliente novo';
           statusMessage.style.display = 'block';
         }
 

@@ -55,12 +55,12 @@
     <div class="container mt-4">
       <div class="usage-info text-center p-3 rounded shadow-sm">
         <div>
-          Transações:
+          Transações ativas:
           <strong>{{ total_relevant_transactions }}</strong>
           de 30 grátis.
         </div>
         <div>
-          Itens:
+          Itens cadastrados:
           <strong>{{ total_items }}</strong>
           de 50 grátis.
         </div>
@@ -133,7 +133,7 @@
     const totalTransactions = {{ total_relevant_transactions if total_relevant_transactions is not none else 0 | tojson }};
 
     if (totalTransactions >= 30) {
-      alert("O limite de transações simultâneas foi atingido. Entre em contato conosco.");
+      alert("O limite de transações ativas foi atingido. Entre em contato conosco.");
       event.preventDefault();
       return false;
     }

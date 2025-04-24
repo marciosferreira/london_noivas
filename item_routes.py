@@ -1746,7 +1746,7 @@ def list_raw_itens(status_list, template, title, itens_table, transactions_table
         total_relevant_transactions = sum(
             1
             for txn in transactions
-            if txn.get("transaction_status") in ["rented", "returned", "reserved"]
+            if txn.get("transaction_status") in ["rented", "reserved"]
         )
 
     except Exception as e:

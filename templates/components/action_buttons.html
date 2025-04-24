@@ -10,7 +10,7 @@
         href="{{ url_for('rent', item_id=item.item_id, rent='true') }}"
         onclick="return checkTransactionLimit(event);"
       >
-        Reservar/Retirar
+        Iniciar transação
       </a>
     </li>
     {% endif %} {% if show_mark_rented %}
@@ -204,7 +204,7 @@
     Crie uma transação abrindo o menu
     <strong>"Ações"</strong>
     e depois
-    <strong>"Reservar/Retirar"</strong>
+    <strong>"Iniciar transação"</strong>
     .
   </div>
   {% endif %}
