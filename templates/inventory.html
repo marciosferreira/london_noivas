@@ -3,7 +3,10 @@
 {% endblock %} {% block content %}
 <div class="container mt-3">
   <h2 class="mb-4">Inventário de itens</h2>
-  {% set show_add_item = True %} {% set show_item_filter = True %}{% include 'components/item_filter_section.html' %} {% if itens %}
+
+  {% if last_page == False and not itens%}
+  <p style="color: #308be3; font-weight: bold; font-size: 1.2rem; margin-top: -1rem; margin-left: 0.25rem">Nada por aqui!</p>
+  {% endif %} {% set show_add_item = True %} {% set show_item_filter = True %}{% include 'components/item_filter_section.html' %} {% if itens %}
   <!-- Tabela (que vira "cards" no mobile) -->
   <div class="table-container mt-4">
     <table class="table table-hover responsive-table align-middle rounded-table">
@@ -64,14 +67,30 @@
     </div>
   </div>
 
-  {% else %}
-  <br />
-  <p style="color: #308be3; font-weight: bold; font-size: 1.2rem; margin-top: -1rem; margin-left: 0.25rem">Nada por aqui ainda!</p>
   {% endif %}
 
   <!-- Paginação -->
-  {% set route_name = 'inventory' %} {% include 'components/pagination.html' with context %}
+  <!-- Paginação -->
+  <div class="d-flex justify-content-center mt-4">
+    <nav class="text-center">
+      <ul class="pagination">
+        <!-- Botão voltar -->
+        <li class="page-item {% if current_page == 1 %}disabled{% endif %}">
+          <a class="page-link" href="{% if current_page > 1 %}?direction=prev{% else %}#{% endif %}">←</a>
+        </li>
 
+        <!-- Página atual -->
+        <li class="page-item disabled">
+          <span class="page-link">Página {{ current_page }}</span>
+        </li>
+
+        <!-- Botão próximo -->
+        <li class="page-item {% if not next_cursor %}disabled{% endif %}">
+          <a class="page-link" href="{% if next_cursor %}?cursor={{ next_cursor }}&direction=next{% else %}#{% endif %}">→</a>
+        </li>
+      </ul>
+    </nav>
+  </div>
   <div style="height: 3rem"></div>
 </div>
 
@@ -131,4 +150,59 @@
     return true;
   }
 </script>
+
+<script>
+  const nextCursor = '{{ next_cursor }}';
+  const urlParams = new URLSearchParams(window.location.search);
+  const currentCursor = urlParams.get('cursor');
+
+  const paginacaoUl = document.getElementById('paginacao-numerada');
+  paginacaoUl.innerHTML = '';
+
+  // ← Botão Voltar
+  const liPrev = document.createElement('li');
+  liPrev.className = 'page-item' + (!currentCursor ? ' disabled' : '');
+  const aPrev = document.createElement('a');
+  aPrev.className = 'page-link';
+  aPrev.href = '#';
+  aPrev.innerText = '←';
+  aPrev.onclick = (e) => {
+    e.preventDefault();
+    const params = new URLSearchParams(window.location.search);
+    params.set('direction', 'prev');
+    params.delete('cursor'); // Remove o cursor para voltar
+    window.location.href = window.location.pathname + '?' + params.toString();
+  };
+  liPrev.appendChild(aPrev);
+  paginacaoUl.appendChild(liPrev);
+
+  // Página atual
+  const liPage = document.createElement('li');
+  liPage.className = 'page-item disabled';
+  const spanPage = document.createElement('span');
+  spanPage.className = 'page-link';
+  spanPage.textContent = `Página {{ current_page }}`;
+  liPage.appendChild(spanPage);
+  paginacaoUl.appendChild(liPage);
+
+  // → Botão Próxima
+  const liNext = document.createElement('li');
+  const aNext = document.createElement('a');
+  aNext.className = 'page-link';
+  aNext.href = '#';
+  aNext.innerText = '→';
+  aNext.onclick = (e) => {
+    e.preventDefault();
+    const params = new URLSearchParams(window.location.search);
+    if (nextCursor && nextCursor !== 'None') {
+      params.set('cursor', nextCursor);
+      params.set('direction', 'next');
+      window.location.href = window.location.pathname + '?' + params.toString();
+    }
+  };
+  liNext.className = 'page-item' + (nextCursor ? '' : ' disabled');
+  liNext.appendChild(aNext);
+  paginacaoUl.appendChild(liNext);
+</script>
+
 {% endblock %}

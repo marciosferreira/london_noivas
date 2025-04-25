@@ -6,7 +6,7 @@
 
     <!-- Botão de Filtros -->
     <a href="#" class="btn btn-outline-secondary" id="filter-toggle" onclick="toggleFilters(event)">Filtros</a>
-    {% endif %} {% if show_add_item %} {% if itens == [] %}
+    {% endif %} {% if show_add_item %} {% if itens == [] and not request.args %}
     <!-- Botão com tooltip -->
     <div style="position: relative; display: inline-block">
       <a href="#" class="btn btn-primary" id="add-item-btn" data-add-url="{{ add_route }}?next={{ request.url }}">Adicionar item</a>
