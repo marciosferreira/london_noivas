@@ -163,7 +163,7 @@
     {% endif %}
   </ul>
 
-  {% if total_relevant_transactions == 0 %}
+  {% if total_relevant_transactions == 0 and itens|length == 1 %}
   <div
     class="tour-tooltip"
     style="

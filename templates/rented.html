@@ -3,8 +3,24 @@
 {% endblock %} {% block content %}
 <div class="container mt-3">
   <h2 class="mb-4">{{ title }}</h2>
-
-  {% if itens %} {% include "components/filter_section.html" with context %}
+  {% if last_page == False and not itens%}
+  <p style="color: #308be3; font-weight: bold; font-size: 1.2rem; margin-top: -1rem; margin-left: 0.25rem">Nada por aqui!</p>
+  {% endif %} {% if last_page %}
+  <div
+    style="
+      display: flex;
+      align-items: center;
+      background-color: #cce5ff;
+      border-left: 6px solid #007bff; /* Tarja azul à esquerda */
+      color: #004085;
+      padding: 1rem;
+      border-radius: 0.25rem;
+      margin-top: 1rem;
+    "
+  >
+    <span>Não há mais itens que satisfazem os cirtérios selecionados.</span>
+  </div>
+  {% endif %} {% if request.args or itens %} {% include "components/filter_section.html" with context %}{% endif %} {% if itens %}
 
   <!-- Tabela -->
   <div class="table-container mt-4">
@@ -79,15 +95,33 @@
     </table>
   </div>
 
-  {% else %}
-
-  <p style="color: #308be3; font-weight: bold; font-size: 1.2rem; margin-top: -1rem; margin-left: 0.25rem">Nada por aqui ainda!</p>
-
-  {% endif %}
+  {% else %} {% endif %}
 
   <!-- Paginação -->
-  {% set route_name = 'rented' %} {% include 'components/pagination.html' with context %}
+  {% set route_name = 'rented' %} {% if current_page != 1 or itens_count > 0 %}
 
+  <!-- Paginação -->
+  <div class="d-flex justify-content-center mt-4">
+    <nav class="text-center">
+      <ul class="pagination">
+        <!-- Botão voltar -->
+        <li class="page-item {% if current_page == 1 %}disabled{% endif %}">
+          <a class="page-link" href="{% if current_page > 1 %}?direction=prev{% else %}#{% endif %}">←</a>
+        </li>
+
+        <!-- Página atual -->
+        <li class="page-item disabled">
+          <span class="page-link">Página {{ current_page }}</span>
+        </li>
+
+        <!-- Botão próximo -->
+        <li class="page-item {% if not next_cursor %}disabled{% endif %}">
+          <a class="page-link" href="{% if next_cursor %}?cursor={{ next_cursor }}&direction=next{% else %}#{% endif %}">→</a>
+        </li>
+      </ul>
+    </nav>
+  </div>
+  {% endif %}
   <!-- Modals -->
   {% include 'components/info_modal_transaction.html' %} {% include 'components/image_modal.html' %}
 </div>
@@ -180,6 +214,60 @@
         console.error(error);
       });
   }
+</script>
+
+<script>
+  const nextCursor = '{{ next_cursor }}';
+  const urlParams = new URLSearchParams(window.location.search);
+  const currentCursor = urlParams.get('cursor');
+
+  const paginacaoUl = document.getElementById('paginacao-numerada');
+  paginacaoUl.innerHTML = '';
+
+  // ← Botão Voltar
+  const liPrev = document.createElement('li');
+  liPrev.className = 'page-item' + (!currentCursor ? ' disabled' : '');
+  const aPrev = document.createElement('a');
+  aPrev.className = 'page-link';
+  aPrev.href = '#';
+  aPrev.innerText = '←';
+  aPrev.onclick = (e) => {
+    e.preventDefault();
+    const params = new URLSearchParams(window.location.search);
+    params.set('direction', 'prev');
+    params.delete('cursor'); // Remove o cursor para voltar
+    window.location.href = window.location.pathname + '?' + params.toString();
+  };
+  liPrev.appendChild(aPrev);
+  paginacaoUl.appendChild(liPrev);
+
+  // Página atual
+  const liPage = document.createElement('li');
+  liPage.className = 'page-item disabled';
+  const spanPage = document.createElement('span');
+  spanPage.className = 'page-link';
+  spanPage.textContent = `Página {{ current_page }}`;
+  liPage.appendChild(spanPage);
+  paginacaoUl.appendChild(liPage);
+
+  // → Botão Próxima
+  const liNext = document.createElement('li');
+  const aNext = document.createElement('a');
+  aNext.className = 'page-link';
+  aNext.href = '#';
+  aNext.innerText = '→';
+  aNext.onclick = (e) => {
+    e.preventDefault();
+    const params = new URLSearchParams(window.location.search);
+    if (nextCursor && nextCursor !== 'None') {
+      params.set('cursor', nextCursor);
+      params.set('direction', 'next');
+      window.location.href = window.location.pathname + '?' + params.toString();
+    }
+  };
+  liNext.className = 'page-item' + (nextCursor ? '' : ' disabled');
+  liNext.appendChild(aNext);
+  paginacaoUl.appendChild(liNext);
 </script>
 
 {% endblock %}

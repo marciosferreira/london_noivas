@@ -1,17 +1,21 @@
+<link rel="stylesheet" href="{{ url_for('static', filename='style_filters.css') }}">
+
+
+
 <!-- Cliente Filter Section Component -->
 <div class="d-flex justify-content-between align-items-center mb-0">
 
 <!-- Container dos botões -->
 <div class="d-flex flex-wrap gap-2 align-items-center justify-content-end w-100 w-sm-auto">
 
-  {%if clientes %}
+  {%if itens %}
   <!-- Botão de Filtros -->
-  <a href="#" class="btn btn-primary" id="filter-toggle" onclick="toggleFilters(event)">Filtros</a>
+  <a href="#" class="btn btn-outline-secondary" id="filter-toggle" onclick="toggleFilters(event)">Filtros</a>
   {% endif %}
 
   {% if show_add_button %}
   <!-- Botão de Adicionar -->
-  <a href="{{  url_for('adicionar_cliente') }}" class="btn btn-primary">Adicionar</a>
+  <a href="{{  url_for('adicionar_cliente') }}" class="btn btn-primary">Adicionar Cliente</a>
   {% endif %}
 </div>
 </div>

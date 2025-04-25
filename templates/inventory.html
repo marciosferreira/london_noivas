@@ -1,11 +1,9 @@
 {% extends "base.html" %} {% block title %}Itens Disponíveis{% endblock %} {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='style_inventory.css') }}" />
-
 {% endblock %} {% block content %}
 <div class="container mt-3">
   <h2 class="mb-4">Inventário de itens</h2>
-  {% set show_add_button = True %} {% set add_route = url_for('add_item') %} {% include 'components/item_filter_section.html' %} {% if itens %}
-
+  {% set show_add_item = True %} {% set show_item_filter = True %}{% include 'components/item_filter_section.html' %} {% if itens %}
   <!-- Tabela (que vira "cards" no mobile) -->
   <div class="table-container mt-4">
     <table class="table table-hover responsive-table align-middle rounded-table">
@@ -24,7 +22,7 @@
         <tr>
           <td data-label="Imagem">
             {% if item.image_url and item.image_url != "N/A" %}
-            <img src="{{ item.image_url }}" alt="Imagem do vestido" class="img-fluid item-thumbnail" style="max-width: 100px" />
+            <img src="{{ item.image_url }}" alt="Imagem do item" class="img-fluid item-thumbnail" style="max-width: 100px" />
             {% else %}
             <img
               src="{{ url_for('static', filename='item-placeholder.png') }}"
@@ -35,20 +33,18 @@
             {% endif %}
           </td>
           <td data-label="Item ID#">{{ '' if item.item_custom_id == 'None' else item.item_custom_id or '' }}</td>
-
           <td data-label="Descrição" style="white-space: pre-wrap; text-align: left">{{ item.description }}</td>
           <td data-label="Valor">{{ item.valor }}</td>
           <td data-label="Comentários">{{ '' if item.item_obs == 'None' else item.item_obs or '' }}</td>
           <td data-label="Ações">
             <div class="d-flex flex-wrap gap-2 justify-content-center align-items-center">
               {% set show_delete_item = True %} {% set show_edit_item = True %} {% set show_rent = True %} {% set show_archive = True %} {% set
-              show_consult = True %} {% set show_qrcode = True %} {% set show_share = True %} {% set show_item_transactions = True %}{% include
+              show_consult = True %} {% set show_qrcode = True %} {% set show_share = True %} {% set show_item_transactions = True %} {% include
               'components/action_buttons.html' with context %}
             </div>
           </td>
-
-          {% endfor %}
         </tr>
+        {% endfor %}
       </tbody>
     </table>
 
@@ -71,18 +67,16 @@
   {% else %}
   <br />
   <p style="color: #308be3; font-weight: bold; font-size: 1.2rem; margin-top: -1rem; margin-left: 0.25rem">Nada por aqui ainda!</p>
-
   {% endif %}
 
   <!-- Paginação -->
   {% set route_name = 'inventory' %} {% include 'components/pagination.html' with context %}
+
   <div style="height: 3rem"></div>
 </div>
 
 <!-- MODAL para imagem -->
 {% include 'components/image_modal.html' %} {% endblock %} {% block scripts %}
-<!-- Image modal script is included in the image_modal component -->
-
 <!-- Modal do calendário -->
 <div class="modal fade" id="calendarModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered" style="max-width: 400px">
@@ -113,25 +107,22 @@
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.umd.min.js"></script>
-
 <script>
   function iniciarDatePicker() {
     const picker = new easepick.create({
       element: document.getElementById('datepicker'),
       css: ['https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.css'],
-      inline: true, // <- chave mágica
-      container: document.getElementById('calendar-container'), // <- onde ele vai aparecer
+      inline: true,
+      container: document.getElementById('calendar-container'),
     });
 
-    picker.show(); // já abre o calendário ao carregar
+    picker.show();
   }
 </script>
 
 <script>
   function checkTransactionLimit(event) {
-    // Verifica se a variável total_relevant_transactions existe
     const totalTransactions = {{ total_relevant_transactions if total_relevant_transactions is not none else 0 | tojson }};
-
     if (totalTransactions >= 30) {
       alert("O limite de transações ativas foi atingido. Entre em contato conosco.");
       event.preventDefault();
@@ -140,5 +131,4 @@
     return true;
   }
 </script>
-
 {% endblock %}

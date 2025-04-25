@@ -1469,7 +1469,17 @@ def init_item_routes(
             return "Erro interno ao tentar carregar o item.", 500
 
 
-import time  # 👈 necessário para medir o tempo
+import base64
+
+
+def encode_dynamo_key(key_dict):
+    json_str = json.dumps(key_dict)
+    return base64.urlsafe_b64encode(json_str.encode()).decode()
+
+
+def decode_dynamo_key(encoded_str):
+    json_str = base64.urlsafe_b64decode(encoded_str.encode()).decode()
+    return json.loads(json_str)
 
 
 def listar_itens_per_transaction(
@@ -1482,28 +1492,22 @@ def listar_itens_per_transaction(
     text_models_table,
     client_id=None,
     page=None,
+    limit=2,
 ):
-
     if not session.get("logged_in"):
         return redirect(url_for("login"))
-    username = session.get("username", None)
+
+    username = session.get("username")
     account_id = session.get("account_id")
+    user_id = session.get("user_id")
     if not account_id:
-        print("Erro: Usuário não autenticado corretamente.")
+        flash("Erro: Usuário não autenticado corretamente.", "danger")
         return redirect(url_for("login"))
 
-    user_id = session.get("user_id") if "user_id" in session else None
     user_utc = get_user_timezone(users_table, user_id)
     today = datetime.datetime.now(user_utc).date()
 
-    def parse_date(date_str):
-        return (
-            datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
-            if date_str
-            else None
-        )
-
-    def process_dates(item, today):
+    def process_dates(item):
         for key in ["rental_date", "return_date", "dev_date"]:
             date_str = item.get(key)
             if date_str:
@@ -1511,18 +1515,13 @@ def listar_itens_per_transaction(
                     date_obj = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
                     item[f"{key}_formatted"] = date_obj.strftime("%d-%m-%Y")
                     item[f"{key}_obj"] = date_obj
-                    if key == "rental_date":
-                        item["rental_date_obj"] = date_obj
                 except ValueError:
                     item[f"{key}_formatted"] = "Data Inválida"
-                    if key == "rental_date":
-                        item["rental_date_obj"] = today
+                    item[f"{key}_obj"] = today
             else:
                 item[f"{key}_formatted"] = "N/A"
-                if key == "rental_date":
-                    item["rental_date_obj"] = today
+                item[f"{key}_obj"] = today
 
-        # Definir overdue
         if item.get("dev_date_obj"):
             item["overdue"] = False
         elif item.get("return_date_obj"):
@@ -1530,9 +1529,8 @@ def listar_itens_per_transaction(
         else:
             item["overdue"] = False
 
-        # Definir rental_message e rental_message_color
         rental_date = item.get("rental_date_obj")
-        if rental_date and item.get("transaction_status") not in ["rented"]:
+        if rental_date and item.get("transaction_status") != "rented":
             if rental_date == today:
                 item["rental_message"] = "Retirada é hoje"
                 item["rental_message_color"] = "orange"
@@ -1542,7 +1540,7 @@ def listar_itens_per_transaction(
                     "Falta 1 dia" if dias == 1 else f"Faltam {dias} dias"
                 )
                 item["rental_message_color"] = "blue" if dias > 1 else "yellow"
-            elif rental_date < today:
+            else:
                 item["rental_message"] = "Não retirado"
                 item["rental_message_color"] = "red"
         else:
@@ -1551,174 +1549,123 @@ def listar_itens_per_transaction(
 
         return item
 
-    def apply_filtros_request():
-        return {
-            "filter": request.args.get("filter", "todos"),
-            "item_id": request.args.get("item_id"),
-            "client_id": request.args.get("client_id"),
-            "item_custom_id": request.args.get("item_custom_id"),
-            "description": request.args.get("description"),
-            "client_name": request.args.get("client_name"),
-            "client_email": request.args.get("client_email"),
-            "client_cpf": request.args.get("client_cpf"),
-            "client_cnpj": request.args.get("client_cnpj"),
-            "client_address": request.args.get("client_address"),
-            "client_obs": request.args.get("client_obs"),
-            "payment": request.args.get("payment"),
-            "start_date": parse_date(request.args.get("start_date")),
-            "end_date": parse_date(request.args.get("end_date")),
-            "return_start_date": parse_date(request.args.get("return_start_date")),
-            "return_end_date": parse_date(request.args.get("return_end_date")),
-            "item_obs": request.args.get("item_obs"),
-            "transaction_obs": request.args.get("transaction_obs"),
-            "transaction_status": request.args.get("transaction_status"),
+    filtros = request.args.to_dict()
+    cursor_token = filtros.pop("cursor", None)
+    direction = request.args.get("direction")
+    current_url = request.path
+    previous_url = session.get("previous_url")
+
+    if previous_url and previous_url != current_url:
+        print("Mudou de rota, resetando paginação")
+        session.pop("current_page", None)
+        session.pop("cursor_history", None)
+        session["current_page"] = 1
+        session["cursor_history"] = {"1": None}
+    else:
+        if "current_page" not in session:
+            session["current_page"] = 1
+        if "cursor_history" not in session:
+            session["cursor_history"] = {"1": None}
+
+        # Controle de página (evita incrementar no F5)
+        if direction == "next" and request.referrer != request.url:
+            session["current_page"] += 1
+        elif direction == "prev" and request.referrer != request.url:
+            session["current_page"] = max(1, session["current_page"] - 1)
+
+    session["previous_url"] = current_url
+
+    exclusive_start_key = decode_dynamo_key(cursor_token) if cursor_token else None
+
+    valid_items = []
+    next_cursor_token = None
+
+    while len(valid_items) < limit:
+        query_kwargs = {
+            "IndexName": "account_id-created_at-index",
+            "KeyConditionExpression": Key("account_id").eq(account_id),
+            "Limit": limit,
+            "ScanIndexForward": False,
         }
 
-    def buscar_transacoes_por(account_id, status_list):
-        response = transactions_table.query(
-            IndexName="account_id-created_at-index",
-            KeyConditionExpression=Key("account_id").eq(account_id),
-            ScanIndexForward=False,  # Mais recentes primeiro
-        )
+        if exclusive_start_key:
+            query_kwargs["ExclusiveStartKey"] = exclusive_start_key
+
+        response = transactions_table.query(**query_kwargs)
         transacoes = response.get("Items", [])
-        # Filtro manual pelos status desejados
-        return [t for t in transacoes if t.get("transaction_status") in status_list]
+        exclusive_start_key = response.get("LastEvaluatedKey")
 
-    def montar_transacoes_com_imagem(transacoes, filtros):
-        resultado = []
+        if not transacoes:
+            break
 
         for txn in transacoes:
-            # 🔍 Filtro de client_id deve ser aplicado aqui
-            if client_id and txn.get("client_id") != client_id:
-                continue
+            if filtra_transacao(txn, filtros, client_id, status_list):
+                valid_items.append(process_dates(txn))
+                if len(valid_items) == limit:
+                    break
 
-            if (
-                filtros["description"]
-                and filtros["description"].lower()
-                not in txn.get("description", "").lower()
-            ):
-                continue
-            if (
-                filtros["item_obs"]
-                and filtros["item_obs"].lower() not in txn.get("item_obs", "").lower()
-            ):
-                continue
-            if (
-                filtros["item_custom_id"]
-                and filtros["item_custom_id"].lower()
-                not in (txn.get("item_custom_id") or "").lower()
-            ):
-                continue
+        if not exclusive_start_key or len(valid_items) == limit:
+            break
 
-            if (
-                filtros["item_id"]
-                and filtros["item_id"].lower() not in (txn.get("item_id") or "").lower()
-            ):
-                continue
+    # Gera o cursor da próxima página
+    if len(valid_items) == limit:
+        last_item = valid_items[-1]
+        if (
+            last_item.get("account_id")
+            and last_item.get("created_at")
+            and last_item.get("transaction_id")
+        ):
+            next_cursor_token = encode_dynamo_key(
+                {
+                    "account_id": last_item["account_id"],
+                    "created_at": last_item["created_at"],
+                    "transaction_id": last_item["transaction_id"],
+                }
+            )
+            page = session.get("current_page", 1)
+            cursor_history = session.get("cursor_history", {})
+            cursor_history[str(page + 1)] = next_cursor_token
+            session["cursor_history"] = cursor_history
 
-            if (
-                filtros["client_id"]
-                and filtros["client_id"].lower()
-                not in (txn.get("client_id") or "").lower()
-            ):
-                continue
-
-            if (
-                filtros["client_obs"]
-                and filtros["client_obs"].lower()
-                not in txn.get("client_obs", "").lower()
-            ):
-                continue
-            if (
-                filtros["transaction_obs"]
-                and filtros["transaction_obs"].lower()
-                not in txn.get("transaction_obs", "").lower()
-            ):
-                continue
-            if (
-                filtros["transaction_status"]
-                and filtros["transaction_status"].lower()
-                not in txn.get("transaction_status", "").lower()
-            ):
-                continue
-
-            pagamento_raw = txn.get("pagamento")
-            valor_raw = txn.get("valor")
-            try:
-                pagamento = float(pagamento_raw or 0)
-                valor = float(valor_raw or 0)
-            except (TypeError, ValueError):
-                continue
-
-            filtro_pagamento = (filtros.get("payment") or "").lower().strip()
-            if filtro_pagamento == "pago total" and pagamento < valor:
-                continue
-            elif filtro_pagamento == "pago parcial" and (
-                pagamento == 0 or pagamento >= valor
-            ):
-                continue
-            elif filtro_pagamento == "não pago" and pagamento > 0:
-                continue
-
-            resultado.append(process_dates(txn, today))
-        return resultado
-
-    def filtrar_por_categoria(itens, categoria):
-        if categoria == "deleted":
-            return [i for i in itens if i.get("transaction_status") == "deleted"]
-        if categoria == "version":
-            return [i for i in itens if i.get("transaction_status") == "version"]
-
-        return itens
-
-    filtros = apply_filtros_request()
-
-    transacoes = buscar_transacoes_por(account_id, status_list)
-
-    itens_combinados = montar_transacoes_com_imagem(transacoes, filtros)
-
-    filtrados = filtrar_por_categoria(itens_combinados, filtros["filter"])
-
-    # Ordenar por rental_date_obj (mais antigos primeiro)
-    filtrados = sorted(filtrados, key=lambda x: x.get("rental_date_obj", today))
-
-    total = len(filtrados)
-    total_pages = (total + 4) // 5
-    page = int(request.args.get("page", 1))
-    paginados = filtrados[(page - 1) * 5 : page * 5]
-
-    if not paginados:
-        flash("Nenhum item encontrado para os filtros selecionados.", "warning")
-
-    # 🔍 Se client_id está definido, capturar o nome do cliente da primeira transação
-    client_name = None
-    if client_id:
-        for txn in transacoes:
-            if txn.get("client_id") == client_id:
-                client_name = txn.get("client_name")
-                break
-
+    # Modelos salvos
     response = text_models_table.query(
         IndexName="account_id-index",
         KeyConditionExpression="account_id = :account_id",
         ExpressionAttributeValues={":account_id": account_id},
     )
-
     saved_models = response.get("Items", [])
 
-    return render_template(
-        template,
-        itens=paginados,
-        page=page,
-        total_pages=total_pages,
-        current_filter=filtros["filter"],
-        title=title,
-        add_route=url_for("trash_transactions"),
-        next_url=request.url,
-        client_name=client_name,
-        saved_models=saved_models,
-        username=username,
-    )
+    current_itens_count = len(valid_items)
+
+    if not valid_items and cursor_token:
+        session["last_valid_cursor"] = cursor_token
+        return render_template(
+            template,
+            itens=[],
+            next_cursor=None,
+            last_page=True,
+            title=title,
+            add_route=url_for("trash_transactions"),
+            next_url=request.url,
+            username=username,
+            saved_models=[],
+            current_page=session.get("current_page", 1),
+            itens_count=current_itens_count,
+        )
+    else:
+        return render_template(
+            template,
+            itens=valid_items,
+            next_cursor=next_cursor_token,
+            last_page=False,
+            title=title,
+            add_route=url_for("trash_transactions"),
+            next_url=request.url,
+            username=username,
+            saved_models=saved_models,
+            current_page=session.get("current_page", 1),
+            itens_count=current_itens_count,
+        )
 
 
 def list_raw_itens(status_list, template, title, itens_table, transactions_table):
@@ -1746,7 +1693,7 @@ def list_raw_itens(status_list, template, title, itens_table, transactions_table
         total_relevant_transactions = sum(
             1
             for txn in transactions
-            if txn.get("transaction_status") in ["rented", "reserved"]
+            if txn.get("transaction_status") in ["rented", "reserved", "returned"]
         )
 
     except Exception as e:
@@ -1924,3 +1871,87 @@ def list_raw_itens(status_list, template, title, itens_table, transactions_table
         total_relevant_transactions=total_relevant_transactions,
         total_items=total_items,
     )
+
+
+def filtra_transacao(txn, filtros, client_id, status_list):
+    # 1. Filtro obrigatório: status da transação
+    if txn.get("transaction_status") not in status_list:
+        return False
+
+    # 2. Filtro explícito por client_id (se vier da rota, por exemplo)
+    if client_id and txn.get("client_id") != client_id:
+        return False
+
+    # 3. Filtros de campos de texto (case insensitive)
+    campos_texto = [
+        ("description", "description"),
+        ("item_obs", "item_obs"),
+        ("item_custom_id", "item_custom_id"),
+        ("item_id", "item_id"),
+        ("client_id", "client_id"),
+        ("client_name", "client_name"),
+        ("client_email", "client_email"),
+        ("client_cpf", "client_cpf"),
+        ("client_cnpj", "client_cnpj"),
+        ("client_address", "client_address"),
+        ("client_obs", "client_obs"),
+        ("transaction_obs", "transaction_obs"),
+        ("transaction_status", "transaction_status"),
+    ]
+
+    for campo_filtro, campo_txn in campos_texto:
+        filtro_valor = (filtros.get(campo_filtro) or "").strip().lower()
+        campo_valor = (txn.get(campo_txn) or "").strip().lower()
+        print("FV")
+        print(filtro_valor)
+        print(txn.get("campo_valor"))
+        if filtro_valor and filtro_valor not in campo_valor:
+            return False
+
+    # 4. Filtro de pagamento (pago total, parcial, não pago)
+    pagamento_raw = txn.get("pagamento")
+    valor_raw = txn.get("valor")
+    try:
+        pagamento = float(pagamento_raw or 0)
+        valor = float(valor_raw or 0)
+    except (TypeError, ValueError):
+        return False
+
+    filtro_pagamento = (filtros.get("payment") or "").strip().lower()
+    if filtro_pagamento == "pago total" and pagamento < valor:
+        return False
+    elif filtro_pagamento == "pago parcial" and (pagamento == 0 or pagamento >= valor):
+        return False
+    elif filtro_pagamento == "não pago" and pagamento > 0:
+        return False
+
+    # 🔥 Se passou em tudo
+    return True
+
+
+def parse_date(date_str):
+    return datetime.datetime.strptime(date_str, "%Y-%m-%d").date() if date_str else None
+
+
+def apply_filtros_request():
+    return {
+        "filter": request.args.get("filter", "todos"),
+        "item_id": request.args.get("item_id"),
+        "client_id": request.args.get("client_id"),
+        "item_custom_id": request.args.get("item_custom_id"),
+        "description": request.args.get("description"),
+        "client_name": request.args.get("client_name"),
+        "client_email": request.args.get("client_email"),
+        "client_cpf": request.args.get("client_cpf"),
+        "client_cnpj": request.args.get("client_cnpj"),
+        "client_address": request.args.get("client_address"),
+        "client_obs": request.args.get("client_obs"),
+        "payment": request.args.get("payment"),
+        "start_date": parse_date(request.args.get("start_date")),
+        "end_date": parse_date(request.args.get("end_date")),
+        "return_start_date": parse_date(request.args.get("return_start_date")),
+        "return_end_date": parse_date(request.args.get("return_end_date")),
+        "item_obs": request.args.get("item_obs"),
+        "transaction_obs": request.args.get("transaction_obs"),
+        "transaction_status": request.args.get("transaction_status"),
+    }

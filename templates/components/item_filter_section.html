@@ -1,13 +1,15 @@
-<!-- Título e Botões Principais -->
+<!-- Bloco: Botões superiores -->
+
 <div class="d-flex justify-content-between align-items-center mb-3">
   <div class="d-flex flex-wrap gap-2 align-items-center justify-content-end w-100 w-sm-auto">
-    {% if show_add_button %} {% if itens == [] %}
-    <!-- Contêiner para botão + tooltip -->
-    <div style="position: relative; display: inline-block">
-      <!-- Botão -->
-      <a href="#" class="btn btn-primary" id="add-item-btn" data-add-url="{{ add_route }}?next={{ request.url }}">Adicionar item</a>
+    {% if show_item_filter %}
 
-      <!-- Tooltip flutuante acima e à esquerda do botão -->
+    <!-- Botão de Filtros -->
+    <a href="#" class="btn btn-outline-secondary" id="filter-toggle" onclick="toggleFilters(event)">Filtros</a>
+    {% endif %} {% if show_add_item %} {% if itens == [] %}
+    <!-- Botão com tooltip -->
+    <div style="position: relative; display: inline-block">
+      <a href="#" class="btn btn-primary" id="add-item-btn" data-add-url="{{ add_route }}?next={{ request.url }}">Adicionar item</a>
       <div
         id="tooltip-add-item"
         style="
@@ -21,7 +23,9 @@
           padding: 0.75rem 1rem;
           border-radius: 0.5rem;
           font-size: 0.9rem;
-          max-width: 280px;
+          width: max-content;
+          min-width: 240px;
+          max-width: 100%;
           box-shadow: 0 0 6px rgba(0, 0, 0, 0.1);
           z-index: 1050;
         "
@@ -47,13 +51,13 @@
       </div>
     </div>
     {% else %}
-    <!-- Caso tenha itens: botão sem balão -->
-    <a href="#" class="btn btn-primary" id="add-item-btn" data-add-url="{{ add_route }}?next=all_transactions">Adicionar item</a>
+    <!-- Botão sem tooltip -->
+    <a href="#" class="btn btn-primary" id="add-item-btn" data-add-url="{{ add_route }}?next={{ request.url }}">Adicionar item</a>
     {% endif %} {% endif %}
   </div>
 </div>
 
-<!-- Filtros -->
+<!-- Bloco: Seção de filtros -->
 <div
   id="filter-section"
   class="{% if not request.args.get('description') and not request.args.get('valor') and not request.args.get('comments') and not request.args.get('item_custom_id') %}d-none{% endif %} mt-3"
@@ -74,6 +78,7 @@
             <label for="description" class="form-label">Descrição:</label>
             <input type="text" class="form-control" id="description" name="description" value="{{ request.args.get('description', '') }}" />
           </div>
+
           <div class="col-md-4">
             <label class="form-label">Valor (mín - máx):</label>
             <div class="d-flex gap-2">
@@ -95,6 +100,7 @@
               />
             </div>
           </div>
+
           <div class="col-md-4">
             <label for="item_obs" class="form-label">Obs do item:</label>
             <input type="text" class="form-control" id="item_obs" name="item_obs" value="{{ request.args.get('item_obs', '') }}" />

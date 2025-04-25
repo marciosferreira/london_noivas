@@ -1,38 +1,38 @@
 /* ---------------------------------------
    TABELA E CONTAINER
 --------------------------------------- */
-/* Container para limitar a tabela (ajuste max-width se quiser 90% em vez de 100%) */
 .table-container {
   max-width: 100%;
-  margin: 0 auto; /* Centraliza se for menor que 100% */
+  margin: 0 auto;
 }
 
-/* Tabela responsiva + "cards" no mobile */
 .responsive-table {
   width: 100%;
   border-collapse: collapse;
 }
 
-/* Classes do Bootstrap personalizadas, se quiser mudar cor de fundo */
 .table-danger {
   background-color: #f8d7da !important;
 }
+
 .table-warning {
   background-color: #fff3cd !important;
 }
 
-/* Borda arredondada na tabela */
 .table.rounded-table {
-  border-radius: 10px; /* Ajuste o valor conforme desejar */
-  overflow: hidden; /* Garante que o conteúdo também seja arredondado */
+  border-radius: 10px;
+  overflow: hidden;
   border: none;
 }
 
-/* Imagens miniatura */
+/* ---------------------------------------
+   IMAGENS MINIATURA
+--------------------------------------- */
 .dress-thumbnail {
   cursor: pointer;
   transition: transform 0.2s;
 }
+
 .dress-thumbnail:hover {
   transform: scale(1.03);
 }
@@ -41,12 +41,10 @@
    RESPONSIVIDADE: "VIRAR CARDS" NO MOBILE
 --------------------------------------- */
 @media (max-width: 576px) {
-  /* Esconde o cabeçalho da tabela */
   .responsive-table thead {
     display: none;
   }
 
-  /* Cada tr e td se comportam como "cards" empilhados */
   .responsive-table,
   .responsive-table tbody,
   .responsive-table tr,
@@ -68,10 +66,9 @@
     padding-left: 50%;
     margin-bottom: 0.75rem;
     text-align: left;
-    min-height: 2.5rem; /* Dá espaço mesmo se vazio */
+    min-height: 2.5rem;
   }
 
-  /* Label do data-label como "título" antes do valor */
   .responsive-table td::before {
     content: attr(data-label) ': ';
     position: absolute;
@@ -81,41 +78,34 @@
 }
 
 /* ---------------------------------------
-   BOTOES, FILTRO E OUTROS AJUSTES
+   TIPOGRAFIA E ALERTAS
 --------------------------------------- */
-
-/* Filtro oculto inicialmente */
-#filter-section {
-  margin-top: 1rem;
-}
-
-/* Se desejar manter o estilo h1.h3 do index */
 h1.h3 {
   font-weight: 600;
 }
 
-/* Alertas (espacinho entre eles) */
 .alert {
   margin-bottom: 1rem;
 }
 
-/* Ícones nos botões (lixeira, lápis, etc.) */
+/* ---------------------------------------
+   BOTÕES E AÇÕES
+--------------------------------------- */
 .btn.btn-sm svg {
-  vertical-align: middle; /* Alinha melhor o SVG */
-  margin-right: 0; /* Remove margem à direita, se quiser */
+  vertical-align: middle;
+  margin-right: 0;
 }
 
-/* Botões de ação */
 .action-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   font-weight: bold;
-  font-size: 0.9rem; /* Tamanho reduzido do texto */
+  font-size: 0.9rem;
   text-decoration: none;
   color: white;
   border-radius: 25px;
-  padding: 5px 15px; /* Reduz o padding para manter o tamanho compacto */
+  padding: 5px 15px;
   transition: all 0.3s ease;
   cursor: pointer;
   border: 2px solid transparent;
@@ -165,24 +155,37 @@ h1.h3 {
   color: #17a2b8;
 }
 
+.action-button.neutral {
+  background-color: #6c757d;
+  color: #fff;
+}
+
 @media (max-width: 576px) {
   .action-button {
-    flex: 1 1 auto; /* Botões ocupam largura proporcional no mobile */
+    flex: 1 1 auto;
     text-align: center;
   }
 }
 
-/* Alinhamento responsivo para botões */
+/* ---------------------------------------
+   ALINHAMENTO DE BOTÕES EM MOBILE
+--------------------------------------- */
 @media (max-width: 576px) {
   .d-flex.justify-content-between .d-flex {
-    justify-content: flex-end; /* Alinha os botões à direita */
+    justify-content: flex-end;
   }
 }
 
+/* ---------------------------------------
+   ÍCONES E CURSOR
+--------------------------------------- */
 .open-modal {
   cursor: pointer;
 }
 
+/* ---------------------------------------
+   TAG DE ATRASO E MENSAGENS DE STATUS
+--------------------------------------- */
 .atrasado-tag {
   display: inline-block;
   margin-top: 2px;
@@ -204,11 +207,11 @@ h1.h3 {
 }
 
 .rental-message.blue {
-  background-color: #007bff; /* Azul Bootstrap */
+  background-color: #007bff;
 }
 
 .rental-message.yellow {
-  background-color: #ffc107; /* Amarelo Bootstrap */
+  background-color: #ffc107;
   color: black;
 }
 
@@ -220,48 +223,43 @@ h1.h3 {
   background-color: red;
 }
 
-/* Exemplo style_inventory.css ou global */
-.action-button.neutral {
-  background-color: #6c757d; /* cinza Bootstrap */
-  color: #fff;
-}
-
+/* ---------------------------------------
+   STATUS VERTICAL (CÉLULA DE STATUS)
+--------------------------------------- */
 .table.rounded-table {
   overflow: visible !important;
 }
 
-/* Coluna de status */
 .status-cell {
   padding: 0;
   text-align: center;
   vertical-align: middle;
   writing-mode: vertical-rl;
-  transform: rotate(180deg); /* para ler de cima pra baixo */
+  transform: rotate(180deg);
   font-weight: bold;
   color: white;
   font-size: 1rem;
   width: 30px;
 }
 
-/* Caixa de texto com padding para espaçamento interno */
 .status-text {
   padding: 10px 0;
   white-space: nowrap;
 }
 
-/* Cores por status */
 .status-cell.reserved {
-  background-color: #f6d267; /* Amarelo */
+  background-color: #f6d267;
 }
 
 .status-cell.rented {
-  background-color: #ef7b6c; /* Azul */
+  background-color: #ef7b6c;
 }
 
 .status-cell.returned {
-  background-color: #26ca7e; /* Verde */
+  background-color: #26ca7e;
 }
 
+/* STATUS NO MOBILE */
 @media (max-width: 576px) {
   .status-cell {
     writing-mode: initial !important;

@@ -1,21 +1,10 @@
 {% extends "base.html" %} {% block title %}Itens Disponíveis{% endblock %} {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='style_trash_itens.css') }}" />
-
-{% endblock %}
-
-
-{% block content %}
+{% endblock %} {% block content %}
 <div class="container mt-3">
   <h2 class="mb-4">Lixeira de itens</h2>
 
-
-  {% if itens %}
-
- {% include 'components/item_filter_section.html' %}
-
-
-
-
+  {% if itens %} {% include 'components/item_filter_section.html' with context%}
 
   <!-- Tabela (que vira "cards" no mobile) -->
   <div class="table-container mt-4">
@@ -23,185 +12,132 @@
       <thead>
         <tr>
           <th>Imagem</th>
-              <th>Descrição</th>
-              <th>Valor (R$)</th>
-              <th>Comentários</th>
-              <th>Exclusão/edição</th>
-              <th>Tipo de item</th>
-              <th>Status prévio</th>
+          <th>Descrição</th>
+          <th>Valor (R$)</th>
+          <th>Comentários</th>
+          <th>Exclusão/edição</th>
+          <th>Tipo de item</th>
+          <th>Status prévio</th>
           <th>Ações</th>
         </tr>
       </thead>
       <tbody>
         {% for item in itens %}
-            <tr>
-              <td data-label="Imagem">
-                {% if item.image_url and item.image_url != "N/A" %}
-                <img src="{{ item.image_url }}" alt="Imagem do vestido" class="img-fluid item-thumbnail" style="max-width: 100px" />
-                {% else %}
-                <img
-                  src="{{ url_for('static', filename='item-placeholder.png') }}"
-                  alt="Sem Imagem"
-                  class="img-fluid item-thumbnail"
-                  style="max-width: 100px"
-                />
-                {% endif %}
-              </td>
+        <tr>
+          <td data-label="Imagem">
+            {% if item.image_url and item.image_url != "N/A" %}
+            <img src="{{ item.image_url }}" alt="Imagem do vestido" class="img-fluid item-thumbnail" style="max-width: 100px" />
+            {% else %}
+            <img
+              src="{{ url_for('static', filename='item-placeholder.png') }}"
+              alt="Sem Imagem"
+              class="img-fluid item-thumbnail"
+              style="max-width: 100px"
+            />
+            {% endif %}
+          </td>
 
-              <td data-label="Descrição" style="white-space: pre-wrap">{{ item.description }}</td>
+          <td data-label="Descrição" style="white-space: pre-wrap">{{ item.description }}</td>
+          <td data-label="Valor">{{ item.valor }}</td>
+          <td data-label="Comentários" style="white-space: pre-wrap">{{ item.comments }}</td>
+          <td data-label="Data do evento">{{ item.deleted_date }}</td>
 
-              <td data-label="Valor">{{ item.valor }}</td>
-              <td data-label="Comentários" style="white-space: pre-wrap">{{ item.comments }}</td>
-              <td data-label="Data do evento">{{ item.deleted_date }}</td>
+          <td data-label="Tipo do evento">
+            {% set status_map = {"deleted": "Original", "version": "Versão"} %} {{ status_map.get(item.status, "Inválido") }}
+          </td>
 
-              <td data-label="Tipo do evento">
-                {% set status_map = {"deleted": "Original", "version": "Versão"} %}
-                {{ status_map.get(item.status, "Inválido") }}
-              </td>
+          <td data-label="Status">
+            {% set status_map = {"available": "Disponível", "rented": "Alugado", "returned": "Devolvido", "archive": "Arquivado", "historic":
+            "Histórico"} %} {{ status_map.get(item.previous_status, "Inválido") }}
+          </td>
 
-              <td data-label="Status">
-                {% set status_map = {"available": "Disponível", "rented": "Alugado", "returned": "Devolvido", "archive": "Arquivado", "historic": "Histórico"} %}
-                {{ status_map.get(item.previous_status, "Inválido") }}
-              </td>
-
-
-
-
-<!-- Botão de Restaurar -->
-<td data-label="Ações">
-  <button type="button" class="btn btn-success btn-sm" title="Restaurar Item"
-      onclick='restaurarItem({{ item | tojson }})'>
-      Restaurar
-  </button>
-</td>
-
-
-
-<!-- Formulário Dinâmico -->
-<form id="form-restore" method="POST">
-  <input type="hidden" name="item_data" id="restore_item_data">
-</form>
-
-l
-
-<script>
-  // 🔹 Mapeamento de status para português
-  const statusMap = {
-      "rented": "Alugado",
-      "returned": "Devolvido",
-      "historic": "Histórico",
-      "available": "Inventário",
-      "deleted": "Deletado",
-      "version": "Versão",
-      "archive": "Arquivado"
-  };
-
-  function definirMensagemEConfirmar(itemData, parentData, mensagem, form) {
-      if (!["deleted", "version"].includes(itemData.status)) {
-          alert("Status inválido para restauração.");
-          return;
-      }
-
-      form.action = itemData.status === "deleted"
-          ? "{{ url_for('restore_deleted_item') }}"
-          : "{{ url_for('restore_version_item') }}";
-
-      if (confirm(mensagem)) {
-          // 🔹 Serializar os dados como JSON antes de enviar via POST
-          document.getElementById("restore_item_data").value = JSON.stringify(itemData);
-          form.submit();
-      }
-  }
-
-  function restaurarItem(itemData) {
-      let form = document.getElementById("form-restore");
-
-      // 🔹 Traduzir `previous_status` antes de exibir na mensagem
-      let previousStatusTranslated = statusMap[itemData.previous_status] || "Indefinido";
-
-      // 🔹 Se não for do tipo "version", restauramos direto sem consultar o parent
-      if (itemData.status !== "version") {
-          definirMensagemEConfirmar(itemData, {}, `Restaurar este item pai para o status anterior: ${previousStatusTranslated}?`, form);
-          return;
-      }
-
-      // 🔹 Buscar o status do parent_item_id
-      fetch("/query", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ db_name: "itens_table", key: "item_id", value: itemData.parent_item_id, type: "item" })
-      })
-      .then(response => response.json())
-      .then(parentData => {
-          if (parentData.status === "not_found" || !parentData.data) {
-              alert("Item pai não encontrado.");
-              return;
-          }
-
-          // 🔹 Traduzir status do item pai antes de exibir
-          let parentStatusTranslated = statusMap[parentData.data.status] || "Indefinido";
-
-          let mensagem = parentData.data.status === "deleted"
-              ? `Esta é uma versão de um item pai deletado. Restaurar esta versão para o status: ${previousStatusTranslated}?`
-              : `Há um item pai desta versão com o status: ${parentStatusTranslated}. Deseja substituir o item pai com esta versão?`;
-
-          definirMensagemEConfirmar(itemData, parentData.data, mensagem, form);
-      })
-      .catch(error => {
-          alert("Erro ao consultar o banco de dados.");
-          console.error(error);
-      });
-  }
-</script>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            </tr>
-            {% endfor %}
+          <!-- Botão de Restaurar -->
+          <td data-label="Ações">
+            <button type="button" class="btn btn-success btn-sm" title="Restaurar Item" onclick="restaurarItem({{ item | tojson }})">
+              Restaurar
+            </button>
+          </td>
         </tr>
+        {% endfor %}
       </tbody>
     </table>
   </div>
 
-
-
-
+  <!-- Formulário Dinâmico FORA da tabela -->
+  <form id="form-restore" method="POST">
+    <input type="hidden" name="item_data" id="restore_item_data" />
+  </form>
 
   {% else %}
-
   <p style="color: #308be3; font-weight: bold; font-size: 1.2rem; margin-top: -1rem; margin-left: 0.25rem">Nada por aqui ainda!</p>
-
   {% endif %}
+
   <!-- Paginação -->
   {% set route_name = 'trash_itens' %} {% include 'components/pagination.html' with context %}
   <div style="height: 3rem"></div>
 </div>
 
 <!-- MODAL para imagem -->
-{% include 'components/image_modal.html' %} {% endblock %}
+{% include 'components/image_modal.html' %} {% endblock %} {% block scripts %}
+<script>
+  // 🔹 Mapeamento de status para português
+  const statusMap = {
+    rented: 'Alugado',
+    returned: 'Devolvido',
+    historic: 'Histórico',
+    available: 'Inventário',
+    deleted: 'Deletado',
+    version: 'Versão',
+    archive: 'Arquivado',
+  };
 
+  function definirMensagemEConfirmar(itemData, parentData, mensagem, form) {
+    if (!['deleted', 'version'].includes(itemData.status)) {
+      alert('Status inválido para restauração.');
+      return;
+    }
 
-{% block scripts %}
+    form.action = itemData.status === 'deleted' ? "{{ url_for('restore_deleted_item') }}" : "{{ url_for('restore_version_item') }}";
 
+    if (confirm(mensagem)) {
+      document.getElementById('restore_item_data').value = JSON.stringify(itemData);
+      form.submit();
+    }
+  }
 
+  function restaurarItem(itemData) {
+    let form = document.getElementById('form-restore');
+    let previousStatusTranslated = statusMap[itemData.previous_status] || 'Indefinido';
 
+    if (itemData.status !== 'version') {
+      definirMensagemEConfirmar(itemData, {}, `Restaurar este item pai para o status anterior: ${previousStatusTranslated}?`, form);
+      return;
+    }
 
+    fetch('/query', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ db_name: 'itens_table', key: 'item_id', value: itemData.parent_item_id, type: 'item' }),
+    })
+      .then((response) => response.json())
+      .then((parentData) => {
+        if (parentData.status === 'not_found' || !parentData.data) {
+          alert('Item pai não encontrado.');
+          return;
+        }
 
+        let parentStatusTranslated = statusMap[parentData.data.status] || 'Indefinido';
+        let mensagem =
+          parentData.data.status === 'deleted'
+            ? `Esta é uma versão de um item pai deletado. Restaurar esta versão para o status: ${previousStatusTranslated}?`
+            : `Há um item pai desta versão com o status: ${parentStatusTranslated}. Deseja substituir o item pai com esta versão?`;
 
-
+        definirMensagemEConfirmar(itemData, parentData.data, mensagem, form);
+      })
+      .catch((error) => {
+        alert('Erro ao consultar o banco de dados.');
+        console.error(error);
+      });
+  }
+</script>
 {% endblock %}
