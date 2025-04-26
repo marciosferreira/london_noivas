@@ -168,6 +168,8 @@ def init_client_routes(
             has_next = True
         else:
             has_next = False
+        # se tem menos itens do que o limite por pagina, entao acabou tudo. Esconde botao next..
+        print(has_next)
 
         # --- Atualiza sessão para a próxima página ---
         if has_next:
@@ -175,6 +177,8 @@ def init_client_routes(
             session["cursor_pages_clients"][str(page + 1)] = next_cursor_token
         else:
             session["cursor_pages_clients"].pop(str(page + 1), None)
+
+        print(has_next)
 
         # --- Caso não haja clientes encontrados em página >1 (quando tentou ir além do limite) ---
         # --- Se clicou para avançar e não há clientes
@@ -187,9 +191,17 @@ def init_client_routes(
 
         # --- Quando for renderizar normal:
         last_page_clients = session.get("last_page_clients")
-        has_next = (last_page_clients is None) or (
-            session.get("current_page_clients", 1) < last_page_clients
-        )
+        current_page = session.get("current_page_clients", 1)
+
+        # Se:
+        # 1. O número de itens na página é menor que o limite (ou seja, não preencheu a página completamente)
+        # 2. OU se a página atual já é maior ou igual à última página registrada
+        if len(valid_clientes) < limit or (
+            last_page_clients is not None and current_page >= last_page_clients
+        ):
+            has_next = False
+        else:
+            has_next = True
 
         return render_template(
             "clientes.html",
