@@ -68,15 +68,14 @@ def init_client_routes(
         if not account_id:
             return redirect(url_for("login"))
 
-        # Ao receber o cursor e direção
         filtros = request.args.to_dict()
         cursor_token = filtros.pop("cursor", None)
         direction = request.args.get("direction")
-        current_url = request.path
+        current_path = request.path
         previous_url = session.get("previous_url")
 
-        # Se mudou de rota, reseta paginação
-        if previous_url and previous_url != current_url:
+        # Controle de página
+        if previous_url and previous_url != current_path:
             session.pop("current_page", None)
             session.pop("cursor_history", None)
             session["current_page"] = 1
@@ -87,13 +86,12 @@ def init_client_routes(
             if "cursor_history" not in session:
                 session["cursor_history"] = {"1": None}
 
-            # Controle de página (evita incrementar no F5)
             if direction == "next" and request.referrer != request.url:
                 session["current_page"] += 1
             elif direction == "prev" and request.referrer != request.url:
                 session["current_page"] = max(1, session["current_page"] - 1)
 
-        session["previous_url"] = current_url
+        session["previous_url"] = current_path
 
         # Campos de filtro
         client_name = request.args.get("client_name", "").strip()
@@ -105,12 +103,10 @@ def init_client_routes(
         client_obs = request.args.get("client_obs", "").strip()
         client_id = request.args.get("client_id", "").strip()
 
-        # Normalizar CPF/CNPJ/tel
         client_tel = "".join(filter(str.isdigit, client_tel)) if client_tel else ""
         client_cpf = "".join(filter(str.isdigit, client_cpf)) if client_cpf else ""
         client_cnpj = "".join(filter(str.isdigit, client_cnpj)) if client_cnpj else ""
 
-        # 🔍 Se client_id foi passado, busca direto
         if client_id:
             response = clients_table.query(
                 IndexName="account_id-client_id-index",
@@ -128,17 +124,18 @@ def init_client_routes(
                     page=1,
                     total_pages=1,
                     current_page=1,
+                    has_filters=True,
+                    itens_count=len(cliente),
                 )
             else:
                 flash("Cliente não encontrado ou já deletado.", "warning")
                 return redirect(request.referrer or url_for("listar_clientes"))
 
-        # 🔍 Caso normal: busca todos
         exclusive_start_key = decode_dynamo_key(cursor_token) if cursor_token else None
 
         valid_clientes = []
         next_cursor_token = None
-        limit = 10  # clientes por página
+        limit = 5  # Clientes por página
 
         while len(valid_clientes) < limit:
             query_kwargs = {
@@ -197,7 +194,6 @@ def init_client_routes(
             if not exclusive_start_key or len(valid_clientes) == limit:
                 break
 
-        # Gera o cursor da próxima página
         if len(valid_clientes) == limit:
             last_item = valid_clientes[-1]
             if (
@@ -230,6 +226,23 @@ def init_client_routes(
         )
 
         current_itens_count = len(valid_clientes)
+
+        # ⚡ Novo comportamento aqui
+        if not valid_clientes:
+            if direction == "next":
+                session["current_page"] = max(1, session.get("current_page", 1) - 1)
+                flash("Não há mais clientes para exibir.", "info")
+                return redirect(request.referrer or url_for("listar_clientes"))
+            else:
+                return render_template(
+                    "clientes.html",
+                    itens=[],
+                    next_cursor=None,
+                    last_page=True,
+                    current_page=session.get("current_page", 1),
+                    has_filters=has_filters,
+                    itens_count=current_itens_count,
+                )
 
         return render_template(
             "clientes.html",
