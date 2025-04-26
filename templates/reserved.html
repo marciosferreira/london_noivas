@@ -4,9 +4,8 @@
 
 <div class="container mt-3">
   <h2 class="mb-4">{{ title }}</h2>
-  {% if last_page == False and not itens%}
-  <p style="color: #308be3; font-weight: bold; font-size: 1.2rem; margin-top: -1rem; margin-left: 0.25rem">Nada por aqui!</p>
-  {% endif %} {% if last_page %}
+
+  {% if not itens %}
   <div
     style="
       display: flex;
@@ -19,7 +18,7 @@
       margin-top: 1rem;
     "
   >
-    <span>Não há mais itens que satisfazem os cirtérios selecionados.</span>
+    <span>Não há itens que satisfazem os cirtérios selecionados.</span>
   </div>
   {% endif %} {% if request.args or itens %} {% include "components/filter_section.html" with context %}{% endif %} {% if itens %}
 

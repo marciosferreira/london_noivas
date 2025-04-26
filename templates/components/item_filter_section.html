@@ -7,49 +7,26 @@
     <!-- Botão de Filtros -->
     <a href="#" class="btn btn-outline-secondary" id="filter-toggle" onclick="toggleFilters(event)">Filtros</a>
     {% endif %} {% if show_add_item %} {% if itens == [] and not request.args %}
-    <!-- Botão com tooltip -->
-    <div style="position: relative; display: inline-block">
-      <a href="#" class="btn btn-primary" id="add-item-btn" data-add-url="{{ add_route }}?next={{ request.url }}">Adicionar item</a>
-      <div
-        id="tooltip-add-item"
-        style="
-          position: absolute;
-          bottom: 100%;
-          left: 0;
-          transform: translate(-1rem, -0.75rem);
-          background-color: #f8e3a5;
-          border: 1px solid #ffc107;
-          color: #0c4f91;
-          padding: 0.75rem 1rem;
-          border-radius: 0.5rem;
-          font-size: 0.9rem;
-          width: max-content;
-          min-width: 240px;
-          max-width: 100%;
-          box-shadow: 0 0 6px rgba(0, 0, 0, 0.1);
-          z-index: 1050;
-        "
-      >
-        <button
-          onclick="document.getElementById('tooltip-add-item').style.display='none';"
-          style="
-            position: absolute;
-            top: 0.25rem;
-            right: 0.5rem;
-            background: none;
-            border: none;
-            color: #664d03;
-            font-size: 1.1rem;
-            cursor: pointer;
-            line-height: 1;
-          "
-          title="Fechar"
-        >
-          ×
-        </button>
-        Você precisa adicionar um item antes de iniciar uma transação.
-      </div>
+
+    <div
+      style="
+        background-color: rgba(255, 193, 7, 0.3);
+        border: 1px solid #ffc107;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1rem;
+        position: relative;
+      "
+    >
+      <span style="color: #664d03; font-weight: 500">Adicione um item antes de iniciar uma transação.</span>
+
+      <!-- Botão de adicionar item -->
+      <a href="#" class="btn btn-primary btn-sm" id="add-item-btn" data-add-url="{{ add_route }}?next={{ request.url }}">Adicionar item</a>
     </div>
+
     {% else %}
     <!-- Botão sem tooltip -->
     <a href="#" class="btn btn-primary" id="add-item-btn" data-add-url="{{ add_route }}?next={{ request.url }}">Adicionar item</a>

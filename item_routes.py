@@ -45,7 +45,7 @@ def init_item_routes(
 
     @app.route("/rented")
     def rented():
-        return listar_itens_per_transaction(
+        return list_transactions(
             ["rented"],
             "rented.html",
             "Itens retirados",
@@ -58,7 +58,7 @@ def init_item_routes(
 
     @app.route("/reserved")
     def reserved():
-        return listar_itens_per_transaction(
+        return list_transactions(
             ["reserved"],
             "reserved.html",
             "Itens reservados (não retirados)",
@@ -71,7 +71,7 @@ def init_item_routes(
 
     @app.route("/all_transactions")
     def all_transactions():
-        return listar_itens_per_transaction(
+        return list_transactions(
             ["reserved", "rented", "returned"],
             "all_transactions.html",
             "Todas as transações",
@@ -84,7 +84,7 @@ def init_item_routes(
 
     @app.route("/returned")
     def returned():
-        return listar_itens_per_transaction(
+        return list_transactions(
             ["returned"],
             "returned.html",
             "Itens devolvidos",
@@ -117,7 +117,7 @@ def init_item_routes(
 
     @app.route("/trash_transactions")
     def trash_transactions():
-        return listar_itens_per_transaction(
+        return list_transactions(
             ["deleted", "version"],
             "trash_transactions.html",
             "Lixeira de transações",
@@ -1482,7 +1482,7 @@ def decode_dynamo_key(encoded_str):
     return json.loads(json_str)
 
 
-def listar_itens_per_transaction(
+def list_transactions(
     status_list,
     template,
     title,
@@ -1492,7 +1492,7 @@ def listar_itens_per_transaction(
     text_models_table,
     client_id=None,
     page=None,
-    limit=2,
+    limit=5,
 ):
     if not session.get("logged_in"):
         return redirect(url_for("login"))
@@ -1504,6 +1504,9 @@ def listar_itens_per_transaction(
         flash("Erro: Usuário não autenticado corretamente.", "danger")
         return redirect(url_for("login"))
 
+    force_no_next = request.args.get("force_no_next")
+
+    # 🕐 Pega o fuso horário do usuário
     user_utc = get_user_timezone(users_table, user_id)
     today = datetime.datetime.now(user_utc).date()
 
@@ -1549,53 +1552,41 @@ def listar_itens_per_transaction(
 
         return item
 
-    # Início do novo fluxo organizado
+    # --- Pegando parâmetros ---
     filtros = request.args.to_dict()
-    cursor_token = filtros.pop("cursor", None)
-    direction = request.args.get("direction")
+    page = int(filtros.pop("page", 1))
+
     current_path = request.path
-    current_full_url = request.url
+    session["previous_path_transactions"] = current_path
 
-    previous_path = session.get("previous_path")
-    current_page = session.get("current_page", 1)
-    pagination = session.get("pagination", {})  # Histórico organizado
+    if page == 1:
+        session.pop("current_page_transactions", None)
+        session.pop("cursor_pages_transactions", None)
+        session.pop("last_page_transactions", None)
 
-    # Detecta se mudou de rota
-    if previous_path and previous_path != current_path:
-        session["current_page"] = 1
-        session["pagination"] = {"1": {"cursor": None, "url": current_full_url}}
-        current_page = 1
-        pagination = {"1": {"cursor": None, "url": current_full_url}}
-    else:
-        if direction == "next":
-            current_page += 1
-        elif direction == "prev":
-            current_page = max(1, current_page - 1)
+    cursor_pages = session.get("cursor_pages_transactions", {"1": None})
+    if page == 1:
+        session["cursor_pages_transactions"] = {"1": None}
+        cursor_pages = {"1": None}
 
-    session["current_page"] = current_page
-    session["previous_path"] = current_path
+    session["current_page_transactions"] = page
 
-    # Atualiza o histórico de paginação
-    if str(current_page) not in pagination:
-        pagination[str(current_page)] = {
-            "cursor": cursor_token,
-            "url": current_full_url,
-        }
-        session["pagination"] = pagination
+    exclusive_start_key = None
+    if str(page) in cursor_pages and cursor_pages[str(page)]:
+        exclusive_start_key = decode_dynamo_key(cursor_pages[str(page)])
 
-    # Decodifica o cursor se existir
-    exclusive_start_key = decode_dynamo_key(cursor_token) if cursor_token else None
+    # --- Query no banco ---
+    valid_itens = []
+    batch_size = 10
+    last_valid_item = None
+    raw_last_evaluated_key = None
 
-    # Buscar itens
-    valid_items = []
-    next_cursor_token = None
-
-    while len(valid_items) < limit:
+    while len(valid_itens) < limit:
         query_kwargs = {
             "IndexName": "account_id-created_at-index",
             "KeyConditionExpression": Key("account_id").eq(account_id),
-            "Limit": limit,
             "ScanIndexForward": False,
+            "Limit": batch_size,
         }
 
         if exclusive_start_key:
@@ -1603,43 +1594,44 @@ def listar_itens_per_transaction(
 
         response = transactions_table.query(**query_kwargs)
         transacoes = response.get("Items", [])
-        exclusive_start_key = response.get("LastEvaluatedKey")
+        raw_last_evaluated_key = response.get("LastEvaluatedKey")
 
         if not transacoes:
             break
 
         for txn in transacoes:
-            if filtra_transacao(txn, filtros, client_id, status_list):
-                valid_items.append(process_dates(txn))
-                if len(valid_items) == limit:
-                    break
+            if not filtra_transacao(txn, filtros, client_id, status_list):
+                continue
 
-        if not exclusive_start_key or len(valid_items) == limit:
-            break
+            valid_itens.append(process_dates(txn))
+            last_valid_item = txn
 
-    # Se tem próximos itens, gera novo cursor e salva
-    if len(valid_items) == limit:
-        last_item = valid_items[-1]
-        if (
-            last_item.get("account_id")
-            and last_item.get("created_at")
-            and last_item.get("transaction_id")
-        ):
-            next_cursor_token = encode_dynamo_key(
-                {
-                    "account_id": last_item["account_id"],
-                    "created_at": last_item["created_at"],
-                    "transaction_id": last_item["transaction_id"],
-                }
-            )
-            # Salva cursor da próxima página
-            pagination[str(current_page + 1)] = {
-                "cursor": next_cursor_token,
-                "url": request.base_url + f"?cursor={next_cursor_token}",
+            if len(valid_itens) == limit:
+                break
+
+        if len(valid_itens) < limit:
+            if raw_last_evaluated_key:
+                exclusive_start_key = raw_last_evaluated_key
+            else:
+                break
+
+    # 🔥 Atualiza next_cursor
+    next_cursor_token = None
+    if last_valid_item:
+        next_cursor_token = encode_dynamo_key(
+            {
+                "account_id": last_valid_item["account_id"],
+                "created_at": last_valid_item["created_at"],
+                "transaction_id": last_valid_item["transaction_id"],
             }
-            session["pagination"] = pagination
+        )
 
-    # Modelos salvos
+    if next_cursor_token:
+        session["cursor_pages_transactions"][str(page + 1)] = next_cursor_token
+    else:
+        session["cursor_pages_transactions"].pop(str(page + 1), None)
+
+    # 🔥 Consulta os modelos salvos
     response = text_models_table.query(
         IndexName="account_id-index",
         KeyConditionExpression="account_id = :account_id",
@@ -1647,53 +1639,55 @@ def listar_itens_per_transaction(
     )
     saved_models = response.get("Items", [])
 
-    current_itens_count = len(valid_items)
+    # 🔥 Controle de botão next
+    last_page_transactions = session.get("last_page_transactions")
+    current_page = session.get("current_page_transactions", 1)
 
-    # 🧠 Verifica se é uma tentativa de avançar (direction=next) mas sem itens
-    if not valid_items:
-        if direction == "next":
-            # ⚡ Clicou em next mas não encontrou itens: volta página
-            session["current_page"] = max(1, session.get("current_page", 1) - 1)
-            flash("Não há mais itens para exibir.", "info")
-
-            # 🔥 Redireciona de volta para a página atual sem cursor (ou com o cursor anterior, se quiser)
-            return redirect(request.referrer or url_for("NOME_DA_SUA_ROTA_AQUI"))
-        else:
-            # Página inicial sem itens (não clicou em next)
-            return render_template(
-                template,
-                itens=[],
-                next_cursor=None,
-                last_page=True,
-                title=title,
-                add_route=url_for("trash_transactions"),
-                next_url=request.url,
-                username=username,
-                saved_models=[],
-                current_page=session.get("current_page", 1),
-                itens_count=0,
-            )
+    if force_no_next:
+        has_next = False
     else:
-        return render_template(
-            template,
-            itens=valid_items,
-            next_cursor=next_cursor_token,
-            last_page=False,
-            title=title,
-            add_route=url_for("trash_transactions"),
-            next_url=request.url,
-            username=username,
-            saved_models=saved_models,
-            current_page=current_page,
-            itens_count=current_itens_count,
+        if len(valid_itens) < limit or (
+            last_page_transactions is not None
+            and current_page >= last_page_transactions
+        ):
+            has_next = False
+        else:
+            has_next = True
+
+    # ⚡ Caso tente avançar sem sucesso
+    if not valid_itens and page > 1:
+        flash("Não há mais transações para exibir.", "info")
+        last_valid_page = page - 1
+        session["current_page_transactions"] = last_valid_page
+        session["last_page_transactions"] = last_valid_page
+        return redirect(
+            url_for(
+                "all_transactions",
+                page=last_valid_page,
+                has_next=has_next,
+                force_no_next=1,
+            )
         )
+    return render_template(
+        template,
+        itens=valid_itens,
+        next_cursor=next_cursor_token,
+        last_page=not has_next,
+        title=title,
+        add_route=url_for("trash_transactions"),
+        next_url=request.url,
+        username=username,
+        saved_models=saved_models,
+        current_page=current_page,
+        itens_count=len(valid_itens),
+        has_next=has_next,
+        has_prev=current_page > 1,
+    )
 
 
 def list_raw_itens(
     status_list, template, title, itens_table, transactions_table, limit=5
 ):
-    item_id = request.args.get("item_id")
-
     if not session.get("logged_in"):
         return redirect(url_for("login"))
 
@@ -1702,24 +1696,29 @@ def list_raw_itens(
         print("Erro: Usuário não autenticado corretamente.")
         return redirect(url_for("login"))
 
-    # 🔍 Busca total de transações relevantes
-    total_relevant_transactions = 0
-    try:
-        response = transactions_table.query(
-            IndexName="account_id-index",
-            KeyConditionExpression="account_id = :account_id",
-            ExpressionAttributeValues={":account_id": account_id},
-        )
-        transactions = response.get("Items", [])
-        total_relevant_transactions = sum(
-            1
-            for txn in transactions
-            if txn.get("transaction_status") in ["rented", "reserved", "returned"]
-        )
-    except Exception as e:
-        print(f"Erro ao consultar transações: {e}")
+    force_no_next = request.args.get("force_no_next")
 
-    # 🔍 Busca direta por item_id
+    current_path = request.path
+    session["previous_path_itens"] = current_path  # 🔥 Marcar o path atual
+
+    # 🔍 Parâmetros de busca
+    filtros = request.args.to_dict()
+    item_id = filtros.pop("item_id", None)
+    page = int(filtros.pop("page", 1))
+
+    if page == 1:
+        session.pop("current_page_itens", None)
+        session.pop("cursor_pages_itens", None)
+        session.pop("last_page_itens", None)
+
+    cursor_pages = session.get("cursor_pages_itens", {"1": None})
+    if page == 1:
+        session["cursor_pages_itens"] = {"1": None}
+        cursor_pages = {"1": None}
+
+    session["current_page_itens"] = page
+
+    # 🔍 Se buscar direto por item_id
     if item_id:
         try:
             response = itens_table.get_item(Key={"item_id": item_id})
@@ -1739,98 +1738,59 @@ def list_raw_itens(
                     page=1,
                     total_pages=1,
                     title=title,
+                    add_route=url_for("add_item"),
+                    next_url=request.url,
+                    total_relevant_transactions=0,
+                    total_items=1,
+                    itens_count=1,
+                    current_page=1,
                 )
             else:
                 flash("Item não encontrado ou já deletado.", "warning")
                 return redirect(request.referrer or url_for("inventory"))
-
         except Exception as e:
             print(f"Erro ao buscar item por ID: {e}")
             flash("Erro ao buscar item.", "danger")
             return redirect(request.referrer or url_for("inventory"))
 
-    # 🔥 CONTINUA COM A LÓGICA NORMAL
+    # 🔥 Continua fluxo normal
 
-    filtros = request.args.to_dict()
-    cursor_token = filtros.pop("cursor", None)
-    direction = request.args.get("direction")
-
-    current_path = request.path
-    previous_url = session.get("previous_url")
-
-    # Controle de página
-    if previous_url and previous_url != current_path:
-        print("Mudou de rota, resetando paginação")
-        session.pop("current_page", None)
-        session.pop("cursor_history", None)
-        session["current_page"] = 1
-        session["cursor_history"] = {"1": None}
-    else:
-        if "current_page" not in session:
-            session["current_page"] = 1
-        if "cursor_history" not in session:
-            session["cursor_history"] = {"1": None}
-
-        if direction == "next" and request.referrer != request.url:
-            session["current_page"] += 1
-        elif direction == "prev" and request.referrer != request.url:
-            session["current_page"] = max(1, session["current_page"] - 1)
-
-    # Atualiza SEMPRE o caminho atual da rota
-    session["previous_url"] = current_path
-
-    exclusive_start_key = decode_dynamo_key(cursor_token) if cursor_token else None
-
-    valid_items = []
-    next_cursor_token = None
-
-    # 🔍 Filtros opcionais
+    # 🧹 Recupera filtros opcionais
     item_custom_id = request.args.get("item_custom_id")
     description = request.args.get("description")
     item_obs = request.args.get("item_obs")
     min_valor = request.args.get("min_valor")
     max_valor = request.args.get("max_valor")
 
-    expression_attr_names = {}
-    expression_attr_values = {}
-    filter_expressions = []
+    # 🧹 Definindo ExclusiveStartKey
+    exclusive_start_key = None
+    if str(page) in cursor_pages and cursor_pages[str(page)]:
+        exclusive_start_key = decode_dynamo_key(cursor_pages[str(page)])
 
-    if item_custom_id:
-        expression_attr_names["#item_custom_id"] = "item_custom_id"
-        expression_attr_values[":item_custom_id"] = item_custom_id
-        filter_expressions.append("contains(#item_custom_id, :item_custom_id)")
-    if description:
-        expression_attr_names["#description"] = "description"
-        expression_attr_values[":description"] = description
-        filter_expressions.append("contains(#description, :description)")
-    if item_obs:
-        expression_attr_names["#item_obs"] = "item_obs"
-        expression_attr_values[":item_obs"] = item_obs
-        filter_expressions.append("contains(#item_obs, :item_obs)")
+    # 🔥 Busca no banco com múltiplos ciclos
+    valid_itens = []
+    batch_size = 10
+    last_valid_item = None
+    raw_last_evaluated_key = None
 
-    filter_expression = " AND ".join(filter_expressions) if filter_expressions else None
-
-    while len(valid_items) < limit:
+    while len(valid_itens) < limit:
         query_kwargs = {
             "IndexName": "account_id-created_at-index",
             "KeyConditionExpression": Key("account_id").eq(account_id),
             "ScanIndexForward": False,
-            "Limit": limit,
+            "Limit": batch_size,
         }
 
         if exclusive_start_key:
             query_kwargs["ExclusiveStartKey"] = exclusive_start_key
 
-        if filter_expression:
-            query_kwargs["FilterExpression"] = filter_expression
-            query_kwargs["ExpressionAttributeNames"] = expression_attr_names
-            query_kwargs["ExpressionAttributeValues"] = expression_attr_values
-
         response = itens_table.query(**query_kwargs)
         itens_batch = response.get("Items", [])
-        exclusive_start_key = response.get("LastEvaluatedKey")
+        raw_last_evaluated_key = response.get("LastEvaluatedKey")
 
-        # 🔍 Pós-filtro: status e valor
+        if not itens_batch:
+            break
+
         for item in itens_batch:
             if item.get("status") not in status_list:
                 continue
@@ -1849,73 +1809,104 @@ def list_raw_itens(
             if max_val is not None and (valor_float is None or valor_float > max_val):
                 continue
 
-            valid_items.append(item)
+            if (
+                item_custom_id
+                and item_custom_id.lower()
+                not in (item.get("item_custom_id") or "").lower()
+            ):
+                continue
+            if (
+                description
+                and description.lower() not in (item.get("description") or "").lower()
+            ):
+                continue
+            if (
+                item_obs
+                and item_obs.lower() not in (item.get("item_obs") or "").lower()
+            ):
+                continue
 
-            if len(valid_items) == limit:
+            valid_itens.append(item)
+            last_valid_item = item
+
+            if len(valid_itens) == limit:
                 break
 
-        if not exclusive_start_key or len(valid_items) == limit:
-            break
+        if len(valid_itens) < limit:
+            if raw_last_evaluated_key:
+                exclusive_start_key = raw_last_evaluated_key
+            else:
+                break
 
-    # 🔥 Gera próximo cursor
-    if len(valid_items) == limit:
-        last_item = valid_items[-1]
-        if (
-            last_item.get("account_id")
-            and last_item.get("created_at")
-            and last_item.get("item_id")
+    # 🔥 Atualiza next_cursor
+    next_cursor_token = None
+    if last_valid_item:
+        next_cursor_token = encode_dynamo_key(
+            {
+                "account_id": last_valid_item["account_id"],
+                "created_at": last_valid_item["created_at"],
+                "item_id": last_valid_item["item_id"],
+            }
+        )
+
+    if next_cursor_token:
+        session["cursor_pages_itens"][str(page + 1)] = next_cursor_token
+    else:
+        session["cursor_pages_itens"].pop(str(page + 1), None)
+
+    # 🔥 Total de transações alugadas/reservadas
+    total_relevant_transactions = 0
+    try:
+        response = transactions_table.query(
+            IndexName="account_id-index",
+            KeyConditionExpression="account_id = :account_id",
+            ExpressionAttributeValues={":account_id": account_id},
+        )
+        transactions = response.get("Items", [])
+        total_relevant_transactions = sum(
+            1
+            for txn in transactions
+            if txn.get("transaction_status") in ["rented", "reserved", "returned"]
+        )
+    except Exception as e:
+        print(f"Erro ao consultar transações: {e}")
+
+    # 🔥 Controle de botão next
+    last_page_itens = session.get("last_page_itens")
+    current_page = session.get("current_page_itens", 1)
+
+    if force_no_next:
+        has_next = False
+    else:
+        if len(valid_itens) < limit or (
+            last_page_itens is not None and current_page >= last_page_itens
         ):
-            next_cursor_token = encode_dynamo_key(
-                {
-                    "account_id": last_item["account_id"],
-                    "created_at": last_item["created_at"],
-                    "item_id": last_item["item_id"],
-                }
-            )
-            page = session.get("current_page", 1)
-            cursor_history = session.get("cursor_history", {})
-            cursor_history[str(page + 1)] = next_cursor_token
-            session["cursor_history"] = cursor_history
-
-    total_items = session.get("total_items", 0)
-
-    current_itens_count = len(valid_items)
-
-    # ⚡ Novo comportamento: Se clicou next mas não achou itens
-    if not valid_items:
-        if direction == "next":
-            session["current_page"] = max(1, session.get("current_page", 1) - 1)
-            flash("Não há mais itens para exibir.", "info")
-            return redirect(
-                request.referrer or url_for("inventory")
-            )  # Ajuste aqui se quiser outra rota
+            has_next = False
         else:
-            return render_template(
-                template,
-                itens=[],
-                next_cursor=None,
-                last_page=True,
-                title=title,
-                add_route=url_for("add_item"),
-                next_url=request.url,
-                current_page=session.get("current_page", 1),
-                total_relevant_transactions=total_relevant_transactions,
-                total_items=total_items,
-                itens_count=current_itens_count,
-            )
+            has_next = True
+
+    # ⚡ Caso tenha tentado avançar sem sucesso
+    if not valid_itens and page > 1:
+        flash("Não há mais itens para exibir.", "info")
+        last_valid_page = page - 1
+        session["current_page_itens"] = last_valid_page
+        session["last_page_itens"] = last_valid_page
+        return redirect(url_for("inventory", page=last_valid_page, force_no_next=1))
 
     return render_template(
         template,
-        itens=valid_items,
+        itens=valid_itens,
         next_cursor=next_cursor_token,
-        last_page=False,
+        last_page=not has_next,
         title=title,
         add_route=url_for("add_item"),
         next_url=request.url,
-        current_page=session.get("current_page", 1),
+        current_page=current_page,
         total_relevant_transactions=total_relevant_transactions,
-        total_items=total_items,
-        itens_count=current_itens_count,
+        total_items=len(valid_itens),
+        itens_count=len(valid_itens),
+        has_next=has_next,
+        has_prev=current_page > 1,
     )
 
 

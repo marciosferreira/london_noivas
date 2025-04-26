@@ -88,7 +88,7 @@
                   Contrato e recibos
                 </a>
               </li>
-
+              <!--
               <li>
                 <a class="dropdown-item {% if request.endpoint == 'trash_itens' %}active{% endif %}" href="{{ url_for('trash_itens') }}">
                   Lixeira de itens
@@ -103,7 +103,7 @@
                   Lixeira de transações
                 </a>
               </li>
-
+-->
               {% if session.get('logged_in') %} {% if session.get('role') == 'general_admin' %}
               <li><hr class="dropdown-divider" /></li>
               <li><a class="dropdown-item text-success" href="{{ url_for('admin_dashboard') }}">Painel de Administração</a></li>

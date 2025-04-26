@@ -1,19 +1,36 @@
-{% extends "base.html" %} {% block styles %}
-<link rel="stylesheet" href="{{ url_for('static', filename='style_archive.css') }}" />
-{% endblock %} {% block body_class %}archive{% endblock %} {% block content %}
-<div class="container my-4">
-  <h2 class="mb-4">Itens arquivados (não disponíveis)</h2>
+{% extends "base.html" %} {% block title %}Itens Disponíveis{% endblock %} {% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='style_inventory.css') }}" />
+{% endblock %} {% block content %}
+<div class="container mt-3">
+  <h2 class="mb-4">Arquivo de itens</h2>
 
-  {% include "components/item_filter_section.html" %} {% if itens %}
-
+  {% if request.args or itens %} {% set show_item_filter = True %} {% endif %} {% set show_add_item = True %} {% include
+  "components/item_filter_section.html" with context %} {% if not itens %}
+  <div
+    style="
+      display: flex;
+      align-items: center;
+      background-color: #cce5ff;
+      border-left: 6px solid #007bff; /* Tarja azul à esquerda */
+      color: #004085;
+      padding: 1rem;
+      border-radius: 0.25rem;
+      margin-top: 1rem;
+    "
+  >
+    <span>Não há itens que satisfazem os cirtérios selecionados.</span>
+  </div>
+  <br />
+  {% endif %} {% if itens %}
   <!-- Tabela (que vira "cards" no mobile) -->
   <div class="table-container mt-4">
     <table class="table table-hover responsive-table align-middle rounded-table">
       <thead>
         <tr>
           <th>Imagem</th>
+          <th>Item ID#</th>
           <th>Descrição</th>
-          <th>Valor</th>
+          <th>Preço (R$)</th>
           <th>Comentários</th>
           <th></th>
         </tr>
@@ -33,14 +50,15 @@
             />
             {% endif %}
           </td>
+          <td data-label="Item ID#">{{ '' if item.item_custom_id == 'None' else item.item_custom_id or '' }}</td>
           <td data-label="Descrição" style="white-space: pre-wrap; text-align: left">{{ item.description }}</td>
           <td data-label="Valor">{{ item.valor }}</td>
-          <td data-label="Comentários" style="white-space: pre-wrap; text-align: left">{{ item.comments }}</td>
-
+          <td data-label="Comentários">{{ '' if item.item_obs == 'None' else item.item_obs or '' }}</td>
           <td data-label="Ações">
             <div class="d-flex flex-wrap gap-2 justify-content-center align-items-center">
-              {% set show_delete_item = True %} {% set show_edit_item = True %} {% set show_mark_available = True %} {% set show_qrcode = True %} {%
-              set show_share = True %}{% include 'components/action_buttons.html' with context %}
+              {% set show_delete_item = True %} {% set show_edit_item = True %} {% set show_rent = True %} {% set show_archive = True %} {% set
+              show_consult = True %} {% set show_qrcode = True %} {% set show_share = True %} {% set show_item_transactions = True %} {% include
+              'components/action_buttons.html' with context %}
             </div>
           </td>
         </tr>
@@ -49,16 +67,108 @@
     </table>
   </div>
 
-  {% else %}
+  {% endif %} {% if itens %}
 
-  <p style="color: #308be3; font-weight: bold; font-size: 1.2rem; margin-top: -1rem; margin-left: 0.25rem">Nada por aqui ainda!</p>
-
+  <!-- Pagination -->
+  <ul class="pagination justify-content-center"></ul>
   {% endif %}
 
-  <!-- Paginação -->
-  {% set route_name = 'archive' %} {% include 'components/pagination.html' with context %}
-  <div style="height: 3rem"></div>
-</div>
+  <!-- MODAL para imagem -->
+  {% include 'components/image_modal.html' %} {% endblock %} {% block scripts %}
+  <!-- Modal do calendário -->
+  <div class="modal fade" id="calendarModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 400px">
+      <div class="modal-content p-3">
+        <div class="modal-header">
+          <h5 class="modal-title">Calendário do Item</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body" id="calendarModalBody">Carregando...</div>
+      </div>
+    </div>
+  </div>
 
-<!-- Image Modal -->
-{% include 'components/image_modal.html' %} {% endblock %}
+  <script>
+    function abrirCalendario(url) {
+      fetch(url)
+        .then((response) => response.text())
+        .then((html) => {
+          document.getElementById('calendarModalBody').innerHTML = html;
+          const modal = new bootstrap.Modal(document.getElementById('calendarModal'));
+          modal.show();
+        })
+        .catch((error) => {
+          console.error('Erro ao carregar calendário:', error);
+          alert('Erro ao carregar calendário.');
+        });
+    }
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.umd.min.js"></script>
+  <script>
+    function iniciarDatePicker() {
+      const picker = new easepick.create({
+        element: document.getElementById('datepicker'),
+        css: ['https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.css'],
+        inline: true,
+        container: document.getElementById('calendar-container'),
+      });
+
+      picker.show();
+    }
+  </script>
+
+  <script>
+    function checkTransactionLimit(event) {
+      const totalTransactions = {{ total_relevant_transactions if total_relevant_transactions is not none else 0 | tojson }};
+      if (totalTransactions >= 30) {
+        alert("O limite de transações ativas foi atingido. Entre em contato conosco.");
+        event.preventDefault();
+        return false;
+      }
+      return true;
+    }
+  </script>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    let currentPage = parseInt(urlParams.get('page') || '1');
+
+    const paginacao = document.querySelector('.pagination');
+
+    // Botão ← Anterior
+    if (currentPage > 1) {
+      const liPrev = document.createElement('li');
+      liPrev.className = 'page-item';
+      const aPrev = document.createElement('a');
+      aPrev.className = 'page-link';
+      aPrev.innerText = '← Anterior';
+      aPrev.href = `?page=${currentPage - 1}`;
+      liPrev.appendChild(aPrev);
+      paginacao.appendChild(liPrev);
+    }
+
+    // Página Atual
+    const liCurrent = document.createElement('li');
+    liCurrent.className = 'page-item active';
+    const aCurrent = document.createElement('a');
+    aCurrent.className = 'page-link';
+    aCurrent.innerText = `Página ${currentPage}`;
+    aCurrent.href = "#";
+    liCurrent.appendChild(aCurrent);
+    paginacao.appendChild(liCurrent);
+
+    // Botão Próxima →
+    {% if has_next %}
+      const liNext = document.createElement('li');
+      liNext.className = 'page-item';
+      const aNext = document.createElement('a');
+      aNext.className = 'page-link';
+      aNext.innerText = 'Próxima →';
+      aNext.href = `?page=${currentPage + 1}`;
+      liNext.appendChild(aNext);
+      paginacao.appendChild(liNext);
+    {% endif %}
+  </script>
+  {% endblock %}
+</div>

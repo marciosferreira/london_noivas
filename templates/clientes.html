@@ -5,8 +5,43 @@
 <div class="container my-3">
   <h2 class="mb-4">Clientes cadastrados</h2>
 
-  {% set show_add_button = True %} {% set add_route = url_for('add_item') %} {% include "components/client_filter_section.html" with context %} {% if
+
+
+
+  {% set show_add_button = True %} {% set add_route = url_for('add_item') %} {% include "components/client_filter_section.html" with context %}
+
+
+
+
+
+
+  {% if not itens %}
+  <div
+    style="
+      display: flex;
+      align-items: center;
+      background-color: #cce5ff;
+      border-left: 6px solid #007bff; /* Tarja azul à esquerda */
+      color: #004085;
+      padding: 1rem;
+      border-radius: 0.25rem;
+      margin-top: 1rem;
+    "
+  >
+    <span>Não há itens que satisfazem os cirtérios selecionados.</span>
+  </div>
+  <br>
+  {% endif %}
+
+
+
+
+
+  {% if
   itens %}
+
+
+
 
   <!-- Tabela (que vira "cards" no mobile) -->
     <!-- Tabela -->
@@ -66,24 +101,13 @@
 
     </div>
 
-    {% else %}
-
-    <p style="color: #308be3; font-weight: bold; font-size: 1.2rem; margin-top: -1rem; margin-left: 0.25rem">Nada por aqui ainda!</p>
 
     {% endif %}
 
-    <!-- Pagination -->
-    <ul class="pagination justify-content-center">
-    </ul>
-    {% if last_page %}
-    <div class="alert alert-primary text-center mt-3" role="alert">
-      Não há mais itens para exibir.
-    </div>
-    {% endif %}
+    {% if itens %}
 
-    <ul class="pagination justify-content-center mt-3">
-      <!-- Aqui vão os botões via JS -->
-    </ul>
+  <!-- Pagination -->
+  <ul class="pagination justify-content-center"></ul>  {% endif %}
 
 
     {% include 'components/info_modal_client.html' %}

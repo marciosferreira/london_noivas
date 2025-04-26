@@ -163,271 +163,224 @@
     {% endif %}
   </ul>
 
-  {% if total_relevant_transactions == 0 and itens|length == 1 %}
-  <div
-    class="tour-tooltip"
-    style="
-      position: absolute;
-      bottom: 100%;
-      right: 0;
-      transform: translateY(-0.5rem);
-      background-color: #ffe598; /* amarelo translúcido */
-      border: 1px solid #ffc107; /* amarelo sólido */
-      color: #664d03; /* texto escuro apropriado para fundo amarelo */
-      padding: 0.75rem 1rem;
-      border-radius: 0.5rem;
-      font-size: 0.9rem;
-      max-width: 250px;
-      box-shadow: 0 0 6px rgba(0, 0, 0, 0.1);
-      z-index: 1050;
-      white-space: normal;
-    "
-  >
-    <button
-      onclick="this.parentElement.style.display='none';"
-      style="
-        position: absolute;
-        top: 0.25rem;
-        right: 0.5rem;
-        background: none;
-        border: none;
-        color: #664d03;
-        font-size: 1.1rem;
-        cursor: pointer;
-        line-height: 1;
-      "
-      title="Fechar"
-    >
-      ×
-    </button>
-
-    Crie uma transação abrindo o menu
-    <strong>"Ações"</strong>
-    e depois
-    <strong>"Iniciar transação"</strong>
-    .
-  </div>
-  {% endif %}
-</div>
-
-<!-- Modal para Seleção do Modelo -->
-<div class="modal fade" id="modalModelo" tabindex="-1" aria-labelledby="modalModeloLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg modal-dialog-scrollable">
-    <div class="modal-content">
-      <!-- Cabeçalho fixo do modal -->
-      <div class="modal-header">
-        <h5 class="modal-title">Gerar Documento</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
-      </div>
-
-      {% if saved_models %}
-      <!-- Corpo do modal (com modelos salvos) -->
-      <div class="modal-body">
-        <label for="select-modelo">Escolha um modelo:</label>
-        <select class="form-select mb-3" id="select-modelo" onchange="carregarModeloSelecionado()">
-          <option value="">Selecione...</option>
-          {% for modelo in saved_models %}
-          <option value="{{ modelo.text_id }}">{{ modelo.nome }}</option>
-          {% endfor %}
-        </select>
-
-        <!-- Área de conteúdo do modelo selecionado -->
-        <div id="print-area">
-          <p class="text-muted">Nenhum modelo selecionado.</p>
+  <!-- Modal para Seleção do Modelo -->
+  <div class="modal fade" id="modalModelo" tabindex="-1" aria-labelledby="modalModeloLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+      <div class="modal-content">
+        <!-- Cabeçalho fixo do modal -->
+        <div class="modal-header">
+          <h5 class="modal-title">Gerar Documento</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
         </div>
-      </div>
 
-      <!-- Rodapé com botão de imprimir -->
-      <div class="modal-footer">
-        <button class="btn btn-outline-secondary" onclick="printConteudo()">🖨️ Imprimir</button>
-      </div>
+        {% if saved_models %}
+        <!-- Corpo do modal (com modelos salvos) -->
+        <div class="modal-body">
+          <label for="select-modelo">Escolha um modelo:</label>
+          <select class="form-select mb-3" id="select-modelo" onchange="carregarModeloSelecionado()">
+            <option value="">Selecione...</option>
+            {% for modelo in saved_models %}
+            <option value="{{ modelo.text_id }}">{{ modelo.nome }}</option>
+            {% endfor %}
+          </select>
 
-      {% else %}
-      <!-- Corpo alternativo do modal (sem modelos) -->
-      <div class="modal-body text-center">
-        <p class="text-muted mb-3">Você ainda não criou modelos para impressão!</p>
-        <a href="{{ url_for('listar_modelos') }}" class="btn btn-primary">Criar modelo</a>
-      </div>
-      {% endif %}
-    </div>
-  </div>
-</div>
-
-<!-- modal qrcode -->
-
-<div class="modal fade" id="qrModal" tabindex="-1" aria-labelledby="qrModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Configurar impressão</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
-      </div>
-      <div class="modal-body">
-        <input type="hidden" id="qr-item-id" />
-
-        <p>Escolha o que incluir junto ao QR Code:</p>
-        <div class="form-check">
-          <input class="form-check-input" type="checkbox" value="imagem" id="check-imagem" checked />
-          <label class="form-check-label" for="check-imagem">Imagem do item</label>
+          <!-- Área de conteúdo do modelo selecionado -->
+          <div id="print-area">
+            <p class="text-muted">Nenhum modelo selecionado.</p>
+          </div>
         </div>
-        <div class="form-check">
-          <input class="form-check-input" type="checkbox" value="descricao" id="check-descricao" checked />
-          <label class="form-check-label" for="check-descricao">Descrição</label>
+
+        <!-- Rodapé com botão de imprimir -->
+        <div class="modal-footer">
+          <button class="btn btn-outline-secondary" onclick="printConteudo()">🖨️ Imprimir</button>
         </div>
-        <div class="form-check">
-          <input class="form-check-input" type="checkbox" value="custom_id" id="check-custom_id" checked />
-          <label class="form-check-label" for="check-custom_id">ID personalizado</label>
+
+        {% else %}
+        <!-- Corpo alternativo do modal (sem modelos) -->
+        <div class="modal-body text-center">
+          <p class="text-muted mb-3">Você ainda não criou modelos para impressão!</p>
+          <a href="{{ url_for('listar_modelos') }}" class="btn btn-primary">Criar modelo</a>
         </div>
-        <div class="form-check">
-          <input class="form-check-input" type="checkbox" value="obs" id="check-obs" checked />
-          <label class="form-check-label" for="check-obs">Observações</label>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-primary" onclick="gerarLayoutQRCode()">Visualizar para Impressão</button>
+        {% endif %}
       </div>
     </div>
   </div>
-</div>
 
-<!-- Modal de impressão qrcode-->
-<div class="modal fade" id="modalPrintPreview" tabindex="-1" aria-labelledby="modalPrintPreviewLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Pré-visualização para impressão</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
-      </div>
-      <div class="modal-body" id="print-preview-content">
-        <p class="text-muted">Carregando...</p>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
-        <button class="btn btn-primary" onclick="printModalContent()">🖨️ Imprimir</button>
+  <!-- modal qrcode -->
+
+  <div class="modal fade" id="qrModal" tabindex="-1" aria-labelledby="qrModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Configurar impressão</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="qr-item-id" />
+
+          <p>Escolha o que incluir junto ao QR Code:</p>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" value="imagem" id="check-imagem" checked />
+            <label class="form-check-label" for="check-imagem">Imagem do item</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" value="descricao" id="check-descricao" checked />
+            <label class="form-check-label" for="check-descricao">Descrição</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" value="custom_id" id="check-custom_id" checked />
+            <label class="form-check-label" for="check-custom_id">ID personalizado</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" value="obs" id="check-obs" checked />
+            <label class="form-check-label" for="check-obs">Observações</label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-primary" onclick="gerarLayoutQRCode()">Visualizar para Impressão</button>
+        </div>
       </div>
     </div>
   </div>
-</div>
 
-<script>
-  function checkTransactionLimit(event) {
-    const totalTransactions = {{ total_relevant_transactions }};
-    if (totalTransactions >= 30) {
-      alert("O limite de transações simultâneas foi atingido. Entre em contato conosco.");
-      event.preventDefault();
-      return false;
+  <!-- Modal de impressão qrcode-->
+  <div class="modal fade" id="modalPrintPreview" tabindex="-1" aria-labelledby="modalPrintPreviewLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Pré-visualização para impressão</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body" id="print-preview-content">
+          <p class="text-muted">Carregando...</p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+          <button class="btn btn-primary" onclick="printModalContent()">🖨️ Imprimir</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function checkTransactionLimit(event) {
+      const totalTransactions = {{ total_relevant_transactions }};
+      if (totalTransactions >= 30) {
+        alert("O limite de transações simultâneas foi atingido. Entre em contato conosco.");
+        event.preventDefault();
+        return false;
+      }
+      return true;
     }
-    return true;
-  }
 
-  // ✅ Função para imprimir apenas a área de conteúdo do modal
-</script>
+    // ✅ Função para imprimir apenas a área de conteúdo do modal
+  </script>
 
-<script>
-  function abrirModalQR(itemId) {
-    document.getElementById('qr-item-id').value = itemId;
-  }
-</script>
+  <script>
+    function abrirModalQR(itemId) {
+      document.getElementById('qr-item-id').value = itemId;
+    }
+  </script>
 
-<script>
-  function gerarLayoutQRCode() {
-    console.log('OKKKKKKK');
-    const itemId = document.getElementById('qr-item-id').value;
-    const checks = {
-      imagem: document.getElementById('check-imagem').checked,
-      descricao: document.getElementById('check-descricao').checked,
-      custom_id: document.getElementById('check-custom_id').checked,
-      obs: document.getElementById('check-obs').checked,
-    };
+  <script>
+    function gerarLayoutQRCode() {
+      console.log('OKKKKKKK');
+      const itemId = document.getElementById('qr-item-id').value;
+      const checks = {
+        imagem: document.getElementById('check-imagem').checked,
+        descricao: document.getElementById('check-descricao').checked,
+        custom_id: document.getElementById('check-custom_id').checked,
+        obs: document.getElementById('check-obs').checked,
+      };
 
-    fetch(`/qr-data/${itemId}`)
-      .then((res) => res.json())
-      .then((data) => {
-        let html = `
+      fetch(`/qr-data/${itemId}`)
+        .then((res) => res.json())
+        .then((data) => {
+          let html = `
           <div style="text-align:center;">
             <img src="/static/qrcodes/${itemId}.png" alt="QR Code"><hr>
         `;
 
-        if (checks.imagem && data.image_url) {
-          html += `<img src="${data.image_url}" style="max-width:200px;"><br>`;
-        }
-        if (checks.descricao) {
-          html += `<strong>Descrição:</strong> ${data.description}<br>`;
-        }
-        if (checks.custom_id) {
-          html += `<strong>ID:</strong> ${data.item_custom_id}<br>`;
-        }
-        if (checks.obs) {
-          html += `<strong>Observações:</strong> ${data.item_obs}<br>`;
-        }
+          if (checks.imagem && data.image_url) {
+            html += `<img src="${data.image_url}" style="max-width:200px;"><br>`;
+          }
+          if (checks.descricao) {
+            html += `<strong>Descrição:</strong> ${data.description}<br>`;
+          }
+          if (checks.custom_id) {
+            html += `<strong>ID:</strong> ${data.item_custom_id}<br>`;
+          }
+          if (checks.obs) {
+            html += `<strong>Observações:</strong> ${data.item_obs}<br>`;
+          }
 
-        html += `</div>`;
+          html += `</div>`;
 
-        const win = window.open('', '', 'width=600,height=800');
-        win.document.write(`<html><head><title>Imprimir</title></head><body>${html}<script>window.print();<\/script></body></html>`);
-        win.document.close();
-      });
-  }
-</script>
-
-<script>
-  // ✅ Função para imprimir qrcode
-
-  function gerarLayoutQRCode() {
-    const itemId = document.getElementById('qr-item-id').value;
-    const incluir = [];
-
-    if (document.getElementById('check-imagem').checked) incluir.push('imagem');
-    if (document.getElementById('check-descricao').checked) incluir.push('descricao');
-    if (document.getElementById('check-custom_id').checked) incluir.push('custom_id');
-    if (document.getElementById('check-obs').checked) incluir.push('obs');
-
-    const url = `/imprimir_qrcode/${itemId}?` + incluir.map((i) => `incluir=${i}`).join('&');
-
-    console.log('🔍 URL gerada:', url); // 🔧 Verificar no console
-    window.open(url, '_blank');
-  }
-</script>
-
-<script>
-  // ✅ Função para imprimir qrcode
-
-  function gerarLayoutQRCode() {
-    const itemId = document.getElementById('qr-item-id').value;
-    const incluir = [];
-
-    if (document.getElementById('check-imagem').checked) incluir.push('imagem');
-    if (document.getElementById('check-descricao').checked) incluir.push('descricao');
-    if (document.getElementById('check-custom_id').checked) incluir.push('custom_id');
-    if (document.getElementById('check-obs').checked) incluir.push('obs');
-
-    const url = `/imprimir_qrcode/${itemId}?` + incluir.map((i) => `incluir=${i}`).join('&');
-
-    fetch(url)
-      .then((response) => response.text())
-      .then((html) => {
-        document.getElementById('print-preview-content').innerHTML = html;
-        const modal = new bootstrap.Modal(document.getElementById('modalPrintPreview'));
-        modal.show();
-      });
-  }
-</script>
-
-<script>
-  // ✅ Função para imprimir qrcode
-  function printModalContent() {
-    const conteudo = document.getElementById('print-preview-content').innerHTML;
-
-    // Abre uma nova janela para impressão
-    const win = window.open('', '', 'width=600,height=800');
-
-    if (!win) {
-      alert('Não foi possível abrir a janela de impressão.');
-      return;
+          const win = window.open('', '', 'width=600,height=800');
+          win.document.write(`<html><head><title>Imprimir</title></head><body>${html}<script>window.print();<\/script></body></html>`);
+          win.document.close();
+        });
     }
+  </script>
 
-    win.document.open();
-    win.document.write(`
+  <script>
+    // ✅ Função para imprimir qrcode
+
+    function gerarLayoutQRCode() {
+      const itemId = document.getElementById('qr-item-id').value;
+      const incluir = [];
+
+      if (document.getElementById('check-imagem').checked) incluir.push('imagem');
+      if (document.getElementById('check-descricao').checked) incluir.push('descricao');
+      if (document.getElementById('check-custom_id').checked) incluir.push('custom_id');
+      if (document.getElementById('check-obs').checked) incluir.push('obs');
+
+      const url = `/imprimir_qrcode/${itemId}?` + incluir.map((i) => `incluir=${i}`).join('&');
+
+      console.log('🔍 URL gerada:', url); // 🔧 Verificar no console
+      window.open(url, '_blank');
+    }
+  </script>
+
+  <script>
+    // ✅ Função para imprimir qrcode
+
+    function gerarLayoutQRCode() {
+      const itemId = document.getElementById('qr-item-id').value;
+      const incluir = [];
+
+      if (document.getElementById('check-imagem').checked) incluir.push('imagem');
+      if (document.getElementById('check-descricao').checked) incluir.push('descricao');
+      if (document.getElementById('check-custom_id').checked) incluir.push('custom_id');
+      if (document.getElementById('check-obs').checked) incluir.push('obs');
+
+      const url = `/imprimir_qrcode/${itemId}?` + incluir.map((i) => `incluir=${i}`).join('&');
+
+      fetch(url)
+        .then((response) => response.text())
+        .then((html) => {
+          document.getElementById('print-preview-content').innerHTML = html;
+          const modal = new bootstrap.Modal(document.getElementById('modalPrintPreview'));
+          modal.show();
+        });
+    }
+  </script>
+
+  <script>
+    // ✅ Função para imprimir qrcode
+    function printModalContent() {
+      const conteudo = document.getElementById('print-preview-content').innerHTML;
+
+      // Abre uma nova janela para impressão
+      const win = window.open('', '', 'width=600,height=800');
+
+      if (!win) {
+        alert('Não foi possível abrir a janela de impressão.');
+        return;
+      }
+
+      win.document.open();
+      win.document.write(`
       <html>
         <head>
           <title>Imprimir</title>
@@ -473,86 +426,86 @@
         </body>
       </html>
     `);
-    win.document.close();
+      win.document.close();
 
-    // Chama a função de impressão
-    win.print();
-  }
-</script>
+      // Chama a função de impressão
+      win.print();
+    }
+  </script>
 
-<script>
-  function copiarLinkCompartilhamento(link) {
-    navigator.clipboard
-      .writeText(link)
-      .then(() => {
-        alert('Link copiado para a área de transferência!');
-      })
-      .catch((err) => {
-        console.error('Erro ao copiar o link:', err);
-        alert('Erro ao copiar o link. Tente novamente.');
-      });
-  }
-</script>
+  <script>
+    function copiarLinkCompartilhamento(link) {
+      navigator.clipboard
+        .writeText(link)
+        .then(() => {
+          alert('Link copiado para a área de transferência!');
+        })
+        .catch((err) => {
+          console.error('Erro ao copiar o link:', err);
+          alert('Erro ao copiar o link. Tente novamente.');
+        });
+    }
+  </script>
 
-<script>
-  let transacaoSelecionada = null;
+  <script>
+    let transacaoSelecionada = null;
 
-  function abrirModalModelo(transactionId) {
-    transacaoSelecionada = transactionId;
-    document.getElementById('print-area').innerHTML = "<p class='text-muted'>Nenhum modelo selecionado.</p>";
-    document.getElementById('select-modelo').value = '';
-  }
-
-  function carregarModeloSelecionado() {
-    const select = document.getElementById('select-modelo');
-    const textId = select.value;
-    const outputDiv = document.getElementById('print-area');
-
-    if (!textId || !transacaoSelecionada) {
-      outputDiv.innerHTML = "<p class='text-muted'>Selecione um modelo para visualizar2.</p>";
-      return;
+    function abrirModalModelo(transactionId) {
+      transacaoSelecionada = transactionId;
+      document.getElementById('print-area').innerHTML = "<p class='text-muted'>Nenhum modelo selecionado.</p>";
+      document.getElementById('select-modelo').value = '';
     }
 
-    outputDiv.innerHTML = '<p>Carregando...</p>';
+    function carregarModeloSelecionado() {
+      const select = document.getElementById('select-modelo');
+      const textId = select.value;
+      const outputDiv = document.getElementById('print-area');
 
-    fetch(`/visualizar-modelo/${textId}/${transacaoSelecionada}`)
-      .then((response) => response.text())
-      .then((html) => {
-        outputDiv.innerHTML = html;
-      })
-      .catch((error) => {
-        outputDiv.innerHTML = "<p class='text-danger'>Erro ao carregar modelo.</p>";
-        console.error(error);
-      });
-  }
-</script>
+      if (!textId || !transacaoSelecionada) {
+        outputDiv.innerHTML = "<p class='text-muted'>Selecione um modelo para visualizar2.</p>";
+        return;
+      }
 
-<script>
-  document.addEventListener('DOMContentLoaded', function () {
-    // Evita que clique no botão "Deletar" ative o modal
-    document.querySelectorAll('.action-button.danger').forEach((btn) => {
-      btn.addEventListener('click', function (e) {
-        e.stopPropagation();
+      outputDiv.innerHTML = '<p>Carregando...</p>';
+
+      fetch(`/visualizar-modelo/${textId}/${transacaoSelecionada}`)
+        .then((response) => response.text())
+        .then((html) => {
+          outputDiv.innerHTML = html;
+        })
+        .catch((error) => {
+          outputDiv.innerHTML = "<p class='text-danger'>Erro ao carregar modelo.</p>";
+          console.error(error);
+        });
+    }
+  </script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      // Evita que clique no botão "Deletar" ative o modal
+      document.querySelectorAll('.action-button.danger').forEach((btn) => {
+        btn.addEventListener('click', function (e) {
+          e.stopPropagation();
+        });
       });
     });
-  });
-</script>
+  </script>
 
-<script>
-  function printConteudo() {
-    // Abre a janela para impressão
+  <script>
+    function printConteudo() {
+      // Abre a janela para impressão
 
-    const conteudoHtml = document.getElementById('print-area').innerHTML;
+      const conteudoHtml = document.getElementById('print-area').innerHTML;
 
-    const win = window.open('', '', 'width=600,height=800');
+      const win = window.open('', '', 'width=600,height=800');
 
-    if (!win) {
-      alert('Não foi possível abrir a janela de impressão.');
-      return;
-    }
+      if (!win) {
+        alert('Não foi possível abrir a janela de impressão.');
+        return;
+      }
 
-    win.document.open();
-    win.document.write(`
+      win.document.open();
+      win.document.write(`
       <html>
         <head>
           <title>Imprimir</title>
@@ -601,8 +554,9 @@
         </body>
       </html>
     `);
-    win.document.close();
+      win.document.close();
 
-    win.print();
-  }
-</script>
+      win.print();
+    }
+  </script>
+</div>

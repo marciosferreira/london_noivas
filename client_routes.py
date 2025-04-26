@@ -59,10 +59,6 @@ def init_client_routes(
             print(f"Erro na busca de autocomplete: {str(e)}")
             return jsonify([])  # Retorna lista vazia em caso de erro
 
-    from flask import render_template, request, redirect, url_for, session, flash
-    from boto3.dynamodb.conditions import Key
-    import datetime
-
     @app.route("/clients")
     def listar_clientes():
         if not session.get("logged_in"):
@@ -72,15 +68,14 @@ def init_client_routes(
         if not account_id:
             return redirect(url_for("login"))
 
-        current_path = request.path
-        previous_path = session.get("previous_path_clients")
+        force_no_next = request.args.get("force_no_next")
 
+        current_path = request.path
         # Atualiza o caminho atual para comparação futura
         session["previous_path_clients"] = current_path
 
         # --- Pegando parâmetros ---
         filtros = request.args.to_dict()
-        cursor_token = filtros.pop("cursor", None)  # 🔥 Aqui você pega o cursor
         page = int(
             filtros.pop("page", 1)
         )  # 🛑 Mudamos para controle de página baseado em número
@@ -163,31 +158,11 @@ def init_client_routes(
                     }
                 )
 
-        # --- Define has_next dinamicamente ---
-        if len(valid_clientes) == limit and raw_last_evaluated_key:
-            has_next = True
-        else:
-            has_next = False
-        # se tem menos itens do que o limite por pagina, entao acabou tudo. Esconde botao next..
-        print(has_next)
-
         # --- Atualiza sessão para a próxima página ---
-        if has_next:
-            next_cursor_token = encode_dynamo_key(raw_last_evaluated_key)
+        if next_cursor_token:
             session["cursor_pages_clients"][str(page + 1)] = next_cursor_token
         else:
             session["cursor_pages_clients"].pop(str(page + 1), None)
-
-        print(has_next)
-
-        # --- Caso não haja clientes encontrados em página >1 (quando tentou ir além do limite) ---
-        # --- Se clicou para avançar e não há clientes
-        if not valid_clientes and page > 1:
-            flash("Não há mais clientes para exibir.", "info")
-            last_valid_page = page - 1
-            session["current_page_clients"] = last_valid_page
-            session["last_page_clients"] = last_valid_page  # 🔥 Grava última página
-            return redirect(url_for("listar_clientes", page=last_valid_page))
 
         # --- Quando for renderizar normal:
         last_page_clients = session.get("last_page_clients")
@@ -196,12 +171,27 @@ def init_client_routes(
         # Se:
         # 1. O número de itens na página é menor que o limite (ou seja, não preencheu a página completamente)
         # 2. OU se a página atual já é maior ou igual à última página registrada
-        if len(valid_clientes) < limit or (
-            last_page_clients is not None and current_page >= last_page_clients
-        ):
+
+        if force_no_next:
             has_next = False
         else:
-            has_next = True
+            if len(valid_clientes) < limit or (
+                last_page_clients is not None and current_page >= last_page_clients
+            ):
+                has_next = False
+            else:
+                has_next = True
+
+        # --- Caso não haja clientes encontrados em página >1 (quando tentou ir além do limite) ---
+        # --- Se clicou para avançar e não há clientes
+        if not valid_clientes and page > 1:
+            flash("Não há mais clientes para exibir.", "info")
+            last_valid_page = page - 1
+            session["current_page_clients"] = last_valid_page
+            session["last_page_clients"] = last_valid_page  # 🔥 Grava última página
+            return redirect(
+                url_for("listar_clientes", page=last_valid_page, force_no_next=1)
+            )
 
         return render_template(
             "clientes.html",

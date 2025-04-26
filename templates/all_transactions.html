@@ -3,30 +3,31 @@
 {% endblock %} {% block content %}
 <h4 class="text-center mb-3" style="text-decoration: underline">Olá, {{ username }} !</h4>
 
-{% if itens == [] and last_page == False and not request.args%}
+{% if itens == [] and not request.args%}
 <div
   style="
     background-color: rgba(255, 193, 7, 0.3);
     border: 1px solid #ffc107;
     padding: 1rem;
     border-radius: 0.5rem;
-    display: flex;
-    justify-content: space-between;
+    display: inline-flex;
+    justify-content: flex-start;
     align-items: center;
+    gap: 1rem;
     margin-bottom: 1rem;
   "
 >
-  <span style="color: #664d03; font-weight: 500">Você ainda não tem transações, que tal criar a primeira?</span>
+  <span style="color: #664d03; font-weight: 500">Que tal criar sua primeira transação?</span>
   <a href="{{ url_for('inventory') }}" class="btn btn-primary btn-sm">Criar transação</a>
 </div>
+
+
 {% endif %}
 
 <div class="container mt-3">
   <h2 class="mb-4">{{ title }}</h2>
 
-  {% if last_page == False and not itens%}
-  <p style="color: #308be3; font-weight: bold; font-size: 1.2rem; margin-top: -1rem; margin-left: 0.25rem">Nada por aqui!</p>
-  {% endif %} {% if last_page %}
+  {% if not itens %}
   <div
     style="
       display: flex;
@@ -39,8 +40,12 @@
       margin-top: 1rem;
     "
   >
-    <span>Não há mais itens que satisfazem os cirtérios selecionados.</span>
+    <span>Não há itens que satisfazem os cirtérios selecionados.</span>
   </div>
+  {% endif %}
+
+  {% if last_page == False and not itens%}
+  <p style="color: #308be3; font-weight: bold; font-size: 1.2rem; margin-top: -1rem; margin-left: 0.25rem">Nada por aqui!</p>
   {% endif %} {% if request.args or itens %} {% include "components/filter_section.html" with context %}{% endif %} {% if itens %}
   <!-- Tabela -->
   <div class="table-container mt-4">
@@ -147,31 +152,22 @@
     </table>
   </div>
 
-  {% else %} {% endif %} {% if current_page != 1 or itens_count > 0 %}
+  {% else %} {% endif %}
 
-  <!-- Paginação -->
-  <div class="d-flex justify-content-center mt-4">
-    <nav class="text-center">
-      <ul class="pagination">
-        <!-- Botão voltar -->
-        <li class="page-item {% if current_page == 1 %}disabled{% endif %}">
-          <a class="page-link" href="{% if current_page > 1 %}?direction=prev{% else %}#{% endif %}">←</a>
-        </li>
 
-        <!-- Página atual -->
-        <li class="page-item disabled">
-          <span class="page-link">Página {{ current_page }}</span>
-        </li>
+  {% if itens|count > 0 %}
 
-        <!-- Botão próximo -->
-        <li class="page-item {% if not next_cursor %}disabled{% endif %}">
-          <a class="page-link" href="{% if next_cursor %}?cursor={{ next_cursor }}&direction=next{% else %}#{% endif %}">→</a>
-        </li>
-      </ul>
-    </nav>
-  </div>
+
+  <!-- Pagination -->
+  <!-- Pagination -->
+  <ul class="pagination justify-content-center">
+  </ul>
+
+
+  <ul class="pagination justify-content-center mt-3">
+    <!-- Aqui vão os botões via JS -->
+  </ul>
   {% endif %}
-
   <!-- Modals -->
   {% include 'components/info_modal_transaction.html' %} {% include 'components/image_modal.html' %}
 </div>
@@ -290,70 +286,48 @@
   }
 </script>
 <script>
-  document.addEventListener('DOMContentLoaded', function () {
-    const nextCursor = '{{ next_cursor }}';
-    const currentPage = {{ current_page }};
-    const paginationData = JSON.parse('{{ session["pagination"] | tojson | safe }}');
+  const urlParams = new URLSearchParams(window.location.search);
+  let currentPage = parseInt(urlParams.get('page') || '1');
 
-    const paginacaoUl = document.getElementById('paginacao-numerada');
-    paginacaoUl.innerHTML = '';
+  const paginacao = document.querySelector('.pagination');
 
-    // 🚨 LIMPA "direction" da URL logo ao carregar
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.has('direction')) {
-      urlParams.delete('direction');
-      const cleanedUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
-      window.history.replaceState({}, '', cleanedUrl);
-    }
-
-    // ← Botão voltar
+  // Botão ← Anterior
+  if (currentPage > 1) {
     const liPrev = document.createElement('li');
-    liPrev.className = 'page-item' + (currentPage <= 1 ? ' disabled' : '');
+    liPrev.className = 'page-item';
     const aPrev = document.createElement('a');
     aPrev.className = 'page-link';
-    aPrev.href = '#';
-    aPrev.innerText = '←';
-    aPrev.onclick = (e) => {
-      e.preventDefault();
-      if (currentPage > 1) {
-        const previousPage = currentPage - 1;
-        const previousData = paginationData[previousPage.toString()];
-        if (previousData) {
-          let url = previousData.url || window.location.pathname;
-          url += url.includes('?') ? '&direction=prev' : '?direction=prev';
-          window.location.href = url;
-        }
-      }
-    };
+    aPrev.innerText = '← Anterior';
+    aPrev.href = `?page=${currentPage - 1}`;
     liPrev.appendChild(aPrev);
-    paginacaoUl.appendChild(liPrev);
+    paginacao.appendChild(liPrev);
+  }
 
-    // Página atual
-    const liPage = document.createElement('li');
-    liPage.className = 'page-item disabled';
-    const spanPage = document.createElement('span');
-    spanPage.className = 'page-link';
-    spanPage.textContent = `Página ${currentPage}`;
-    liPage.appendChild(spanPage);
-    paginacaoUl.appendChild(liPage);
+  // Página Atual
+  const liCurrent = document.createElement('li');
+  liCurrent.className = 'page-item active';
+  const aCurrent = document.createElement('a');
+  aCurrent.className = 'page-link';
+  aCurrent.innerText = `Página ${currentPage}`;
+  aCurrent.href = "#";
+  liCurrent.appendChild(aCurrent);
+  paginacao.appendChild(liCurrent);
 
-    // → Botão próxima
+  // Botão Próxima →
+  {% if has_next %}
     const liNext = document.createElement('li');
+    liNext.className = 'page-item';
     const aNext = document.createElement('a');
     aNext.className = 'page-link';
-    aNext.href = '#';
-    aNext.innerText = '→';
-    aNext.onclick = (e) => {
-      e.preventDefault();
-      if (nextCursor && nextCursor !== 'None') {
-        let url = window.location.pathname + '?cursor=' + nextCursor + '&direction=next';
-        window.location.href = url;
-      }
-    };
-    liNext.className = 'page-item' + (nextCursor && nextCursor !== 'None' ? '' : ' disabled');
+    aNext.innerText = 'Próxima →';
+    aNext.href = `?page=${currentPage + 1}`;
     liNext.appendChild(aNext);
-    paginacaoUl.appendChild(liNext);
-  });
+    paginacao.appendChild(liNext);
+  {% endif %}
 </script>
+
+
+
+</div>
 
 {% endblock %}
