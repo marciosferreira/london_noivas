@@ -75,20 +75,21 @@ def init_client_routes(
         current_path = request.path
         previous_path = session.get("previous_path_clients")
 
-        if previous_path != current_path:
-            # 🔥 Resetando dados antigos
-            session.pop("current_page_clients", None)
-            session.pop("cursor_pages_clients", None)
-            session.pop("last_page_clients", None)
-
         # Atualiza o caminho atual para comparação futura
         session["previous_path_clients"] = current_path
 
         # --- Pegando parâmetros ---
         filtros = request.args.to_dict()
+        cursor_token = filtros.pop("cursor", None)  # 🔥 Aqui você pega o cursor
         page = int(
             filtros.pop("page", 1)
         )  # 🛑 Mudamos para controle de página baseado em número
+
+        if page == 1:
+            session.pop("current_page_clients", None)
+            session.pop("cursor_pages_clients", None)
+            session.pop("last_page_clients", None)
+
         cursor_pages = session.get("cursor_pages_clients", {"1": None})
 
         # Se for primeira página, limpa histórico
@@ -104,36 +105,73 @@ def init_client_routes(
             exclusive_start_key = decode_dynamo_key(cursor_pages[str(page)])
 
         # --- Query no banco ---
+        # --- Query no banco ---
         valid_clientes = []
-        limit = 5
-        query_kwargs = {
-            "IndexName": "account_id-created_at-index",
-            "KeyConditionExpression": Key("account_id").eq(account_id),
-            "ScanIndexForward": False,
-            "Limit": limit,
-        }
-        if exclusive_start_key:
-            query_kwargs["ExclusiveStartKey"] = exclusive_start_key
+        limit = 5  # Quantidade de clientes válidos desejada
+        batch_size = 10  # Quantidade bruta trazida a cada chamada do DynamoDB
 
-        response = clients_table.query(**query_kwargs)
-        clientes = response.get("Items", [])
-        last_evaluated_key = response.get("LastEvaluatedKey")
+        last_valid_cliente = None
+        raw_last_evaluated_key = None
 
-        # --- Filtro no loop se precisar (opcional) ---
-        for cliente in clientes:
-            valid_clientes.append(cliente)
-            if len(valid_clientes) == limit:
-                break
+        while len(valid_clientes) < limit:
+            query_kwargs = {
+                "IndexName": "account_id-created_at-index",
+                "KeyConditionExpression": Key("account_id").eq(account_id),
+                "ScanIndexForward": False,
+                "Limit": batch_size,
+            }
+            if exclusive_start_key:
+                query_kwargs["ExclusiveStartKey"] = exclusive_start_key
+
+            response = clients_table.query(**query_kwargs)
+            clientes = response.get("Items", [])
+            raw_last_evaluated_key = response.get("LastEvaluatedKey")
+
+            if not clientes:
+                break  # Não há mais clientes no banco
+
+            for cliente in clientes:
+                if not cliente_atende_filtros(cliente, filtros):
+                    continue
+
+                valid_clientes.append(cliente)
+                last_valid_cliente = cliente  # Atualiza o último cliente adicionado
+
+                if len(valid_clientes) == limit:
+                    break
+
+            # Se não atingiu o limite, mas ainda há last evaluated key, continua buscando
+            if len(valid_clientes) < limit:
+                if raw_last_evaluated_key:
+                    exclusive_start_key = raw_last_evaluated_key
+                else:
+                    break  # Não há mais itens no banco para buscar
+
+        # --- Define next_cursor_token com base no último cliente válido ---
+        next_cursor_token = None
+        if last_valid_cliente:
+            if (
+                last_valid_cliente.get("account_id")
+                and last_valid_cliente.get("created_at")
+                and last_valid_cliente.get("client_id")
+            ):
+                next_cursor_token = encode_dynamo_key(
+                    {
+                        "account_id": last_valid_cliente["account_id"],
+                        "created_at": last_valid_cliente["created_at"],
+                        "client_id": last_valid_cliente["client_id"],
+                    }
+                )
 
         # --- Define has_next dinamicamente ---
-        if len(valid_clientes) == limit and last_evaluated_key:
+        if len(valid_clientes) == limit and raw_last_evaluated_key:
             has_next = True
         else:
             has_next = False
 
         # --- Atualiza sessão para a próxima página ---
         if has_next:
-            next_cursor_token = encode_dynamo_key(last_evaluated_key)
+            next_cursor_token = encode_dynamo_key(raw_last_evaluated_key)
             session["cursor_pages_clients"][str(page + 1)] = next_cursor_token
         else:
             session["cursor_pages_clients"].pop(str(page + 1), None)
@@ -307,9 +345,6 @@ def init_client_routes(
             if len(cnpj) == 14:
                 return f"{cnpj[:2]}.{cnpj[2:5]}.{cnpj[5:8]}/{cnpj[8:12]}-{cnpj[12:]}"
             return cnpj
-
-        print("CCCCCCCCCC")
-        print(cliente)
 
         if "client_tel" in cliente:
             cliente["client_tel"] = format_phone(cliente["client_tel"])
@@ -521,7 +556,10 @@ def decode_dynamo_key(encoded_key):
         return None
 
 
-def filtrar_clientes(cliente, filtros):
+def cliente_atende_filtros(cliente, filtros):
+    """
+    Verifica se o cliente atende aos filtros fornecidos.
+    """
     client_name = filtros.get("client_name", "").strip().lower()
     client_tel = "".join(filter(str.isdigit, filtros.get("client_tel", "")))
     client_email = filtros.get("client_email", "").strip().lower()
@@ -531,7 +569,7 @@ def filtrar_clientes(cliente, filtros):
     client_obs = filtros.get("client_obs", "").strip().lower()
 
     return (
-        (not client_name or client_name in cliente.get("client_name", "").lower())
+        (not client_name or client_name in (cliente.get("client_name") or "").lower())
         and (not client_tel or client_tel in (cliente.get("client_tel") or ""))
         and (
             not client_email
