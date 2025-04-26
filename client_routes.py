@@ -59,6 +59,10 @@ def init_client_routes(
             print(f"Erro na busca de autocomplete: {str(e)}")
             return jsonify([])  # Retorna lista vazia em caso de erro
 
+    from flask import render_template, request, redirect, url_for, session, flash
+    from boto3.dynamodb.conditions import Key
+    import datetime
+
     @app.route("/clients")
     def listar_clientes():
         if not session.get("logged_in"):
@@ -68,190 +72,93 @@ def init_client_routes(
         if not account_id:
             return redirect(url_for("login"))
 
-        filtros = request.args.to_dict()
-        cursor_token = filtros.pop("cursor", None)
-        direction = request.args.get("direction")
         current_path = request.path
-        previous_url = session.get("previous_url")
+        previous_path = session.get("previous_path_clients")
 
-        # Controle de página
-        if previous_url and previous_url != current_path:
-            session.pop("current_page", None)
-            session.pop("cursor_history", None)
-            session["current_page"] = 1
-            session["cursor_history"] = {"1": None}
-        else:
-            if "current_page" not in session:
-                session["current_page"] = 1
-            if "cursor_history" not in session:
-                session["cursor_history"] = {"1": None}
+        if previous_path != current_path:
+            # 🔥 Resetando dados antigos
+            session.pop("current_page_clients", None)
+            session.pop("cursor_pages_clients", None)
+            session.pop("last_page_clients", None)
 
-            if direction == "next" and request.referrer != request.url:
-                session["current_page"] += 1
-            elif direction == "prev" and request.referrer != request.url:
-                session["current_page"] = max(1, session["current_page"] - 1)
+        # Atualiza o caminho atual para comparação futura
+        session["previous_path_clients"] = current_path
 
-        session["previous_url"] = current_path
+        # --- Pegando parâmetros ---
+        filtros = request.args.to_dict()
+        page = int(
+            filtros.pop("page", 1)
+        )  # 🛑 Mudamos para controle de página baseado em número
+        cursor_pages = session.get("cursor_pages_clients", {"1": None})
 
-        # Campos de filtro
-        client_name = request.args.get("client_name", "").strip()
-        client_tel = request.args.get("client_tel", "").strip()
-        client_email = request.args.get("client_email", "").strip()
-        client_address = request.args.get("client_address", "").strip()
-        client_cpf = request.args.get("client_cpf", "").strip()
-        client_cnpj = request.args.get("client_cnpj", "").strip()
-        client_obs = request.args.get("client_obs", "").strip()
-        client_id = request.args.get("client_id", "").strip()
+        # Se for primeira página, limpa histórico
+        if page == 1:
+            session["cursor_pages_clients"] = {"1": None}
+            cursor_pages = {"1": None}
 
-        client_tel = "".join(filter(str.isdigit, client_tel)) if client_tel else ""
-        client_cpf = "".join(filter(str.isdigit, client_cpf)) if client_cpf else ""
-        client_cnpj = "".join(filter(str.isdigit, client_cnpj)) if client_cnpj else ""
+        session["current_page_clients"] = page
 
-        if client_id:
-            response = clients_table.query(
-                IndexName="account_id-client_id-index",
-                KeyConditionExpression="account_id = :account_id AND client_id = :client_id",
-                ExpressionAttributeValues={
-                    ":account_id": account_id,
-                    ":client_id": client_id,
-                },
-            )
-            cliente = response.get("Items", [])
-            if cliente:
-                return render_template(
-                    "clientes.html",
-                    itens=cliente,
-                    page=1,
-                    total_pages=1,
-                    current_page=1,
-                    has_filters=True,
-                    itens_count=len(cliente),
-                )
-            else:
-                flash("Cliente não encontrado ou já deletado.", "warning")
-                return redirect(request.referrer or url_for("listar_clientes"))
+        # --- Definindo ExclusiveStartKey se houver ---
+        exclusive_start_key = None
+        if str(page) in cursor_pages and cursor_pages[str(page)]:
+            exclusive_start_key = decode_dynamo_key(cursor_pages[str(page)])
 
-        exclusive_start_key = decode_dynamo_key(cursor_token) if cursor_token else None
-
+        # --- Query no banco ---
         valid_clientes = []
-        next_cursor_token = None
-        limit = 5  # Clientes por página
+        limit = 5
+        query_kwargs = {
+            "IndexName": "account_id-created_at-index",
+            "KeyConditionExpression": Key("account_id").eq(account_id),
+            "ScanIndexForward": False,
+            "Limit": limit,
+        }
+        if exclusive_start_key:
+            query_kwargs["ExclusiveStartKey"] = exclusive_start_key
 
-        while len(valid_clientes) < limit:
-            query_kwargs = {
-                "IndexName": "account_id-created_at-index",
-                "KeyConditionExpression": Key("account_id").eq(account_id),
-                "ScanIndexForward": False,
-                "Limit": limit,
-            }
-            if exclusive_start_key:
-                query_kwargs["ExclusiveStartKey"] = exclusive_start_key
+        response = clients_table.query(**query_kwargs)
+        clientes = response.get("Items", [])
+        last_evaluated_key = response.get("LastEvaluatedKey")
 
-            response = clients_table.query(**query_kwargs)
-            clientes = response.get("Items", [])
-            exclusive_start_key = response.get("LastEvaluatedKey")
-
-            if not clientes:
+        # --- Filtro no loop se precisar (opcional) ---
+        for cliente in clientes:
+            valid_clientes.append(cliente)
+            if len(valid_clientes) == limit:
                 break
 
-            for cliente in clientes:
-                if (
-                    (
-                        not client_name
-                        or client_name.lower() in cliente.get("client_name", "").lower()
-                    )
-                    and (
-                        not client_tel
-                        or client_tel in (cliente.get("client_tel") or "")
-                    )
-                    and (
-                        not client_email
-                        or client_email.lower()
-                        in cliente.get("client_email", "").lower()
-                    )
-                    and (
-                        not client_address
-                        or client_address.lower()
-                        in cliente.get("client_address", "").lower()
-                    )
-                    and (
-                        not client_cpf
-                        or client_cpf in (cliente.get("client_cpf") or "")
-                    )
-                    and (
-                        not client_cnpj
-                        or client_cnpj in (cliente.get("client_cnpj") or "")
-                    )
-                    and (
-                        not client_obs
-                        or client_obs.lower() in cliente.get("client_obs", "").lower()
-                    )
-                ):
-                    valid_clientes.append(cliente)
-                    if len(valid_clientes) == limit:
-                        break
+        # --- Define has_next dinamicamente ---
+        if len(valid_clientes) == limit and last_evaluated_key:
+            has_next = True
+        else:
+            has_next = False
 
-            if not exclusive_start_key or len(valid_clientes) == limit:
-                break
+        # --- Atualiza sessão para a próxima página ---
+        if has_next:
+            next_cursor_token = encode_dynamo_key(last_evaluated_key)
+            session["cursor_pages_clients"][str(page + 1)] = next_cursor_token
+        else:
+            session["cursor_pages_clients"].pop(str(page + 1), None)
 
-        if len(valid_clientes) == limit:
-            last_item = valid_clientes[-1]
-            if (
-                last_item.get("account_id")
-                and last_item.get("created_at")
-                and last_item.get("client_id")
-            ):
-                next_cursor_token = encode_dynamo_key(
-                    {
-                        "account_id": last_item["account_id"],
-                        "created_at": last_item["created_at"],
-                        "client_id": last_item["client_id"],
-                    }
-                )
-                page = session.get("current_page", 1)
-                cursor_history = session.get("cursor_history", {})
-                cursor_history[str(page + 1)] = next_cursor_token
-                session["cursor_history"] = cursor_history
+        # --- Caso não haja clientes encontrados em página >1 (quando tentou ir além do limite) ---
+        # --- Se clicou para avançar e não há clientes
+        if not valid_clientes and page > 1:
+            flash("Não há mais clientes para exibir.", "info")
+            last_valid_page = page - 1
+            session["current_page_clients"] = last_valid_page
+            session["last_page_clients"] = last_valid_page  # 🔥 Grava última página
+            return redirect(url_for("listar_clientes", page=last_valid_page))
 
-        has_filters = any(
-            [
-                client_name,
-                client_tel,
-                client_email,
-                client_address,
-                client_cpf,
-                client_cnpj,
-                client_obs,
-            ]
+        # --- Quando for renderizar normal:
+        last_page_clients = session.get("last_page_clients")
+        has_next = (last_page_clients is None) or (
+            session.get("current_page_clients", 1) < last_page_clients
         )
-
-        current_itens_count = len(valid_clientes)
-
-        # ⚡ Novo comportamento aqui
-        if not valid_clientes:
-            if direction == "next":
-                session["current_page"] = max(1, session.get("current_page", 1) - 1)
-                flash("Não há mais clientes para exibir.", "info")
-                return redirect(request.referrer or url_for("listar_clientes"))
-            else:
-                return render_template(
-                    "clientes.html",
-                    itens=[],
-                    next_cursor=None,
-                    last_page=True,
-                    current_page=session.get("current_page", 1),
-                    has_filters=has_filters,
-                    itens_count=current_itens_count,
-                )
 
         return render_template(
             "clientes.html",
             itens=valid_clientes,
-            next_cursor=next_cursor_token,
-            last_page=False,
-            current_page=session.get("current_page", 1),
-            has_filters=has_filters,
-            itens_count=current_itens_count,
+            current_page=session.get("current_page_clients", 1),
+            has_next=has_next,
+            has_prev=session.get("current_page_clients", 1) > 1,
         )
 
     @app.route("/editar_cliente/<client_id>", methods=["GET", "POST"])
@@ -456,7 +363,9 @@ def init_client_routes(
             print("Erro ao deletar cliente:", e)
             flash("Erro ao deletar cliente. Tente novamente.", "danger")
 
-        return redirect(url_for("listar_clientes"))
+        # return redirect(url_for("listar_clientes"))
+        # return redirect(next_page)
+        return redirect(request.referrer)
 
     @app.route("/client_transactions/<client_id>/")
     def client_transactions(client_id):
@@ -610,3 +519,29 @@ def decode_dynamo_key(encoded_key):
     except Exception as e:
         print(f"Erro ao decodificar cursor: {e}")
         return None
+
+
+def filtrar_clientes(cliente, filtros):
+    client_name = filtros.get("client_name", "").strip().lower()
+    client_tel = "".join(filter(str.isdigit, filtros.get("client_tel", "")))
+    client_email = filtros.get("client_email", "").strip().lower()
+    client_address = filtros.get("client_address", "").strip().lower()
+    client_cpf = "".join(filter(str.isdigit, filtros.get("client_cpf", "")))
+    client_cnpj = "".join(filter(str.isdigit, filtros.get("client_cnpj", "")))
+    client_obs = filtros.get("client_obs", "").strip().lower()
+
+    return (
+        (not client_name or client_name in cliente.get("client_name", "").lower())
+        and (not client_tel or client_tel in (cliente.get("client_tel") or ""))
+        and (
+            not client_email
+            or client_email in (cliente.get("client_email") or "").lower()
+        )
+        and (
+            not client_address
+            or client_address in (cliente.get("client_address") or "").lower()
+        )
+        and (not client_cpf or client_cpf in (cliente.get("client_cpf") or ""))
+        and (not client_cnpj or client_cnpj in (cliente.get("client_cnpj") or ""))
+        and (not client_obs or client_obs in (cliente.get("client_obs") or "").lower())
+    )

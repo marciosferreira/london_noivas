@@ -123,3 +123,9 @@ td {
   display: block;
   margin: 0 auto;
 }
+
+.alert {
+  max-width: 600px;
+  margin: 0 auto;
+  font-weight: bold;
+}
