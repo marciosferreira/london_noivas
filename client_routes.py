@@ -68,34 +68,52 @@ def init_client_routes(
         if not account_id:
             return redirect(url_for("login"))
 
-        # Paginação
-        page = int(request.args.get("page", 1))
-        per_page = 10
+        # Ao receber o cursor e direção
+        filtros = request.args.to_dict()
+        cursor_token = filtros.pop("cursor", None)
+        direction = request.args.get("direction")
+        current_url = request.path
+        previous_url = session.get("previous_url")
 
-        # Filtros do formulário
+        # Se mudou de rota, reseta paginação
+        if previous_url and previous_url != current_url:
+            session.pop("current_page", None)
+            session.pop("cursor_history", None)
+            session["current_page"] = 1
+            session["cursor_history"] = {"1": None}
+        else:
+            if "current_page" not in session:
+                session["current_page"] = 1
+            if "cursor_history" not in session:
+                session["cursor_history"] = {"1": None}
+
+            # Controle de página (evita incrementar no F5)
+            if direction == "next" and request.referrer != request.url:
+                session["current_page"] += 1
+            elif direction == "prev" and request.referrer != request.url:
+                session["current_page"] = max(1, session["current_page"] - 1)
+
+        session["previous_url"] = current_url
+
+        # Campos de filtro
         client_name = request.args.get("client_name", "").strip()
-        client_id = request.args.get("client_id", "").strip()
         client_tel = request.args.get("client_tel", "").strip()
         client_email = request.args.get("client_email", "").strip()
         client_address = request.args.get("client_address", "").strip()
         client_cpf = request.args.get("client_cpf", "").strip()
         client_cnpj = request.args.get("client_cnpj", "").strip()
         client_obs = request.args.get("client_obs", "").strip()
+        client_id = request.args.get("client_id", "").strip()
 
-        # Normalizar dados numéricos
+        # Normalizar CPF/CNPJ/tel
         client_tel = "".join(filter(str.isdigit, client_tel)) if client_tel else ""
         client_cpf = "".join(filter(str.isdigit, client_cpf)) if client_cpf else ""
         client_cnpj = "".join(filter(str.isdigit, client_cnpj)) if client_cnpj else ""
 
-        # 🔹 Verificar se foi passado `client_id`
-        print("client_id")
-        print(client_id)
+        # 🔍 Se client_id foi passado, busca direto
         if client_id:
-
-            print(client_id)
-            # Buscar o cliente diretamente pelo client_id
             response = clients_table.query(
-                IndexName="account_id-client_id-index",  # Certifique-se de ter o índice correto no DynamoDB
+                IndexName="account_id-client_id-index",
                 KeyConditionExpression="account_id = :account_id AND client_id = :client_id",
                 ExpressionAttributeValues={
                     ":account_id": account_id,
@@ -103,65 +121,101 @@ def init_client_routes(
                 },
             )
             cliente = response.get("Items", [])
-
             if cliente:
-                print(cliente)
                 return render_template(
-                    "clientes.html", itens=cliente, page=page, total_pages=1
+                    "clientes.html",
+                    itens=cliente,
+                    page=1,
+                    total_pages=1,
+                    current_page=1,
                 )
-
             else:
                 flash("Cliente não encontrado ou já deletado.", "warning")
-                return redirect(request.referrer)
+                return redirect(request.referrer or url_for("listar_clientes"))
 
-        # nao tem client_id, entao nao é cliente unico, buscar todo os clientes
-        # 🔸 Buscar todos os clientes do usuário em ordem alfabética
-        response = clients_table.query(
-            IndexName="account_id-created_at-index",
-            KeyConditionExpression="account_id = :account_id",
-            ExpressionAttributeValues={":account_id": account_id},
-            ScanIndexForward=False,  # False = mais recentes primeiro
-        )
-        clientes = response.get("Items", [])
+        # 🔍 Caso normal: busca todos
+        exclusive_start_key = decode_dynamo_key(cursor_token) if cursor_token else None
 
-        # 🔸 Aplicar filtros localmente
-        def matches(cliente):
-            return (
-                (
-                    not client_name
-                    or client_name.lower() in cliente.get("client_name", "").lower()
-                )
-                and (not client_tel or client_tel in cliente.get("client_tel", ""))
-                and (
-                    not client_email
-                    or client_email.lower() in cliente.get("client_email", "").lower()
-                )
-                and (
-                    not client_address
-                    or client_address.lower()
-                    in cliente.get("client_address", "").lower()
-                )
-                and (
-                    not client_id
-                    or client_id.lower() in cliente.get("client_id", "").lower()
-                )
-                and (not client_cpf or client_cpf in cliente.get("client_cpf", ""))
-                and (not client_cnpj or client_cnpj in cliente.get("client_cnpj", ""))
-                and (
-                    not client_obs
-                    or client_obs.lower() in cliente.get("client_obs", "").lower()
-                )
-            )
+        valid_clientes = []
+        next_cursor_token = None
+        limit = 10  # clientes por página
 
-        clientes_filtrados = [c for c in clientes if matches(c)]
+        while len(valid_clientes) < limit:
+            query_kwargs = {
+                "IndexName": "account_id-created_at-index",
+                "KeyConditionExpression": Key("account_id").eq(account_id),
+                "ScanIndexForward": False,
+                "Limit": limit,
+            }
+            if exclusive_start_key:
+                query_kwargs["ExclusiveStartKey"] = exclusive_start_key
 
-        # Paginação
-        total_items = len(clientes_filtrados)
-        total_pages = max((total_items + per_page - 1) // per_page, 1)
-        page = min(max(page, 1), total_pages)
-        start_idx = (page - 1) * per_page
-        end_idx = start_idx + per_page
-        paginated_clientes = clientes_filtrados[start_idx:end_idx]
+            response = clients_table.query(**query_kwargs)
+            clientes = response.get("Items", [])
+            exclusive_start_key = response.get("LastEvaluatedKey")
+
+            if not clientes:
+                break
+
+            for cliente in clientes:
+                if (
+                    (
+                        not client_name
+                        or client_name.lower() in cliente.get("client_name", "").lower()
+                    )
+                    and (
+                        not client_tel
+                        or client_tel in (cliente.get("client_tel") or "")
+                    )
+                    and (
+                        not client_email
+                        or client_email.lower()
+                        in cliente.get("client_email", "").lower()
+                    )
+                    and (
+                        not client_address
+                        or client_address.lower()
+                        in cliente.get("client_address", "").lower()
+                    )
+                    and (
+                        not client_cpf
+                        or client_cpf in (cliente.get("client_cpf") or "")
+                    )
+                    and (
+                        not client_cnpj
+                        or client_cnpj in (cliente.get("client_cnpj") or "")
+                    )
+                    and (
+                        not client_obs
+                        or client_obs.lower() in cliente.get("client_obs", "").lower()
+                    )
+                ):
+                    valid_clientes.append(cliente)
+                    if len(valid_clientes) == limit:
+                        break
+
+            if not exclusive_start_key or len(valid_clientes) == limit:
+                break
+
+        # Gera o cursor da próxima página
+        if len(valid_clientes) == limit:
+            last_item = valid_clientes[-1]
+            if (
+                last_item.get("account_id")
+                and last_item.get("created_at")
+                and last_item.get("client_id")
+            ):
+                next_cursor_token = encode_dynamo_key(
+                    {
+                        "account_id": last_item["account_id"],
+                        "created_at": last_item["created_at"],
+                        "client_id": last_item["client_id"],
+                    }
+                )
+                page = session.get("current_page", 1)
+                cursor_history = session.get("cursor_history", {})
+                cursor_history[str(page + 1)] = next_cursor_token
+                session["cursor_history"] = cursor_history
 
         has_filters = any(
             [
@@ -172,16 +226,19 @@ def init_client_routes(
                 client_cpf,
                 client_cnpj,
                 client_obs,
-                client_id,
             ]
         )
 
+        current_itens_count = len(valid_clientes)
+
         return render_template(
             "clientes.html",
-            itens=paginated_clientes,
-            page=page,
-            total_pages=total_pages,
+            itens=valid_clientes,
+            next_cursor=next_cursor_token,
+            last_page=False,
+            current_page=session.get("current_page", 1),
             has_filters=has_filters,
+            itens_count=current_itens_count,
         )
 
     @app.route("/editar_cliente/<client_id>", methods=["GET", "POST"])
@@ -517,3 +574,26 @@ def add_client_common(
 
 
 import re
+import base64
+import json
+
+
+def encode_dynamo_key(key_dict):
+    """Codifica um dicionário (LastEvaluatedKey) para um cursor seguro."""
+    key_json = json.dumps(key_dict)
+    key_bytes = key_json.encode("utf-8")
+    encoded_key = base64.urlsafe_b64encode(key_bytes).decode("utf-8")
+    return encoded_key
+
+
+def decode_dynamo_key(encoded_key):
+    """Decodifica um cursor para o formato de LastEvaluatedKey."""
+    if not encoded_key:
+        return None
+    try:
+        key_bytes = base64.urlsafe_b64decode(encoded_key.encode("utf-8"))
+        key_json = key_bytes.decode("utf-8")
+        return json.loads(key_json)
+    except Exception as e:
+        print(f"Erro ao decodificar cursor: {e}")
+        return None

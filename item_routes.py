@@ -1492,7 +1492,7 @@ def listar_itens_per_transaction(
     text_models_table,
     client_id=None,
     page=None,
-    limit=5,
+    limit=2,
 ):
     if not session.get("logged_in"):
         return redirect(url_for("login"))
@@ -1549,34 +1549,44 @@ def listar_itens_per_transaction(
 
         return item
 
+    # Início do novo fluxo organizado
     filtros = request.args.to_dict()
     cursor_token = filtros.pop("cursor", None)
     direction = request.args.get("direction")
-    current_url = request.path
-    previous_url = session.get("previous_url")
+    current_path = request.path
+    current_full_url = request.url
 
-    if previous_url and previous_url != current_url:
-        print("Mudou de rota, resetando paginação")
-        session.pop("current_page", None)
-        session.pop("cursor_history", None)
+    previous_path = session.get("previous_path")
+    current_page = session.get("current_page", 1)
+    pagination = session.get("pagination", {})  # Histórico organizado
+
+    # Detecta se mudou de rota
+    if previous_path and previous_path != current_path:
         session["current_page"] = 1
-        session["cursor_history"] = {"1": None}
+        session["pagination"] = {"1": {"cursor": None, "url": current_full_url}}
+        current_page = 1
+        pagination = {"1": {"cursor": None, "url": current_full_url}}
     else:
-        if "current_page" not in session:
-            session["current_page"] = 1
-        if "cursor_history" not in session:
-            session["cursor_history"] = {"1": None}
+        if direction == "next":
+            current_page += 1
+        elif direction == "prev":
+            current_page = max(1, current_page - 1)
 
-        # Controle de página (evita incrementar no F5)
-        if direction == "next" and request.referrer != request.url:
-            session["current_page"] += 1
-        elif direction == "prev" and request.referrer != request.url:
-            session["current_page"] = max(1, session["current_page"] - 1)
+    session["current_page"] = current_page
+    session["previous_path"] = current_path
 
-    session["previous_url"] = current_url
+    # Atualiza o histórico de paginação
+    if str(current_page) not in pagination:
+        pagination[str(current_page)] = {
+            "cursor": cursor_token,
+            "url": current_full_url,
+        }
+        session["pagination"] = pagination
 
+    # Decodifica o cursor se existir
     exclusive_start_key = decode_dynamo_key(cursor_token) if cursor_token else None
 
+    # Buscar itens
     valid_items = []
     next_cursor_token = None
 
@@ -1607,7 +1617,7 @@ def listar_itens_per_transaction(
         if not exclusive_start_key or len(valid_items) == limit:
             break
 
-    # Gera o cursor da próxima página
+    # Se tem próximos itens, gera novo cursor e salva
     if len(valid_items) == limit:
         last_item = valid_items[-1]
         if (
@@ -1622,10 +1632,12 @@ def listar_itens_per_transaction(
                     "transaction_id": last_item["transaction_id"],
                 }
             )
-            page = session.get("current_page", 1)
-            cursor_history = session.get("cursor_history", {})
-            cursor_history[str(page + 1)] = next_cursor_token
-            session["cursor_history"] = cursor_history
+            # Salva cursor da próxima página
+            pagination[str(current_page + 1)] = {
+                "cursor": next_cursor_token,
+                "url": request.base_url + f"?cursor={next_cursor_token}",
+            }
+            session["pagination"] = pagination
 
     # Modelos salvos
     response = text_models_table.query(
@@ -1638,7 +1650,6 @@ def listar_itens_per_transaction(
     current_itens_count = len(valid_items)
 
     if not valid_items and cursor_token:
-        session["last_valid_cursor"] = cursor_token
         return render_template(
             template,
             itens=[],
@@ -1648,8 +1659,8 @@ def listar_itens_per_transaction(
             add_route=url_for("trash_transactions"),
             next_url=request.url,
             username=username,
-            saved_models=[],
-            current_page=session.get("current_page", 1),
+            saved_models=saved_models,
+            current_page=current_page,
             itens_count=current_itens_count,
         )
     else:
@@ -1663,7 +1674,7 @@ def listar_itens_per_transaction(
             next_url=request.url,
             username=username,
             saved_models=saved_models,
-            current_page=session.get("current_page", 1),
+            current_page=current_page,
             itens_count=current_itens_count,
         )
 
@@ -1738,11 +1749,12 @@ def list_raw_itens(
     filtros = request.args.to_dict()
     cursor_token = filtros.pop("cursor", None)
     direction = request.args.get("direction")
+
     current_url = request.path
     previous_url = session.get("previous_url")
 
     if previous_url and previous_url != current_url:
-        # Mudou de rota → resetar paginação
+        print("Mudou de rota, resetando paginação")
         session.pop("current_page", None)
         session.pop("cursor_history", None)
         session["current_page"] = 1
@@ -1753,6 +1765,7 @@ def list_raw_itens(
         if "cursor_history" not in session:
             session["cursor_history"] = {"1": None}
 
+        # Controle de página (evita incrementar no F5)
         if direction == "next" and request.referrer != request.url:
             session["current_page"] += 1
         elif direction == "prev" and request.referrer != request.url:

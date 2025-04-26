@@ -290,57 +290,70 @@
   }
 </script>
 <script>
-  const nextCursor = '{{ next_cursor }}';
-  const urlParams = new URLSearchParams(window.location.search);
-  const currentCursor = urlParams.get('cursor');
+  document.addEventListener('DOMContentLoaded', function () {
+    const nextCursor = '{{ next_cursor }}';
+    const currentPage = {{ current_page }};
+    const paginationData = JSON.parse('{{ session["pagination"] | tojson | safe }}');
 
-  const paginacaoUl = document.getElementById('paginacao-numerada');
-  paginacaoUl.innerHTML = '';
+    const paginacaoUl = document.getElementById('paginacao-numerada');
+    paginacaoUl.innerHTML = '';
 
-  // ← Botão Voltar
-  const liPrev = document.createElement('li');
-  liPrev.className = 'page-item' + (!currentCursor ? ' disabled' : '');
-  const aPrev = document.createElement('a');
-  aPrev.className = 'page-link';
-  aPrev.href = '#';
-  aPrev.innerText = '←';
-  aPrev.onclick = (e) => {
-    e.preventDefault();
-    const params = new URLSearchParams(window.location.search);
-    params.set('direction', 'prev');
-    params.delete('cursor'); // Remove o cursor para voltar
-    window.location.href = window.location.pathname + '?' + params.toString();
-  };
-  liPrev.appendChild(aPrev);
-  paginacaoUl.appendChild(liPrev);
-
-  // Página atual
-  const liPage = document.createElement('li');
-  liPage.className = 'page-item disabled';
-  const spanPage = document.createElement('span');
-  spanPage.className = 'page-link';
-  spanPage.textContent = `Página {{ current_page }}`;
-  liPage.appendChild(spanPage);
-  paginacaoUl.appendChild(liPage);
-
-  // → Botão Próxima
-  const liNext = document.createElement('li');
-  const aNext = document.createElement('a');
-  aNext.className = 'page-link';
-  aNext.href = '#';
-  aNext.innerText = '→';
-  aNext.onclick = (e) => {
-    e.preventDefault();
-    const params = new URLSearchParams(window.location.search);
-    if (nextCursor && nextCursor !== 'None') {
-      params.set('cursor', nextCursor);
-      params.set('direction', 'next');
-      window.location.href = window.location.pathname + '?' + params.toString();
+    // 🚨 LIMPA "direction" da URL logo ao carregar
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('direction')) {
+      urlParams.delete('direction');
+      const cleanedUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
+      window.history.replaceState({}, '', cleanedUrl);
     }
-  };
-  liNext.className = 'page-item' + (nextCursor ? '' : ' disabled');
-  liNext.appendChild(aNext);
-  paginacaoUl.appendChild(liNext);
+
+    // ← Botão voltar
+    const liPrev = document.createElement('li');
+    liPrev.className = 'page-item' + (currentPage <= 1 ? ' disabled' : '');
+    const aPrev = document.createElement('a');
+    aPrev.className = 'page-link';
+    aPrev.href = '#';
+    aPrev.innerText = '←';
+    aPrev.onclick = (e) => {
+      e.preventDefault();
+      if (currentPage > 1) {
+        const previousPage = currentPage - 1;
+        const previousData = paginationData[previousPage.toString()];
+        if (previousData) {
+          let url = previousData.url || window.location.pathname;
+          url += url.includes('?') ? '&direction=prev' : '?direction=prev';
+          window.location.href = url;
+        }
+      }
+    };
+    liPrev.appendChild(aPrev);
+    paginacaoUl.appendChild(liPrev);
+
+    // Página atual
+    const liPage = document.createElement('li');
+    liPage.className = 'page-item disabled';
+    const spanPage = document.createElement('span');
+    spanPage.className = 'page-link';
+    spanPage.textContent = `Página ${currentPage}`;
+    liPage.appendChild(spanPage);
+    paginacaoUl.appendChild(liPage);
+
+    // → Botão próxima
+    const liNext = document.createElement('li');
+    const aNext = document.createElement('a');
+    aNext.className = 'page-link';
+    aNext.href = '#';
+    aNext.innerText = '→';
+    aNext.onclick = (e) => {
+      e.preventDefault();
+      if (nextCursor && nextCursor !== 'None') {
+        let url = window.location.pathname + '?cursor=' + nextCursor + '&direction=next';
+        window.location.href = url;
+      }
+    };
+    liNext.className = 'page-item' + (nextCursor && nextCursor !== 'None' ? '' : ' disabled');
+    liNext.appendChild(aNext);
+    paginacaoUl.appendChild(liNext);
+  });
 </script>
 
 {% endblock %}

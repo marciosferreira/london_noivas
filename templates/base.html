@@ -98,3 +98,24 @@
     });
   }, 4000); // 4000 ms = 4 segundos
 </script>
+
+<script>
+  // 👇 Este bloco roda IMEDIATAMENTE antes de DOMContentLoaded
+  // 👇 funciona para ajudar na paginação correta
+
+  (function () {
+    const urlParams = new URLSearchParams(window.location.search);
+
+    // Se tiver 'direction' na URL, vamos limpar e forçar um reload LIMPO
+    if (urlParams.has('direction')) {
+      urlParams.delete('direction');
+      const cleanedUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
+
+      // Faz o navegador IR para a versão limpa
+      window.location.replace(cleanedUrl);
+
+      // Impede continuar carregando o resto da página (opcional para segurança)
+      return;
+    }
+  })();
+</script>

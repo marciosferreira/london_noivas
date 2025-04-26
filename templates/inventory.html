@@ -6,7 +6,8 @@
 
   {% if last_page == False and not itens%}
   <p style="color: #308be3; font-weight: bold; font-size: 1.2rem; margin-top: -1rem; margin-left: 0.25rem">Nada por aqui!</p>
-  {% endif %} {% set show_add_item = True %} {% set show_item_filter = True %}{% include 'components/item_filter_section.html' %} {% if itens %}
+  {% endif %} {% if request.args or itens %} {% set show_item_filter = True %} {% endif %} {% set show_add_item = True %} {% include
+  "components/item_filter_section.html" with context %} {% if itens %}
   <!-- Tabela (que vira "cards" no mobile) -->
   <div class="table-container mt-4">
     <table class="table table-hover responsive-table align-middle rounded-table">
@@ -70,6 +71,8 @@
   {% endif %}
 
   <!-- Paginação -->
+  {% if current_page != 1 or itens|count > 0 %}
+
   <!-- Paginação -->
   <div class="d-flex justify-content-center mt-4">
     <nav class="text-center">
@@ -91,118 +94,118 @@
       </ul>
     </nav>
   </div>
-  <div style="height: 3rem"></div>
-</div>
+  {% endif %}
 
-<!-- MODAL para imagem -->
-{% include 'components/image_modal.html' %} {% endblock %} {% block scripts %}
-<!-- Modal do calendário -->
-<div class="modal fade" id="calendarModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered" style="max-width: 400px">
-    <div class="modal-content p-3">
-      <div class="modal-header">
-        <h5 class="modal-title">Calendário do Item</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+  <!-- MODAL para imagem -->
+  {% include 'components/image_modal.html' %} {% endblock %} {% block scripts %}
+  <!-- Modal do calendário -->
+  <div class="modal fade" id="calendarModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 400px">
+      <div class="modal-content p-3">
+        <div class="modal-header">
+          <h5 class="modal-title">Calendário do Item</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body" id="calendarModalBody">Carregando...</div>
       </div>
-      <div class="modal-body" id="calendarModalBody">Carregando...</div>
     </div>
   </div>
-</div>
 
-<script>
-  function abrirCalendario(url) {
-    fetch(url)
-      .then((response) => response.text())
-      .then((html) => {
-        document.getElementById('calendarModalBody').innerHTML = html;
-        const modal = new bootstrap.Modal(document.getElementById('calendarModal'));
-        modal.show();
-      })
-      .catch((error) => {
-        console.error('Erro ao carregar calendário:', error);
-        alert('Erro ao carregar calendário.');
+  <script>
+    function abrirCalendario(url) {
+      fetch(url)
+        .then((response) => response.text())
+        .then((html) => {
+          document.getElementById('calendarModalBody').innerHTML = html;
+          const modal = new bootstrap.Modal(document.getElementById('calendarModal'));
+          modal.show();
+        })
+        .catch((error) => {
+          console.error('Erro ao carregar calendário:', error);
+          alert('Erro ao carregar calendário.');
+        });
+    }
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.umd.min.js"></script>
+  <script>
+    function iniciarDatePicker() {
+      const picker = new easepick.create({
+        element: document.getElementById('datepicker'),
+        css: ['https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.css'],
+        inline: true,
+        container: document.getElementById('calendar-container'),
       });
-  }
-</script>
 
-<script src="https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.umd.min.js"></script>
-<script>
-  function iniciarDatePicker() {
-    const picker = new easepick.create({
-      element: document.getElementById('datepicker'),
-      css: ['https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.css'],
-      inline: true,
-      container: document.getElementById('calendar-container'),
-    });
-
-    picker.show();
-  }
-</script>
-
-<script>
-  function checkTransactionLimit(event) {
-    const totalTransactions = {{ total_relevant_transactions if total_relevant_transactions is not none else 0 | tojson }};
-    if (totalTransactions >= 30) {
-      alert("O limite de transações ativas foi atingido. Entre em contato conosco.");
-      event.preventDefault();
-      return false;
+      picker.show();
     }
-    return true;
-  }
-</script>
+  </script>
 
-<script>
-  const nextCursor = '{{ next_cursor }}';
-  const urlParams = new URLSearchParams(window.location.search);
-  const currentCursor = urlParams.get('cursor');
+  <script>
+    function checkTransactionLimit(event) {
+      const totalTransactions = {{ total_relevant_transactions if total_relevant_transactions is not none else 0 | tojson }};
+      if (totalTransactions >= 30) {
+        alert("O limite de transações ativas foi atingido. Entre em contato conosco.");
+        event.preventDefault();
+        return false;
+      }
+      return true;
+    }
+  </script>
 
-  const paginacaoUl = document.getElementById('paginacao-numerada');
-  paginacaoUl.innerHTML = '';
+  <script>
+    const nextCursor = '{{ next_cursor }}';
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentCursor = urlParams.get('cursor');
 
-  // ← Botão Voltar
-  const liPrev = document.createElement('li');
-  liPrev.className = 'page-item' + (!currentCursor ? ' disabled' : '');
-  const aPrev = document.createElement('a');
-  aPrev.className = 'page-link';
-  aPrev.href = '#';
-  aPrev.innerText = '←';
-  aPrev.onclick = (e) => {
-    e.preventDefault();
-    const params = new URLSearchParams(window.location.search);
-    params.set('direction', 'prev');
-    params.delete('cursor'); // Remove o cursor para voltar
-    window.location.href = window.location.pathname + '?' + params.toString();
-  };
-  liPrev.appendChild(aPrev);
-  paginacaoUl.appendChild(liPrev);
+    const paginacaoUl = document.getElementById('paginacao-numerada');
+    paginacaoUl.innerHTML = '';
 
-  // Página atual
-  const liPage = document.createElement('li');
-  liPage.className = 'page-item disabled';
-  const spanPage = document.createElement('span');
-  spanPage.className = 'page-link';
-  spanPage.textContent = `Página {{ current_page }}`;
-  liPage.appendChild(spanPage);
-  paginacaoUl.appendChild(liPage);
-
-  // → Botão Próxima
-  const liNext = document.createElement('li');
-  const aNext = document.createElement('a');
-  aNext.className = 'page-link';
-  aNext.href = '#';
-  aNext.innerText = '→';
-  aNext.onclick = (e) => {
-    e.preventDefault();
-    const params = new URLSearchParams(window.location.search);
-    if (nextCursor && nextCursor !== 'None') {
-      params.set('cursor', nextCursor);
-      params.set('direction', 'next');
+    // ← Botão Voltar
+    const liPrev = document.createElement('li');
+    liPrev.className = 'page-item' + (!currentCursor ? ' disabled' : '');
+    const aPrev = document.createElement('a');
+    aPrev.className = 'page-link';
+    aPrev.href = '#';
+    aPrev.innerText = '←';
+    aPrev.onclick = (e) => {
+      e.preventDefault();
+      const params = new URLSearchParams(window.location.search);
+      params.set('direction', 'prev');
+      params.delete('cursor'); // Remove o cursor para voltar
       window.location.href = window.location.pathname + '?' + params.toString();
-    }
-  };
-  liNext.className = 'page-item' + (nextCursor ? '' : ' disabled');
-  liNext.appendChild(aNext);
-  paginacaoUl.appendChild(liNext);
-</script>
+    };
+    liPrev.appendChild(aPrev);
+    paginacaoUl.appendChild(liPrev);
 
-{% endblock %}
+    // Página atual
+    const liPage = document.createElement('li');
+    liPage.className = 'page-item disabled';
+    const spanPage = document.createElement('span');
+    spanPage.className = 'page-link';
+    spanPage.textContent = `Página {{ current_page }}`;
+    liPage.appendChild(spanPage);
+    paginacaoUl.appendChild(liPage);
+
+    // → Botão Próxima
+    const liNext = document.createElement('li');
+    const aNext = document.createElement('a');
+    aNext.className = 'page-link';
+    aNext.href = '#';
+    aNext.innerText = '→';
+    aNext.onclick = (e) => {
+      e.preventDefault();
+      const params = new URLSearchParams(window.location.search);
+      if (nextCursor && nextCursor !== 'None') {
+        params.set('cursor', nextCursor);
+        params.set('direction', 'next');
+        window.location.href = window.location.pathname + '?' + params.toString();
+      }
+    };
+    liNext.className = 'page-item' + (nextCursor ? '' : ' disabled');
+    liNext.appendChild(aNext);
+    paginacaoUl.appendChild(liNext);
+  </script>
+
+  {% endblock %}
+</div>
