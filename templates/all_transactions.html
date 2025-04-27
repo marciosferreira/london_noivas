@@ -1,7 +1,9 @@
 {% extends "base.html" %} {% block title %} Transações iniciadas (itens alugados) {% endblock %} {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='style_all_transactions.css') }}" />
 {% endblock %} {% block content %}
-<h4 class="text-center mb-3" style="text-decoration: underline">Olá, {{ username }} !</h4>
+<h4 class="text-center mb-3 p-3 rounded" style="background-color: #cfe2ff; color: #084298; text-decoration: underline;">
+  Olá, {{ username }}!
+</h4>
 
 {% if itens == [] and not request.args%}
 <div
@@ -64,7 +66,7 @@
         </tr>
       </thead>
       <tbody>
-        {% set status_map = { 'reserved': 'Reservado', 'rented': 'Retirado', 'returned': 'Retornado' } %} {% for item in itens %}
+        {% set status_map = { 'reserved': 'Reservado', 'rented': 'Retirado', 'returned': 'Retornado', 'overdue': 'Atrasado'} %} {% for item in itens %}
         <tr>
           <td data-label="Status" class="status-cell {{ item.transaction_status }}">
             <div class="status-text">{{ status_map[item.transaction_status] }}</div>
@@ -99,12 +101,21 @@
           </td>
           <!-- prettier-ignore -->
 
+          <!-- prettier-ignore -->
           <td class="open-modal position-relative" data-item='{{ item | tojson | safe }}' data-label="Devolução P.">
             <div class="return-date">{{ item.return_date_formatted }}</div>
-            {% if item.overdue %}
-              <div class="atrasado-tag mt-1">Devolução atrasada</div>
+
+            {% if item.overdue == True %}
+              <div class="overdue-message mt-1">
+                {{ status_map['overdue'] }}
+                {% if item.overdue_days %}
+                  ({{ item.overdue_days }} {{ "dia" if item.overdue_days == 1 else "dias" }})
+                {% endif %}
+              </div>
             {% endif %}
           </td>
+
+
 
           <!-- prettier-ignore -->
           <td class="open-modal position-relative" data-item='{{ item | tojson | safe }}' data-label="Preço (R$)">

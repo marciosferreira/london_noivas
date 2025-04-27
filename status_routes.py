@@ -43,7 +43,7 @@ def init_status_routes(app, itens_table, transactions_table, users_table):
             "Item <a href='/returned'>devolvido</a> com sucesso.",
             "success",
         )
-        return redirect(url_for("rented"))
+        return redirect(request.referrer or url_for("all_transactions"))
 
     @app.route("/mark_rented/<transaction_id>", methods=["GET", "POST"])
     def mark_rented(transaction_id):

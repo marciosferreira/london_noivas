@@ -179,56 +179,108 @@ h1.h3 {
   }
 }
 
+/* ---------------------------------------
+   ÍCONES E CURSOR
+--------------------------------------- */
 .open-modal {
   cursor: pointer;
 }
 
-.atrasado-tag {
+/* ---------------------------------------
+   TAG DE ATRASO E MENSAGENS DE STATUS
+--------------------------------------- */
+.atrasado-tag,
+.overdue-message {
   display: inline-block;
   margin-top: 2px;
   padding: 2px 6px;
-  background-color: red;
-  color: white;
+  background-color: var(--bs-danger); /* Vermelho padrão Bootstrap */
+  color: var(--bs-light); /* Branco Bootstrap */
   font-size: 0.7rem;
   font-weight: bold;
   border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
+/* Mensagens relacionadas a retirada/aluguel */
 .rental-message {
   display: inline-block;
   padding: 2px 6px;
-  color: white;
+  color: var(--bs-light);
   font-size: 0.75rem;
   font-weight: bold;
   border-radius: 4px;
 }
 
+/* Cores específicas para mensagens */
 .rental-message.blue {
-  background-color: #007bff; /* Azul Bootstrap */
+  background-color: var(--bs-primary); /* Azul padrão Bootstrap */
 }
 
 .rental-message.yellow {
-  background-color: #ffc107; /* Amarelo Bootstrap */
-  color: black;
+  background-color: var(--bs-warning); /* Amarelo Bootstrap */
+  color: var(--bs-dark); /* Texto escuro para contraste */
 }
 
 .rental-message.orange {
-  background-color: orange;
+  background-color: var(--bs-orange, #fd7e14); /* Laranja Bootstrap (fallback) */
 }
 
 .rental-message.red {
-  background-color: red;
+  background-color: var(--bs-danger); /* Vermelho padrão Bootstrap */
 }
 
-/* Exemplo style_inventory.css ou global */
-.action-button.neutral {
-  background-color: #6c757d; /* cinza Bootstrap */
-  color: #fff;
-}
-.table-responsive {
-  overflow: visible !important;
-}
-
+/* ---------------------------------------
+   STATUS VERTICAL (CÉLULA DE STATUS)
+--------------------------------------- */
 .table.rounded-table {
   overflow: visible !important;
+}
+
+.status-cell {
+  padding: 0;
+  text-align: center;
+  vertical-align: middle;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-weight: bold;
+  color: var(--bs-light); /* Branco Bootstrap */
+  font-size: 1rem;
+  width: 30px;
+}
+
+.status-text {
+  padding: 10px 0;
+  white-space: nowrap;
+}
+
+/* Status por tipo */
+.status-cell.reserved {
+  background-color: var(--bs-warning); /* Amarelo Bootstrap */
+  color: var(--bs-dark); /* Para contrastar melhor */
+}
+
+.status-cell.rented {
+  background-color: var(--bs-danger); /* Vermelho Bootstrap */
+}
+
+.status-cell.returned {
+  background-color: var(--bs-success); /* Verde Bootstrap */
+}
+
+/* STATUS NO MOBILE */
+@media (max-width: 576px) {
+  .status-cell {
+    writing-mode: initial !important;
+    transform: none !important;
+    font-size: 0.9rem;
+    text-align: left;
+    padding-left: 0.75rem;
+    padding-top: 0.25rem;
+    width: auto;
+  }
+
+  .status-text {
+    padding: 0;
+  }
 }

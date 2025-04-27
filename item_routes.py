@@ -1512,27 +1512,30 @@ def list_transactions(
 
     def process_dates(item):
         for key in ["rental_date", "return_date", "dev_date"]:
-            date_str = item.get(key)
-            if date_str:
-                try:
-                    date_obj = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
-                    item[f"{key}_formatted"] = date_obj.strftime("%d-%m-%Y")
-                    item[f"{key}_obj"] = date_obj
-                except ValueError:
-                    item[f"{key}_formatted"] = "Data Inválida"
-                    item[f"{key}_obj"] = today
-            else:
-                item[f"{key}_formatted"] = "N/A"
-                item[f"{key}_obj"] = today
+            if key in item:
+                date_str = item[key]
+                if date_str and isinstance(date_str, str):
+                    try:
+                        date_obj = datetime.datetime.strptime(
+                            date_str, "%Y-%m-%d"
+                        ).date()
+                        item[f"{key}_formatted"] = date_obj.strftime("%d-%m-%Y")
+                        item[f"{key}_obj"] = date_obj
+                    except ValueError:
+                        # Se a string existe mas não é válida, ignora: não adiciona nada
+                        pass
+                # Se date_str for vazio ou não string válida, também ignora
 
-        if item.get("dev_date_obj"):
+        if item.get("dev_date_obj") and item["dev_date_obj"] != "N/A":
             item["overdue"] = False
-        elif item.get("return_date_obj"):
+        elif item.get("return_date_obj") and item["return_date_obj"] != "N/A":
             item["overdue"] = item["return_date_obj"] < today
         else:
             item["overdue"] = False
 
         rental_date = item.get("rental_date_obj")
+        return_date = item.get("return_date_obj")
+
         if rental_date and item.get("transaction_status") != "rented":
             if rental_date == today:
                 item["rental_message"] = "Retirada é hoje"
@@ -1549,6 +1552,11 @@ def list_transactions(
         else:
             item["rental_message"] = ""
             item["rental_message_color"] = ""
+
+        # -- Parte 2: Calcular dias de atraso (NOVO) --
+        if item.get("overdue") and return_date:
+            overdue_days = (today - return_date).days
+            item["overdue_days"] = overdue_days if overdue_days > 0 else 0
 
         return item
 
@@ -1939,9 +1947,7 @@ def filtra_transacao(txn, filtros, client_id, status_list):
     for campo_filtro, campo_txn in campos_texto:
         filtro_valor = (filtros.get(campo_filtro) or "").strip().lower()
         campo_valor = (txn.get(campo_txn) or "").strip().lower()
-        print("FV")
-        print(filtro_valor)
-        print(txn.get("campo_valor"))
+
         if filtro_valor and filtro_valor not in campo_valor:
             return False
 

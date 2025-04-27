@@ -186,41 +186,45 @@ h1.h3 {
 /* ---------------------------------------
    TAG DE ATRASO E MENSAGENS DE STATUS
 --------------------------------------- */
-.atrasado-tag {
+.atrasado-tag,
+.overdue-message {
   display: inline-block;
   margin-top: 2px;
   padding: 2px 6px;
-  background-color: red;
-  color: white;
+  background-color: var(--bs-danger); /* Vermelho padrão Bootstrap */
+  color: var(--bs-light); /* Branco Bootstrap */
   font-size: 0.7rem;
   font-weight: bold;
   border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
+/* Mensagens relacionadas a retirada/aluguel */
 .rental-message {
   display: inline-block;
   padding: 2px 6px;
-  color: white;
+  color: var(--bs-light);
   font-size: 0.75rem;
   font-weight: bold;
   border-radius: 4px;
 }
 
+/* Cores específicas para mensagens */
 .rental-message.blue {
-  background-color: #007bff;
+  background-color: var(--bs-primary); /* Azul padrão Bootstrap */
 }
 
 .rental-message.yellow {
-  background-color: #ffc107;
-  color: black;
+  background-color: var(--bs-warning); /* Amarelo Bootstrap */
+  color: var(--bs-dark); /* Texto escuro para contraste */
 }
 
 .rental-message.orange {
-  background-color: orange;
+  background-color: var(--bs-orange, #fd7e14); /* Laranja Bootstrap (fallback) */
 }
 
 .rental-message.red {
-  background-color: red;
+  background-color: var(--bs-danger); /* Vermelho padrão Bootstrap */
 }
 
 /* ---------------------------------------
@@ -237,7 +241,7 @@ h1.h3 {
   writing-mode: vertical-rl;
   transform: rotate(180deg);
   font-weight: bold;
-  color: white;
+  color: var(--bs-light); /* Branco Bootstrap */
   font-size: 1rem;
   width: 30px;
 }
@@ -247,16 +251,18 @@ h1.h3 {
   white-space: nowrap;
 }
 
+/* Status por tipo */
 .status-cell.reserved {
-  background-color: #f6d267;
+  background-color: var(--bs-warning); /* Amarelo Bootstrap */
+  color: var(--bs-dark); /* Para contrastar melhor */
 }
 
 .status-cell.rented {
-  background-color: #ef7b6c;
+  background-color: var(--bs-danger); /* Vermelho Bootstrap */
 }
 
 .status-cell.returned {
-  background-color: #26ca7e;
+  background-color: var(--bs-success); /* Verde Bootstrap */
 }
 
 /* STATUS NO MOBILE */

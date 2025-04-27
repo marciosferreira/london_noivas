@@ -168,7 +168,6 @@ def init_auth_routes(app, users_table, reset_tokens_table):
     # Email confirmation
     @app.route("/confirm_email/<token>")
     def confirm_email(token):
-        print(token)
         try:
             # Buscar usuário pelo token no GSI
             response = users_table.query(
@@ -609,8 +608,6 @@ def init_auth_routes(app, users_table, reset_tokens_table):
             return redirect(url_for("adjustments"))
 
         user_id = session["user_id"]
-
-        print(user_id)
 
         try:
             response = users_table.get_item(Key={"user_id": user_id})

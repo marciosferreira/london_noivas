@@ -96,29 +96,15 @@
   {% else %} {% endif %}
 
   <!-- Paginação -->
-  {% set route_name = 'rented' %} {% if current_page != 1 or itens_count > 0 %}
+  {% set route_name = 'rented' %} {% if itens|count > 0 %}
 
-  <!-- Paginação -->
-  <div class="d-flex justify-content-center mt-4">
-    <nav class="text-center">
-      <ul class="pagination">
-        <!-- Botão voltar -->
-        <li class="page-item {% if current_page == 1 %}disabled{% endif %}">
-          <a class="page-link" href="{% if current_page > 1 %}?direction=prev{% else %}#{% endif %}">←</a>
-        </li>
+  <!-- Pagination -->
+  <!-- Pagination -->
+  <ul class="pagination justify-content-center"></ul>
 
-        <!-- Página atual -->
-        <li class="page-item disabled">
-          <span class="page-link">Página {{ current_page }}</span>
-        </li>
-
-        <!-- Botão próximo -->
-        <li class="page-item {% if not next_cursor %}disabled{% endif %}">
-          <a class="page-link" href="{% if next_cursor %}?cursor={{ next_cursor }}&direction=next{% else %}#{% endif %}">→</a>
-        </li>
-      </ul>
-    </nav>
-  </div>
+  <ul class="pagination justify-content-center mt-3">
+    <!-- Aqui vão os botões via JS -->
+  </ul>
   {% endif %}
   <!-- Modals -->
   {% include 'components/info_modal_transaction.html' %} {% include 'components/image_modal.html' %}
@@ -215,57 +201,44 @@
 </script>
 
 <script>
-  const nextCursor = '{{ next_cursor }}';
   const urlParams = new URLSearchParams(window.location.search);
-  const currentCursor = urlParams.get('cursor');
+  let currentPage = parseInt(urlParams.get('page') || '1');
 
-  const paginacaoUl = document.getElementById('paginacao-numerada');
-  paginacaoUl.innerHTML = '';
+  const paginacao = document.querySelector('.pagination');
 
-  // ← Botão Voltar
-  const liPrev = document.createElement('li');
-  liPrev.className = 'page-item' + (!currentCursor ? ' disabled' : '');
-  const aPrev = document.createElement('a');
-  aPrev.className = 'page-link';
-  aPrev.href = '#';
-  aPrev.innerText = '←';
-  aPrev.onclick = (e) => {
-    e.preventDefault();
-    const params = new URLSearchParams(window.location.search);
-    params.set('direction', 'prev');
-    params.delete('cursor'); // Remove o cursor para voltar
-    window.location.href = window.location.pathname + '?' + params.toString();
-  };
-  liPrev.appendChild(aPrev);
-  paginacaoUl.appendChild(liPrev);
+  // Botão ← Anterior
+  if (currentPage > 1) {
+    const liPrev = document.createElement('li');
+    liPrev.className = 'page-item';
+    const aPrev = document.createElement('a');
+    aPrev.className = 'page-link';
+    aPrev.innerText = '← Anterior';
+    aPrev.href = `?page=${currentPage - 1}`;
+    liPrev.appendChild(aPrev);
+    paginacao.appendChild(liPrev);
+  }
 
-  // Página atual
-  const liPage = document.createElement('li');
-  liPage.className = 'page-item disabled';
-  const spanPage = document.createElement('span');
-  spanPage.className = 'page-link';
-  spanPage.textContent = `Página {{ current_page }}`;
-  liPage.appendChild(spanPage);
-  paginacaoUl.appendChild(liPage);
+  // Página Atual
+  const liCurrent = document.createElement('li');
+  liCurrent.className = 'page-item active';
+  const aCurrent = document.createElement('a');
+  aCurrent.className = 'page-link';
+  aCurrent.innerText = `Página ${currentPage}`;
+  aCurrent.href = "#";
+  liCurrent.appendChild(aCurrent);
+  paginacao.appendChild(liCurrent);
 
-  // → Botão Próxima
-  const liNext = document.createElement('li');
-  const aNext = document.createElement('a');
-  aNext.className = 'page-link';
-  aNext.href = '#';
-  aNext.innerText = '→';
-  aNext.onclick = (e) => {
-    e.preventDefault();
-    const params = new URLSearchParams(window.location.search);
-    if (nextCursor && nextCursor !== 'None') {
-      params.set('cursor', nextCursor);
-      params.set('direction', 'next');
-      window.location.href = window.location.pathname + '?' + params.toString();
-    }
-  };
-  liNext.className = 'page-item' + (nextCursor ? '' : ' disabled');
-  liNext.appendChild(aNext);
-  paginacaoUl.appendChild(liNext);
+  // Botão Próxima →
+  {% if has_next %}
+    const liNext = document.createElement('li');
+    liNext.className = 'page-item';
+    const aNext = document.createElement('a');
+    aNext.className = 'page-link';
+    aNext.innerText = 'Próxima →';
+    aNext.href = `?page=${currentPage + 1}`;
+    liNext.appendChild(aNext);
+    paginacao.appendChild(liNext);
+  {% endif %}
 </script>
 
 {% endblock %}
