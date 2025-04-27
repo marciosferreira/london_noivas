@@ -20,205 +20,197 @@
     <span>Não há itens que satisfazem os cirtérios selecionados.</span>
   </div>
   <br />
+  {% endif %} {% if total_relevant_transactions == 0 and itens|length == 1 %}
+  <div
+    style="
+      background-color: rgba(255, 193, 7, 0.3);
+      border: 1px solid #ffc107;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1rem;
+      position: relative;
+    "
+  >
+    <span style="color: #664d03; font-weight: 500">Para iniciar uma transação, abra o menu "Ações" do item e clique em "Iniciar transação".</span>
+
+    <!-- Botão de adicionar item -->
+  </div>
   {% endif %}
-
-
-  {% if total_relevant_transactions == 0 and itens|length == 1 %}
-<div
-  style="
-    background-color: rgba(255, 193, 7, 0.3);
-    border: 1px solid #ffc107;
-    padding: 1rem;
-    border-radius: 0.5rem;
-    display: inline-flex;
-    align-items: center;
-    gap: 1rem;
-    margin-bottom: 1rem;
-    position: relative;
-  "
->
-  <span style="color: #664d03; font-weight: 500">Para iniciar uma transação, abra o menu "Ações" do item e clique em "Iniciar transação." .</span>
-
-  <!-- Botão de adicionar item -->
-
-</div>
-{% endif %}
 </div>
 {% if last_page == False and not itens%}
-  <p style="color: #308be3; font-weight: bold; font-size: 1.2rem; margin-top: -1rem; margin-left: 0.25rem">Nada por aqui!</p>
-  {% endif %} {% if request.args or itens %} {% set show_item_filter = True %} {% endif %} {% set show_add_item = True %} {% include
-  "components/item_filter_section.html" with context %} {% if itens %}
-  <!-- Tabela (que vira "cards" no mobile) -->
-  <div class="table-container mt-4">
-    <table class="table table-hover responsive-table align-middle rounded-table">
-      <thead>
-        <tr>
-          <th>Imagem</th>
-          <th>Item ID#</th>
-          <th>Descrição</th>
-          <th>Preço (R$)</th>
-          <th>Comentários</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for item in itens %}
-        <tr>
-          <td data-label="Imagem">
-            {% if item.image_url and item.image_url != "N/A" %}
-            <img src="{{ item.image_url }}" alt="Imagem do item" class="img-fluid item-thumbnail" style="max-width: 100px" />
-            {% else %}
-            <img
-              src="{{ url_for('static', filename='item-placeholder.png') }}"
-              alt="Sem Imagem"
-              class="img-fluid item-thumbnail"
-              style="max-width: 100px"
-            />
-            {% endif %}
-          </td>
-          <td data-label="Item ID#">{{ '' if item.item_custom_id == 'None' else item.item_custom_id or '' }}</td>
-          <td data-label="Descrição" style="white-space: pre-wrap; text-align: left">{{ item.description }}</td>
-          <td data-label="Valor">{{ item.valor }}</td>
-          <td data-label="Comentários">{{ '' if item.item_obs == 'None' else item.item_obs or '' }}</td>
-          <td data-label="Ações">
-            <div class="d-flex flex-wrap gap-2 justify-content-center align-items-center">
-              {% set show_delete_item = True %} {% set show_edit_item = True %} {% set show_rent = True %} {% set show_archive = True %} {% set
-              show_consult = True %} {% set show_qrcode = True %} {% set show_share = True %} {% set show_item_transactions = True %} {% include
-              'components/action_buttons.html' with context %}
-            </div>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
+<p style="color: #308be3; font-weight: bold; font-size: 1.2rem; margin-top: -1rem; margin-left: 0.25rem">Nada por aqui!</p>
+{% endif %} {% if request.args or itens %} {% set show_item_filter = True %} {% endif %} {% set show_add_item = True %} {% include
+"components/item_filter_section.html" with context %} {% if itens %}
+<!-- Tabela (que vira "cards" no mobile) -->
+<div class="table-container mt-4">
+  <table class="table table-hover responsive-table align-middle rounded-table">
+    <thead>
+      <tr>
+        <th>Imagem</th>
+        <th>Item ID#</th>
+        <th>Descrição</th>
+        <th>Preço (R$)</th>
+        <th>Comentários</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in itens %}
+      <tr>
+        <td data-label="Imagem">
+          {% if item.image_url and item.image_url != "N/A" %}
+          <img src="{{ item.image_url }}" alt="Imagem do item" class="img-fluid item-thumbnail" style="max-width: 100px" />
+          {% else %}
+          <img
+            src="{{ url_for('static', filename='item-placeholder.png') }}"
+            alt="Sem Imagem"
+            class="img-fluid item-thumbnail"
+            style="max-width: 100px"
+          />
+          {% endif %}
+        </td>
+        <td data-label="Item ID#">{{ '' if item.item_custom_id == 'None' else item.item_custom_id or '' }}</td>
+        <td data-label="Descrição" style="white-space: pre-wrap; text-align: left">{{ item.description }}</td>
+        <td data-label="Valor">{{ item.valor }}</td>
+        <td data-label="Comentários">{{ '' if item.item_obs == 'None' else item.item_obs or '' }}</td>
+        <td data-label="Ações">
+          <div class="d-flex flex-wrap gap-2 justify-content-center align-items-center">
+            {% set show_delete_item = True %} {% set show_edit_item = True %} {% set show_rent = True %} {% set show_archive = True %} {% set
+            show_consult = True %} {% set show_qrcode = True %} {% set show_share = True %} {% set show_item_transactions = True %} {% include
+            'components/action_buttons.html' with context %}
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
 
-  {% endif %} {% if itens %}
+{% endif %} {% if itens %}
 
-  <!-- Pagination -->
-  <ul class="pagination justify-content-center"></ul>
-  {% endif %}
+<!-- Pagination -->
+<ul class="pagination justify-content-center"></ul>
+{% endif %}
 
-  <div class="container mt-4">
-    <div class="row g-3 justify-content-center">
-
-      <!-- Bloco 1 -->
-      <div class="col-12 col-md-5">
-        <div class="usage-info text-center p-3 rounded shadow-sm h-100 text-dark" style="background-color: #d1e7dd;">
-          <div>Transações ativas:</div>
-          <p><strong>{{ total_relevant_transactions }}</strong> de 30 grátis.</p>
+<div class="container mt-4">
+  <div class="row g-3 justify-content-center">
+    <div class="usage-banner container-fluid py-2 px-3 my-2">
+      <div class="row justify-content-center align-items-center text-center">
+        <div class="col-12 col-md-auto mb-2 mb-md-0">
+          <div>
+            <strong>Transações ativas:</strong>
+            {{ total_relevant_transactions }} de 30 grátis
+          </div>
         </div>
-      </div>
-
-      <!-- Bloco 2 -->
-      <div class="col-12 col-md-5">
-        <div class="usage-info text-center p-3 rounded shadow-sm h-100 text-dark" style="background-color: #d1e7dd;">
-          <div>Itens cadastrados:</div>
-          <p><strong>{{ total_items }}</strong> de 50 grátis.</p>
+        <div class="col-12 col-md-auto">
+          <div>
+            <strong>Itens cadastrados:</strong>
+            {{ total_items }} de 50 grátis
+          </div>
         </div>
-      </div>
-
-    </div>
-  </div>
-
-
-
-  <!-- MODAL para imagem -->
-  {% include 'components/image_modal.html' %} {% endblock %} {% block scripts %}
-  <!-- Modal do calendário -->
-  <div class="modal fade" id="calendarModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" style="max-width: 400px">
-      <div class="modal-content p-3">
-        <div class="modal-header">
-          <h5 class="modal-title">Calendário do Item</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
-        </div>
-        <div class="modal-body" id="calendarModalBody">Carregando...</div>
       </div>
     </div>
-  </div>
 
-  <script>
-    function abrirCalendario(url) {
-      fetch(url)
-        .then((response) => response.text())
-        .then((html) => {
-          document.getElementById('calendarModalBody').innerHTML = html;
-          const modal = new bootstrap.Modal(document.getElementById('calendarModal'));
-          modal.show();
-        })
-        .catch((error) => {
-          console.error('Erro ao carregar calendário:', error);
-          alert('Erro ao carregar calendário.');
-        });
-    }
-  </script>
+    <!-- MODAL para imagem -->
+    {% include 'components/image_modal.html' %} {% endblock %} {% block scripts %}
+    <!-- Modal do calendário -->
+    <div class="modal fade" id="calendarModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered" style="max-width: 400px">
+        <div class="modal-content p-3">
+          <div class="modal-header">
+            <h5 class="modal-title">Calendário do Item</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+          </div>
+          <div class="modal-body" id="calendarModalBody">Carregando...</div>
+        </div>
+      </div>
+    </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.umd.min.js"></script>
-  <script>
-    function iniciarDatePicker() {
-      const picker = new easepick.create({
-        element: document.getElementById('datepicker'),
-        css: ['https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.css'],
-        inline: true,
-        container: document.getElementById('calendar-container'),
-      });
-
-      picker.show();
-    }
-  </script>
-
-  <script>
-    function checkTransactionLimit(event) {
-      const totalTransactions = {{ total_relevant_transactions if total_relevant_transactions is not none else 0 | tojson }};
-      if (totalTransactions >= 30) {
-        alert("O limite de transações ativas foi atingido. Entre em contato conosco.");
-        event.preventDefault();
-        return false;
+    <script>
+      function abrirCalendario(url) {
+        fetch(url)
+          .then((response) => response.text())
+          .then((html) => {
+            document.getElementById('calendarModalBody').innerHTML = html;
+            const modal = new bootstrap.Modal(document.getElementById('calendarModal'));
+            modal.show();
+          })
+          .catch((error) => {
+            console.error('Erro ao carregar calendário:', error);
+            alert('Erro ao carregar calendário.');
+          });
       }
-      return true;
-    }
-  </script>
+    </script>
 
-  <script>
-    const urlParams = new URLSearchParams(window.location.search);
-    let currentPage = parseInt(urlParams.get('page') || '1');
+    <script src="https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.umd.min.js"></script>
+    <script>
+      function iniciarDatePicker() {
+        const picker = new easepick.create({
+          element: document.getElementById('datepicker'),
+          css: ['https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.css'],
+          inline: true,
+          container: document.getElementById('calendar-container'),
+        });
 
-    const paginacao = document.querySelector('.pagination');
+        picker.show();
+      }
+    </script>
 
-    // Botão ← Anterior
-    if (currentPage > 1) {
-      const liPrev = document.createElement('li');
-      liPrev.className = 'page-item';
-      const aPrev = document.createElement('a');
-      aPrev.className = 'page-link';
-      aPrev.innerText = '← Anterior';
-      aPrev.href = `?page=${currentPage - 1}`;
-      liPrev.appendChild(aPrev);
-      paginacao.appendChild(liPrev);
-    }
+    <script>
+      function checkTransactionLimit(event) {
+        const totalTransactions = {{ total_relevant_transactions if total_relevant_transactions is not none else 0 | tojson }};
+        if (totalTransactions >= 30) {
+          alert("O limite de transações ativas foi atingido. Entre em contato conosco.");
+          event.preventDefault();
+          return false;
+        }
+        return true;
+      }
+    </script>
 
-    // Página Atual
-    const liCurrent = document.createElement('li');
-    liCurrent.className = 'page-item active';
-    const aCurrent = document.createElement('a');
-    aCurrent.className = 'page-link';
-    aCurrent.innerText = `Página ${currentPage}`;
-    aCurrent.href = "#";
-    liCurrent.appendChild(aCurrent);
-    paginacao.appendChild(liCurrent);
+    <script>
+      const urlParams = new URLSearchParams(window.location.search);
+      let currentPage = parseInt(urlParams.get('page') || '1');
 
-    // Botão Próxima →
-    {% if has_next %}
-      const liNext = document.createElement('li');
-      liNext.className = 'page-item';
-      const aNext = document.createElement('a');
-      aNext.className = 'page-link';
-      aNext.innerText = 'Próxima →';
-      aNext.href = `?page=${currentPage + 1}`;
-      liNext.appendChild(aNext);
-      paginacao.appendChild(liNext);
-    {% endif %}
-  </script>
-  {% endblock %}
+      const paginacao = document.querySelector('.pagination');
+
+      // Botão ← Anterior
+      if (currentPage > 1) {
+        const liPrev = document.createElement('li');
+        liPrev.className = 'page-item';
+        const aPrev = document.createElement('a');
+        aPrev.className = 'page-link';
+        aPrev.innerText = '← Anterior';
+        aPrev.href = `?page=${currentPage - 1}`;
+        liPrev.appendChild(aPrev);
+        paginacao.appendChild(liPrev);
+      }
+
+      // Página Atual
+      const liCurrent = document.createElement('li');
+      liCurrent.className = 'page-item active';
+      const aCurrent = document.createElement('a');
+      aCurrent.className = 'page-link';
+      aCurrent.innerText = `Página ${currentPage}`;
+      aCurrent.href = "#";
+      liCurrent.appendChild(aCurrent);
+      paginacao.appendChild(liCurrent);
+
+      // Botão Próxima →
+      {% if has_next %}
+        const liNext = document.createElement('li');
+        liNext.className = 'page-item';
+        const aNext = document.createElement('a');
+        aNext.className = 'page-link';
+        aNext.innerText = 'Próxima →';
+        aNext.href = `?page=${currentPage + 1}`;
+        liNext.appendChild(aNext);
+        paginacao.appendChild(liNext);
+      {% endif %}
+    </script>
+    {% endblock %}
+  </div>
 </div>

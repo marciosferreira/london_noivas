@@ -1497,7 +1497,6 @@ def list_transactions(
     if not session.get("logged_in"):
         return redirect(url_for("login"))
 
-    username = session.get("username")
     account_id = session.get("account_id")
     user_id = session.get("user_id")
     if not account_id:
@@ -1684,7 +1683,6 @@ def list_transactions(
         title=title,
         add_route=url_for("trash_transactions"),
         next_url=request.url,
-        username=username,
         saved_models=saved_models,
         current_page=current_page,
         itens_count=len(valid_itens),

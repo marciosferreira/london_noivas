@@ -6,21 +6,26 @@
   z-index: 1000;
 }
 
-/* Estilo geral da navbar */
+/* Navbar */
 .navbar {
-  background-color: #003366 !important; /* Azul corporativo */
+  position: relative;
+  background-color: #003366 !important;
 }
 
-/* Estiliza a logo */
+/* Compensa espaço do header + banner */
+body {
+  padding-top: 75px;
+}
+
+/* Logo */
 .logo {
-  height: 80px; /* Mantém o tamanho grande */
+  height: 80px;
   width: auto;
-  border-radius: 8px; /* Bordas arredondadas */
+  border-radius: 8px;
   transition: transform 0.3s ease-in-out;
 }
-
 .logo:hover {
-  transform: scale(1.1); /* Efeito de aumento suave */
+  transform: scale(1.1);
 }
 
 /* Nome ao lado da logo */
@@ -39,46 +44,50 @@
   font-weight: 500;
   transition: color 0.3s ease;
 }
-
 .navbar-nav .nav-link:hover,
 .navbar-nav .nav-link.active {
-  color: #ffc107; /* Amarelo Bootstrap no hover e ativo */
+  color: #ffc107;
   text-decoration: underline;
 }
 
-/* Estilo dos dropdown menus */
+/* Dropdown */
 .dropdown-menu {
-  background-color: #003366; /* Fundo azul corporativo */
+  background-color: #003366;
   border: none;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
-
 .dropdown-menu .dropdown-item {
   color: #ffffff;
   transition: background-color 0.3s ease, color 0.3s ease;
 }
-
 .dropdown-menu .dropdown-item:hover,
 .dropdown-menu .dropdown-item.active {
-  background-color: #002244; /* Azul ainda mais escuro no hover */
-  color: #ffc107; /* Texto amarelo no hover */
+  background-color: #002244;
+  color: #ffc107;
 }
-
-/* Linha separadora no dropdown */
 .dropdown-divider {
   border-top: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-/* Botão do menu hamburguer */
+/* Botão menu hamburguer */
 .navbar-toggler {
   border: none;
 }
-
 .navbar-toggler-icon {
   background-image: url("data:image/svg+xml;charset=utf8,%3Csvg viewBox='0 0 30 30' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath stroke='rgba(255,255,255,0.7)' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3E%3C/svg%3E");
 }
 
-/* Compensa espaço do header fixo no body */
-body {
-  padding-top: 90px; /* Ajustado para altura da navbar+logo */
+.welcome-banner {
+  width: 100%;
+  padding: 8px 25px; /* ↓ reduzido o padding vertical */
+  background: linear-gradient(to bottom, #fafafa, #d9d9d9);
+  font-size: 1.5rem; /* ↓ ligeiramente menor para combinar com a altura */
+  font-weight: bold;
+  color: #222;
+  text-align: center;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12); /* sombra ajustada */
+  border-bottom: 2px solid #ccc;
+  margin: 0;
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
 }

@@ -1,30 +1,7 @@
 {% extends "base.html" %} {% block title %} Transações iniciadas (itens alugados) {% endblock %} {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='style_all_transactions.css') }}" />
 {% endblock %} {% block content %}
-<h4 class="text-center mb-3 p-3 rounded" style="background-color: #cfe2ff; color: #084298; text-decoration: underline;">
-  Olá, {{ username }}!
-</h4>
 
-{% if itens == [] and not request.args%}
-<div
-  style="
-    background-color: rgba(255, 193, 7, 0.3);
-    border: 1px solid #ffc107;
-    padding: 1rem;
-    border-radius: 0.5rem;
-    display: inline-flex;
-    justify-content: flex-start;
-    align-items: center;
-    gap: 1rem;
-    margin-bottom: 1rem;
-  "
->
-  <span style="color: #664d03; font-weight: 500">Que tal criar sua primeira transação?</span>
-  <a href="{{ url_for('inventory') }}" class="btn btn-primary btn-sm">Criar transação</a>
-</div>
-
-
-{% endif %}
 
 <div class="container mt-3">
   <h2 class="mb-4">{{ title }}</h2>
@@ -45,6 +22,29 @@
     <span>Não há itens que satisfazem os cirtérios selecionados.</span>
   </div>
   {% endif %}
+
+
+{% if itens == [] and not request.args%}
+<div
+  style="
+    background-color: rgba(255, 193, 7, 0.3);
+    border: 1px solid #ffc107;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    display: inline-flex;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    margin-top: 20px;
+  "
+>
+  <span style="color: #664d03; font-weight: 500">Que tal criar sua primeira transação?</span>
+  <a href="{{ url_for('inventory') }}" class="btn btn-primary btn-sm">Criar transação</a>
+</div>
+
+
+{% endif %}
 
   {% if last_page == False and not itens%}
   <p style="color: #308be3; font-weight: bold; font-size: 1.2rem; margin-top: -1rem; margin-left: 0.25rem">Nada por aqui!</p>

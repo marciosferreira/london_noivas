@@ -15,12 +15,6 @@
   overflow: visible !important;
 }
 
-.usage-info {
-  background-color: #e7f1ff; /* azul bem suave */
-  border-left: 4px solid #0d6efd;
-  color: #0d6efd;
-  font-size: 1.05rem;
-}
 #print-preview-content {
   display: flex;
   flex-direction: column;
@@ -48,4 +42,16 @@
   max-width: 600px;
   margin: 0 auto;
   font-weight: bold;
+}
+.usage-banner {
+  background: linear-gradient(to bottom, #f8f9fa, #e0e0e0); /* Cinza prateado suave */
+  border: 1px solid #ccc;
+  border-radius: 12px; /* Arredonda IGUAL os 4 cantos */
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1); /* Sombra levinha */
+  color: #333;
+}
+
+.usage-banner div {
+  font-size: 0.95rem; /* Letras menores */
+  font-weight: normal; /* Sem bold */
 }

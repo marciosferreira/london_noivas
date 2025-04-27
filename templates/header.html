@@ -118,4 +118,7 @@
     </div>
   </nav>
 </header>
-<br />
+
+{% if session.get('logged_in') %}
+<div class="welcome-banner">{{ session.get('username') }}</div>
+{% endif %}

@@ -4,7 +4,7 @@ import boto3
 from dotenv import load_dotenv
 
 from flask import Flask
-from flask import Flask, request
+from flask import Flask, request, session
 
 # Define o fuso horário de Manaus
 load_dotenv()  # only for setting up the env as debug
@@ -126,6 +126,11 @@ def add_header(response):
     elif path.endswith(".css") or path.endswith(".js"):
         response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
     return response
+
+
+@app.context_processor
+def inject_session():
+    return dict(session=session)
 
 
 if __name__ == "__main__":
