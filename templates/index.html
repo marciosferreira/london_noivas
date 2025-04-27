@@ -59,17 +59,11 @@
 
     <section class="hero text-center">
       {% if not session.get('logged_in') %}
-      <h1>Alugue Qualquer Coisa</h1>
-      <h3>Gestão completa para locadoras de todos os tipos com plano gratuito</h3>
-      <div class="d-flex justify-content-center flex-wrap gap-4 mt-4">
-        <button class="btn btn-aqua btn-login-register" onclick="window.location.href='{{ url_for('login') }}?tab=login'">Entrar</button>
-        <button class="btn btn-outline-aqua btn-login-register" onclick="window.location.href='{{ url_for('login') }}?tab=register'">
-          Cadastrar
-        </button>
-      </div>
+      <h1>Alugue QQC</h1>
+
 
       {% endif %} {% if not session.get('logged_in') %}
-      <h3 class="text-center mt-5 mb-4">Veja algumas das funcionalidades do Alugue QQC</h3>
+      <h3 class="text-center mt-3 mb-1">Sistema de Gestão completo para locadoras em geral</h3>
       {% endif %}
     </section>
 
