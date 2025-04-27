@@ -57,7 +57,7 @@ def init_auth_routes(app, users_table, reset_tokens_table):
 
             if not email or not password:
                 return render_template(
-                    "login.html",
+                    "register.html",
                     error="Todos os campos são obrigatórios",
                     register=True,
                 )
@@ -67,7 +67,7 @@ def init_auth_routes(app, users_table, reset_tokens_table):
 
             if not recaptcha_response:
                 flash("Por favor, confirme que você não é um robô.", "danger")
-                return redirect(url_for("login", tab="register"))
+                return redirect(url_for("register"))
 
             # Validar no servidor do Google
             secret_key = "6LdriyYrAAAAADXe0sZnhzr-mOCFGs61f_7dv2pZ"
@@ -108,7 +108,7 @@ def init_auth_routes(app, users_table, reset_tokens_table):
                             "Você já criou uma conta recentemente. Aguarde 5 minutos minutos para tentar novamente.",
                             "warning",
                         )
-                        return redirect(url_for("login"))
+                        return redirect(url_for("register"))
 
             print("The IP")
             print(user_ip)
@@ -126,12 +126,12 @@ def init_auth_routes(app, users_table, reset_tokens_table):
                 return redirect("/cadastro-sucesso")
             else:
                 return render_template(
-                    "login.html",
+                    "register.html",
                     error="Já existe um cadastro com esse e-mail!",
                     register=True,
                 )
 
-        return render_template("login.html", register=True)
+        return render_template("register.html", register=True)
 
     # Login route
     @app.route("/login", methods=["GET", "POST"])
@@ -333,11 +333,13 @@ def init_auth_routes(app, users_table, reset_tokens_table):
             return redirect(url_for("login"))
 
     # Forgot password
-    @app.route("/forgot-password", methods=["POST"])
+    @app.route("/forgot-password", methods=["POST", "GET"])
     def forgot_password():
         email = request.form.get("email")
         if not email:
-            return render_template("login.html", error="Por favor, informe seu email")
+            return render_template(
+                "forgot_password.html", error="Por favor, informe seu email"
+            )
 
         # Buscar usuário pelo email no GSI
         response = users_table.query(
@@ -398,13 +400,13 @@ def init_auth_routes(app, users_table, reset_tokens_table):
                 )
 
             return render_template(
-                "login.html",
+                "forgot_password.html",
                 message="Se este email estiver cadastrado, enviaremos instruções para redefinir sua senha.",
             )
 
         # Mesmo se o email não existir, retornamos a mesma mensagem por segurança
         return render_template(
-            "login.html",
+            "forgot_password.html",
             message="Se este email estiver cadastrado, enviaremos instruções para redefinir sua senha.",
         )
 
@@ -428,7 +430,8 @@ def init_auth_routes(app, users_table, reset_tokens_table):
             # Verificar se o token já foi usado
             if token_data.get("used", False):
                 return render_template(
-                    "login.html", error="Este link de redefinição já foi usado."
+                    "login.html",
+                    error="Este link de redefinição já foi usado.",
                 )
 
             # Verificar se o token expirou (caso ainda esteja na tabela)
@@ -440,12 +443,15 @@ def init_auth_routes(app, users_table, reset_tokens_table):
                 )
 
             # Token válido, mostrar página de redefinição
-            return render_template("login.html", reset_password=True, token=token)
+            return render_template(
+                "reset_password.html", reset_password=True, token=token
+            )
 
         except Exception as e:
             print(f"Erro ao verificar token: {e}")
             return render_template(
-                "login.html", error="Ocorreu um erro ao processar sua solicitação."
+                "reset_password.html",
+                error="Ocorreu um erro ao processar sua solicitação.",
             )
 
     # Process password reset
@@ -457,7 +463,7 @@ def init_auth_routes(app, users_table, reset_tokens_table):
 
         if not token or not new_password or not confirm_new_password:
             return render_template(
-                "login.html",
+                "reset_password.html",
                 error="Todos os campos são obrigatórios",
                 reset_password=True,
                 token=token,
@@ -465,7 +471,7 @@ def init_auth_routes(app, users_table, reset_tokens_table):
 
         if new_password != confirm_new_password:
             return render_template(
-                "login.html",
+                "reset_password.html",
                 error="As senhas não coincidem",
                 reset_password=True,
                 token=token,
@@ -487,14 +493,15 @@ def init_auth_routes(app, users_table, reset_tokens_table):
                 # Verificar se o token já foi usado
                 if token_data.get("used", False):
                     return render_template(
-                        "login.html", error="Este link de redefinição já foi usado"
+                        "login.html",
+                        error="Este link de redefinição já foi usado",
                     )
 
                 # Verificar se o token expirou
                 expires_at_unix = token_data.get("expires_at_unix")
                 if expires_at_unix and time.time() > expires_at_unix:
                     return render_template(
-                        "login.html", error="Este link de redefinição expirou"
+                        "reset_password.html", error="Este link de redefinição expirou"
                     )
 
                 # Token válido, obter user_id associado ao token
@@ -528,13 +535,13 @@ def init_auth_routes(app, users_table, reset_tokens_table):
 
             else:
                 return render_template(
-                    "login.html", error="Link de redefinição inválido"
+                    "reset_password.html", error="Link de redefinição inválido"
                 )
 
         except Exception as e:
             print(f"Erro ao redefinir senha: {e}")
             return render_template(
-                "login.html",
+                "reset_password.html",
                 error="Ocorreu um erro ao processar sua solicitação",
                 reset_password=True,
                 token=token,

@@ -201,3 +201,40 @@ input:focus {
 .back-button a:hover {
   text-decoration: underline;
 }
+
+.page-container {
+  max-width: 1200px;
+  width: 90%;
+  margin: 70px auto;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  padding: 40px 30px;
+}
+
+.email-warning-container {
+  margin: 20px auto;
+  padding: 15px 20px;
+  background-color: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffeeba;
+  border-radius: 8px;
+  max-width: 500px;
+  text-align: center;
+}
+
+.email-warning-message p {
+  margin-bottom: 10px;
+  font-size: 16px;
+}
+
+.email-warning-message .btn-warning {
+  background-color: #ffc107;
+  border: none;
+  color: #212529;
+  padding: 8px 16px;
+  text-decoration: none;
+  border-radius: 5px;
+  display: inline-block;
+  margin-top: 5px;
+}

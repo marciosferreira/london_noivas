@@ -1,346 +1,51 @@
-{% extends "base.html" %} {% block title %}Alugue QQC - Login/Cadastro{% endblock %} {% block styles %}
+{% extends "base.html" %} {% block title %}Login - Alugue QQC{% endblock %} {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='style_login.css') }}" />
-{% endblock %} {% block content %}
+{% endblock %}{% block content %} {% include 'not_logged_header.html' %}
 
 <div class="login-container">
-  {% set tab = request.args.get('tab', 'login') %}
-
-  <!-- Cabeçalho com título e logo -->
-  <header class="login-header">
-    <a href="/">
-      <img src="/static/icons/icon-512x512.png" alt="Bugigangas" class="login-logo" />
-    </a>
-    <h1>Alugue QQC</h1>
-    {% set tab = request.args.get('tab', 'login') %} {% if tab == 'register' %}
-    <p>Cadastro</p>
-    {% elif tab == 'reset-password' %}
-    <p>Redefinir Senha</p>
-    {% elif tab == 'forgot-password' %}
-    <p>Recuperar Senha</p>
-    {% else %}
-    <p>Login</p>
-    {% endif %}
-  </header>
+  <h1>Login</h1>
 
   {% if error %}
-  <div class="alert alert-danger alert-dismissible fade show" role="alert">
-    {{ error }}
-    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
-  </div>
+  <div class="alert alert-danger">{{ error }}</div>
   {% endif %} {% if message %}
-  <div class="alert alert-success alert-dismissible fade show" role="alert">
-    {{ message|safe }}
-    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+  <div class="alert alert-success">{{ message }}</div>
+  {% endif %}
+
+  <form action="{{ url_for('login') }}" method="POST">
+    <div class="form-group">
+      <label for="email">E-mail</label>
+      <input type="email" name="email" id="email" required class="form-control" />
+    </div>
+
+    <div class="form-group">
+      <label for="password">Senha</label>
+      <input type="password" name="password" id="password" required class="form-control" />
+    </div>
+
+    <div class="form-check mb-3">
+      <input type="checkbox" class="form-check-input" name="remember_me" id="remember_me" />
+      <label class="form-check-label" for="remember_me">Manter-me conectado</label>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Entrar</button>
+  </form>
+
+  {% if request.args.get('email_not_confirmed') == 'true' %}
+  <div class="email-warning-container">
+    <div class="email-warning-message">
+      <p>
+        <strong>Sua conta ainda não foi confirmada.</strong>
+        <br />
+        Por favor, confirme seu e-mail para acessar todas as funcionalidades.
+      </p>
+      <a href="{{ url_for('resend_confirmation', email=request.args.get('email')) }}" class="btn btn-warning">Reenviar E-mail de Confirmação</a>
+    </div>
   </div>
   {% endif %}
 
-  <!-- Abas ocultas (mantemos para o JS saber qual formulário mostrar) -->
-  <div id="main-tabs" style="display: none"></div>
-
-  <div class="form-container">
-    {% if tab != 'forgot-password' and tab != 'reset-password' %}
-
-    <!-- Formulário de Login -->
-    <div class="login-form" id="login-form">
-      <form action="/login" method="POST">
-        <!-- Campo de e-mail -->
-        <div class="form-group">
-          <label for="email">E-mail</label>
-          <input type="email" id="email" name="email" placeholder="Digite seu e-mail" required />
-        </div>
-
-        <!-- Campo de senha -->
-        <div class="form-group">
-          <label for="password">Senha</label>
-          <input type="password" id="password" name="password" placeholder="Digite sua senha" required />
-        </div>
-
-        <div class="form-check mb-3">
-          <input class="form-check-input" type="checkbox" id="remember_me" name="remember_me" />
-          <label class="form-check-label" for="remember_me">Manter-me conectado</label>
-        </div>
-
-        <br />
-
-        <div class="forgot-password-link">
-          <a href="#" onclick="showTab('forgot-password'); return false;">Esqueceu sua senha?</a>
-        </div>
-
-        <!-- Botão de login -->
-        <button type="submit" class="btn">Entrar</button>
-      </form>
-    </div>
-
-    {% if tab != 'register' %}
-    <div style="text-align: center; margin-top: 10px">
-      <a href="{{ url_for('login', tab='register') }}" style="font-size: 14px; text-decoration: none; color: #007bff">ou cadastre-se</a>
-    </div>
-    {% endif %}
-
-    <!-- Formulário de Registro -->
-    <div class="login-form" id="register-form">
-      <form action="/register" method="POST">
-        <!-- Campo de usuário -->
-        <div class="form-group">
-          <label for="reg-username">Nome da sua Loja</label>
-          <input type="text" id="reg-username" name="username" placeholder="Nome da sua loja" required minlength="3" maxlength="15" required />
-        </div>
-
-        <!-- Campo de email -->
-        <div class="form-group">
-          <label for="reg-email">Email</label>
-          <input type="email" id="reg-email" name="email" placeholder="Digite seu email" required />
-        </div>
-
-        <!-- Campo de senha -->
-        <div class="form-group">
-          <label for="reg-password">Senha (8 caracteres)</label>
-          <input type="password" id="reg-password" name="password" placeholder="Crie uma senha" required minlength="8" maxlength="64" />
-        </div>
-
-        <!-- Campo de confirmação de senha -->
-        <div class="form-group">
-          <label for="confirm-password">Confirme a Senha</label>
-          <input
-            type="password"
-            id="confirm-password"
-            name="confirm_password"
-            placeholder="Digite a senha novamente"
-            required
-            minlength="8"
-            maxlength="64"
-          />
-          <span id="password-error" style="color: red; font-size: 0.8em; display: none">As senhas não coincidem</span>
-        </div>
-
-        <!-- Checkbox para aceitar os termos -->
-        <div class="form-group terms-container">
-          <input type="checkbox" id="terms-checkbox" />
-          <label for="terms-checkbox">
-            Eu aceito os
-            <a href="/termos-de-uso" target="_blank">termos de uso</a>
-            .
-          </label>
-        </div>
-
-        <!-- Campo do reCAPTCHA -->
-        <div class="g-recaptcha" data-sitekey="6LdriyYrAAAAAEyfAFjmOpZmGr9XGNOqsCuOPsNG"></div>
-        <br />
-        <!-- Botão de registro (inicialmente desativado) -->
-        <button type="submit" class="btn" id="register-btn" disabled>Cadastrar</button>
-      </form>
-    </div>
-
-    {% if tab == 'register' %}
-    <div style="text-align: center; margin-top: 10px">
-      <a href="{{ url_for('login', tab='login') }}" style="font-size: 14px; text-decoration: none; color: #007bff">ou entrar</a>
-    </div>
-    {% endif %} {% endif %} {% if request.args.get('email_not_confirmed') == 'true' %}
-    <br />
-    <div class="email-warning-container">
-      <div class="email-warning-message">
-        <p>
-          <strong>Sua conta ainda não foi confirmada.</strong>
-          <br />
-          Por favor, confirme seu e-mail para acessar todas as funcionalidades.
-        </p>
-        <a href="{{ url_for('resend_confirmation', email=request.args.get('email')) }}" class="btn btn-warning">Reenviar E-mail de Confirmação</a>
-      </div>
-    </div>
-    {% endif %}
-
-    <!-- Formulário de Recuperação de Senha -->
-    <div class="login-form" id="forgot-password-form">
-      <h2>Recuperar Senha</h2>
-      <p>Digite seu email para receber um link de redefinição de senha.</p>
-      <form action="/forgot-password" method="POST">
-        <div class="form-group">
-          <label for="recovery-email">Email</label>
-          <input type="email" id="recovery-email" name="email" placeholder="Digite seu email cadastrado" required />
-        </div>
-        <button type="submit" class="btn">Enviar Link de Recuperação</button>
-      </form>
-      <div class="back-button">
-        <a href="#" onclick="showTab('login'); return false;">Voltar para o login</a>
-      </div>
-    </div>
-
-    <!-- Formulário de Redefinição de Senha (mostrado apenas quando acessado pelo link no email) -->
-    <div class="login-form" id="reset-password-form">
-      <h2>Redefinir Senha</h2>
-      <form action="/reset-password" method="POST">
-        <input type="hidden" id="reset-token" name="token" value="{{ token if token else '' }}" />
-        <div class="form-group">
-          <label for="new-password">Nova Senha</label>
-          <input type="password" id="new-password" name="new_password" placeholder="Digite sua nova senha" required />
-        </div>
-        <div class="form-group">
-          <label for="confirm-new-password">Confirme a Nova Senha</label>
-          <input type="password" id="confirm-new-password" name="confirm_new_password" placeholder="Digite a nova senha novamente" required />
-          <span id="reset-password-error" style="color: red; font-size: 0.8em; display: none">As senhas não coincidem</span>
-        </div>
-        <button type="submit" class="btn" id="reset-btn">Redefinir Senha</button>
-      </form>
-      <div class="back-button">
-        <a href="#" onclick="showTab('login'); return false;">Voltar para o login</a>
-      </div>
-    </div>
+  <div class="text-center mt-3">
+    <a href="{{ url_for('forgot_password') }}">Esqueceu sua senha?</a>
   </div>
 </div>
-{% endblock %} {% block scripts %}
-<script>
-
-
-
-  document.addEventListener('DOMContentLoaded', function() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const tabParam = urlParams.get('tab');
-
-    // Pega a label para exibir no cabeçalho
-    const labelElement = document.getElementById('page-mode-label');
-
-    // Prioridade: URL > variável Jinja2
-    let tab = tabParam;
-
-    {% if reset_password %}
-      tab = 'reset-password';
-    {% endif %}
-
-    if (tab === 'register') {
-      showTab('register');
-      labelElement.textContent = 'Cadastro';
-    } else if (tab === 'reset-password') {
-      showTab('reset-password');
-      labelElement.textContent = 'Redefinir Senha';
-      document.getElementById('main-tabs').style.display = 'none';
-    } else {
-      showTab('login');
-      labelElement.textContent = 'Login';
-    }
-  });
-
-
-
-
-
-
-
-
-
-    function showTab(tabName) {
-      // Esconder todos os formulários
-      document.getElementById('login-form').style.display = 'none';
-      document.getElementById('register-form').style.display = 'none';
-      document.getElementById('forgot-password-form').style.display = 'none';
-      document.getElementById('reset-password-form').style.display = 'none';
-
-      // Remover classes ativas das abas
-      document.getElementById('login-tab')?.classList.remove('active');
-      document.getElementById('register-tab')?.classList.remove('active');
-
-      // Mostrar o formulário selecionado e ajustar espaçamento
-      if (tabName === 'login') {
-          document.getElementById('login-form').style.display = 'block';
-          document.getElementById('login-tab').classList.add('active');
-          document.getElementById('main-tabs').style.display = 'flex';
-      } else if (tabName === 'register') {
-          let registerForm = document.getElementById('register-form');
-          registerForm.style.display = 'block';
-          registerForm.classList.add('active'); // Garante o espaçamento correto
-          document.getElementById('register-tab').classList.add('active');
-          document.getElementById('main-tabs').style.display = 'flex';
-      } else if (tabName === 'forgot-password') {
-          document.getElementById('forgot-password-form').style.display = 'block';
-          document.getElementById('main-tabs').style.display = 'none';
-      } else if (tabName === 'reset-password') {
-          document.getElementById('reset-password-form').style.display = 'block';
-          document.getElementById('main-tabs').style.display = 'none';
-      }
-    }
-
-    // Verificar se as senhas coincidem no registro
-    document.getElementById('confirm-password').addEventListener('input', function () {
-      const password = document.getElementById('reg-password').value;
-      const confirmPassword = this.value;
-      const errorElement = document.getElementById('password-error');
-      const registerButton = document.getElementById('register-btn');
-
-      if (password !== confirmPassword) {
-        errorElement.style.display = 'block';
-        registerButton.disabled = true;
-      } else {
-        errorElement.style.display = 'none';
-        registerButton.disabled = !document.getElementById('terms-checkbox').checked;
-      }
-    });
-
-    // Verificar se as senhas coincidem na redefinição
-    document.getElementById('confirm-new-password').addEventListener('input', function () {
-      const password = document.getElementById('new-password').value;
-      const confirmPassword = this.value;
-      const errorElement = document.getElementById('reset-password-error');
-      const resetButton = document.getElementById('reset-btn');
-
-      if (password !== confirmPassword) {
-        errorElement.style.display = 'block';
-        resetButton.disabled = true;
-      } else {
-        errorElement.style.display = 'none';
-        resetButton.disabled = false;
-      }
-    });
-
-    // Limitar tamanhos de campos
-    document.getElementById('reg-username').addEventListener('input', function () {
-      let maxLength = 15;
-      if (this.value.length > maxLength) {
-        this.value = this.value.slice(0, maxLength);
-      }
-    });
-
-    document.getElementById('reg-password').addEventListener('input', function () {
-      let maxLength = 64;
-      if (this.value.length > maxLength) {
-        this.value = this.value.slice(0, maxLength);
-      }
-    });
-
-    document.getElementById('confirm-password').addEventListener('input', function () {
-      let maxLength = 64;
-      if (this.value.length > maxLength) {
-        this.value = this.value.slice(0, maxLength);
-      }
-    });
-
-    // Verificar termos e condições
-    document.getElementById('terms-checkbox').addEventListener('change', function () {
-      const password = document.getElementById('reg-password').value;
-      const confirmPassword = document.getElementById('confirm-password').value;
-
-      if (password === confirmPassword) {
-        document.getElementById('register-btn').disabled = !this.checked;
-      }
-    });
-
-    // Verificar se a URL tem parâmetros
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('register') === 'true') {
-      showTab('register');
-    }
-    if (urlParams.get('reset') === 'true') {
-      showTab('reset-password');
-    }
-
-    // Auto-fechar alertas
-    setTimeout(function () {
-      let alerts = document.querySelectorAll('.alert');
-      alerts.forEach((alert) => {
-        let bsAlert = new bootstrap.Alert(alert);
-        bsAlert.close();
-      });
-    }, 5000);
-</script>
-
-<script src="https://www.google.com/recaptcha/api.js" async defer></script>
 
 {% endblock %}

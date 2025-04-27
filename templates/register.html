@@ -1,0 +1,103 @@
+{% extends "base.html" %} {% block title %}Cadastrar-se - Alugue QQC{% endblock %} {% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='style_login.css') }}" />
+{% endblock %} {% block content %}
+<!-- Importa o estilo do header -->
+{% include 'not_logged_header.html' %}
+
+<div class="login-container">
+  <h1>Cadastro</h1>
+
+  {% if error %}
+  <div class="alert alert-danger">{{ error }}</div>
+  {% endif %} {% if message %}
+  <div class="alert alert-success">{{ message }}</div>
+  {% endif %}
+
+  <form action="{{ url_for('register') }}" method="POST">
+    <div class="form-group">
+      <label for="reg-username">Nome da sua locadora</label>
+      <input
+        type="text"
+        id="reg-username"
+        name="username"
+        class="form-control"
+        placeholder="Digite o nome da sua locadora"
+        required
+        minlength="3"
+        maxlength="15"
+      />
+    </div>
+
+    <div class="form-group">
+      <label for="reg-email">Email</label>
+      <input type="email" id="reg-email" name="email" class="form-control" placeholder="Digite seu email" required />
+    </div>
+
+    <div class="form-group">
+      <label for="reg-password">Senha (8 caracteres)</label>
+      <input
+        type="password"
+        id="reg-password"
+        name="password"
+        class="form-control"
+        placeholder="Crie uma senha"
+        required
+        minlength="8"
+        maxlength="64"
+      />
+    </div>
+
+    <div class="form-group">
+      <label for="confirm-password">Confirme a Senha</label>
+      <input
+        type="password"
+        id="confirm-password"
+        name="confirm_password"
+        class="form-control"
+        placeholder="Digite a senha novamente"
+        required
+        minlength="8"
+        maxlength="64"
+      />
+      <span id="password-error" style="color: red; font-size: 0.8em; display: none">As senhas não coincidem</span>
+    </div>
+
+    <div class="form-check mb-3">
+      <input type="checkbox" class="form-check-input" id="terms-checkbox" />
+      <label class="form-check-label" for="terms-checkbox">
+        Eu aceito os
+        <a href="/terms" target="_blank">termos de uso</a>
+        .
+      </label>
+    </div>
+
+    <div class="mb-3">
+      <div class="g-recaptcha" data-sitekey="6LdriyYrAAAAAEyfAFjmOpZmGr9XGNOqsCuOPsNG"></div>
+    </div>
+
+    <button type="submit" class="btn btn-primary" id="register-btn" disabled>Cadastrar</button>
+  </form>
+</div>
+{% endblock %} {% block scripts %}
+<script src="https://www.google.com/recaptcha/api.js" async defer></script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const registerBtn = document.getElementById('register-btn');
+    const passwordInput = document.getElementById('reg-password');
+    const confirmPasswordInput = document.getElementById('confirm-password');
+    const passwordError = document.getElementById('password-error');
+    const termsCheckbox = document.getElementById('terms-checkbox');
+
+    function validateForm() {
+      const passwordsMatch = passwordInput.value === confirmPasswordInput.value;
+      passwordError.style.display = passwordsMatch ? 'none' : 'block';
+      registerBtn.disabled = !(passwordsMatch && termsCheckbox.checked);
+    }
+
+    passwordInput.addEventListener('input', validateForm);
+    confirmPasswordInput.addEventListener('input', validateForm);
+    termsCheckbox.addEventListener('change', validateForm);
+  });
+</script>
+{% endblock %}
