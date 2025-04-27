@@ -1,8 +1,8 @@
 {% extends "base.html" %} {% block title %}Itens Disponíveis{% endblock %} {% block styles %}
-<link rel="stylesheet" href="{{ url_for('static', filename='style_inventory.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='style_archive.css') }}" />
 {% endblock %} {% block content %}
 <div class="container mt-3">
-  <h2 class="mb-4">Arquivo de itens</h2>
+  <h2 class="mb-4">Inventário de itens</h2>
 
   {% if request.args or itens %} {% set show_item_filter = True %} {% endif %} {% set show_add_item = True %} {% include
   "components/item_filter_section.html" with context %} {% if not itens %}
@@ -74,7 +74,8 @@
   {% endif %}
 
   <!-- MODAL para imagem -->
-  {% include 'components/image_modal.html' %} {% endblock %} {% block scripts %}
+  {% include 'components/image_modal.html' %}
+
   <!-- Modal do calendário -->
   <div class="modal fade" id="calendarModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered" style="max-width: 400px">
@@ -87,88 +88,90 @@
       </div>
     </div>
   </div>
-
-  <script>
-    function abrirCalendario(url) {
-      fetch(url)
-        .then((response) => response.text())
-        .then((html) => {
-          document.getElementById('calendarModalBody').innerHTML = html;
-          const modal = new bootstrap.Modal(document.getElementById('calendarModal'));
-          modal.show();
-        })
-        .catch((error) => {
-          console.error('Erro ao carregar calendário:', error);
-          alert('Erro ao carregar calendário.');
-        });
-    }
-  </script>
-
-  <script src="https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.umd.min.js"></script>
-  <script>
-    function iniciarDatePicker() {
-      const picker = new easepick.create({
-        element: document.getElementById('datepicker'),
-        css: ['https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.css'],
-        inline: true,
-        container: document.getElementById('calendar-container'),
-      });
-
-      picker.show();
-    }
-  </script>
-
-  <script>
-    function checkTransactionLimit(event) {
-      const totalTransactions = {{ total_relevant_transactions if total_relevant_transactions is not none else 0 | tojson }};
-      if (totalTransactions >= 30) {
-        alert("O limite de transações ativas foi atingido. Entre em contato conosco.");
-        event.preventDefault();
-        return false;
-      }
-      return true;
-    }
-  </script>
-
-  <script>
-    const urlParams = new URLSearchParams(window.location.search);
-    let currentPage = parseInt(urlParams.get('page') || '1');
-
-    const paginacao = document.querySelector('.pagination');
-
-    // Botão ← Anterior
-    if (currentPage > 1) {
-      const liPrev = document.createElement('li');
-      liPrev.className = 'page-item';
-      const aPrev = document.createElement('a');
-      aPrev.className = 'page-link';
-      aPrev.innerText = '← Anterior';
-      aPrev.href = `?page=${currentPage - 1}`;
-      liPrev.appendChild(aPrev);
-      paginacao.appendChild(liPrev);
-    }
-
-    // Página Atual
-    const liCurrent = document.createElement('li');
-    liCurrent.className = 'page-item active';
-    const aCurrent = document.createElement('a');
-    aCurrent.className = 'page-link';
-    aCurrent.innerText = `Página ${currentPage}`;
-    aCurrent.href = "#";
-    liCurrent.appendChild(aCurrent);
-    paginacao.appendChild(liCurrent);
-
-    // Botão Próxima →
-    {% if has_next %}
-      const liNext = document.createElement('li');
-      liNext.className = 'page-item';
-      const aNext = document.createElement('a');
-      aNext.className = 'page-link';
-      aNext.innerText = 'Próxima →';
-      aNext.href = `?page=${currentPage + 1}`;
-      liNext.appendChild(aNext);
-      paginacao.appendChild(liNext);
-    {% endif %}
-  </script>
-  {% endblock %}
 </div>
+{% endblock %} {% block scripts %}
+
+<script>
+  function abrirCalendario(url) {
+    fetch(url)
+      .then((response) => response.text())
+      .then((html) => {
+        document.getElementById('calendarModalBody').innerHTML = html;
+        const modal = new bootstrap.Modal(document.getElementById('calendarModal'));
+        modal.show();
+      })
+      .catch((error) => {
+        console.error('Erro ao carregar calendário:', error);
+        alert('Erro ao carregar calendário.');
+      });
+  }
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.umd.min.js"></script>
+<script>
+  function iniciarDatePicker() {
+    const picker = new easepick.create({
+      element: document.getElementById('datepicker'),
+      css: ['https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.css'],
+      inline: true,
+      container: document.getElementById('calendar-container'),
+    });
+
+    picker.show();
+  }
+</script>
+
+<script>
+  function checkTransactionLimit(event) {
+    const totalTransactions = {{ total_relevant_transactions if total_relevant_transactions is not none else 0 | tojson }};
+    if (totalTransactions >= 30) {
+      alert("O limite de transações ativas foi atingido. Entre em contato conosco.");
+      event.preventDefault();
+      return false;
+    }
+    return true;
+  }
+</script>
+
+<script>
+  const urlParams = new URLSearchParams(window.location.search);
+  let currentPage = parseInt(urlParams.get('page') || '1');
+
+  const paginacao = document.querySelector('.pagination');
+
+  // Botão ← Anterior
+  if (currentPage > 1) {
+    const liPrev = document.createElement('li');
+    liPrev.className = 'page-item';
+    const aPrev = document.createElement('a');
+    aPrev.className = 'page-link';
+    aPrev.innerText = '← Anterior';
+    aPrev.href = `?page=${currentPage - 1}`;
+    liPrev.appendChild(aPrev);
+    paginacao.appendChild(liPrev);
+  }
+
+  // Página Atual
+  const liCurrent = document.createElement('li');
+  liCurrent.className = 'page-item active';
+  const aCurrent = document.createElement('a');
+  aCurrent.className = 'page-link';
+  aCurrent.innerText = `Página ${currentPage}`;
+  aCurrent.href = "#";
+  liCurrent.appendChild(aCurrent);
+  paginacao.appendChild(liCurrent);
+
+  // Botão Próxima →
+  {% if has_next %}
+    const liNext = document.createElement('li');
+    liNext.className = 'page-item';
+    const aNext = document.createElement('a');
+    aNext.className = 'page-link';
+    aNext.innerText = 'Próxima →';
+    aNext.href = `?page=${currentPage + 1}`;
+    liNext.appendChild(aNext);
+    paginacao.appendChild(liNext);
+  {% endif %}
+</script>
+
+{% endblock %}
