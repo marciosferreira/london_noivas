@@ -263,20 +263,6 @@
   </div>
 
   <script>
-    function checkTransactionLimit(event) {
-      const totalTransactions = {{ total_relevant_transactions }};
-      if (totalTransactions >= 30) {
-        alert("O limite de transações simultâneas foi atingido. Entre em contato conosco.");
-        event.preventDefault();
-        return false;
-      }
-      return true;
-    }
-
-    // ✅ Função para imprimir apenas a área de conteúdo do modal
-  </script>
-
-  <script>
     function abrirModalQR(itemId) {
       document.getElementById('qr-item-id').value = itemId;
     }
@@ -443,39 +429,6 @@
         .catch((err) => {
           console.error('Erro ao copiar o link:', err);
           alert('Erro ao copiar o link. Tente novamente.');
-        });
-    }
-  </script>
-
-  <script>
-    let transacaoSelecionada = null;
-
-    function abrirModalModelo(transactionId) {
-      transacaoSelecionada = transactionId;
-      document.getElementById('print-area').innerHTML = "<p class='text-muted'>Nenhum modelo selecionado.</p>";
-      document.getElementById('select-modelo').value = '';
-    }
-
-    function carregarModeloSelecionado() {
-      const select = document.getElementById('select-modelo');
-      const textId = select.value;
-      const outputDiv = document.getElementById('print-area');
-
-      if (!textId || !transacaoSelecionada) {
-        outputDiv.innerHTML = "<p class='text-muted'>Selecione um modelo para visualizar2.</p>";
-        return;
-      }
-
-      outputDiv.innerHTML = '<p>Carregando...</p>';
-
-      fetch(`/visualizar-modelo/${textId}/${transacaoSelecionada}`)
-        .then((response) => response.text())
-        .then((html) => {
-          outputDiv.innerHTML = html;
-        })
-        .catch((error) => {
-          outputDiv.innerHTML = "<p class='text-danger'>Erro ao carregar modelo.</p>";
-          console.error(error);
         });
     }
   </script>

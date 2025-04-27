@@ -204,39 +204,6 @@
 </script>
 
 <script>
-  let transacaoSelecionada = null;
-
-  function abrirModalModelo(transactionId) {
-    transacaoSelecionada = transactionId;
-    document.getElementById('print-area').innerHTML = "<p class='text-muted'>Nenhum modelo selecionado.</p>";
-    document.getElementById('select-modelo').value = '';
-  }
-
-  function carregarModeloSelecionado() {
-    const select = document.getElementById('select-modelo');
-    const textId = select.value;
-    const outputDiv = document.getElementById('print-area');
-
-    if (!textId || !transacaoSelecionada) {
-      outputDiv.innerHTML = "<p class='text-muted'>Selecione um modelo para visualizar.</p>";
-      return;
-    }
-
-    outputDiv.innerHTML = '<p>Carregando...</p>';
-
-    fetch(`/visualizar-modelo/${textId}/${transacaoSelecionada}`)
-      .then((response) => response.text())
-      .then((html) => {
-        outputDiv.innerHTML = html;
-      })
-      .catch((error) => {
-        outputDiv.innerHTML = "<p class='text-danger'>Erro ao carregar modelo.</p>";
-        console.error(error);
-      });
-  }
-</script>
-
-<script>
   const urlParams = new URLSearchParams(window.location.search);
   let currentPage = parseInt(urlParams.get('page') || '1');
 

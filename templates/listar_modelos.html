@@ -12,8 +12,8 @@
     <li class="list-group-item">
       <div class="fw-bold mb-2">{{ modelo.nome }}</div>
       <div class="d-flex flex-wrap gap-2">
-        <a href="{{ url_for('visualizar_modelo_simples', text_id=modelo.text_id) }}" class="btn btn-sm btn-outline-primary">Ver Exemplo</a>
-        <a href="{{ url_for('editar_modelo', text_id=modelo.text_id) }}" class="btn btn-sm btn-outline-secondary">Como construir</a>
+        <a href="{{ url_for('visualizar_modelo_simples', text_id=modelo.text_id) }}" class="btn btn-sm btn-primary">Ver Exemplo</a>
+        <a href="{{ url_for('editar_modelo', text_id=modelo.text_id) }}" class="btn btn-sm btn-secondary">Como construir</a>
       </div>
     </li>
     {% endfor %}

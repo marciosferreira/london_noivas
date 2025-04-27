@@ -157,15 +157,9 @@
 </div>
 
 <div class="terms-container">
-  {% if modelo.account_id != '3bcdb46a-a88f-4dfd-b97e-2fb07222e0f7' %}
-
   <h3 class="mb-4">{{ 'Editar Modelo' if modelo else 'Criar Modelo' }}</h3>
 
-  {% else %}
-
   <h3 class="mb-4">Modelo de exemplo (somente visualização)</h3>
-
-  {% endif %}
 
   <form method="POST">
     <div class="mb-3">
@@ -177,11 +171,8 @@
       <label for="conteudo" class="form-label">Conteúdo:</label>
       <textarea name="conteudo">{{ modelo.conteudo if modelo else '' }}</textarea>
     </div>
-    {% if modelo.account_id != '3bcdb46a-a88f-4dfd-b97e-2fb07222e0f7' %}
 
     <button type="submit" class="btn btn-success">{{ 'Salvar Alterações' if modelo else 'Salvar' }}</button>
-
-    {% endif %}
 
     <a href="{{ url_for('listar_modelos') }}" class="btn btn-outline-secondary ms-2">Voltar</a>
   </form>
