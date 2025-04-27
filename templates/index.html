@@ -47,15 +47,7 @@
 
 
 <div class="wrapper">
-    {# Barra com ícones se não estiver logado #} {% if not session.get('logged_in') %}
-    <div class="full-width-bar">
-      <img src="/static/icons/vestido.png" alt="Vestido" class="styled-img" />
-      <img src="/static/icons/chave.png" alt="Chave" class="styled-img" />
-      <img src="/static/icons/vaso.png" alt="Vaso" class="styled-img" />
-      <img src="/static/icons/talher.png" alt="Talher" class="styled-img" />
-      <img src="/static/icons/mesa.png" alt="Mesa" class="styled-img" />
-    </div>
-    {% endif %}
+    {# Barra com ícones se não estiver logado #}
 
     <section class="hero text-center">
       {% if not session.get('logged_in') %}
@@ -226,7 +218,7 @@
     </section>
     {% endif %}
 
-    <h3 class="text-center mt-5 mb-4">Veja algumas telas</h3>
+    <h3 class="text-center mt-5 mb-4">Algumas telas do sistema</h3>
 
     <section class="screenshot-container">
       <div class="screenshot-wrapper">
