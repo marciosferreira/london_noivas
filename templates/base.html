@@ -52,7 +52,6 @@
   <body class="body_class">
     {% if request.endpoint != 'login' and request.endpoint != 'register' %} {% if session.get('impersonated_by') %}
     <!-- Impersonation bar -->
-    <div class="admin-impersonation-bar">...</div>
     {% endif %} {% if session.get('logged_in') %} {% include 'header.html' %} {% endif %} {% endif %}
 
     <!-- Flash messages no canto inferior direito -->

@@ -1,6 +1,51 @@
 {% extends "base.html" %} {% block title %}Transações iniciadas (itens alugados){% endblock %} {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='style_index.css') }}" />
 {% endblock %} {% block content %}
+
+<!-- Importa o estilo do header -->
+<link rel="stylesheet" href="{{ url_for('static', filename='style_header.css') }}" />
+
+<header class="header">
+  <nav class="navbar navbar-expand-lg fixed-top" style="background-color: #003366;">
+    <div class="container d-flex align-items-center justify-content-between py-2">
+      <!-- Logo -->
+      <a class="navbar-brand d-flex align-items-center" href="{{ url_for('index') }}">
+        <img src="{{ url_for('static', filename='icons/logo.png') }}" alt="Logo" class="logo" />
+        <span class="ms-2 d-flex flex-column" style="line-height: 0.9;">
+          <span style="font-weight: bold; color: white;">Alugue QQC</span>
+          <small style="font-size: 12px; color: #c5bebe;">gestor de aluguéis</small>
+        </span>
+      </a>
+
+      <!-- Botão hamburguer para mobile -->
+      <button
+        class="navbar-toggler"
+        type="button"
+        data-bs-toggle="collapse"
+        data-bs-target="#navbarNav"
+        aria-controls="navbarNav"
+        aria-expanded="false"
+        aria-label="Toggle navigation"
+      >
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <!-- Login e Cadastro -->
+      <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+        <ul class="navbar-nav d-flex align-items-center gap-2">
+          <li class="nav-item">
+            <a class="nav-link text-white" href="{{ url_for('login') }}?tab=login">Entrar</a>
+          </li>
+          <li class="nav-item">
+            <a class="btn btn-warning btn-sm" href="{{ url_for('login') }}?tab=register">Cadastrar</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+</header>
+
+
 <div class="wrapper">
     {# Barra com ícones se não estiver logado #} {% if not session.get('logged_in') %}
     <div class="full-width-bar">

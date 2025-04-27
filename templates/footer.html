@@ -1,18 +1,19 @@
 <!-- Importando a folha de estilo do rodapé -->
 <link rel="stylesheet" href="{{ url_for('static', filename='style_footer.css') }}" />
+
 <footer class="footer">
-  <div class="container text-center">
-    <p>
+  <div class="container text-center py-4">
+    <div class="footer-links mb-2">
       <a href="/terms">Termos de Uso</a>
-      |
+      <span class="separator">|</span>
       <a href="/contato">Contato</a>
-      |
+      <span class="separator">|</span>
       <a href="/fees">Planos</a>
-      |
+      <span class="separator">|</span>
       <a href="/how_to">Como usar</a>
-    </p>
-    <p class="testing-notice">
-      <a href="/reportar-bug?url={{ request.url }}">reportar um bug</a>
-    </p>
+    </div>
+    <div class="testing-notice">
+      <a href="/reportar-bug?url={{ request.url }}">Reportar um Bug</a>
+    </div>
   </div>
 </footer>

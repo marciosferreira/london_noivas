@@ -1,50 +1,48 @@
-/* Definir altura mínima para o body e html */
-html,
-body {
-  height: 100%;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-/* Criar um contêiner principal que ocupa todo o espaço disponível */
-.wrapper {
-  flex: 1; /* Faz com que o conteúdo ocupe todo o espaço antes do rodapé */
-}
-
 .footer {
-  width: 100%; /* Garante que ocupe toda a largura da tela */
-  text-align: center; /* Centraliza o conteúdo */
-  padding: 15px;
-  font-size: 0.9em;
-  color: #555;
-  background: #343a40; /* Cor preta, igual ao header */
-  position: relative;
-  bottom: 0;
-  left: 0; /* Alinha corretamente */
-  margin-top: 40px; /* Aumente o valor se precisar de mais espaço */
+  background-color: #003366; /* Azul escuro profissional */
+  color: var(--bs-light, #f8f9fa); /* Mantém o texto claro */
+  font-size: 0.9rem;
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+  margin-top: 2rem;
+  border-top: 1px solid #084298; /* Um azul ainda mais escuro para a borda */
 }
 
 .footer a {
-  color: #f8f9fa; /* Links brancos */
+  color: #f8f9fa; /* Links claros */
   text-decoration: none;
-  margin: 0 10px;
+  margin: 0 8px;
+  font-weight: 500;
+  transition: color 0.3s ease;
 }
 
 .footer a:hover {
+  color: #ffc107; /* Amarelo Bootstrap no hover (dá ótimo contraste) */
   text-decoration: underline;
+}
+
+.footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  align-items: center;
+}
+
+.separator {
+  color: #f8f9fa;
 }
 
 .testing-notice {
-  font-size: 0.8em;
-  color: #adb5bd;
-  margin-top: 5px;
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  color: #f8f9fa;
 }
 
 .testing-notice a {
-  color: #e2c46b;
-  text-decoration: underline;
+  color: #ffc107; /* Amarelo para destaque */
   font-weight: bold;
+  text-decoration: underline;
 }
 
 .testing-notice a:hover {
