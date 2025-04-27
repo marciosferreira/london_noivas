@@ -1,6 +1,7 @@
 import os
 import uuid
 import datetime
+from flask import Flask, request, session
 
 import boto3
 from botocore.exceptions import ClientError
@@ -405,3 +406,13 @@ def get_user_timezone(users_table, user_id=None, fallback_tz="America/Sao_Paulo"
     except Exception as e:
         print("Erro ao obter timezone:", e)
         return pytz.timezone(fallback_tz)
+
+
+def get_user_ip():
+    if request.headers.get("X-Forwarded-For"):
+        # Se vier o cabeçalho X-Forwarded-For (caso de proxy)
+        ip = request.headers.get("X-Forwarded-For").split(",")[0]
+    else:
+        # Se não, pega o IP da conexão direta
+        ip = request.remote_addr
+    return ip

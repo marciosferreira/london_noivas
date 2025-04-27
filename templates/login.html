@@ -71,6 +71,12 @@
       </form>
     </div>
 
+    {% if tab != 'register' %}
+    <div style="text-align: center; margin-top: 10px">
+      <a href="{{ url_for('login', tab='register') }}" style="font-size: 14px; text-decoration: none; color: #007bff">ou cadastre-se</a>
+    </div>
+    {% endif %}
+
     <!-- Formulário de Registro -->
     <div class="login-form" id="register-form">
       <form action="/register" method="POST">
@@ -117,11 +123,30 @@
           </label>
         </div>
 
+        <!-- Campo do reCAPTCHA -->
+        <div class="g-recaptcha" data-sitekey="6LdriyYrAAAAAEyfAFjmOpZmGr9XGNOqsCuOPsNG"></div>
+        <br />
         <!-- Botão de registro (inicialmente desativado) -->
         <button type="submit" class="btn" id="register-btn" disabled>Cadastrar</button>
       </form>
     </div>
 
+    {% if tab == 'register' %}
+    <div style="text-align: center; margin-top: 10px">
+      <a href="{{ url_for('login', tab='login') }}" style="font-size: 14px; text-decoration: none; color: #007bff">ou entrar</a>
+    </div>
+    {% endif %} {% endif %} {% if request.args.get('email_not_confirmed') == 'true' %}
+    <br />
+    <div class="email-warning-container">
+      <div class="email-warning-message">
+        <p>
+          <strong>Sua conta ainda não foi confirmada.</strong>
+          <br />
+          Por favor, confirme seu e-mail para acessar todas as funcionalidades.
+        </p>
+        <a href="{{ url_for('resend_confirmation', email=request.args.get('email')) }}" class="btn btn-warning">Reenviar E-mail de Confirmação</a>
+      </div>
+    </div>
     {% endif %}
 
     <!-- Formulário de Recuperação de Senha -->
@@ -315,4 +340,7 @@
       });
     }, 5000);
 </script>
+
+<script src="https://www.google.com/recaptcha/api.js" async defer></script>
+
 {% endblock %}

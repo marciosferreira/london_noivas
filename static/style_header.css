@@ -6,26 +6,21 @@
   z-index: 1000;
 }
 
-/* Navbar */
+/* Estilo geral da navbar */
 .navbar {
-  position: relative;
-  background-color: #003366 !important;
+  background-color: #003366 !important; /* Azul corporativo */
 }
 
-/* Compensa espaço do header + banner */
-body {
-  padding-top: 75px;
-}
-
-/* Logo */
+/* Estiliza a logo */
 .logo {
-  height: 80px;
+  height: 80px; /* Mantém o tamanho grande */
   width: auto;
-  border-radius: 8px;
+  border-radius: 8px; /* Bordas arredondadas */
   transition: transform 0.3s ease-in-out;
 }
+
 .logo:hover {
-  transform: scale(1.1);
+  transform: scale(1.1); /* Efeito de aumento suave */
 }
 
 /* Nome ao lado da logo */
@@ -44,37 +39,48 @@ body {
   font-weight: 500;
   transition: color 0.3s ease;
 }
+
 .navbar-nav .nav-link:hover,
 .navbar-nav .nav-link.active {
-  color: #ffc107;
+  color: #ffc107; /* Amarelo Bootstrap no hover e ativo */
   text-decoration: underline;
 }
 
-/* Dropdown */
+/* Estilo dos dropdown menus */
 .dropdown-menu {
-  background-color: #003366;
+  background-color: #003366; /* Fundo azul corporativo */
   border: none;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
+
 .dropdown-menu .dropdown-item {
   color: #ffffff;
   transition: background-color 0.3s ease, color 0.3s ease;
 }
+
 .dropdown-menu .dropdown-item:hover,
 .dropdown-menu .dropdown-item.active {
-  background-color: #002244;
-  color: #ffc107;
+  background-color: #002244; /* Azul ainda mais escuro no hover */
+  color: #ffc107; /* Texto amarelo no hover */
 }
+
+/* Linha separadora no dropdown */
 .dropdown-divider {
   border-top: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-/* Botão menu hamburguer */
+/* Botão do menu hamburguer */
 .navbar-toggler {
   border: none;
 }
+
 .navbar-toggler-icon {
   background-image: url("data:image/svg+xml;charset=utf8,%3Csvg viewBox='0 0 30 30' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath stroke='rgba(255,255,255,0.7)' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3E%3C/svg%3E");
+}
+
+/* Compensa espaço do header fixo no body */
+body {
+  padding-top: 77px; /* Ajustado para altura da navbar+logo */
 }
 
 .welcome-banner {

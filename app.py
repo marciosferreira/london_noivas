@@ -136,4 +136,4 @@ def inject_session():
 if __name__ == "__main__":
     # Determina se está no localhost
     debug_mode = os.getenv("debug_env", "false").lower() == "true"
-    app.run(debug=debug_mode, host="0.0.0.0", port=5000)
+    app.run(debug=debug_mode, host="localhost", port=5000)

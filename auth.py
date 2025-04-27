@@ -7,6 +7,7 @@ from utils import get_user_timezone
 from flask import session
 from flask import request
 import json
+import requests
 
 from flask import (
     render_template,
@@ -24,6 +25,7 @@ from utils import (
     send_password_reset_email,
     send_admin_notification_email,
     send_confirmation_email,
+    get_user_ip,
 )
 
 
@@ -32,6 +34,7 @@ def init_auth_routes(app, users_table, reset_tokens_table):
     @app.route("/register", methods=["GET", "POST"])
     def register():
         if request.method == "POST":
+            # Primeiro, verificar o reCAPTCHA
             email = request.form.get("email")
             username = request.form.get("username")
             if len(username) < 3 or len(username) > 15:
@@ -59,7 +62,65 @@ def init_auth_routes(app, users_table, reset_tokens_table):
                     register=True,
                 )
 
-            success = create_user(email, username, password, users_table, app)
+            # valida o reCAPTCHA
+            recaptcha_response = request.form.get("g-recaptcha-response")
+
+            if not recaptcha_response:
+                flash("Por favor, confirme que você não é um robô.", "danger")
+                return redirect(url_for("login", tab="register"))
+
+            # Validar no servidor do Google
+            secret_key = "6LdriyYrAAAAADXe0sZnhzr-mOCFGs61f_7dv2pZ"
+            verify_url = "https://www.google.com/recaptcha/api/siteverify"
+            payload = {
+                "secret": secret_key,
+                "response": recaptcha_response,
+                "remoteip": request.remote_addr,
+            }
+            r = requests.post(verify_url, data=payload)
+            result = r.json()
+
+            if not result.get("success"):
+                flash("Falha na verificação do reCAPTCHA. Tente novamente.", "danger")
+                return redirect(url_for("register"))
+
+            # --- NOVO: Captura o IP do cliente
+            user_ip = get_user_ip()
+
+            # --- NOVO: Buscar registros por IP
+            now = datetime.datetime.now(datetime.timezone.utc)
+            five_minutes_ago = now - datetime.timedelta(minutes=5)
+
+            # Busca usuários com mesmo IP
+            response = users_table.query(
+                IndexName="ip-index",  # Vamos precisar criar um GSI no campo "ip"
+                KeyConditionExpression="ip = :ip",
+                ExpressionAttributeValues={":ip": user_ip},
+            )
+
+            items = response.get("Items", [])
+            for item in items:
+                created_at = item.get("created_at")
+                if created_at:
+                    created_at_time = datetime.datetime.fromisoformat(created_at)
+                    if created_at_time > five_minutes_ago:
+                        flash(
+                            "Você já criou uma conta recentemente. Aguarde 5 minutos minutos para tentar novamente.",
+                            "warning",
+                        )
+                        return redirect(url_for("login"))
+
+            print("The IP")
+            print(user_ip)
+            success = create_user(
+                email,
+                username,
+                password,
+                users_table,
+                app,
+                role="admin",
+                user_ip=user_ip,
+            )
             if success:
                 session["cadastro_sucesso"] = True
                 return redirect("/cadastro-sucesso")
@@ -127,16 +188,9 @@ def init_auth_routes(app, users_table, reset_tokens_table):
 
             # Se o e-mail não estiver confirmado, mostrar opção de reenvio
             if not user.get("email_confirmed", False):
-                resend_link = url_for("resend_confirmation", email=email)
-                flash(
-                    "Sua conta ainda não foi confirmada. Por favor, confirme seu e-mail.",
-                    "warning",
+                return redirect(
+                    url_for("login", email_not_confirmed="true", email=email)
                 )
-                flash(
-                    f"<a href='{resend_link}' class='btn btn-link'>Reenviar E-mail de Confirmação</a>",
-                    "info",
-                )
-                return redirect(url_for("login"))
 
             # Verificar senha
             if check_password_hash(stored_hash, password):
@@ -912,7 +966,9 @@ def init_auth_routes(app, users_table, reset_tokens_table):
         return redirect(url_for("admin_dashboard"))
 
 
-def create_user(email, username, password, users_table, app, role="admin"):
+def create_user(
+    email, username, password, users_table, app, role="admin", user_ip=None
+):
     """Create a new user in the database."""
     from boto3.dynamodb.conditions import Key
 
@@ -935,27 +991,28 @@ def create_user(email, username, password, users_table, app, role="admin"):
 
         # ⬇️ Cria o novo usuário
         try:
-            users_table.put_item(
-                Item={
-                    "user_id": user_id,
-                    "account_id": account_id,
-                    "email": email,
-                    "username": username,
-                    "password_hash": password_hash,
-                    "role": role,
-                    "created_at": datetime.datetime.now(user_utc).isoformat(),
-                    "email_confirmed": False,
-                    "email_token": email_token,
-                    "last_email_sent": datetime.datetime.now(user_utc).isoformat(),
-                }
-            )
+            item = {
+                "user_id": user_id,
+                "account_id": account_id,
+                "email": email,
+                "username": username,
+                "password_hash": password_hash,
+                "role": role,
+                "created_at": datetime.datetime.now(user_utc).isoformat(),
+                "email_confirmed": False,
+                "email_token": email_token,
+                "last_email_sent": datetime.datetime.now(user_utc).isoformat(),
+            }
+
+            if user_ip:
+                item["ip"] = user_ip  # ✅ adiciona o IP se foi passado
+
+            users_table.put_item(Item=item)
 
             confirm_url = url_for("confirm_email", token=email_token, _external=True)
             send_confirmation_email(email, username, confirm_url)
-
-            # ✉️ Notificar o administrador
             send_admin_notification_email(
-                admin_email="marciosferreira@yahoo.com.br",  # coloque seu e-mail real aqui
+                admin_email="marciosferreira@yahoo.com.br",
                 new_user_email=email,
                 new_user_username=username,
             )
