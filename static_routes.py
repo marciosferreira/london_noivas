@@ -7,17 +7,26 @@ from flask import (
     flash,
     send_from_directory,
 )
+
+import stripe
+import os
+
+stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
+endpoint_secret = os.getenv("STRIPE_WEBHOOK_SECRET")
+endpoint_secret = os.getenv("STRIPE_ENDPOINT_SECRET")  # Correto!
+
 import uuid
 from decimal import Decimal
 import datetime
 from boto3.dynamodb.conditions import Key
 from flask import render_template_string
-from utils import get_user_timezone
+from utils import get_user_timezone, get_account_plan
 from flask import jsonify
 import qrcode
 import io
 import base64
 from flask import request
+import os
 
 
 def init_static_routes(
@@ -28,6 +37,7 @@ def init_static_routes(
     itens_table,
     text_models_table,
     users_table,
+    accounts_table,
 ):
     # Static pages
     @app.route("/terms")
@@ -478,3 +488,129 @@ def init_static_routes(
         if not session.get("logged_in"):
             return redirect(url_for("index"))
         return redirect(url_for("all_transactions"))
+
+    @app.route("/obrigado")
+    def obrigado():
+        if not session.get("logged_in"):
+            return redirect(url_for("login"))
+
+        # Pega o account_id do usuário logado
+        account_id = session.get("account_id")
+
+        if account_id:
+            # Atualiza o status do plano no banco
+            refresh_plan_status()
+
+        return render_template("obrigado.html")  # Uma página bonita de agradecimento
+
+    @app.route("/webhook/stripe", methods=["POST", "GET"])
+    def stripe_webhook():
+        payload = request.data
+        sig_header = request.headers.get("Stripe-Signature")
+
+        print("🔵 Webhook recebido")
+
+        try:
+            event = stripe.Webhook.construct_event(payload, sig_header, endpoint_secret)
+        except Exception as e:
+            print(f"🔴 Erro na validação do webhook: {str(e)}")
+            return "Webhook invalid", 400
+
+        print(f"🔵 Evento recebido: {event['type']}")
+
+        if event["type"] == "checkout.session.completed":
+            print("🟢 Checkout concluído, atualizando banco...")
+
+            # Aqui vem a lógica de atualizar a tabela
+            session_data = event["data"]["object"]
+            customer_id = session_data["customer"]
+            subscription_id = session_data["subscription"]
+
+            print(f"🟢 customer_id: {customer_id}")
+            print(f"🟢 subscription_id: {subscription_id}")
+
+            account_id = find_account_id_by_customer_id(customer_id)
+
+            if account_id:
+                print(f"🟢 Atualizando conta: {account_id}")
+                accounts_table.update_item(
+                    Key={"account_id": account_id},
+                    UpdateExpression="SET plan_type=:p, payment_status=:s, stripe_customer_id=:c, stripe_subscription_id=:sub",
+                    ExpressionAttributeValues={
+                        ":p": "premium",
+                        ":s": "active",
+                        ":c": customer_id,
+                        ":sub": subscription_id,
+                    },
+                )
+            else:
+                print("🔴 Account ID não encontrado para este customer_id!")
+
+        return "OK", 200
+
+    @app.route("/refresh_plan")
+    def refresh_plan():
+        if not session.get("logged_in"):
+            return "Unauthorized", 401
+
+        refresh_plan_status()
+        return "Refreshed", 200
+
+    def refresh_plan_status():
+        if not session.get("account_id"):
+            return
+
+        account_id = session["account_id"]
+        plan_status = get_account_plan(account_id)
+        session["plan_type"] = plan_status
+
+    def find_account_id_by_customer_id(customer_id):
+        response = users_table.query(
+            IndexName="stripe-customer-id-index",  # Nome do GSI novo
+            KeyConditionExpression="stripe_customer_id = :c",
+            ExpressionAttributeValues={":c": customer_id},
+        )
+        items = response.get("Items", [])
+        if items:
+            return items[0]["account_id"]
+        return None
+
+    import stripe
+
+    # Stripe API key
+    stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
+
+    @app.route("/create_checkout_session", methods=["POST"])
+    def create_checkout_session():
+        if not session.get("logged_in"):
+            return "Unauthorized", 401
+
+        # Informações básicas
+        account_id = session.get("account_id")
+        user_email = session.get(
+            "email"
+        )  # Se quiser já pré-preencher o email no Stripe
+
+        try:
+            checkout_session = stripe.checkout.Session.create(
+                payment_method_types=["card"],
+                customer_email=user_email,  # Deixa o checkout mais fácil
+                line_items=[
+                    {
+                        "price": os.getenv(
+                            "STRIPE_PRICE_ID"
+                        ),  # ID do plano criado no Stripe
+                        "quantity": 1,
+                    }
+                ],
+                mode="subscription",
+                success_url=url_for("obrigado", _external=True)
+                + "?session_id={CHECKOUT_SESSION_ID}",
+                cancel_url=url_for("index", _external=True),
+                metadata={"account_id": account_id},  # Salva o account_id no Stripe
+            )
+            return {"checkout_url": checkout_session.url}
+
+        except Exception as e:
+            print(f"Erro ao criar Checkout: {str(e)}")
+            return {"error": str(e)}, 400

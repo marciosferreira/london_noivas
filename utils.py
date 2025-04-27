@@ -416,3 +416,28 @@ def get_user_ip():
         # Se não, pega o IP da conexão direta
         ip = request.remote_addr
     return ip
+
+
+import boto3
+
+dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+accounts_table = dynamodb.Table("alugueqqc_accounts_table")
+
+
+def get_account_plan(account_id):
+    try:
+        response = accounts_table.get_item(Key={"account_id": account_id})
+        account = response.get("Item")
+
+        if (
+            account
+            and account.get("plan_type") == "premium"
+            and account.get("payment_status") == "active"
+        ):
+            return "premium"
+        else:
+            return "free"
+    except Exception as e:
+        # Em caso de erro, assume como free por segurança
+        print(f"Erro ao consultar plano: {str(e)}")
+        return "free"
