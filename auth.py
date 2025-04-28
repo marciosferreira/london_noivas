@@ -512,7 +512,9 @@ def init_auth_routes(app, users_table, reset_tokens_table):
 
                 # Token válido, obter user_id associado ao token
                 user_id = token_data["user_id"]
-                password_hash = generate_password_hash(new_password)
+                password_hash = generate_password_hash(
+                    new_password, method="pbkdf2:sha256"
+                )
 
                 user_id = session.get("user_id") if "user_id" in session else None
                 user_utc = get_user_timezone(users_table, user_id)
@@ -597,7 +599,9 @@ def init_auth_routes(app, users_table, reset_tokens_table):
                 return redirect(url_for("adjustments"))
 
             # Gerar hash da nova senha
-            new_password_hash = generate_password_hash(new_password)
+            new_password_hash = generate_password_hash(
+                new_password, method="pbkdf2:sha256"
+            )
 
             user_id = session.get("user_id") if "user_id" in session else None
             user_utc = get_user_timezone(users_table, user_id)
@@ -986,7 +990,7 @@ def create_user(
     from boto3.dynamodb.conditions import Key
 
     with app.app_context():
-        password_hash = generate_password_hash(password)
+        password_hash = generate_password_hash(password, method="pbkdf2:sha256")
         email_token = secrets.token_urlsafe(16)
         user_id = str(uuid.uuid4())
         account_id = str(uuid.uuid4())
