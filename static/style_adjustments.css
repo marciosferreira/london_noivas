@@ -33,3 +33,45 @@ body.adjustments {
   flex-wrap: wrap;
   gap: 8px; /* Reduz o espaçamento entre os botões */
 }
+
+/* Estilo adicional para o novo bloco de "Seu Plano" */
+
+.card .alert {
+  font-size: 0.95rem;
+  padding: 0.75rem 1rem;
+  margin-top: 1rem;
+  border-radius: 0.5rem;
+}
+
+/* Melhorar o botão de cancelar assinatura */
+.btn-danger {
+  background-color: #dc3545;
+  border: none;
+  transition: background-color 0.2s ease;
+}
+
+.btn-danger:hover {
+  background-color: #c82333;
+}
+
+/* Ajuste nos botões de ações gerais */
+.btn-primary,
+.btn-danger {
+  font-weight: 500;
+}
+
+/* Pequeno ajuste no espaçamento dos cards */
+.card-body {
+  padding: 1.5rem;
+}
+
+/* Faixa de aviso de cancelamento */
+.cancel-message {
+  background-color: #fff3cd; /* Amarelo suave */
+  color: #856404; /* Marrom/laranja escuro */
+  border: 1px solid #ffeeba;
+  border-radius: 0.5rem;
+  padding: 10px 20px;
+  font-size: 1rem;
+  font-weight: 500;
+}

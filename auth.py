@@ -8,6 +8,7 @@ from flask import session
 from flask import request
 import json
 import requests
+import stripe
 
 from flask import (
     render_template,
@@ -30,7 +31,7 @@ from utils import (
 )
 
 
-def init_auth_routes(app, users_table, reset_tokens_table):
+def init_auth_routes(app, users_table, reset_tokens_table, accounts_table):
     # Registration route
     @app.route("/register", methods=["GET", "POST"])
     def register():
@@ -826,14 +827,15 @@ def init_auth_routes(app, users_table, reset_tokens_table):
         return redirect(url_for("index"))
         # User profile settings
 
-    @app.route("/adjustments")
+    @app.route("/adjustments", methods=["GET", "POST"])
     def adjustments():
         if not session.get("logged_in"):
             return redirect(url_for("login"))
 
         user_id = session.get("user_id")
-        response = users_table.get_item(Key={"user_id": user_id})
 
+        # 🛑 Pega o usuário
+        response = users_table.get_item(Key={"user_id": user_id})
         if "Item" not in response:
             flash("Erro ao carregar dados do usuário.", "danger")
             return redirect(url_for("login"))
@@ -841,29 +843,102 @@ def init_auth_routes(app, users_table, reset_tokens_table):
         user = response["Item"]
         username = user.get("username", "Usuário Desconhecido")
         user_email = user.get("email", "Usuário Desconhecido")
-        current_timezone = user.get("timezone", "America/Sao_Paulo")  # valor padrão
+        current_timezone = user.get("timezone", "America/Sao_Paulo")
 
-        # Lista reduzida com as principais timezones do Brasil
-        timezones = [
-            "America/Sao_Paulo",
-            "America/Fortaleza",
-            "America/Recife",
-            "America/Bahia",
-            "America/Manaus",
-            "America/Belem",
-            "America/Boa_Vista",
-            "America/Campo_Grande",
-            "America/Cuiaba",
-            "America/Porto_Velho",
-            "America/Rio_Branco",
-        ]
+        # 🛑 Pega a conta vinculada (onde está o plano)
+        account_id = user.get("account_id")
+        plan_type = "free"
+        payment_status = "canceled"
+        subscription_end_date = None
 
+        if account_id:
+            account_response = accounts_table.get_item(Key={"account_id": account_id})
+            account = account_response.get("Item")
+            if account:
+                plan_type = account.get("plan_type", "free")
+                payment_status = account.get("payment_status", "canceled")
+                subscription_end_date = account.get("subscription_end_date")
+
+        # 🛑 Se for um POST para cancelar o plano
+        if request.method == "POST":
+            try:
+                stripe_subscription_id = account.get("stripe_subscription_id")
+
+                if stripe_subscription_id:
+                    # Marca para cancelar no fim do ciclo de cobrança
+                    stripe.Subscription.modify(
+                        stripe_subscription_id,
+                        cancel_at_period_end=True,
+                    )
+
+                    # Atualiza no banco
+                    accounts_table.update_item(
+                        Key={"account_id": account_id},
+                        UpdateExpression="SET payment_status = :s",
+                        ExpressionAttributeValues={":s": "scheduled_for_cancellation"},
+                    )
+
+                    # Atualiza o valor localmente para renderizar de volta
+                    payment_status = "scheduled_for_cancellation"
+
+                    message = (
+                        "Seu plano Business será cancelado ao final do período atual."
+                    )
+
+                else:
+                    message = "Não foi possível cancelar: assinatura não encontrada."
+
+            except Exception as e:
+                print(f"🔴 Erro ao cancelar assinatura: {str(e)}")
+                message = "Erro ao tentar cancelar o plano. Tente novamente mais tarde."
+
+            return render_template(
+                "adjustments.html",
+                username=username,
+                email=user_email,
+                current_timezone=current_timezone,
+                plan_type=plan_type,
+                payment_status=payment_status,
+                subscription_end_date=subscription_end_date,
+                timezones=[
+                    "America/Sao_Paulo",
+                    "America/Fortaleza",
+                    "America/Recife",
+                    "America/Bahia",
+                    "America/Manaus",
+                    "America/Belem",
+                    "America/Boa_Vista",
+                    "America/Campo_Grande",
+                    "America/Cuiaba",
+                    "America/Porto_Velho",
+                    "America/Rio_Branco",
+                ],
+                message=message,  # ← Mensagem direta no HTML, não flash
+            )
+
+        # Se for GET (visita normal da página)
         return render_template(
             "adjustments.html",
             username=username,
             email=user_email,
             current_timezone=current_timezone,
-            timezones=timezones,
+            plan_type=plan_type,
+            payment_status=payment_status,
+            subscription_end_date=subscription_end_date,
+            timezones=[
+                "America/Sao_Paulo",
+                "America/Fortaleza",
+                "America/Recife",
+                "America/Bahia",
+                "America/Manaus",
+                "America/Belem",
+                "America/Boa_Vista",
+                "America/Campo_Grande",
+                "America/Cuiaba",
+                "America/Porto_Velho",
+                "America/Rio_Branco",
+            ],
+            message=None,
         )
 
     @app.route("/admin-dashboard")

@@ -523,7 +523,6 @@ def init_static_routes(
             print("🟢 Checkout concluído!")
 
             session_data = event["data"]["object"]
-
             account_id = session_data["metadata"].get("account_id")
             customer_id = session_data.get("customer")
             subscription_id = session_data.get("subscription")
@@ -559,9 +558,17 @@ def init_static_routes(
             subscription_data = event["data"]["object"]
             customer_id = subscription_data.get("customer")
             cancel_at_period_end = subscription_data.get("cancel_at_period_end", False)
-            current_period_end = subscription_data.get("current_period_end")
             cancel_at = subscription_data.get("cancel_at")
             canceled_at = subscription_data.get("canceled_at")
+
+            # Captura a data do fim do ciclo
+            current_period_end = subscription_data.get("current_period_end")
+            if not current_period_end and subscription_data.get("items", {}).get(
+                "data", []
+            ):
+                current_period_end = subscription_data["items"]["data"][0].get(
+                    "current_period_end"
+                )
 
             response = accounts_table.query(
                 IndexName="stripe_customer_id-index",
@@ -598,11 +605,9 @@ def init_static_routes(
                 )
 
                 if cancel_at_period_end:
-                    print(
-                        f"🟡 Conta {account_id} marcada para cancelar no fim do período."
-                    )
+                    print("🟡 Conta marcada para cancelamento no fim do período.")
                 else:
-                    print(f"🟢 Conta {account_id} continua ativa.")
+                    print("🟢 Conta permanece ativa.")
             else:
                 print(
                     "🔴 Cliente não encontrado para customer_id (updated):", customer_id
@@ -648,11 +653,42 @@ def init_static_routes(
                     ExpressionAttributeValues=expression_values,
                 )
 
-                print(f"🟠 Conta {account_id} atualizada para Free e Canceled.")
+                print("🟠 Conta atualizada para Free e Canceled.")
             else:
                 print(
                     "🔴 Cliente não encontrado para customer_id (deleted):", customer_id
                 )
+
+        # 🎯 4. Quando a fatura é paga com sucesso (DATA DE PAGAMENTO!)
+        elif event["type"] == "invoice.paid":
+            print("🟢 Fatura paga confirmada!")
+
+            invoice_data = event["data"]["object"]
+            customer_id = invoice_data.get("customer")
+            payment_date = invoice_data.get("status_transitions", {}).get("paid_at")
+
+            if customer_id and payment_date:
+                response = accounts_table.query(
+                    IndexName="stripe_customer_id-index",
+                    KeyConditionExpression=Key("stripe_customer_id").eq(customer_id),
+                )
+
+                items = response.get("Items", [])
+                if items:
+                    account_id = items[0]["account_id"]
+                    print(f"🟢 Encontrado account_id para pagamento: {account_id}")
+
+                    accounts_table.update_item(
+                        Key={"account_id": account_id},
+                        UpdateExpression="SET last_payment_date = :p",
+                        ExpressionAttributeValues={":p": payment_date},
+                    )
+                    print("🟢 Conta atualizada com data do último pagamento.")
+                else:
+                    print(
+                        "🔴 Cliente não encontrado para customer_id (invoice.paid):",
+                        customer_id,
+                    )
 
         return "OK", 200
 

@@ -10,6 +10,54 @@
 <div class="container mt-4">
   <h2 class="text-center text-dark-blue">Ajustes da Conta</h2>
 
+
+
+
+
+  <!-- Seção de Plano -->
+  <div class="card mx-auto mt-4 shadow-sm" style="max-width: 500px">
+    <div class="card-body">
+      <h5 class="card-title text-center">Seu Plano</h5>
+
+      <!-- Exibe o tipo de plano -->
+      <p class="text-center mb-2">
+        <strong>Plano Atual:</strong>
+        {% if plan_type == "premium" %}
+          <span class="text-success">Business</span>
+        {% else %}
+          <span class="text-secondary">Free</span>
+        {% endif %}
+      </p>
+
+
+<!-- Mensagem fixa de cancelamento programado -->
+{% if plan_type == "premium" and payment_status == "scheduled_for_cancellation" and subscription_end_date %}
+<div class="cancel-message text-center mb-4">
+  Seu plano Business será cancelado em:
+  <strong>{{ subscription_end_date | datetimeformat }}</strong>
+</div>
+{% endif %}
+
+
+      <!-- Botão de cancelar assinatura, aparece só se for premium ativo -->
+      {% if plan_type == "premium" and payment_status == "active" %}
+        <form method="POST" action="{{ url_for('adjustments') }}">
+          <button type="submit" class="btn btn-danger w-100 mt-3">
+            Cancelar assinatura
+          </button>
+        </form>
+      {% endif %}
+
+      <!-- Botão de assinar Premium, só aparece se for plano free -->
+      {% if plan_type == "free" %}
+        <button id="checkout-button" class="btn btn-primary w-100 mt-3">
+          Assinar Plano Business
+        </button>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Restante das opções de ajustes -->
   <div class="card mx-auto mt-4 shadow-sm" style="max-width: 500px">
     <div class="card-body">
       <h5 class="card-title text-center">Informações da Conta</h5>
@@ -86,29 +134,22 @@
   </div>
 </div>
 <div style="height: 50px"></div>
-
-
-<button id="checkout-button">Assinar Premium</button>
-
-
-
-
 {% endblock %}
 
 {% block scripts %}
 <script>
-  document.getElementById('checkout-button').addEventListener('click', async () => {
-      const response = await fetch('/create_checkout_session', {
-          method: 'POST'
-      });
-
+  const checkoutBtn = document.getElementById('checkout-button');
+  if (checkoutBtn) {
+    checkoutBtn.addEventListener('click', async () => {
+      const response = await fetch('/create_checkout_session', { method: 'POST' });
       const data = await response.json();
 
       if (data.checkout_url) {
-          window.location.href = data.checkout_url;  // Redireciona para o Stripe
+        window.location.href = data.checkout_url;
       } else {
-          alert('Erro ao iniciar pagamento. Tente novamente.');
+        alert('Erro ao iniciar pagamento. Tente novamente.');
       }
-  });
-  </script>
+    });
+  }
+</script>
 {% endblock %}

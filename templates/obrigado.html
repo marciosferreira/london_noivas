@@ -1,22 +1,21 @@
-<!DOCTYPE html>
-<html lang="pt">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Obrigado!</title>
-  </head>
-  <body>
+{% extends "base.html" %} {% block title %}Obrigado!{% endblock %} {% block content %}
+
+<!-- Conteúdo da página -->
+<div class="container success-page-wrapper">
+  <div class="success-page">
     <h1>Obrigado pela assinatura!</h1>
-    <p>Estamos atualizando seu acesso Premium...</p>
+    <p>Aproveite os benefícios do plano Business...</p>
+  </div>
+</div>
 
-    <a href="{{ url_for('index') }}">Clique aqui para voltar para o início</a>
+{% endblock %} {% block scripts %}
 
-    <script>
-      // Refrescar automaticamente a sessão se quiser, chamando o backend
-      fetch('/refresh_plan').then((response) => {
-        if (response.ok) {
-          console.log('Plano atualizado na sessão.');
-        }
-      });
-    </script>
-  </body>
-</html>
+<!-- Script opcional para atualizar plano na sessão -->
+<script>
+  fetch('/refresh_plan').then((response) => {
+    if (response.ok) {
+      console.log('Plano atualizado na sessão.');
+    }
+  });
+</script>
+{% endblock %}

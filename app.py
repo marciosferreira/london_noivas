@@ -81,7 +81,7 @@ from static_routes import init_static_routes
 
 
 # Initialize routes from modules
-init_auth_routes(app, users_table, reset_tokens_table)
+init_auth_routes(app, users_table, reset_tokens_table, accounts_table)
 init_item_routes(
     app,
     itens_table,
@@ -147,7 +147,10 @@ def inject_session():
 
 @app.before_request
 def update_session_plan_type():
-    if session.get("logged_in") and request.endpoint == "all_transactions":
+    if session.get("logged_in") and request.endpoint in [
+        "all_transactions",
+        "inventory",
+    ]:
         account_id = session.get("account_id")
         if account_id:
             response = accounts_table.get_item(Key={"account_id": account_id})
@@ -158,6 +161,17 @@ def update_session_plan_type():
                 print(
                     f"🔴 Atenção: Conta {account_id} não encontrada na accounts_table!"
                 )
+
+
+from datetime import datetime, timezone
+
+
+@app.template_filter("datetimeformat")
+def datetimeformat(value):
+    if value:
+        dt = datetime.fromtimestamp(value, tz=timezone.utc)
+        return dt.strftime("%d/%m/%Y")
+    return ""
 
 
 if __name__ == "__main__":
