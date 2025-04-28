@@ -503,6 +503,10 @@ def init_static_routes(
 
         return render_template("obrigado.html")  # Uma página bonita de agradecimento
 
+    from flask import Flask, request, session
+    import stripe
+    from boto3.dynamodb.conditions import Key
+
     @app.route("/webhook/stripe", methods=["POST"])
     def stripe_webhook():
         payload = request.data
@@ -514,13 +518,14 @@ def init_static_routes(
             print(f"🔴 Erro na validação do webhook: {str(e)}")
             return "Webhook invalid", 400
 
+        # 🎯 1. Quando o checkout é concluído (compra nova)
         if event["type"] == "checkout.session.completed":
             print("🟢 Checkout concluído!")
 
             session_data = event["data"]["object"]
 
-            account_id = session_data["metadata"]["account_id"]
-            customer_id = session_data["customer"]
+            account_id = session_data["metadata"].get("account_id")
+            customer_id = session_data.get("customer")
             subscription_id = session_data.get("subscription")
 
             print(f"🟢 account_id: {account_id}")
@@ -530,7 +535,12 @@ def init_static_routes(
             if account_id:
                 accounts_table.update_item(
                     Key={"account_id": account_id},
-                    UpdateExpression="SET plan_type=:p, payment_status=:s, stripe_customer_id=:c, stripe_subscription_id=:sub",
+                    UpdateExpression="""
+                        SET plan_type = :p,
+                            payment_status = :s,
+                            stripe_customer_id = :c,
+                            stripe_subscription_id = :sub
+                    """,
                     ExpressionAttributeValues={
                         ":p": "premium",
                         ":s": "active",
@@ -538,19 +548,23 @@ def init_static_routes(
                         ":sub": subscription_id,
                     },
                 )
-                print(f"🟢 Conta {account_id} atualizada para Premium!")
+                print(f"🟢 Conta {account_id} atualizada para Premium e ativa.")
             else:
                 print("🔴 Account ID não encontrado no metadata!")
 
-        elif event["type"] == "customer.subscription.deleted":
-            print("🟡 Assinatura cancelada!")
+        # 🎯 2. Quando o cliente agenda o cancelamento ou atualiza assinatura
+        elif event["type"] == "customer.subscription.updated":
+            print("🟡 Assinatura atualizada!")
 
             subscription_data = event["data"]["object"]
-            customer_id = subscription_data["customer"]
+            customer_id = subscription_data.get("customer")
+            cancel_at_period_end = subscription_data.get("cancel_at_period_end", False)
+            current_period_end = subscription_data.get("current_period_end")
+            cancel_at = subscription_data.get("cancel_at")
+            canceled_at = subscription_data.get("canceled_at")
 
-            # Busca o usuário pelo stripe_customer_id
             response = accounts_table.query(
-                IndexName="stripe_customer_id-index",  # Seu GSI que deve existir
+                IndexName="stripe_customer_id-index",
                 KeyConditionExpression=Key("stripe_customer_id").eq(customer_id),
             )
 
@@ -559,18 +573,86 @@ def init_static_routes(
                 account_id = items[0]["account_id"]
                 print(f"🟡 Encontrado account_id: {account_id}")
 
-                # Atualiza o plano para Free
+                update_expression = """
+                    SET payment_status = :s,
+                        subscription_end_date = :end_date,
+                        cancel_at = :cancel_at_value,
+                        canceled_at = :canceled_at_value
+                """
+
+                expression_values = {
+                    ":s": (
+                        "scheduled_for_cancellation"
+                        if cancel_at_period_end
+                        else "active"
+                    ),
+                    ":end_date": current_period_end,
+                    ":cancel_at_value": cancel_at if cancel_at else None,
+                    ":canceled_at_value": canceled_at if canceled_at else None,
+                }
+
                 accounts_table.update_item(
                     Key={"account_id": account_id},
-                    UpdateExpression="SET plan_type=:p, payment_status=:s REMOVE stripe_subscription_id",
-                    ExpressionAttributeValues={
-                        ":p": "free",
-                        ":s": "canceled",
-                    },
+                    UpdateExpression=update_expression,
+                    ExpressionAttributeValues=expression_values,
                 )
-                print(f"🟡 Conta {account_id} atualizada para Free!")
+
+                if cancel_at_period_end:
+                    print(
+                        f"🟡 Conta {account_id} marcada para cancelar no fim do período."
+                    )
+                else:
+                    print(f"🟢 Conta {account_id} continua ativa.")
             else:
-                print("🔴 Cliente não encontrado para customer_id:", customer_id)
+                print(
+                    "🔴 Cliente não encontrado para customer_id (updated):", customer_id
+                )
+
+        # 🎯 3. Quando a assinatura termina definitivamente
+        elif event["type"] == "customer.subscription.deleted":
+            print("🟠 Assinatura encerrada!")
+
+            subscription_data = event["data"]["object"]
+            customer_id = subscription_data.get("customer")
+            canceled_at = subscription_data.get("canceled_at")
+            current_period_end = subscription_data.get("current_period_end")
+
+            response = accounts_table.query(
+                IndexName="stripe_customer_id-index",
+                KeyConditionExpression=Key("stripe_customer_id").eq(customer_id),
+            )
+
+            items = response.get("Items", [])
+            if items:
+                account_id = items[0]["account_id"]
+                print(f"🟠 Encontrado account_id: {account_id}")
+
+                update_expression = """
+                    SET plan_type = :p,
+                        payment_status = :s,
+                        subscription_end_date = :end_date,
+                        canceled_at = :canceled_at_value
+                    REMOVE stripe_subscription_id
+                """
+
+                expression_values = {
+                    ":p": "free",
+                    ":s": "canceled",
+                    ":end_date": current_period_end,
+                    ":canceled_at_value": canceled_at if canceled_at else None,
+                }
+
+                accounts_table.update_item(
+                    Key={"account_id": account_id},
+                    UpdateExpression=update_expression,
+                    ExpressionAttributeValues=expression_values,
+                )
+
+                print(f"🟠 Conta {account_id} atualizada para Free e Canceled.")
+            else:
+                print(
+                    "🔴 Cliente não encontrado para customer_id (deleted):", customer_id
+                )
 
         return "OK", 200
 
