@@ -8,8 +8,4 @@ pytz
 pillow
 qrcode[pil]
 requests
-dotenv
 stripe
-
-
-
