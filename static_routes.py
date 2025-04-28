@@ -503,12 +503,10 @@ def init_static_routes(
 
         return render_template("obrigado.html")  # Uma página bonita de agradecimento
 
-    @app.route("/webhook/stripe", methods=["POST", "GET"])
+    @app.route("/webhook/stripe", methods=["POST"])
     def stripe_webhook():
         payload = request.data
         sig_header = request.headers.get("Stripe-Signature")
-
-        print("🔵 Webhook recebido")
 
         try:
             event = stripe.Webhook.construct_event(payload, sig_header, endpoint_secret)
@@ -516,23 +514,27 @@ def init_static_routes(
             print(f"🔴 Erro na validação do webhook: {str(e)}")
             return "Webhook invalid", 400
 
-        print(f"🔵 Evento recebido: {event['type']}")
-
         if event["type"] == "checkout.session.completed":
-            print("🟢 Checkout concluído, atualizando banco...")
+            print("🟢 Checkout concluído!")
 
-            # Aqui vem a lógica de atualizar a tabela
             session_data = event["data"]["object"]
-            customer_id = session_data["customer"]
-            subscription_id = session_data["subscription"]
 
+            account_id = session_data["metadata"][
+                "account_id"
+            ]  # 👈 Pega seu account_id
+            customer_id = session_data[
+                "customer"
+            ]  # 👈 Pega o customer_id criado pelo Stripe
+            subscription_id = session_data.get(
+                "subscription"
+            )  # 👈 Se for assinatura (mode="subscription")
+
+            print(f"🟢 account_id: {account_id}")
             print(f"🟢 customer_id: {customer_id}")
             print(f"🟢 subscription_id: {subscription_id}")
 
-            account_id = find_account_id_by_customer_id(customer_id)
-
             if account_id:
-                print(f"🟢 Atualizando conta: {account_id}")
+                # Atualiza a tabela com o plano premium e salva os dados do Stripe
                 accounts_table.update_item(
                     Key={"account_id": account_id},
                     UpdateExpression="SET plan_type=:p, payment_status=:s, stripe_customer_id=:c, stripe_subscription_id=:sub",
@@ -543,8 +545,9 @@ def init_static_routes(
                         ":sub": subscription_id,
                     },
                 )
+                print(f"🟢 Conta {account_id} atualizada para Premium!")
             else:
-                print("🔴 Account ID não encontrado para este customer_id!")
+                print("🔴 Account ID não encontrado no metadata!")
 
         return "OK", 200
 
@@ -565,8 +568,8 @@ def init_static_routes(
         session["plan_type"] = plan_status
 
     def find_account_id_by_customer_id(customer_id):
-        response = users_table.query(
-            IndexName="stripe_customer_id-index",  # Nome do GSI novo
+        response = accounts_table.query(
+            IndexName="stripe_customer_id-index",  # Nome correto do GSI
             KeyConditionExpression="stripe_customer_id = :c",
             ExpressionAttributeValues={":c": customer_id},
         )
@@ -583,21 +586,16 @@ def init_static_routes(
         if not session.get("logged_in"):
             return "Unauthorized", 401
 
-        # Informações básicas
         account_id = session.get("account_id")
-        user_email = session.get(
-            "email"
-        )  # Se quiser já pré-preencher o email no Stripe
+        user_email = session.get("email")
 
         try:
             checkout_session = stripe.checkout.Session.create(
                 payment_method_types=["card"],
-                customer_email=user_email,  # Deixa o checkout mais fácil
+                customer_email=user_email,  # Deixa Stripe criar o customer automaticamente
                 line_items=[
                     {
-                        "price": os.getenv(
-                            "STRIPE_PRICE_ID"
-                        ),  # ID do plano criado no Stripe
+                        "price": os.getenv("STRIPE_PRICE_ID"),  # ID do plano no Stripe
                         "quantity": 1,
                     }
                 ],
@@ -605,7 +603,7 @@ def init_static_routes(
                 success_url=url_for("obrigado", _external=True)
                 + "?session_id={CHECKOUT_SESSION_ID}",
                 cancel_url=url_for("index", _external=True),
-                metadata={"account_id": account_id},  # Salva o account_id no Stripe
+                metadata={"account_id": account_id},  # 👈 Grava seu account_id aqui
             )
             return {"checkout_url": checkout_session.url}
 
