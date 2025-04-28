@@ -589,7 +589,7 @@ def init_static_routes(
                         if cancel_at_period_end
                         else "active"
                     ),
-                    ":end_date": current_period_end,
+                    ":end_date": subscription_end_date,
                     ":cancel_at_value": cancel_at if cancel_at else None,
                     ":canceled_at_value": canceled_at if canceled_at else None,
                 }
