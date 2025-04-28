@@ -120,5 +120,7 @@
 </header>
 
 {% if session.get('logged_in') %}
-<div class="welcome-banner">{{ session.get('username') }}</div>
+<div class="welcome-banner">
+  {{ session.get('username') }} - {% if session.get('plan_type') == 'premium' %} Plano Business {% else %} Plano Free {% endif %}
+</div>
 {% endif %}

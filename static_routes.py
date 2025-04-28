@@ -519,22 +519,15 @@ def init_static_routes(
 
             session_data = event["data"]["object"]
 
-            account_id = session_data["metadata"][
-                "account_id"
-            ]  # 👈 Pega seu account_id
-            customer_id = session_data[
-                "customer"
-            ]  # 👈 Pega o customer_id criado pelo Stripe
-            subscription_id = session_data.get(
-                "subscription"
-            )  # 👈 Se for assinatura (mode="subscription")
+            account_id = session_data["metadata"]["account_id"]
+            customer_id = session_data["customer"]
+            subscription_id = session_data.get("subscription")
 
             print(f"🟢 account_id: {account_id}")
             print(f"🟢 customer_id: {customer_id}")
             print(f"🟢 subscription_id: {subscription_id}")
 
             if account_id:
-                # Atualiza a tabela com o plano premium e salva os dados do Stripe
                 accounts_table.update_item(
                     Key={"account_id": account_id},
                     UpdateExpression="SET plan_type=:p, payment_status=:s, stripe_customer_id=:c, stripe_subscription_id=:sub",
@@ -548,6 +541,36 @@ def init_static_routes(
                 print(f"🟢 Conta {account_id} atualizada para Premium!")
             else:
                 print("🔴 Account ID não encontrado no metadata!")
+
+        elif event["type"] == "customer.subscription.deleted":
+            print("🟡 Assinatura cancelada!")
+
+            subscription_data = event["data"]["object"]
+            customer_id = subscription_data["customer"]
+
+            # Busca o usuário pelo stripe_customer_id
+            response = accounts_table.query(
+                IndexName="stripe_customer_id-index",  # Seu GSI que deve existir
+                KeyConditionExpression=Key("stripe_customer_id").eq(customer_id),
+            )
+
+            items = response.get("Items", [])
+            if items:
+                account_id = items[0]["account_id"]
+                print(f"🟡 Encontrado account_id: {account_id}")
+
+                # Atualiza o plano para Free
+                accounts_table.update_item(
+                    Key={"account_id": account_id},
+                    UpdateExpression="SET plan_type=:p, payment_status=:s REMOVE stripe_subscription_id",
+                    ExpressionAttributeValues={
+                        ":p": "free",
+                        ":s": "canceled",
+                    },
+                )
+                print(f"🟡 Conta {account_id} atualizada para Free!")
+            else:
+                print("🔴 Cliente não encontrado para customer_id:", customer_id)
 
         return "OK", 200
 
