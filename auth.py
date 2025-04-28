@@ -849,7 +849,7 @@ def init_auth_routes(app, users_table, reset_tokens_table, accounts_table):
         account_id = user.get("account_id")
         plan_type = "free"
         payment_status = "canceled"
-        subscription_end_date = None
+        cancel_at = None
 
         if account_id:
             account_response = accounts_table.get_item(Key={"account_id": account_id})
@@ -857,7 +857,7 @@ def init_auth_routes(app, users_table, reset_tokens_table, accounts_table):
             if account:
                 plan_type = account.get("plan_type", "free")
                 payment_status = account.get("payment_status", "canceled")
-                subscription_end_date = account.get("subscription_end_date")
+                cancel_at = account.get("cancel_at")
 
         # 🛑 Se for um POST para cancelar o plano
         if request.method == "POST":
@@ -899,7 +899,7 @@ def init_auth_routes(app, users_table, reset_tokens_table, accounts_table):
                 current_timezone=current_timezone,
                 plan_type=plan_type,
                 payment_status=payment_status,
-                subscription_end_date=subscription_end_date,
+                cancel_at=cancel_at,
                 timezones=[
                     "America/Sao_Paulo",
                     "America/Fortaleza",
@@ -924,7 +924,7 @@ def init_auth_routes(app, users_table, reset_tokens_table, accounts_table):
             current_timezone=current_timezone,
             plan_type=plan_type,
             payment_status=payment_status,
-            subscription_end_date=subscription_end_date,
+            cancel_at=cancel_at,
             timezones=[
                 "America/Sao_Paulo",
                 "America/Fortaleza",

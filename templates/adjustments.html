@@ -31,10 +31,10 @@
 
 
 <!-- Mensagem fixa de cancelamento programado -->
-{% if plan_type == "premium" and payment_status == "scheduled_for_cancellation" and subscription_end_date %}
+{% if plan_type == "premium" and payment_status == "scheduled_for_cancellation" and cancel_at %}
 <div class="cancel-message text-center mb-4">
   Seu plano Business será cancelado em:
-  <strong>{{ subscription_end_date | datetimeformat }}</strong>
+  <strong>{{ cancel_at | datetimeformat }}</strong>
 </div>
 {% endif %}
 
