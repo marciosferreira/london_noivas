@@ -11,6 +11,7 @@
   <h2 class="text-center text-dark-blue">Ajustes da Conta</h2>
 
 
+  {{plan_type}}{{payment_status}}{{message}}
 
 
 
@@ -29,7 +30,6 @@
         {% endif %}
       </p>
 
-
 <!-- Mensagem fixa de cancelamento programado -->
 {% if plan_type == "premium" and payment_status == "scheduled_for_cancellation" and cancel_at %}
 <div class="cancel-message text-center mb-4">
@@ -40,7 +40,7 @@
 
 
       <!-- Botão de cancelar assinatura, aparece só se for premium ativo -->
-      {% if plan_type == "premium" and payment_status == "active" %}
+      {% if plan_type == "premium" %}
         <form method="POST" action="{{ url_for('adjustments') }}">
           <button type="submit" class="btn btn-danger w-100 mt-3">
             Cancelar assinatura

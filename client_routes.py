@@ -2,7 +2,7 @@ import datetime
 import uuid
 from boto3.dynamodb.conditions import Key
 from utils import get_user_timezone
-
+import os
 
 from flask import (
     render_template,

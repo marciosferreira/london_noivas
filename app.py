@@ -13,9 +13,9 @@ load_dotenv()  # only for setting up the env as debug
 import stripe
 
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")  # Backend
-
 STRIPE_PUBLIC_KEY = os.getenv("STRIPE_PUBLIC_KEY")  # Frontend
 STRIPE_PRICE_ID = os.getenv("STRIPE_PRICE_ID")  # ID do plano
+STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
 
 
 # Configurações AWS
@@ -39,7 +39,7 @@ transactions_table = dynamodb.Table("alugueqqc_transactions")
 clients_table = dynamodb.Table("alugueqqc_clients")
 reset_tokens_table = dynamodb.Table("RentqqcResetTokens")
 text_models_table = dynamodb.Table("alugue_qqc_text_models")
-accounts_table = dynamodb.Table("alugueqqc_accounts_table")
+payment_transactions = dynamodb.Table("alugueqqc_payment_transactions")
 
 
 s3 = boto3.client(
@@ -81,7 +81,7 @@ from static_routes import init_static_routes
 
 
 # Initialize routes from modules
-init_auth_routes(app, users_table, reset_tokens_table, accounts_table)
+init_auth_routes(app, users_table, reset_tokens_table, payment_transactions)
 init_item_routes(
     app,
     itens_table,
@@ -109,7 +109,7 @@ init_static_routes(
     itens_table,
     text_models_table,
     users_table,
-    accounts_table,
+    payment_transactions,
 )
 
 
@@ -130,14 +130,14 @@ def add_header(response):
 
 
 # Adiciona cache control para arquivos estáticos
-@app.after_request
+"""@app.after_request
 def add_header(response):
     path = request.path
     if path.startswith("/static/icons/"):
         response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
     elif path.endswith(".css") or path.endswith(".js"):
         response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
-    return response
+    return response"""
 
 
 @app.context_processor
@@ -145,6 +145,7 @@ def inject_session():
     return dict(session=session)
 
 
+"""
 @app.before_request
 def update_session_plan_type():
     if session.get("logged_in") and request.endpoint in [
@@ -153,7 +154,7 @@ def update_session_plan_type():
     ]:
         account_id = session.get("account_id")
         if account_id:
-            response = accounts_table.get_item(Key={"account_id": account_id})
+            response = payment_transactions.get_item(Key={"account_id": account_id})
             account = response.get("Item")
             if account:
                 session["plan_type"] = account.get("plan_type", "free")
@@ -162,7 +163,7 @@ def update_session_plan_type():
                     f"🔴 Atenção: Conta {account_id} não encontrada na accounts_table!"
                 )
 
-
+"""
 from datetime import datetime, timezone
 
 
