@@ -507,7 +507,7 @@ def init_static_routes(
     import stripe
     from boto3.dynamodb.conditions import Key
 
-    @app.route("/webhook/stripe", methods=["POST"])
+    @app.route("/webhook/stripe", methods=["POST", "GET"])
     def stripe_webhook():
         payload = request.data
         sig_header = request.headers.get("Stripe-Signature")
@@ -616,7 +616,7 @@ def init_static_routes(
             subscription_data = event["data"]["object"]
             customer_id = subscription_data.get("customer")
             canceled_at = subscription_data.get("canceled_at")
-            canceled_at = subscription_data.get("cancel_at")
+            cancel_at = subscription_data.get("cancel_at")
 
             response = accounts_table.query(
                 IndexName="stripe_customer_id-index",
