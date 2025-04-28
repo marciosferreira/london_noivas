@@ -562,13 +562,11 @@ def init_static_routes(
             canceled_at = subscription_data.get("canceled_at")
 
             # Captura a data do fim do ciclo
-            current_period_end = subscription_data.get("current_period_end")
-            if not current_period_end and subscription_data.get("items", {}).get(
-                "data", []
-            ):
-                current_period_end = subscription_data["items"]["data"][0].get(
-                    "current_period_end"
-                )
+            # Correto para pegar current_period_end SEMPRE
+            current_period_end = None
+            items_data = subscription_data.get("items", {}).get("data", [])
+            if items_data:
+                current_period_end = items_data[0].get("current_period_end")
 
             response = accounts_table.query(
                 IndexName="stripe_customer_id-index",
