@@ -616,7 +616,7 @@ def init_static_routes(
             subscription_data = event["data"]["object"]
             customer_id = subscription_data.get("customer")
             canceled_at = subscription_data.get("canceled_at")
-            current_period_end = subscription_data.get("current_period_end")
+            canceled_at = subscription_data.get("cancel_at")
 
             response = accounts_table.query(
                 IndexName="stripe_customer_id-index",
@@ -631,7 +631,7 @@ def init_static_routes(
                 update_expression = """
                     SET plan_type = :p,
                         payment_status = :s,
-                        subscription_end_date = :end_date,
+                        cancel_at = :end_date,
                         canceled_at = :canceled_at_value
                     REMOVE stripe_subscription_id
                 """
@@ -639,7 +639,7 @@ def init_static_routes(
                 expression_values = {
                     ":p": "free",
                     ":s": "canceled",
-                    ":end_date": current_period_end,
+                    ":end_date": cancel_at,
                     ":canceled_at_value": canceled_at if canceled_at else None,
                 }
 
