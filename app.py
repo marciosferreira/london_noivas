@@ -167,12 +167,20 @@ def update_session_plan_type():
 from datetime import datetime, timezone
 
 
+from datetime import datetime, timezone
+
+
 @app.template_filter("datetimeformat")
 def datetimeformat(value):
-    if value:
-        dt = datetime.fromtimestamp(value, tz=timezone.utc)
-        return dt.strftime("%d/%m/%Y")
-    return ""
+    if value is None:
+        return "-"
+    # 🔥 Converte para float se vier como Decimal
+    try:
+        value = float(value)
+    except (ValueError, TypeError):
+        return "-"
+    dt = datetime.fromtimestamp(value, tz=timezone.utc)
+    return dt.strftime("%d/%m/%Y %H:%M")
 
 
 if __name__ == "__main__":

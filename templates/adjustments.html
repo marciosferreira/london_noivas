@@ -11,51 +11,80 @@
   <h2 class="text-center text-dark-blue">Ajustes da Conta</h2>
 
 
-  {{plan_type}}{{payment_status}}{{message}}
 
 
 
   <!-- Seção de Plano -->
-  <div class="card mx-auto mt-4 shadow-sm" style="max-width: 500px">
-    <div class="card-body">
-      <h5 class="card-title text-center">Seu Plano</h5>
+<div class="card mx-auto mt-4 shadow-sm" style="max-width: 500px">
+  <div class="card-body">
+    <h5 class="card-title text-center">Seu Plano</h5>
 
-      <!-- Exibe o tipo de plano -->
-      <p class="text-center mb-2">
-        <strong>Plano Atual:</strong>
-        {% if plan_type == "premium" %}
-          <span class="text-success">Business</span>
-        {% else %}
-          <span class="text-secondary">Free</span>
-        {% endif %}
-      </p>
-
-<!-- Mensagem fixa de cancelamento programado -->
-{% if plan_type == "premium" and payment_status == "scheduled_for_cancellation" and cancel_at %}
-<div class="cancel-message text-center mb-4">
-  Seu plano Business será cancelado em:
-  <strong>{{ cancel_at | datetimeformat }}</strong>
-</div>
-{% endif %}
-
-
-      <!-- Botão de cancelar assinatura, aparece só se for premium ativo -->
+    <p class="text-center mb-2">
+      <strong>Plano Atual:</strong>
       {% if plan_type == "premium" %}
-        <form method="POST" action="{{ url_for('adjustments') }}">
-          <button type="submit" class="btn btn-danger w-100 mt-3">
-            Cancelar assinatura
-          </button>
-        </form>
+        <span class="text-success">Business</span>
+      {% else %}
+        <span class="text-secondary">Free</span>
       {% endif %}
+    </p>
 
-      <!-- Botão de assinar Premium, só aparece se for plano free -->
-      {% if plan_type == "free" %}
-        <button id="checkout-button" class="btn btn-primary w-100 mt-3">
-          Assinar Plano Business
-        </button>
-      {% endif %}
-    </div>
+    <!-- Detalhes da assinatura -->
+    {% if plan_type == "premium" %}
+      <ul class="list-group list-group-flush mb-3">
+        <li class="list-group-item">
+          <strong>Valor:</strong> R$ {{ amount_total / 100 }} {{ currency|upper }}
+        </li>
+        <li class="list-group-item">
+          <strong>Início da assinatura:</strong> {{ created_at | datetimeformat }}
+        </li>
+        {% if cancel_at %}
+        <li class="list-group-item">
+          <strong>Plano ativo até:</strong> {{ cancel_at | datetimeformat }}
+        </li>
+        {% endif %}
+        {% if canceled_at %}
+        <li class="list-group-item text-danger">
+          <strong>Cancelado em:</strong> {{ canceled_at | datetimeformat }}
+        </li>
+        {% endif %}
+      </ul>
+
+      {% if plan_type == "premium" and cancel_at_period_end and cancel_at %}
+      <div style="
+      background-color: #fff3cd;
+      border-left: 6px solid #ffecb5;
+      color: #856404;
+      padding: 16px;
+      margin-top: 20px;
+      border-radius: 8px;
+      text-align: center;
+      font-size: 16px;
+  ">
+      <strong>Seu plano Business ainda está ativo, mas foi marcado para cancelamento.</strong><br>
+      Você poderá usá-lo normalmente até: <strong>{{ cancel_at | datetimeformat }}</strong>.
   </div>
+
+{% endif %}
+    {% endif %}
+
+    <!-- Botão de cancelar assinatura -->
+    {% if plan_type == "premium" and not cancel_at_period_end and payment_status not in ["scheduled_for_cancellation", "canceled"] %}
+      <form method="POST" action="{{ url_for('adjustments') }}">
+        <button type="submit" class="btn btn-danger w-100 mt-3">
+          Cancelar assinatura
+        </button>
+      </form>
+    {% endif %}
+
+    <!-- Botão de assinar Premium -->
+    {% if plan_type == "free" and not cancel_at_period_end %}
+      <button id="checkout-button" class="btn btn-primary w-100 mt-3">
+        Assinar Plano Business
+      </button>
+    {% endif %}
+  </div>
+</div>
+
 
   <!-- Restante das opções de ajustes -->
   <div class="card mx-auto mt-4 shadow-sm" style="max-width: 500px">

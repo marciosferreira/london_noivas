@@ -534,119 +534,143 @@ def init_static_routes(
         if event_type == "checkout.session.completed":
             print("🟢 Checkout session completed!")
 
-            session_data = event["data"]["object"]
-            checkout_session_id = session_data["id"]
-            payment_status = session_data.get("payment_status", "unpaid")
-            amount_total = session_data.get("amount_total")
-            currency = session_data.get("currency")
+            transaction = event["data"]["object"]
 
             try:
-                # Atualiza a transação para registrada (paid ou pending)
-                payment_transactions_table.update_item(
-                    Key={"checkout_session_id": checkout_session_id},
-                    UpdateExpression="""
-                        SET payment_status = :status,
-                            valor = :valor,
-                            currency = :currency,
-                            updated_at = :updated_at
-                    """,
-                    ExpressionAttributeValues={
-                        ":status": payment_status,
-                        ":valor": amount_total,
-                        ":currency": currency,
-                        ":updated_at": int(time.time()),
-                    },
+                stripe_subscription_id = transaction.get(
+                    "subscription"
+                )  # Chave primária
+                if not stripe_subscription_id:
+                    raise ValueError("subscription_id não encontrado na sessão.")
+
+                item = {
+                    "stripe_subscription_id": stripe_subscription_id,  # PRIMARY KEY
+                    "stripe_session_id": transaction.get("id"),
+                    "account_id": transaction.get("metadata", {}).get("account_id"),
+                    "customer_id": transaction.get("customer"),
+                    "customer_email": transaction.get("customer_email"),
+                    "customer_name": transaction.get("customer_details", {}).get(
+                        "name"
+                    ),
+                    "amount_total": transaction.get("amount_total"),
+                    "currency": transaction.get("currency"),
+                    "payment_status": transaction.get("payment_status"),
+                    "payment_method_types": transaction.get("payment_method_types", []),
+                    "created_at": transaction.get("created"),
+                    "expires_at": transaction.get("expires_at"),
+                    "invoice_id": transaction.get("invoice"),
+                    "status": transaction.get("status"),
+                    "livemode": transaction.get("livemode"),
+                }
+
+                # Remove chaves onde o valor é None, para não sujar o banco
+                item = {k: v for k, v in item.items() if v is not None}
+
+                # Salva no DynamoDB
+                payment_transactions_table.put_item(Item=item)
+
+                print(
+                    f"🟢 Transação {stripe_subscription_id} atualizada após checkout."
                 )
-                print(f"🟢 Transação {checkout_session_id} atualizada após checkout.")
+
             except Exception as e:
+
                 print(f"🔴 Erro ao atualizar transação: {str(e)}")
 
         elif event_type == "customer.subscription.updated":
-            print("🟡 Assinatura atualizada!")
 
             subscription_data = event["data"]["object"]
-            customer_id = subscription_data.get("customer")
-            cancel_at_period_end = subscription_data.get("cancel_at_period_end", False)
-            cancel_at = subscription_data.get("cancel_at")
 
             try:
-                # Procurar a transação pela conta
-                response = payment_transactions_table.query(
-                    IndexName="stripe_customer_id-index",  # Se você tiver um GSI de stripe_customer_id
-                    KeyConditionExpression=Key("stripe_customer_id").eq(customer_id),
+                stripe_subscription_id = subscription_data.get("id")
+                if not stripe_subscription_id:
+                    raise ValueError("subscription_id não encontrado no evento.")
+
+                # Recupera a transação existente no banco pela chave primária
+                response = payment_transactions_table.get_item(
+                    Key={"stripe_subscription_id": stripe_subscription_id}
                 )
-                items = response.get("Items", [])
+                item_existente = response.get("Item")
 
-                if items:
-                    checkout_session_id = items[0]["checkout_session_id"]
-                    new_status = (
-                        "scheduled_for_cancellation"
-                        if cancel_at_period_end
-                        else "active"
-                    )
-
-                    payment_transactions_table.update_item(
-                        Key={"checkout_session_id": checkout_session_id},
-                        UpdateExpression="""
-                            SET payment_status = :status,
-                                cancel_at = :cancel_at,
-                                updated_at = :updated_at
-                        """,
-                        ExpressionAttributeValues={
-                            ":status": new_status,
-                            ":cancel_at": cancel_at,
-                            ":updated_at": int(time.time()),
-                        },
-                    )
+                if not item_existente:
                     print(
-                        f"🟡 Transação {checkout_session_id} atualizada: {new_status}"
+                        f"🔴 Nenhuma transação encontrada para subscription_id {stripe_subscription_id}"
                     )
                 else:
-                    print(
-                        f"🔴 Nenhuma transação encontrada para customer_id {customer_id}"
+                    # Atualizar os campos relevantes
+                    update_expression = """
+                        SET payment_status = :payment_status,
+                            cancel_at = :cancel_at,
+                            cancel_at_period_end = :cancel_at_period_end,
+                            updated_at = :updated_at
+                    """
+
+                    expression_attribute_values = {
+                        ":payment_status": subscription_data.get("status", "unknown"),
+                        ":cancel_at": subscription_data.get("cancel_at"),
+                        ":cancel_at_period_end": subscription_data.get(
+                            "cancel_at_period_end", False
+                        ),
+                        ":updated_at": int(time.time()),
+                    }
+
+                    payment_transactions_table.update_item(
+                        Key={"stripe_subscription_id": stripe_subscription_id},
+                        UpdateExpression=update_expression,
+                        ExpressionAttributeValues=expression_attribute_values,
                     )
+
+                    print(f"🟡 Transação {stripe_subscription_id} atualizada!")
+
             except Exception as e:
-                print(f"🔴 Erro ao buscar transação: {str(e)}")
+                print(f"🔴 Erro ao atualizar transação: {str(e)}")
+
+            print("🟡 Assinatura atualizada!")
 
         elif event_type == "customer.subscription.deleted":
             print("🟠 Assinatura cancelada!")
 
             subscription_data = event["data"]["object"]
-            customer_id = subscription_data.get("customer")
-            canceled_at = subscription_data.get("canceled_at")
 
             try:
-                response = payment_transactions_table.query(
-                    IndexName="stripe_customer_id-index",
-                    KeyConditionExpression=Key("stripe_customer_id").eq(customer_id),
+                stripe_subscription_id = subscription_data.get("id")
+                if not stripe_subscription_id:
+                    raise ValueError("subscription_id não encontrado no evento.")
+
+                # Recuperar a transação pela chave primária
+                response = payment_transactions_table.get_item(
+                    Key={"stripe_subscription_id": stripe_subscription_id}
                 )
-                items = response.get("Items", [])
+                item_existente = response.get("Item")
 
-                if items:
-                    checkout_session_id = items[0]["checkout_session_id"]
-
+                if not item_existente:
+                    print(
+                        f"🔴 Nenhuma transação encontrada para subscription_id {stripe_subscription_id}"
+                    )
+                else:
                     payment_transactions_table.update_item(
-                        Key={"checkout_session_id": checkout_session_id},
+                        Key={"stripe_subscription_id": stripe_subscription_id},
                         UpdateExpression="""
-                            SET payment_status = :status,
+                            SET payment_status = :payment_status,
                                 canceled_at = :canceled_at,
+                                cancel_at = :cancel_at,
                                 updated_at = :updated_at
                         """,
                         ExpressionAttributeValues={
-                            ":status": "canceled",
-                            ":canceled_at": canceled_at,
+                            ":payment_status": "canceled",  # Marcamos como cancelado
+                            ":canceled_at": subscription_data.get("canceled_at"),
+                            ":cancel_at": subscription_data.get(
+                                "cancel_at"
+                            ),  # Pra saber até quando pode usar
                             ":updated_at": int(time.time()),
                         },
                     )
                     print(
-                        f"🟠 Transação {checkout_session_id} atualizada para canceled."
+                        f"🟠 Transação {stripe_subscription_id} atualizada para canceled."
                     )
-                else:
-                    print(
-                        f"🔴 Nenhuma transação encontrada para customer_id {customer_id}"
-                    )
+
             except Exception as e:
-                print(f"🔴 Erro ao buscar transação: {str(e)}")
+                print(f"🔴 Erro ao atualizar transação: {str(e)}")
 
         elif event_type == "invoice.paid":
             print("🟢 Invoice paga!")
@@ -697,35 +721,6 @@ def init_static_routes(
 
         return "OK", 200
 
-    @app.route("/refresh_plan")
-    def refresh_plan():
-        if not session.get("logged_in"):
-            return "Unauthorized", 401
-
-        refresh_plan_status()
-        return "Refreshed", 200
-
-    def refresh_plan_status():
-        if not session.get("account_id"):
-            return
-
-        account_id = session["account_id"]
-        plan_status = get_account_plan(account_id)
-        session["plan_type"] = plan_status
-
-    def find_account_id_by_customer_id(customer_id):
-        response = accounts_table.query(
-            IndexName="stripe_customer_id-index",  # Nome correto do GSI
-            KeyConditionExpression="stripe_customer_id = :c",
-            ExpressionAttributeValues={":c": customer_id},
-        )
-        items = response.get("Items", [])
-        if items:
-            return items[0]["account_id"]
-        return None
-
-    import time
-
     @app.route("/create_checkout_session", methods=["POST"])
     def create_checkout_session():
         if not session.get("logged_in"):
@@ -744,6 +739,10 @@ def init_static_routes(
             checkout_session = stripe.checkout.Session.create(
                 payment_method_types=["card"],
                 customer_email=user_email,
+                success_url=url_for(
+                    "adjustments", _external=True
+                ),  # 🔥 Redireciona para ajustes
+                cancel_url=url_for("index", _external=True),  # ou alguma página neutra
                 line_items=[
                     {
                         "price": os.getenv("STRIPE_PRICE_ID"),
@@ -751,25 +750,7 @@ def init_static_routes(
                     }
                 ],
                 mode="subscription",
-                success_url=url_for("obrigado", _external=True)
-                + "?session_id={CHECKOUT_SESSION_ID}",
-                cancel_url=url_for("index", _external=True),
                 metadata={"account_id": account_id},
-            )
-
-            # 🔥 Inserir na tabela payment_transactions
-            payment_transactions_table.put_item(
-                Item={
-                    "checkout_session_id": checkout_session.id,  # <- chave primária (PK)
-                    "account_id": account_id,
-                    "user_id": user_id,
-                    "payment_status": "pending",  # Status inicial como pending
-                    "valor": None,  # Vamos preencher no webhook depois
-                    "currency": None,  # Vamos preencher no webhook depois
-                    "created_at": datetime.datetime.now(user_utc).strftime(
-                        "%d/%m/%Y %H:%M"
-                    ),  # Timestamp de criação
-                }
             )
 
             return {"checkout_url": checkout_session.url}
