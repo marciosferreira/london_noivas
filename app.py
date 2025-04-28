@@ -9,6 +9,15 @@ from flask import Flask, request, session
 # Define o fuso horário de Manaus
 load_dotenv()  # only for setting up the env as debug
 
+
+import stripe
+
+stripe.api_key = os.getenv("STRIPE_SECRET_KEY")  # Backend
+
+STRIPE_PUBLIC_KEY = os.getenv("STRIPE_PUBLIC_KEY")  # Frontend
+STRIPE_PRICE_ID = os.getenv("STRIPE_PRICE_ID")  # ID do plano
+
+
 # Configurações AWS
 aws_region = "us-east-1"
 aws_access_key_id = os.getenv("AWS_ACCESS_KEY_ID")
@@ -134,6 +143,21 @@ def add_header(response):
 @app.context_processor
 def inject_session():
     return dict(session=session)
+
+
+@app.before_request
+def update_session_plan_type():
+    if session.get("logged_in") and request.endpoint == "all_transactions":
+        account_id = session.get("account_id")
+        if account_id:
+            response = accounts_table.get_item(Key={"account_id": account_id})
+            account = response.get("Item")
+            if account:
+                session["plan_type"] = account.get("plan_type", "free")
+            else:
+                print(
+                    f"🔴 Atenção: Conta {account_id} não encontrada na accounts_table!"
+                )
 
 
 if __name__ == "__main__":
