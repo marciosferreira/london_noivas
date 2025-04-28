@@ -566,7 +566,7 @@ def init_static_routes(
 
     def find_account_id_by_customer_id(customer_id):
         response = users_table.query(
-            IndexName="stripe-customer-id-index",  # Nome do GSI novo
+            IndexName="stripe_customer_id-index",  # Nome do GSI novo
             KeyConditionExpression="stripe_customer_id = :c",
             ExpressionAttributeValues={":c": customer_id},
         )
@@ -574,8 +574,6 @@ def init_static_routes(
         if items:
             return items[0]["account_id"]
         return None
-
-    import stripe
 
     # Stripe API key
     stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
