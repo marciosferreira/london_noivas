@@ -86,7 +86,29 @@
   </div>
 </div>
 <div style="height: 50px"></div>
+
+
+<button id="checkout-button">Assinar Premium</button>
+
+
+
+
 {% endblock %}
 
 {% block scripts %}
+<script>
+  document.getElementById('checkout-button').addEventListener('click', async () => {
+      const response = await fetch('/create_checkout_session', {
+          method: 'POST'
+      });
+
+      const data = await response.json();
+
+      if (data.checkout_url) {
+          window.location.href = data.checkout_url;  // Redireciona para o Stripe
+      } else {
+          alert('Erro ao iniciar pagamento. Tente novamente.');
+      }
+  });
+  </script>
 {% endblock %}
