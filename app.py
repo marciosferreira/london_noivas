@@ -2,6 +2,7 @@ import os
 import pytz
 import boto3
 from dotenv import load_dotenv
+from boto3.dynamodb.conditions import Key
 
 from flask import Flask
 from flask import Flask, request, session
@@ -78,6 +79,7 @@ from status_routes import init_status_routes
 from transaction_routes import init_transaction_routes
 from client_routes import init_client_routes
 from static_routes import init_static_routes
+from datetime import datetime, timezone
 
 
 # Initialize routes from modules
@@ -145,29 +147,34 @@ def inject_session():
     return dict(session=session)
 
 
-"""
-@app.before_request
-def update_session_plan_type():
-    if session.get("logged_in") and request.endpoint in [
-        "all_transactions",
-        "inventory",
-    ]:
-        account_id = session.get("account_id")
-        if account_id:
-            response = payment_transactions.get_item(Key={"account_id": account_id})
-            account = response.get("Item")
-            if account:
-                session["plan_type"] = account.get("plan_type", "free")
-            else:
-                print(
-                    f"🔴 Atenção: Conta {account_id} não encontrada na accounts_table!"
-                )
+@app.route("/refresh_plan_type", methods=["POST"])
+def refresh_plan_type():
+    if not session.get("logged_in") or not session.get("account_id"):
+        return {"success": False, "message": "Usuário não logado."}, 401
 
-"""
-from datetime import datetime, timezone
+    account_id = session["account_id"]
 
+    # 🔥 Consulta a tabela de transações
+    transactions_response = payment_transactions.query(
+        IndexName="account_id-index",
+        KeyConditionExpression=Key("account_id").eq(account_id),
+    )
+    transactions = transactions_response.get("Items", [])
 
-from datetime import datetime, timezone
+    # 🔥 Agora define o plano baseado nas transações
+    plan_type = "free"  # padrão
+    for transaction in transactions:
+        status = transaction.get("payment_status")
+        if status in ["paid", "active", "scheduled_for_cancellation"]:
+            plan_type = "premium"
+            break
+        elif status == "canceled":
+            continue
+
+    # 🔥 Atualiza a sessão
+    session["plan_type"] = plan_type
+
+    return {"success": True, "plan_type": plan_type}
 
 
 @app.template_filter("datetimeformat")
@@ -186,4 +193,4 @@ def datetimeformat(value):
 if __name__ == "__main__":
     # Determina se está no localhost
     debug_mode = os.getenv("debug_env", "false").lower() == "true"
-    app.run(debug=debug_mode, host="localhost", port=5000)
+    app.run(debug=True, host="localhost", port=5000)

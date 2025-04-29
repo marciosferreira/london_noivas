@@ -673,51 +673,68 @@ def init_static_routes(
                 print(f"🔴 Erro ao atualizar transação: {str(e)}")
 
         elif event_type == "invoice.paid":
-            print("🟢 Invoice paga!")
+            print("🟢 Invoice pagas!")
 
             invoice_data = event["data"]["object"]
+            print(invoice_data)
+            # Acessa o primeiro item da linha (assinatura padrão)
+            first_line = invoice_data.get("lines", {}).get("data", [])[0]
+            current_period_end = first_line.get("period", {}).get("end")
             customer_id = invoice_data.get("customer")
             amount_paid = invoice_data.get("amount_paid")
             currency = invoice_data.get("currency")
             paid_at = invoice_data.get("status_transitions", {}).get("paid_at")
 
             try:
+                # Buscar pelo customer_id no índice customer_id-index
                 response = payment_transactions_table.query(
-                    IndexName="stripe_customer_id-index",
-                    KeyConditionExpression=Key("stripe_customer_id").eq(customer_id),
+                    IndexName="customer_id-index",
+                    KeyConditionExpression=Key("customer_id").eq(customer_id),
                 )
                 items = response.get("Items", [])
 
                 if items:
-                    checkout_session_id = items[0]["checkout_session_id"]
+                    item = items[0]
+                    stripe_subscription_id = item.get(
+                        "stripe_subscription_id"
+                    )  # 🔥 Corrigido aqui
 
-                    payment_transactions_table.update_item(
-                        Key={"checkout_session_id": checkout_session_id},
-                        UpdateExpression="""
+                    if not stripe_subscription_id:
+                        print(
+                            f"🔴 Erro: stripe_subscription_id não encontrado no item para customer_id {customer_id}"
+                        )
+                    else:
+                        payment_transactions_table.update_item(
+                            Key={
+                                "stripe_subscription_id": stripe_subscription_id
+                            },  # 🔥 Corrigido aqui
+                            UpdateExpression="""
                             SET payment_status = :status,
-                                valor = :valor,
+                                amount_total = :amount_paid,
                                 currency = :currency,
                                 updated_at = :updated_at,
-                                last_payment_date = :paid_at
+                                last_payment_date = :paid_at,
+                                current_period_end = :current_period_end
                         """,
-                        ExpressionAttributeValues={
-                            ":status": "paid",
-                            ":valor": amount_paid,
-                            ":currency": currency,
-                            ":updated_at": int(time.time()),
-                            ":paid_at": paid_at,
-                        },
-                    )
-                    print(f"🟢 Transação {checkout_session_id} atualizada para paid.")
+                            ExpressionAttributeValues={
+                                ":status": "paid",
+                                ":amount_paid": amount_paid,
+                                ":currency": currency,
+                                ":updated_at": int(time.time()),
+                                ":paid_at": paid_at,
+                                ":current_period_end": current_period_end,
+                            },
+                        )
+                        print(
+                            f"🟢 Transação {stripe_subscription_id} atualizada para paid."
+                        )
                 else:
                     print(
                         f"🔴 Nenhuma transação encontrada para customer_id {customer_id}"
                     )
-            except Exception as e:
-                print(f"🔴 Erro ao buscar transação: {str(e)}")
 
-        else:
-            print(f"⚪ Evento {event_type} ignorado.")
+            except Exception as e:
+                print(f"🔴 Erro ao buscar ou atualizar transação: {str(e)}")
 
         return "OK", 200
 

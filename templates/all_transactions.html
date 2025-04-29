@@ -301,6 +301,30 @@
   {% endif %}
 </script>
 
+<script>
+  async function refreshPlanType() {
+    try {
+      const response = await fetch('/refresh_plan_type', {
+        method: 'POST'
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        console.log("Plano atualizado para:", data.plan_type);
+        // Se quiser recarregar a página automaticamente:
+        // window.location.reload();
+      } else {
+        console.error("Falha ao atualizar plano:", data.message);
+      }
+    } catch (error) {
+      console.error("Erro na comunicação com servidor:", error);
+    }
+  }
+
+  // 🔥 Chama automaticamente ao carregar a página
+  document.addEventListener('DOMContentLoaded', refreshPlanType);
+  </script>
 
 
 </div>

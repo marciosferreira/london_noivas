@@ -63,7 +63,7 @@ def init_transaction_routes(
             )
 
             flash(
-                "Transação marcada como deletada. Ela ficará disponível na 'lixeira' por 30 dias.",
+                "Transação deletada!",
                 "success",
             )
 

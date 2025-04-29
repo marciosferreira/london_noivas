@@ -32,16 +32,15 @@
     {% if plan_type == "premium" %}
       <ul class="list-group list-group-flush mb-3">
         <li class="list-group-item">
-          <strong>Valor:</strong> R$ {{ amount_total / 100 }} {{ currency|upper }}
+          <strong>Valor mensal:</strong> R$ {{ amount_total / 100 }} {{ currency|upper }}
         </li>
         <li class="list-group-item">
           <strong>Início da assinatura:</strong> {{ created_at | datetimeformat }}
         </li>
-        {% if cancel_at %}
         <li class="list-group-item">
-          <strong>Plano ativo até:</strong> {{ cancel_at | datetimeformat }}
+          <strong>Renova automaticamente em:</strong> {{ current_period_end | datetimeformat }}
         </li>
-        {% endif %}
+
         {% if canceled_at %}
         <li class="list-group-item text-danger">
           <strong>Cancelado em:</strong> {{ canceled_at | datetimeformat }}
@@ -60,21 +59,19 @@
       text-align: center;
       font-size: 16px;
   ">
-      <strong>Seu plano Business ainda está ativo, mas foi marcado para cancelamento.</strong><br>
-      Você poderá usá-lo normalmente até: <strong>{{ cancel_at | datetimeformat }}</strong>.
+      Seu plano Business não será renovado e será cancelado em: <strong>{{ cancel_at | datetimeformat }} h</strong>.
   </div>
 
 {% endif %}
     {% endif %}
 
-    <!-- Botão de cancelar assinatura -->
     {% if plan_type == "premium" and not cancel_at_period_end and payment_status not in ["scheduled_for_cancellation", "canceled"] %}
-      <form method="POST" action="{{ url_for('adjustments') }}">
-        <button type="submit" class="btn btn-danger w-100 mt-3">
-          Cancelar assinatura
-        </button>
-      </form>
-    {% endif %}
+    <button type="button" id="cancel-button" class="btn btn-danger w-100 mt-3">
+      Cancelar assinatura
+    </button>
+  {% endif %}
+
+
 
     <!-- Botão de assinar Premium -->
     {% if plan_type == "free" and not cancel_at_period_end %}
@@ -181,4 +178,60 @@
     });
   }
 </script>
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+  document.getElementById('cancel-button')?.addEventListener('click', function() {
+    Swal.fire({
+      title: 'Cancelar assinatura?',
+      text: "Seu plano Business continuará ativo até o final do período já pago.",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Sim, cancelar!',
+      cancelButtonText: 'Não, voltar'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        // 🔥 Envia o POST manualmente usando fetch
+        fetch("{{ url_for('adjustments') }}", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: ""  // Se quiser enviar algo aqui, tipo "action=cancel", pode colocar
+        }).then(response => {
+          if (response.ok) {
+            // 🔥 Segundo alerta após o POST ter sido enviado com sucesso
+            Swal.fire({
+              title: 'Pedido de cancelamento enviado!',
+              text: 'Seu plano continuará ativo até o fim do período já pago.',
+              icon: 'info',
+              confirmButtonText: 'Entendi'
+            }).then(() => {
+              window.location.reload();  // 🔥 Depois do segundo alerta, força reload
+            });
+          } else {
+            Swal.fire(
+              'Erro!',
+              'Não foi possível enviar o pedido de cancelamento.',
+              'error'
+            );
+          }
+        }).catch(() => {
+          Swal.fire(
+            'Erro!',
+            'Não foi possível se comunicar com o servidor.',
+            'error'
+          );
+        });
+      }
+    });
+  });
+  </script>
 {% endblock %}
+
+

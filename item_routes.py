@@ -811,7 +811,7 @@ def init_item_routes(
                 )
 
                 flash(
-                    "Item marcado como deletado. Ele ficará disponível na 'lixeira' por 30 dias.",
+                    "Item marcado deletado!",
                     "success",
                 )
 

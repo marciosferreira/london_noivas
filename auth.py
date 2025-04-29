@@ -206,7 +206,7 @@ def init_auth_routes(app, users_table, reset_tokens_table, payment_transactions_
 
                 # 🆕 Aqui: buscar plano da conta
                 plan_status = get_account_plan(account_id)
-                session["plan_type"] = plan_status  # "free" ou "premium"
+                # session["plan_type"] = plan_status  # "free" ou "premium"
 
                 flash("Você esta logado agora!", "info")
                 return redirect(url_for("index"))
@@ -831,6 +831,10 @@ def init_auth_routes(app, users_table, reset_tokens_table, payment_transactions_
     from boto3.dynamodb.conditions import Key
     from boto3.dynamodb.conditions import Key
 
+    from boto3.dynamodb.conditions import Key
+    from flask import redirect, url_for, render_template, request, flash, session
+    import stripe
+
     @app.route("/adjustments", methods=["GET", "POST"])
     def adjustments():
         if not session.get("logged_in"):
@@ -848,9 +852,7 @@ def init_auth_routes(app, users_table, reset_tokens_table, payment_transactions_
         username = user.get("username", "Usuário Desconhecido")
         user_email = user.get("email", "Usuário Desconhecido")
         current_timezone = user.get("timezone", "America/Sao_Paulo")
-
         account_id = user.get("account_id")
-        message = None
 
         # 🔥 Inicializa variáveis
         plan_type = "free"
@@ -861,8 +863,9 @@ def init_auth_routes(app, users_table, reset_tokens_table, payment_transactions_
         currency = "brl"
         created_at = None
         cancel_at_period_end = False
-
+        message = None
         transactions = []
+        current_period_end = None
 
         if account_id:
             transactions_response = payment_transactions_table.query(
@@ -871,52 +874,59 @@ def init_auth_routes(app, users_table, reset_tokens_table, payment_transactions_
             )
             transactions = transactions_response.get("Items", [])
 
-        # 🛑 Se for um POST para cancelar o plano
+        # 🛑 Se for um POST (cancelar plano)
         if request.method == "POST":
-            print("🔵 POST recebido para cancelar o plano (não é webhook).")
+            print("🔵 POST recebido para cancelar o plano.")
 
             if not transactions:
-                message = "Nenhuma transação ativa encontrada para este account_id."
-            else:
-                cancel_attempted = False
-
-                for transaction in transactions:
-                    print(transaction)
-
-                    if transaction.get("payment_status") in ["paid", "active"]:
-                        stripe_subscription_id = transaction.get(
-                            "stripe_subscription_id"
-                        )
-                        print("🔵 Subscription ID encontrado:", stripe_subscription_id)
-
-                        if stripe_subscription_id:
-                            try:
-                                stripe.Subscription.modify(
-                                    stripe_subscription_id,
-                                    cancel_at_period_end=True,
-                                )
-                                cancel_attempted = True
-                                print(
-                                    f"🟡 Assinatura {stripe_subscription_id} marcada para cancelamento ao final do ciclo."
-                                )
-                                message = "Seu plano foi marcado para cancelamento ao final do período atual."
-                                break
-                            except Exception as e:
-                                print(f"🔴 Erro ao tentar cancelar no Stripe: {str(e)}")
-                                message = "Erro ao tentar cancelar seu plano. Tente novamente."
-
-                if not cancel_attempted:
-                    message = "Nenhuma transação ativa (paga) encontrada para cancelar."
-
-            # 🛑⚡ Reconsulta para refletir a mudança
-            if account_id:
-                transactions_response = payment_transactions_table.query(
-                    IndexName="account_id-index",
-                    KeyConditionExpression=Key("account_id").eq(account_id),
+                flash(
+                    "Nenhuma transação ativa encontrada para este account_id.",
+                    "warning",
                 )
-                transactions = transactions_response.get("Items", [])
+                return redirect(
+                    url_for("adjustments")
+                )  # 🔥 Redireciona de volta se não encontrar
 
-        # 🔥 Atualizar as variáveis corretas
+            cancel_attempted = False
+
+            for transaction in transactions:
+
+                if transaction.get("payment_status") in ["paid", "active"]:
+                    stripe_subscription_id = transaction.get("stripe_subscription_id")
+                    print("🔵 Subscription ID encontrado:", stripe_subscription_id)
+
+                    if stripe_subscription_id:
+                        try:
+                            stripe.Subscription.modify(
+                                stripe_subscription_id,
+                                cancel_at_period_end=True,
+                            )
+                            cancel_attempted = True
+                            print(
+                                f"🟡 Assinatura {stripe_subscription_id} marcada para cancelamento ao final do ciclo."
+                            )
+                            flash(
+                                "Seu plano foi marcado para cancelamento ao final do período atual.",
+                                "success",
+                            )
+                            break
+                        except Exception as e:
+                            print(f"🔴 Erro ao tentar cancelar no Stripe: {str(e)}")
+                            flash(
+                                "Erro ao tentar cancelar seu plano. Tente novamente.",
+                                "danger",
+                            )
+
+            if not cancel_attempted:
+                flash(
+                    "Nenhuma transação ativa (paga) encontrada para cancelar.",
+                    "warning",
+                )
+
+            # 🔥⚡ Depois de cancelar ou tentar cancelar, redireciona para GET adjustments
+            return redirect(url_for("adjustments"))
+
+        # 🔥 Se for GET (padrão), organiza o que mostrar
         for transaction in transactions:
             status = transaction.get("payment_status")
             if status in ["paid", "active", "scheduled_for_cancellation"]:
@@ -928,10 +938,13 @@ def init_auth_routes(app, users_table, reset_tokens_table, payment_transactions_
                 cancel_at = transaction.get("cancel_at")
                 canceled_at = transaction.get("canceled_at")
                 cancel_at_period_end = transaction.get("cancel_at_period_end", False)
+                current_period_end = transaction.get("current_period_end")
                 break
             elif status == "canceled":
                 canceled_at = transaction.get("canceled_at")
-
+        if plan_type:
+            session["plan_type"] = plan_type
+        # 🔥 Agora renderiza o template
         return render_template(
             "adjustments.html",
             username=username,
@@ -945,6 +958,7 @@ def init_auth_routes(app, users_table, reset_tokens_table, payment_transactions_
             currency=currency if currency else "BRL",
             created_at=created_at if created_at else None,
             cancel_at_period_end=cancel_at_period_end,
+            current_period_end=current_period_end,
             timezones=[
                 "America/Sao_Paulo",
                 "America/Fortaleza",
