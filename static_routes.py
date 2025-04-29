@@ -489,20 +489,6 @@ def init_static_routes(
             return redirect(url_for("index"))
         return redirect(url_for("all_transactions"))
 
-    @app.route("/obrigado")
-    def obrigado():
-        if not session.get("logged_in"):
-            return redirect(url_for("login"))
-
-        # Pega o account_id do usuário logado
-        account_id = session.get("account_id")
-
-        if account_id:
-            # Atualiza o status do plano no banco
-            refresh_plan_status()
-
-        return render_template("obrigado.html")  # Uma página bonita de agradecimento
-
     from flask import Flask, request, session
     import stripe
     from boto3.dynamodb.conditions import Key
@@ -525,7 +511,9 @@ def init_static_routes(
         try:
             event = stripe.Webhook.construct_event(payload, sig_header, endpoint_secret)
         except Exception as e:
-            print(f"🔴 Erro na validação do webhook: {str(e)}")
+            print(
+                f"🔴 Erro na validação do webhook (endpoint_secret={endpoint_secret}): {str(e)}"
+            )
             return "Webhook invalid", 400
 
         event_type = event["type"]
