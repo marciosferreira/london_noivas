@@ -503,19 +503,26 @@ def init_static_routes(
     stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
     endpoint_secret = os.getenv("STRIPE_WEBHOOK_SECRET")
 
+    from flask import request, abort
+
     @app.route("/webhook/stripe", methods=["POST"])
     def stripe_webhook():
-        payload = request.data
+
+        payload = request.get_data(
+            as_text=False
+        )  # ← isso é o correto: pegar como bytes
         sig_header = request.headers.get("Stripe-Signature")
 
         try:
             event = stripe.Webhook.construct_event(payload, sig_header, endpoint_secret)
-        except Exception as e:
-            print(
-                f"🔴 Erro na validação do webhook (endpoint_secret={endpoint_secret}): {str(e)}"
-            )
-            return "Webhook invalid", 400
-
+        except ValueError as e:
+            # Invalid payload
+            print(f"🔴 Erro na validação do webhook: {str(e)}")
+            return abort(400)
+        except stripe.error.SignatureVerificationError as e:
+            # Invalid signature
+            print(f"🔴 Assinatura inválida do webhook: {str(e)}")
+            return abort(400)
         event_type = event["type"]
         print(f"📥 Evento recebido: {event_type}")
 
