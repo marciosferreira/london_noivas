@@ -123,6 +123,7 @@ def init_auth_routes(app, users_table, reset_tokens_table, payment_transactions_
                 app,
                 role="admin",
                 user_ip=user_ip,
+                status="active",
             )
             if success:
                 session["cadastro_sucesso"] = True
@@ -142,7 +143,8 @@ def init_auth_routes(app, users_table, reset_tokens_table, payment_transactions_
 
         if session.get("logged_in"):  # Verifica se o usuário já está logado
             flash("Você já está logado!", "info")
-            return redirect(url_for("index"))  # Redireciona para outra página
+            return redirect(url_for("index"))
+
         remember_me = request.form.get("remember_me")
 
         if request.method == "POST":
@@ -151,7 +153,7 @@ def init_auth_routes(app, users_table, reset_tokens_table, payment_transactions_
 
             # Passo 1: Buscar o user_id pelo email no GSI
             response = users_table.query(
-                IndexName="email-index",  # Nome do GSI
+                IndexName="email-index",
                 KeyConditionExpression="email = :email",
                 ExpressionAttributeValues={":email": email},
             )
@@ -164,11 +166,10 @@ def init_auth_routes(app, users_table, reset_tokens_table, payment_transactions_
                 )
                 return redirect(url_for("login"))
 
-            user_id = items[0]["user_id"]  # Obtendo o user_id correspondente ao email
+            user_id = items[0]["user_id"]
 
-            # Passo 2: Buscar os dados completos do usuário na tabela principal
+            # Passo 2: Buscar os dados completos do usuário
             response = users_table.get_item(Key={"user_id": user_id})
-
             if "Item" not in response:
                 flash(
                     "E-mail ou senha incorretos. Se ainda não tem conta, clique em 'Cadastre-se'",
@@ -177,26 +178,30 @@ def init_auth_routes(app, users_table, reset_tokens_table, payment_transactions_
                 return redirect(url_for("login"))
 
             user = response["Item"]
-            stored_hash = user["password_hash"]
-            username = user["username"]
-            account_id = user["account_id"]
+            stored_hash = user.get("password_hash")
+            username = user.get("username")
+            account_id = user.get("account_id")
+            status = user.get("status", "active")
 
+            # Se status for "canceled", não permite login
+            if status == "canceled":
+                flash("Conta cancelada. Será deletada em breve.", "danger")
+                return redirect(url_for("login"))
+
+            # Verifica se a senha está correta
             if check_password_hash(stored_hash, password):
+
                 if remember_me:
-                    session.permanent = (
-                        True  # Sessão durará conforme PERMANENT_SESSION_LIFETIME
-                    )
+                    session.permanent = True
                 else:
-                    session.permanent = False  # Será apagada ao fechar o navegador
+                    session.permanent = False
 
-            # Se o e-mail não estiver confirmado, mostrar opção de reenvio
-            if not user.get("email_confirmed", False):
-                return redirect(
-                    url_for("login", email_not_confirmed="true", email=email)
-                )
+                # Se o e-mail não estiver confirmado
+                if not user.get("email_confirmed", False):
+                    return redirect(
+                        url_for("login", email_not_confirmed="true", email=email)
+                    )
 
-            # Verificar senha
-            if check_password_hash(stored_hash, password):
                 session["logged_in"] = True
                 session["email"] = email
                 session["role"] = user.get("role", "user")
@@ -204,7 +209,7 @@ def init_auth_routes(app, users_table, reset_tokens_table, payment_transactions_
                 session["user_id"] = user_id
                 session["account_id"] = account_id
 
-                flash("Você esta logado agora!", "info")
+                flash("Você está logado agora!", "info")
                 return redirect(url_for("index"))
 
             flash(
@@ -838,7 +843,6 @@ def init_auth_routes(app, users_table, reset_tokens_table, payment_transactions_
 
         user_id = session.get("user_id")
 
-        # 🛑 Pega o usuário
         response = users_table.get_item(Key={"user_id": user_id})
         if "Item" not in response:
             flash("Erro ao carregar dados do usuário.", "danger")
@@ -850,7 +854,6 @@ def init_auth_routes(app, users_table, reset_tokens_table, payment_transactions_
         current_timezone = user.get("timezone", "America/Sao_Paulo")
         account_id = user.get("account_id")
 
-        # 🔥 Inicializa variáveis
         plan_type = "free"
         payment_status = "canceled"
         cancel_at = None
@@ -870,8 +873,23 @@ def init_auth_routes(app, users_table, reset_tokens_table, payment_transactions_
             )
             transactions = transactions_response.get("Items", [])
 
-        # 🛑 Se for um POST (cancelar plano)
+        # 🔥 POST — Cancelamento de plano ou conta
         if request.method == "POST":
+            if request.form.get("cancel_account") == "true":
+                # 🔴 Marcar conta como cancelada
+                users_table.update_item(
+                    Key={"user_id": user_id},
+                    UpdateExpression="SET #s = :s",
+                    ExpressionAttributeNames={"#s": "status"},
+                    ExpressionAttributeValues={":s": "canceled"},
+                )
+                flash(
+                    "Conta marcada como cancelada. Ela será excluída em breve.",
+                    "warning",
+                )
+                return redirect(url_for("logout"))  # Opcional: já desloga o usuário
+
+            # Caso contrário, segue lógica de cancelamento do plano
             print("🔵 POST recebido para cancelar o plano.")
 
             if not transactions:
@@ -879,18 +897,13 @@ def init_auth_routes(app, users_table, reset_tokens_table, payment_transactions_
                     "Nenhuma transação ativa encontrada para este account_id.",
                     "warning",
                 )
-                return redirect(
-                    url_for("adjustments")
-                )  # 🔥 Redireciona de volta se não encontrar
+                return redirect(url_for("adjustments"))
 
             cancel_attempted = False
-
             for transaction in transactions:
-
                 if transaction.get("payment_status") in ["paid", "active"]:
                     stripe_subscription_id = transaction.get("stripe_subscription_id")
                     print("🔵 Subscription ID encontrado:", stripe_subscription_id)
-
                     if stripe_subscription_id:
                         try:
                             stripe.Subscription.modify(
@@ -898,9 +911,6 @@ def init_auth_routes(app, users_table, reset_tokens_table, payment_transactions_
                                 cancel_at_period_end=True,
                             )
                             cancel_attempted = True
-                            print(
-                                f"🟡 Assinatura {stripe_subscription_id} marcada para cancelamento ao final do ciclo."
-                            )
                             flash(
                                 "Seu plano foi marcado para cancelamento ao final do período atual.",
                                 "success",
@@ -919,10 +929,9 @@ def init_auth_routes(app, users_table, reset_tokens_table, payment_transactions_
                     "warning",
                 )
 
-            # 🔥⚡ Depois de cancelar ou tentar cancelar, redireciona para GET adjustments
             return redirect(url_for("adjustments"))
 
-        # 🔥 Se for GET (padrão), organiza o que mostrar
+        # 🔥 GET — Monta as variáveis
         for transaction in transactions:
             status = transaction.get("payment_status")
             if status in ["paid", "active", "scheduled_for_cancellation"]:
@@ -938,9 +947,10 @@ def init_auth_routes(app, users_table, reset_tokens_table, payment_transactions_
                 break
             elif status == "canceled":
                 canceled_at = transaction.get("canceled_at")
+
         if plan_type:
             session["plan_type"] = plan_type
-        # 🔥 Agora renderiza o template
+
         return render_template(
             "adjustments.html",
             username=username,
@@ -1089,7 +1099,14 @@ def init_auth_routes(app, users_table, reset_tokens_table, payment_transactions_
 
 
 def create_user(
-    email, username, password, users_table, app, role="admin", user_ip=None
+    email,
+    username,
+    password,
+    users_table,
+    app,
+    role="admin",
+    user_ip=None,
+    status="active",
 ):
     """Create a new user in the database."""
     from boto3.dynamodb.conditions import Key
@@ -1124,6 +1141,7 @@ def create_user(
                 "email_confirmed": False,
                 "email_token": email_token,
                 "last_email_sent": datetime.datetime.now(user_utc).isoformat(),
+                "status": status,
             }
 
             if user_ip:
