@@ -532,9 +532,9 @@ def init_static_routes(
             transaction = event["data"]["object"]
 
             try:
-                stripe_subscription_id = (
-                    "123456"  # transaction.get("subscription")  # Chave primária
-                )
+                stripe_subscription_id = transaction.get(
+                    "subscription"
+                )  # Chave primária
                 if not stripe_subscription_id:
                     raise ValueError("subscription_id não encontrado na sessão.")
 
@@ -556,7 +556,6 @@ def init_static_routes(
                     "invoice_id": transaction.get("invoice"),
                     "status": transaction.get("status"),
                     "livemode": transaction.get("livemode"),
-                    "endpoint_secret": endpoint_secret,
                 }
 
                 # Remove chaves onde o valor é None, para não sujar o banco

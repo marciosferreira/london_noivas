@@ -384,7 +384,6 @@ import datetime
 import pytz
 from flask import session
 
-print("teste")
 import pytz
 
 # utils/time.py
