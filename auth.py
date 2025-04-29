@@ -204,10 +204,6 @@ def init_auth_routes(app, users_table, reset_tokens_table, payment_transactions_
                 session["user_id"] = user_id
                 session["account_id"] = account_id
 
-                # 🆕 Aqui: buscar plano da conta
-                plan_status = get_account_plan(account_id)
-                # session["plan_type"] = plan_status  # "free" ou "premium"
-
                 flash("Você esta logado agora!", "info")
                 return redirect(url_for("index"))
 
