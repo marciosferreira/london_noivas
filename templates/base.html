@@ -79,13 +79,12 @@
 </html>
 
 <script>
-  // Aguarda 3 segundos e fecha automaticamente todos os alerts
+  // Aguarda 4 segundos e fecha apenas alertas que NÃO têm a classe .no-autoclose
   setTimeout(() => {
-    const alerts = document.querySelectorAll('.alert');
+    const alerts = document.querySelectorAll('.alert:not(.no-autoclose)');
     alerts.forEach((alert) => {
-      // Usa a API do Bootstrap 5 para fechar o alerta
       const bsAlert = bootstrap.Alert.getOrCreateInstance(alert);
       bsAlert.close();
     });
-  }, 4000); // 4000 ms = 4 segundos
+  }, 4000);
 </script>

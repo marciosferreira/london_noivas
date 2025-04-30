@@ -131,50 +131,9 @@ def add_header(response):
     return response
 
 
-# Adiciona cache control para arquivos estáticos
-"""@app.after_request
-def add_header(response):
-    path = request.path
-    if path.startswith("/static/icons/"):
-        response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
-    elif path.endswith(".css") or path.endswith(".js"):
-        response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
-    return response"""
-
-
 @app.context_processor
 def inject_session():
     return dict(session=session)
-
-
-@app.route("/refresh_plan_type", methods=["POST"])
-def refresh_plan_type():
-    if not session.get("logged_in") or not session.get("account_id"):
-        return {"success": False, "message": "Usuário não logado."}, 401
-
-    account_id = session["account_id"]
-
-    # 🔥 Consulta a tabela de transações
-    transactions_response = payment_transactions.query(
-        IndexName="account_id-index",
-        KeyConditionExpression=Key("account_id").eq(account_id),
-    )
-    transactions = transactions_response.get("Items", [])
-
-    # 🔥 Agora define o plano baseado nas transações
-    plan_type = "free"  # padrão
-    for transaction in transactions:
-        status = transaction.get("payment_status")
-        if status in ["paid", "active", "scheduled_for_cancellation"]:
-            plan_type = "business"
-            break
-        elif status == "canceled":
-            continue
-
-    # 🔥 Atualiza a sessão
-    session["plan_type"] = plan_type
-
-    return {"success": True, "plan_type": plan_type}
 
 
 @app.template_filter("datetimeformat")

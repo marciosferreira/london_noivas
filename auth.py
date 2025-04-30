@@ -841,8 +841,8 @@ def init_auth_routes(app, users_table, reset_tokens_table, payment_transactions_
             return redirect(url_for("login"))
 
         user_id = session.get("user_id")
-
         response = users_table.get_item(Key={"user_id": user_id})
+
         if "Item" not in response:
             flash("Erro ao carregar dados do usuário.", "danger")
             return redirect(url_for("login"))
@@ -851,68 +851,45 @@ def init_auth_routes(app, users_table, reset_tokens_table, payment_transactions_
         username = user.get("username", "Usuário Desconhecido")
         user_email = user.get("email", "Usuário Desconhecido")
         current_timezone = user.get("timezone", "America/Sao_Paulo")
-        account_id = user.get("account_id")
+        stripe_customer_id = user.get("stripe_customer_id")
+
         transactions = []
+        current_transaction = None
 
-        # 🔥 Busca as transações no banco
-        if account_id:
-            transactions_response = payment_transactions_table.query(
-                IndexName="account_id-index",
-                KeyConditionExpression=Key("account_id").eq(account_id),
-            )
-            transactions = transactions_response.get("Items", [])
-
-        # 🔥 POST — Cancelamento de plano ou conta
-        if request.method == "POST":
-            if request.form.get("cancel_account") == "true":
-                users_table.update_item(
-                    Key={"user_id": user_id},
-                    UpdateExpression="SET #s = :s",
-                    ExpressionAttributeNames={"#s": "status"},
-                    ExpressionAttributeValues={":s": "canceled"},
+        if stripe_customer_id:
+            try:
+                transactions_response = payment_transactions_table.query(
+                    IndexName="customer_id-index",
+                    KeyConditionExpression=Key("customer_id").eq(stripe_customer_id),
                 )
-                flash(
-                    "Conta marcada como cancelada. Ela será excluída em breve.",
-                    "warning",
-                )
-                return redirect(url_for("logout"))
+                transactions = transactions_response.get("Items", [])
 
-            print("🔵 POST recebido para cancelar o plano.")
-            cancel_attempted = False
+                # Ordena do mais recente para o mais antigo
+                transactions.sort(key=lambda x: x.get("updated_at", 0), reverse=True)
 
-            # Tenta cancelar todas as assinaturas encontradas
-            for transaction in transactions:
-                stripe_subscription_id = transaction.get("stripe_subscription_id")
-                if stripe_subscription_id:
-                    try:
-                        stripe.Subscription.modify(
-                            stripe_subscription_id,
-                            cancel_at_period_end=True,
-                        )
-                        cancel_attempted = True
-                        flash(
-                            "Seu plano foi marcado para cancelamento ao final do período atual.",
-                            "success",
-                        )
+                # Encontra a transação mais recente com status válido
+                for tx in transactions:
+                    if tx.get("subscription_status") in [
+                        "trialing",
+                        "active",
+                        "past_due",
+                        "unpaid",
+                        "canceled",
+                        "paused",
+                    ]:
+                        current_transaction = tx
                         break
-                    except Exception as e:
-                        print(f"🔴 Erro ao tentar cancelar no Stripe: {str(e)}")
-                        flash(
-                            "Erro ao tentar cancelar seu plano. Tente novamente.",
-                            "danger",
-                        )
 
-            if not cancel_attempted:
-                flash("Nenhuma assinatura ativa encontrada para cancelar.", "warning")
-
-            return redirect(url_for("adjustments"))
-
-        # 🔥 GET — Apenas envia os dados crus para o front-end
+            except Exception as e:
+                print("🔴 Erro ao buscar transações:", e)
+                flash("Erro ao buscar dados de cobrança.", "danger")
+        print(current_transaction)
         return render_template(
             "adjustments.html",
             username=username,
             email=user_email,
             current_timezone=current_timezone,
+            current_transaction=current_transaction,
             transactions=transactions,
             timezones=[
                 "America/Sao_Paulo",
@@ -1077,7 +1054,6 @@ def create_user(
             return False  # E-mail já cadastrado
 
         try:
-            print("criando customer id")
             # ✅ Cria o Stripe Customer
             customer = stripe.Customer.create(
                 email=email,
@@ -1086,8 +1062,6 @@ def create_user(
             )
             stripe_customer_id = customer.id
 
-            print(stripe_customer_id)
-
             # ✅ Cria a assinatura com 30 dias de trial (sem cartão)
             subscription = stripe.Subscription.create(
                 customer=stripe_customer_id,
@@ -1095,8 +1069,6 @@ def create_user(
                 trial_period_days=30,
                 metadata={"account_id": account_id},
             )
-
-            print(subscription)
 
             # ⬇️ Cria o novo usuário no banco
             item = {
