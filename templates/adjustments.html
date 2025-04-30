@@ -14,16 +14,36 @@
   <div class="d-flex flex-wrap justify-content-center align-items-stretch gap-4">
 
     <!-- CARD: Plano -->
-    <div class="card shadow-sm " style="flex: 1 1 350px; max-width: 500px;">
+    <div class="card shadow-sm" style="flex: 1 1 350px; max-width: 500px;">
       <div class="card-body d-flex flex-column justify-content-center text-center">
-        <h5 class="card-title text-center">Seu Plano</h5>
+        <h5 class="card-title mb-3">Seu Plano Atual</h5>
 
         <p class="text-center mb-2">
-          <strong>Plano Atual:</strong>
+
           {% if plan_type == "premium" %}
             <span class="text-success">Business</span>
+
+            <h2 class="price-highlight">Business</h2>
+
+    <h2 class="price-highlight">R$ 49,90/mês</h2>
+    <ul class="list-unstyled mb-4">
+      <li>✔️ 300 transações ativas</li>
+      <li>✔️ 300 itens cadastrados</li>
+    </ul>
+    <li>Sem publicidade</li>
+    <li>Suporte prioritário</li>
           {% else %}
             <span class="text-secondary">Free</span>
+
+            Free
+            R$ 0/mês
+            ✔️ Até 30 transações ativas
+            ✔️ Até 50 itens cadastrados
+            Pode aparecer publicidade
+
+
+
+
           {% endif %}
         </p>
 
