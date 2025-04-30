@@ -166,7 +166,7 @@ def refresh_plan_type():
     for transaction in transactions:
         status = transaction.get("payment_status")
         if status in ["paid", "active", "scheduled_for_cancellation"]:
-            plan_type = "premium"
+            plan_type = "business"
             break
         elif status == "canceled":
             continue

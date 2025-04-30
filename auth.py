@@ -10,7 +10,7 @@ import json
 import requests
 import stripe
 from boto3.dynamodb.conditions import Key
-
+import os
 from flask import (
     render_template,
     request,
@@ -113,14 +113,13 @@ def init_auth_routes(app, users_table, reset_tokens_table, payment_transactions_
                         )
                         return redirect(url_for("register"))
 
-            print("The IP")
-            print(user_ip)
             success = create_user(
                 email,
                 username,
                 password,
                 users_table,
                 app,
+                payment_transactions_table,
                 role="admin",
                 user_ip=user_ip,
                 status="active",
@@ -853,19 +852,9 @@ def init_auth_routes(app, users_table, reset_tokens_table, payment_transactions_
         user_email = user.get("email", "Usuário Desconhecido")
         current_timezone = user.get("timezone", "America/Sao_Paulo")
         account_id = user.get("account_id")
-
-        plan_type = "free"
-        payment_status = "canceled"
-        cancel_at = None
-        canceled_at = None
-        amount_total = 0
-        currency = "brl"
-        created_at = None
-        cancel_at_period_end = False
-        message = None
         transactions = []
-        current_period_end = None
 
+        # 🔥 Busca as transações no banco
         if account_id:
             transactions_response = payment_transactions_table.query(
                 IndexName="account_id-index",
@@ -876,7 +865,6 @@ def init_auth_routes(app, users_table, reset_tokens_table, payment_transactions_
         # 🔥 POST — Cancelamento de plano ou conta
         if request.method == "POST":
             if request.form.get("cancel_account") == "true":
-                # 🔴 Marcar conta como cancelada
                 users_table.update_item(
                     Key={"user_id": user_id},
                     UpdateExpression="SET #s = :s",
@@ -887,84 +875,45 @@ def init_auth_routes(app, users_table, reset_tokens_table, payment_transactions_
                     "Conta marcada como cancelada. Ela será excluída em breve.",
                     "warning",
                 )
-                return redirect(url_for("logout"))  # Opcional: já desloga o usuário
+                return redirect(url_for("logout"))
 
-            # Caso contrário, segue lógica de cancelamento do plano
             print("🔵 POST recebido para cancelar o plano.")
-
-            if not transactions:
-                flash(
-                    "Nenhuma transação ativa encontrada para este account_id.",
-                    "warning",
-                )
-                return redirect(url_for("adjustments"))
-
             cancel_attempted = False
+
+            # Tenta cancelar todas as assinaturas encontradas
             for transaction in transactions:
-                if transaction.get("payment_status") in ["paid", "active"]:
-                    stripe_subscription_id = transaction.get("stripe_subscription_id")
-                    print("🔵 Subscription ID encontrado:", stripe_subscription_id)
-                    if stripe_subscription_id:
-                        try:
-                            stripe.Subscription.modify(
-                                stripe_subscription_id,
-                                cancel_at_period_end=True,
-                            )
-                            cancel_attempted = True
-                            flash(
-                                "Seu plano foi marcado para cancelamento ao final do período atual.",
-                                "success",
-                            )
-                            break
-                        except Exception as e:
-                            print(f"🔴 Erro ao tentar cancelar no Stripe: {str(e)}")
-                            flash(
-                                "Erro ao tentar cancelar seu plano. Tente novamente.",
-                                "danger",
-                            )
+                stripe_subscription_id = transaction.get("stripe_subscription_id")
+                if stripe_subscription_id:
+                    try:
+                        stripe.Subscription.modify(
+                            stripe_subscription_id,
+                            cancel_at_period_end=True,
+                        )
+                        cancel_attempted = True
+                        flash(
+                            "Seu plano foi marcado para cancelamento ao final do período atual.",
+                            "success",
+                        )
+                        break
+                    except Exception as e:
+                        print(f"🔴 Erro ao tentar cancelar no Stripe: {str(e)}")
+                        flash(
+                            "Erro ao tentar cancelar seu plano. Tente novamente.",
+                            "danger",
+                        )
 
             if not cancel_attempted:
-                flash(
-                    "Nenhuma transação ativa (paga) encontrada para cancelar.",
-                    "warning",
-                )
+                flash("Nenhuma assinatura ativa encontrada para cancelar.", "warning")
 
             return redirect(url_for("adjustments"))
 
-        # 🔥 GET — Monta as variáveis
-        for transaction in transactions:
-            status = transaction.get("payment_status")
-            if status in ["paid", "active", "scheduled_for_cancellation"]:
-                plan_type = "premium"
-                payment_status = status
-                amount_total = transaction.get("amount_total", 0)
-                currency = transaction.get("currency", "brl")
-                created_at = transaction.get("created_at")
-                cancel_at = transaction.get("cancel_at")
-                canceled_at = transaction.get("canceled_at")
-                cancel_at_period_end = transaction.get("cancel_at_period_end", False)
-                current_period_end = transaction.get("current_period_end")
-                break
-            elif status == "canceled":
-                canceled_at = transaction.get("canceled_at")
-
-        if plan_type:
-            session["plan_type"] = plan_type
-
+        # 🔥 GET — Apenas envia os dados crus para o front-end
         return render_template(
             "adjustments.html",
             username=username,
             email=user_email,
             current_timezone=current_timezone,
-            plan_type=plan_type,
-            payment_status=payment_status,
-            cancel_at=cancel_at if cancel_at else None,
-            canceled_at=canceled_at if canceled_at else None,
-            amount_total=amount_total if amount_total else 0,
-            currency=currency if currency else "BRL",
-            created_at=created_at if created_at else None,
-            cancel_at_period_end=cancel_at_period_end,
-            current_period_end=current_period_end,
+            transactions=transactions,
             timezones=[
                 "America/Sao_Paulo",
                 "America/Fortaleza",
@@ -978,7 +927,6 @@ def init_auth_routes(app, users_table, reset_tokens_table, payment_transactions_
                 "America/Porto_Velho",
                 "America/Rio_Branco",
             ],
-            message=message,
         )
 
     @app.route("/admin-dashboard")
@@ -1104,11 +1052,12 @@ def create_user(
     password,
     users_table,
     app,
+    payment_transactions_table,
     role="admin",
     user_ip=None,
     status="active",
 ):
-    """Create a new user in the database."""
+    """Create a new user and inicia trial Stripe automaticamente."""
     from boto3.dynamodb.conditions import Key
 
     with app.app_context():
@@ -1120,16 +1069,36 @@ def create_user(
         current_user_id = session.get("user_id") if "user_id" in session else None
         user_utc = get_user_timezone(users_table, current_user_id)
 
-        # ✅ Verifica se o e-mail já está cadastrado via GSI
+        # Verifica se o e-mail já está cadastrado
         response = users_table.query(
             IndexName="email-index", KeyConditionExpression=Key("email").eq(email)
         )
-
         if response["Count"] > 0:
             return False  # E-mail já cadastrado
 
-        # ⬇️ Cria o novo usuário
         try:
+            print("criando customer id")
+            # ✅ Cria o Stripe Customer
+            customer = stripe.Customer.create(
+                email=email,
+                name=username,
+                metadata={"account_id": account_id},
+            )
+            stripe_customer_id = customer.id
+
+            print(stripe_customer_id)
+
+            # ✅ Cria a assinatura com 30 dias de trial (sem cartão)
+            subscription = stripe.Subscription.create(
+                customer=stripe_customer_id,
+                items=[{"price": os.getenv("STRIPE_PRICE_ID")}],
+                trial_period_days=30,
+                metadata={"account_id": account_id},
+            )
+
+            print(subscription)
+
+            # ⬇️ Cria o novo usuário no banco
             item = {
                 "user_id": user_id,
                 "account_id": account_id,
@@ -1142,13 +1111,17 @@ def create_user(
                 "email_token": email_token,
                 "last_email_sent": datetime.datetime.now(user_utc).isoformat(),
                 "status": status,
+                "stripe_customer_id": stripe_customer_id,
             }
 
             if user_ip:
-                item["ip"] = user_ip  # ✅ adiciona o IP se foi passado
+                item["ip"] = user_ip
 
             users_table.put_item(Item=item)
 
+            # Não salvamos mais a transação aqui. O webhook cuidará disso!
+
+            # 🔔 E-mails de boas-vindas e confirmação
             confirm_url = url_for("confirm_email", token=email_token, _external=True)
             send_confirmation_email(email, username, confirm_url)
             send_admin_notification_email(
@@ -1160,7 +1133,10 @@ def create_user(
             return True
 
         except ClientError as e:
-            print("Erro inesperado:", e)
+            print("🔴 Erro do DynamoDB:", e)
+            raise
+        except Exception as e:
+            print("🔴 Erro geral:", e)
             raise
 
 

@@ -430,10 +430,10 @@ def get_account_plan(account_id):
 
         if (
             account
-            and account.get("plan_type") == "premium"
+            and account.get("plan_type") == "business"
             and account.get("payment_status") == "active"
         ):
-            return "premium"
+            return "business"
         else:
             return "free"
     except Exception as e:

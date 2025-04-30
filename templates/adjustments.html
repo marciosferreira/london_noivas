@@ -1,3 +1,5 @@
+<!-- Mensagem de teste: ajustes.html carregado -->
+<!-- Mensagem de teste 2: patch aplicado novamente -->
 {% extends "base.html" %}
 
 {% block title %}Ajustes da Conta{% endblock %}
@@ -13,75 +15,84 @@
 
   <div class="d-flex flex-wrap justify-content-center align-items-stretch gap-4">
 
-    <!-- CARD: Plano -->
-    <div class="card shadow-sm" style="flex: 1 1 350px; max-width: 500px;">
-      <div class="card-body d-flex flex-column justify-content-center text-center">
-        <h5 class="card-title mb-3">Seu Plano Atual</h5>
+<!-- CARD: Plano mensagem-->
+<div class="card shadow-sm" style="flex: 1 1 350px; max-width: 500px;">
+  <div class="card-body d-flex flex-column justify-content-center text-center">
+    <h5 class="card-title mb-3">Seu Plano Atual</h5>
 
-        <p class="text-center mb-2">
+    <div class="text-center mb-3">
 
-          {% if plan_type == "premium" %}
-            <span class="text-success">Business</span>
+      {% if subscription_status == "trialing" %}
+        <div class="p-3 rounded mb-3" style="background-color: #cff4fc; border-left: 6px solid #055160;">
+          <strong class="d-block mb-2 text-info">Período de Teste Ativo</strong>
+          <span class="text-muted">Você pode usar todos os recursos até <strong>{{ current_period_end | datetimeformat }}</strong></span>
+        </div>
+        <a href="{{ url_for('billing') }}" class="btn btn-outline-primary w-100">Adicionar Cartão para Continuar</a>
+        <div class="text-muted mt-2" style="font-size: 0.9rem;">*Você não será cobrado durante o teste</div>
 
-            <h2 class="price-highlight">Business</h2>
+      {% elif subscription_status == "active" %}
+        <div class="p-3 rounded mb-3" style="background-color: #d1e7dd; border-left: 6px solid #0f5132;">
+          <strong class="d-block mb-2 text-success">Plano Business</strong>
+          <span class="d-block price-highlight mb-2 fw-bold">R$ 49,90/mês</span>
+          <ul class="list-unstyled mb-2 text-start mx-auto" style="max-width: 250px;">
+            <li>✔️ 300 transações ativas</li>
+            <li>✔️ 300 itens cadastrados</li>
+          </ul>
+        </div>
 
-    <h2 class="price-highlight">R$ 49,90/mês</h2>
-    <ul class="list-unstyled mb-4">
-      <li>✔️ 300 transações ativas</li>
-      <li>✔️ 300 itens cadastrados</li>
-    </ul>
-    <li>Sem publicidade</li>
-    <li>Suporte prioritário</li>
+        <ul class="list-group list-group-flush mb-3 text-start">
+          <li class="list-group-item">
+            <strong>Valor mensal:</strong> R$ {{ amount_total / 100 }} {{ currency|upper }}
+          </li>
+          <li class="list-group-item">
+            <strong>Início da assinatura:</strong> {{ created_at | datetimeformat }}
+          </li>
+
+          {% if cancel_at_period_end %}
+            <li class="list-group-item bg-warning-subtle text-warning border-warning">
+              Seu plano será cancelado em: <strong>{{ cancel_at | datetimeformat }}</strong>.
+            </li>
+            <a href="{{ url_for('billing') }}" class="btn btn-success w-100 mt-3">Assinar Novamente</a>
           {% else %}
-            <span class="text-secondary">Free</span>
-
-            Free
-            R$ 0/mês
-            ✔️ Até 30 transações ativas
-            ✔️ Até 50 itens cadastrados
-            Pode aparecer publicidade
-
-
-
-
-          {% endif %}
-        </p>
-
-        {% if plan_type == "premium" %}
-          <ul class="list-group list-group-flush mb-3">
-            <li class="list-group-item">
-              <strong>Valor mensal:</strong> R$ {{ amount_total / 100 }} {{ currency|upper }}
-            </li>
-            <li class="list-group-item">
-              <strong>Início da assinatura:</strong> {{ created_at | datetimeformat }}
-            </li>
             <li class="list-group-item">
               <strong>Renova automaticamente em:</strong> {{ current_period_end | datetimeformat }}
             </li>
-
-            {% if canceled_at %}
-            <li class="list-group-item text-danger">
-              <strong>Cancelado em:</strong> {{ canceled_at | datetimeformat }}
-            </li>
-            {% endif %}
-          </ul>
-
-          {% if plan_type == "premium" and cancel_at_period_end and cancel_at %}
-          <div style="background-color: #fff3cd; border-left: 6px solid #ffecb5; color: #856404; padding: 16px; margin-top: 20px; border-radius: 8px; text-align: center; font-size: 16px;">
-            Seu plano Business não será renovado e será cancelado em: <strong>{{ cancel_at | datetimeformat }} h</strong>.
-          </div>
+            <form method="POST" action="{{ url_for('adjustments') }}">
+              <button type="submit" name="cancel_plan" value="true" class="btn btn-outline-danger w-100 mt-3">Cancelar assinatura</button>
+            </form>
           {% endif %}
-        {% endif %}
+        </ul>
 
-        {% if plan_type == "premium" and not cancel_at_period_end and payment_status not in ["scheduled_for_cancellation", "canceled"] %}
-          <button type="button" id="cancel-button" class="btn btn-danger w-100 mt-3">Cancelar assinatura</button>
-        {% endif %}
+      {% elif subscription_status in ["past_due", "unpaid"] %}
+        <div class="p-3 rounded mb-3" style="background-color: #fff3cd; border-left: 6px solid #856404;">
+          <strong class="d-block mb-2 text-warning">Pagamento Pendente</strong>
+          <p class="text-muted mb-2">Não conseguimos processar sua última cobrança.</p>
+          <a href="{{ url_for('billing') }}" class="btn btn-outline-warning w-100">Atualizar Cartão</a>
+        </div>
 
-        {% if plan_type == "free" and not cancel_at_period_end %}
-          <button id="checkout-button" class="btn btn-primary w-100 mt-3">Assinar Plano Business</button>
-        {% endif %}
-      </div>
+      {% elif subscription_status == "canceled" or plan_type == "canceled" %}
+        <div class="p-3 rounded mb-3" style="background-color: #f8d7da; border-left: 6px solid #842029;">
+          <strong class="d-block mb-2 text-danger">Plano Cancelado</strong>
+          <ul class="list-group list-group-flush mb-3">
+            <li class="list-group-item text-danger">
+              <strong>Data do cancelamento:</strong> {{ canceled_at | datetimeformat }}
+            </li>
+          </ul>
+          <span class="d-block price-highlight mb-2">
+            Assine novamente para continuar usando todos os recursos.
+          </span>
+          <a href="{{ url_for('billing') }}" class="btn btn-primary w-100">Assinar Plano Business</a>
+        </div>
+
+      {% else %}
+        <div class="alert alert-secondary">Nenhum plano ativo encontrado.</div>
+        <a href="{{ url_for('billing') }}" class="btn btn-primary w-100">Escolher um Plano</a>
+      {% endif %}
     </div>
+  </div>
+</div>
+
+
 
     <!-- CARD: Nome da Loja -->
     <div class="card shadow-sm " style="flex: 1 1 350px; max-width: 500px;">
@@ -149,6 +160,7 @@
         <h5 class="card-title text-center">Fuso Horário</h5>
         <form method="POST" action="{{ url_for('change_timezone') }}">
           <p class="text-muted text-center">Escolha o seu fuso horário atual.</p>
+          <p class="text-muted text-center">Importante para que os alertas e datas de retirada e devolução estejam corretos.
           <div class="mb-3">
             <label for="timezone" class="form-label">Fuso Horário:</label>
             <select id="timezone" name="timezone" class="form-select" required>

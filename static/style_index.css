@@ -52,7 +52,8 @@
 }
 
 .hero h3,
-.hero h4 {
+.hero h4,
+.hero h5 {
   font-weight: 400;
   color: #666;
   margin-bottom: 1.5rem;
