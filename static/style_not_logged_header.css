@@ -99,23 +99,23 @@ body {
 }
 
 .btn-login-style {
-  background-color: #198754; /* Verde bonito (Bootstrap sucesso) */
-  color: white;
+  background-color: #ffffff; /* Branco */
+  color: #003366; /* Azul escuro institucional */
   padding: 8px 20px;
   font-size: 1rem;
-  border: none;
+  border: 1px solid #003366;
   border-radius: 5px;
-  transition: background-color 0.3s;
+  transition: background-color 0.3s, color 0.3s;
 }
 
 .btn-login-style:hover {
-  background-color: #157347; /* Verde mais escuro ao passar o mouse */
-  color: white;
+  background-color: #f2f2f2; /* Cinza claro no hover */
+  color: #001f4d; /* Azul ainda mais escuro */
 }
 
 .btn-register-style {
-  background-color: #ffc107; /* Amarelo Bootstrap (Warning) */
-  color: black;
+  background-color: #2e7d32; /* Verde escuro sofisticado */
+  color: white;
   padding: 8px 20px;
   font-size: 1rem;
   border: none;
@@ -124,6 +124,6 @@ body {
 }
 
 .btn-register-style:hover {
-  background-color: #e0a800; /* Amarelo mais escuro no hover */
-  color: black;
+  background-color: #25672a; /* Verde mais escuro no hover */
+  color: white;
 }

@@ -115,14 +115,15 @@
         <div class="col-12 col-md-auto">
           <div>
             <strong>Itens cadastrados:</strong>
-            {{ total_items }} de {{ max_limit }} no seu plano
+            {{ total_itens }} de {{ max_limit }} no seu plano
           </div>
         </div>
       </div>
     </div>
 </div>
 
-
+</div>
+</div>
     <!-- MODAL para imagem -->
     {% include 'components/image_modal.html' %} {% endblock %} {% block scripts %}
     <!-- Modal do calendário -->
@@ -187,10 +188,10 @@
 
     <script>
       document.addEventListener("DOMContentLoaded", function () {
-        const totalItems = {{ total_items }};
+        const totalItems = {{ total_itens }};
         const paymentStatus = {{ current_transaction.subscription_status | default('none') | tojson }};
         const allowedStatuses = ["trialing", "active", "past_due"];
-        const maxItems = allowedStatuses.includes(subscriptionStatus) ? 300 : 0;
+        const maxItems = allowedStatuses.includes(paymentStatus) ? 300 : 0;
 
         const addButton = document.getElementById("add-item-btn");
         if (addButton) {
@@ -248,5 +249,4 @@
       {% endif %}
     </script>
     {% endblock %}
-  </div>
-</div>
+

@@ -1,7 +1,7 @@
 import datetime
 import uuid
 from urllib.parse import urlparse
-from boto3.dynamodb.conditions import Key
+from boto3.dynamodb.conditions import Key, Attr
 
 from flask import (
     render_template,
@@ -1916,21 +1916,60 @@ def list_raw_itens(
         session["cursor_pages_itens"].pop(str(page + 1), None)
 
     # 🔥 Total de transações alugadas/reservadas
+
+    # conta total de transaçoes pra retornar ao template:
     total_relevant_transactions = 0
+    exclusive_start_key = None
+
     try:
-        response = transactions_table.query(
-            IndexName="account_id-index",
-            KeyConditionExpression="account_id = :account_id",
-            ExpressionAttributeValues={":account_id": account_id},
-        )
-        transactions = response.get("Items", [])
-        total_relevant_transactions = sum(
-            1
-            for txn in transactions
-            if txn.get("transaction_status") in ["rented", "reserved", "returned"]
-        )
+        while True:
+            query_params = {
+                "IndexName": "account_id-index",
+                "KeyConditionExpression": "account_id = :account_id",
+                "FilterExpression": Attr("transaction_status").is_in(
+                    ["rented", "reserved"]
+                ),
+                "ExpressionAttributeValues": {":account_id": account_id},
+                "Select": "COUNT",
+            }
+
+            if exclusive_start_key:
+                query_params["ExclusiveStartKey"] = exclusive_start_key
+
+            response = transactions_table.query(**query_params)
+            total_relevant_transactions += response.get("Count", 0)
+
+            exclusive_start_key = response.get("LastEvaluatedKey")
+            if not exclusive_start_key:
+                break
     except Exception as e:
         print(f"Erro ao consultar transações: {e}")
+
+    # conta total de itens para retornar ao template
+    total_itens = 0
+    exclusive_start_key = None
+
+    try:
+        while True:
+            query_kwargs = {
+                "IndexName": "account_id-created_at-index",
+                "KeyConditionExpression": Key("account_id").eq(account_id),
+                "FilterExpression": Attr("status").is_in(["available", "archive"]),
+                "Select": "COUNT",
+            }
+
+            if exclusive_start_key:
+                query_kwargs["ExclusiveStartKey"] = exclusive_start_key
+
+            response = itens_table.query(**query_kwargs)
+            total_itens += response.get("Count", 0)
+
+            exclusive_start_key = response.get("LastEvaluatedKey")
+            if not exclusive_start_key:
+                break
+
+    except Exception as e:
+        print(f"Erro ao contar itens: {e}")
 
     # 🔥 Controle de botão next
     last_page_itens = session.get("last_page_itens")
@@ -1963,8 +2002,7 @@ def list_raw_itens(
         next_url=request.url,
         current_page=current_page,
         total_relevant_transactions=total_relevant_transactions,
-        total_items=len(valid_itens),
-        itens_count=len(valid_itens),
+        total_itens=total_itens,
         has_next=has_next,
         has_prev=current_page > 1,
         current_transaction=current_transaction,
