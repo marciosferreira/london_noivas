@@ -3,6 +3,11 @@
 {% endblock %} {% block content %}
 <div class="container mt-3">
   <h2 class="mb-4">Inventário de itens</h2>
+
+  {{total_itens}}
+   {{ current_transaction.subscription_status | default('none') }}
+
+  {{ total_relevant_transactions }}
    {% if not itens %}
   <div
     style="
@@ -166,7 +171,7 @@
     <script>
       function checkTransactionLimit(event) {
         const totalTransactions = {{ total_relevant_transactions if total_relevant_transactions is not none else 0 | tojson }};
-        const paymentStatus = "{{ current_transaction.payment_status if current_transaction else '' }}";
+        const paymentStatus = const paymentStatus = {{ current_transaction.payment_status | default('') | tojson }};
 
         const allowStatuses = ["trialing", "active", "past_due"];
         const maxTransactions = allowStatuses.includes(paymentStatus) ? 300 : 0;
@@ -183,7 +188,7 @@
     <script>
       document.addEventListener("DOMContentLoaded", function () {
         const totalItems = {{ total_items }};
-        const subscriptionStatus = "{{ current_transaction.subscription_status | default('none') }}";
+        const paymentStatus = {{ current_transaction.subscription_status | default('none') | tojson }};
         const allowedStatuses = ["trialing", "active", "past_due"];
         const maxItems = allowedStatuses.includes(subscriptionStatus) ? 300 : 0;
 

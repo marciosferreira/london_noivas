@@ -1953,7 +1953,6 @@ def list_raw_itens(
         session["current_page_itens"] = last_valid_page
         session["last_page_itens"] = last_valid_page
         return redirect(url_for("inventory", page=last_valid_page, force_no_next=1))
-
     return render_template(
         template,
         itens=valid_itens,
