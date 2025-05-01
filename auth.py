@@ -891,7 +891,8 @@ def init_auth_routes(app, users_table, reset_tokens_table, payment_transactions_
                 print("🔴 Erro ao buscar transações:", e)
                 flash("Erro ao buscar dados de cobrança.", "danger")
         # inserir info sobre se o cliente tem cartão cadastrado
-        current_transaction["has_card"] = cliente_tem_cartao(stripe_customer_id)
+        if current_transaction:
+            current_transaction["has_card"] = cliente_tem_cartao(stripe_customer_id)
 
         # Garante que current_transaction tenha todas as chaves esperadas
         expected_keys = [
