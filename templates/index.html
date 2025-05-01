@@ -11,7 +11,7 @@
 
     <section class="hero text-center">
       {% if not session.get('logged_in') %}
-      <h1>Alugue QQC</h1>
+      <h1 class="titulo-site">Alugue QQC</h1>
 
 
       {% endif %} {% if not session.get('logged_in') %}
@@ -22,141 +22,158 @@
       {% endif %}
     </section>
 
-    <section class="container mt-4">
-      <div class="row row-cols-2 row-cols-sm-2 row-cols-md-4 g-4 text-center">
-        <div class="col">
-          <div class="position-relative">
-            <a href="{{ url_for('listar_clientes') }}">
-              <div class="image-wrapper">
-                <img src="/static/icons/clients.png" alt="Clientes" class="img-fluid img-quick-access mb-2 rounded shadow" />
-              </div>
+<!-- Inclua isso no <head> se ainda não estiver usando Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+  <style>
+    .feature-block {
+      max-width: 100%;
+    }
+
+    .feature-text {
+      max-width: 320px;
+      word-wrap: break-word;
+    }
+
+    @media (max-width: 576px) {
+      .custom-spacing {
+        margin-top: 0rem !important;
+      }
+
+      .custom-spacing .row {
+        row-gap: 1rem !important;
+      }
+    }
+
+    .features-wrapper {
+      max-width: 960px;
+      margin-left: 15%;  /* empurra levemente para a direita */
+      margin-right: auto;
+    }
+
+    @media (max-width: 768px) {
+      .features-wrapper {
+        margin-left: auto;
+        margin-right: auto;
+        padding-left: 1rem;
+        padding-right: 1rem;
+      }
+    }
+
+    .feature-accent {
+      color: #151515; /* exemplo de verde escuro elegante */
+    }
+    .titulo-site {
+      font-size: 2.75rem;
+      font-weight: bold;
+      color: #2e7d32;
+      text-shadow: 0px 4px 2px rgba(37, 36, 36, 0.25);
+      display: inline-block;
+      margin-bottom: 0.5rem;
+    }
+
+
+
+  </style>
+
+  <section class="container custom-spacing">
+    <div class="features-wrapper">
+      <div class="row row-cols-1 row-cols-md-2 g-4">
+
+        <!-- Clientes -->
+        <div class="col d-flex align-items-start feature-block ps-2">
+          <i class="fas fa-users fa-2x feature-accent me-3 mt-1"></i>
+          <div class="feature-text">
+            <a href="{{ url_for('listar_clientes') }}" class="text-decoration-none">
+              <h5 class="mb-1 feature-accent">Clientes</h5>
             </a>
-            {% if session.get('logged_in') %}
-            <span class="badge-counter">{{ stats.total_clients }}</span>
-            {% endif %}
+            <p class="mb-0 text-muted">Gerencie seu portfólio de clientes com praticidade e agilidade.</p>
           </div>
-          {% if not session.get('logged_in') %}
-          <p class="card-description">Gerencie seus portifólio de clientes.</p>
-          {% endif %}
         </div>
 
-        <!-- Bloco 2 - Inventário -->
-        <div class="col">
-          <div class="position-relative">
-            <a href="{{ url_for('inventory') }}">
-              <div class="image-wrapper">
-                <img src="/static/icons/inventory.png" alt="Inventário" class="img-fluid img-quick-access mb-2 rounded shadow" />
-              </div>
+        <!-- Inventário -->
+        <div class="col d-flex align-items-start feature-block ps-2">
+          <i class="fas fa-boxes-stacked fa-2x feature-accent me-3 mt-1"></i>
+          <div class="feature-text">
+            <a href="{{ url_for('inventory') }}" class="text-decoration-none">
+              <h5 class="mb-1 feature-accent">Inventário</h5>
             </a>
-            {% if session.get('logged_in') %}
-            <span class="badge-counter">{{ stats.total_items_available }}</span>
-            {% endif %}
+            <p class="mb-0 text-muted">Controle todos os seus itens e acesse facilmente via QR Codes.</p>
           </div>
-          {% if not session.get('logged_in') %}
-          <p class="card-description">Controle seu inventário e acesse itens por QR Codes.</p>
-          {% endif %}
         </div>
 
-        <!-- Bloco 3 - Arquivados -->
-        <div class="col">
-          <div class="position-relative">
-            <a href="{{ url_for('archive') }}">
-              <div class="image-wrapper">
-                <img src="/static/icons/archive.png" alt="Arquivados" class="img-fluid img-quick-access mb-2 rounded shadow" />
-              </div>
+        <!-- Arquivados -->
+        <div class="col d-flex align-items-start feature-block ps-2">
+          <i class="fas fa-box-archive fa-2x feature-accent me-3 mt-1"></i>
+          <div class="feature-text">
+            <a href="{{ url_for('archive') }}" class="text-decoration-none">
+              <h5 class="mb-1 feature-accent">Itens Arquivados</h5>
             </a>
-            {% if session.get('logged_in') %}
-            <span class="badge-counter">{{ stats.total_items_archived }}</span>
-            {% endif %}
+            <p class="mb-0 text-muted">Organize seu estoque desativando temporariamente itens não disponíveis.</p>
           </div>
-          {% if not session.get('logged_in') %}
-          <p class="card-description">Arquive itens não disponíveis para melhor organização.</p>
-          {% endif %}
         </div>
 
-        <!-- Bloco 4 - Reservados -->
-        <div class="col">
-          <div class="position-relative">
-            <a href="{{ url_for('reserved') }}">
-              <div class="image-wrapper">
-                <img src="/static/icons/reserved.png" alt="Reservados" class="img-fluid img-quick-access mb-2 rounded shadow" />
-              </div>
+        <!-- Reservados -->
+        <div class="col d-flex align-items-start feature-block ps-2">
+          <i class="fas fa-calendar-check fa-2x feature-accent me-3 mt-1"></i>
+          <div class="feature-text">
+            <a href="{{ url_for('reserved') }}" class="text-decoration-none">
+              <h5 class="mb-1 feature-accent">Reservados</h5>
             </a>
-            {% if session.get('logged_in') %}
-            <span class="badge-counter">{{ stats.total_reserved }}</span>
-            {% endif %}
+            <p class="mb-0 text-muted">Acompanhe reservas com agenda integrada e evite conflitos de datas.</p>
           </div>
-          {% if not session.get('logged_in') %}
-          <p class="card-description">Acompanhe as reservas com agenda embutida e evite conflitos.</p>
-          {% endif %}
         </div>
 
-        <!-- Bloco 5 - Retirados -->
-        <div class="col">
-          <div class="position-relative">
-            <a href="{{ url_for('rented') }}">
-              <div class="image-wrapper">
-                <img src="/static/icons/rented.png" alt="Retirados" class="img-fluid img-quick-access mb-2 rounded shadow" />
-              </div>
+        <!-- Retirados -->
+        <div class="col d-flex align-items-start feature-block ps-2">
+          <i class="fas fa-truck-moving fa-2x feature-accent me-3 mt-1"></i>
+          <div class="feature-text">
+            <a href="{{ url_for('rented') }}" class="text-decoration-none">
+              <h5 class="mb-1 feature-accent">Retirados</h5>
             </a>
-            {% if session.get('logged_in') %}
-            <span class="badge-counter">{{ stats.total_rented }}</span>
-            {% endif %}
+            <p class="mb-0 text-muted">Gerencie transações ativas e receba alertas automáticos de atraso.</p>
           </div>
-          {% if not session.get('logged_in') %}
-          <p class="card-description">Controle total de cada transação, com alertas de atrasos de prazos.</p>
-          {% endif %}
         </div>
 
-        <!-- Bloco 6 - Devolvidos -->
-        <div class="col">
-          <div class="position-relative">
-            <a href="{{ url_for('returned') }}">
-              <div class="image-wrapper">
-                <img src="/static/icons/returned.png" alt="Devolvidos" class="img-fluid img-quick-access mb-2 rounded shadow" />
-              </div>
+        <!-- Devolvidos -->
+        <div class="col d-flex align-items-start feature-block ps-2">
+          <i class="fas fa-clipboard-check fa-2x feature-accent me-3 mt-1"></i>
+          <div class="feature-text">
+            <a href="{{ url_for('returned') }}" class="text-decoration-none">
+              <h5 class="mb-1 feature-accent">Devolvidos</h5>
             </a>
-            {% if session.get('logged_in') %}
-            <span class="badge-counter">{{ stats.total_returned }}</span>
-            {% endif %}
+            <p class="mb-0 text-muted">Acompanhe o histórico completo de devoluções e encerramentos.</p>
           </div>
-          {% if not session.get('logged_in') %}
-          <p class="card-description">Mantenha um histórico de controle de todos as transações finalizadas.</p>
-          {% endif %}
         </div>
 
-        <!-- Bloco 7 - Relatórios -->
-        <div class="col">
-          <div class="position-relative">
-            <a href="{{ url_for('reports') }}">
-              <div class="image-wrapper">
-                <img src="/static/icons/reports.png" alt="Relatórios" class="img-fluid img-quick-access mb-2 rounded shadow" />
-              </div>
+        <!-- Relatórios -->
+        <div class="col d-flex align-items-start feature-block ps-2">
+          <i class="fas fa-chart-line fa-2x feature-accent me-3 mt-1"></i>
+          <div class="feature-text">
+            <a href="{{ url_for('reports') }}" class="text-decoration-none">
+              <h5 class="mb-1 feature-accent">Relatórios</h5>
             </a>
+            <p class="mb-0 text-muted">Visualize relatórios de desempenho e métricas financeiras da locadora.</p>
           </div>
-          {% if not session.get('logged_in') %}
-          <p class="card-description">Gere relatórios de transações e desempenho financeiro.</p>
-          {% endif %}
         </div>
 
-        <!-- Bloco 8 - Contratos -->
-        <div class="col">
-          <div class="position-relative">
-            <a href="{{ url_for('listar_modelos') }}">
-              <div class="image-wrapper">
-                <img src="/static/icons/contratos.png" alt="Contratos" class="img-fluid img-quick-access mb-2 rounded shadow" />
-              </div>
+        <!-- Contratos -->
+        <div class="col d-flex align-items-start feature-block ps-2">
+          <i class="fas fa-file-signature fa-2x feature-accent me-3 mt-1"></i>
+          <div class="feature-text">
+            <a href="{{ url_for('listar_modelos') }}" class="text-decoration-none">
+              <h5 class="mb-1 feature-accent">Contratos</h5>
             </a>
+            <p class="mb-0 text-muted">Imprima contratos e recibos prontos para assinatura em segundos.</p>
           </div>
-          {% if not session.get('logged_in') %}
-          <p class="card-description">Imprima contratos e recibos pré preenchidos, prontos para assinar.</p>
-          {% endif %}
         </div>
 
-
-        <!-- Adicione os demais blocos como você já tinha: arquivados, reservados, etc. -->
       </div>
-    </section>
+    </div>
+  </section>
+
+
+
 
     {% if not session.get('logged_in') %}
     <section class="features container text-center mt-5">
