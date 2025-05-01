@@ -7,8 +7,9 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='style_adjustments.css') }}" />
 {% endblock %}
 
-
 {% block content %}
+{{current_transaction}}
+
 <div class="container mt-4">
   <h2 class="text-center text-dark-blue mb-4">Ajustes e Planos</h2>
 
@@ -31,7 +32,6 @@
       {% endif %}
 
 
-
 <!-- Seção: Trial ativo e pagamento não cancelado -->
 {% if status == "trialing" and payment_status != "canceled" %}
   <div class="alert alert-info no-autoclose">
@@ -39,10 +39,10 @@
     Você pode usar todos os recursos até <strong>{{ fim }} h</strong>.
   </div>
 
-  <!-- Sem cancelamento agendado -->
+  <!-- Sub-seção: Sem cancelamento agendado -->
   {% if cancel_at_period_end is not defined or cancel_at_period_end == False %}
 
-    <!-- Cliente ainda não tem cartão -->
+    <!-- Sub-subseção: Cliente ainda não tem cartão -->
     {% if not has_card %}
       <p class="text-muted text-center">Você não cadastrou nenhum cartão. Cadastre-o para evitar interrupções.</p>
       <p class="text-muted text-center">
@@ -52,7 +52,7 @@
       </p>
       <a href="{{ url_for('billing') }}" class="btn btn-outline-warning w-100 mt-2">Acessar</a>
 
-    <!-- Cliente já tem cartão -->
+    <!-- Sub-subseção: Cliente já tem cartão -->
     {% else %}
       <p class="text-muted text-center">Você já cadastrou seu cartão para renovação automática.</p>
       <p class="text-muted text-center">
@@ -63,14 +63,14 @@
       <a href="{{ url_for('billing') }}" class="btn btn-outline-warning w-100 mt-2">Acessar</a>
     {% endif %}
 
-  <!-- Cancelamento agendado -->
+  <!-- Sub-seção: Cancelamento agendado -->
   {% else %}
     <p class="text-muted text-center">Você solicitou cancelamento da assinatura após o teste.</p>
     <p class="text-muted text-center">Acesse o link abaixo para renovar a assinatura após o teste.</p>
     <a href="{{ url_for('billing') }}" class="btn btn-outline-warning w-100 mt-2">Acessar</a>
   {% endif %}
 
-<!-- Seção: Assinatura foi cancelada manualmente -->
+<!-- Seção: Assinatura cancelada manualmente -->
 {% elif payment_status == "canceled" %}
   <div class="alert alert-danger no-autoclose">
     <strong>Assinatura Cancelada</strong><br>
@@ -78,30 +78,47 @@
   </div>
   <button id="checkout-button" class="btn btn-primary w-100 mt-3">Assinar Plano Business</button>
 
-{% elif payment_status == "paid" and status == "active"%}
+<!-- Seção: Assinatura ativa e paga -->
+{% elif payment_status == "paid" and status == "active" %}
 
-{% if cancel_at_period_end is not defined or cancel_at_period_end == False %}
+  <!-- Sub-seção: Renovação automática ativada -->
+  {% if cancel_at_period_end is not defined or cancel_at_period_end == False %}
+    <div class="alert alert-success no-autoclose">
+      <strong>Assinatura Ativa</strong><br>
+      Sua assinatura está ativa e será renovada em <strong>{{ fim }} h</strong>.
+    </div>
+    <a href="{{ url_for('billing') }}" class="btn btn-outline-secondary w-100 mt-2">Gerenciar/Cancelar</a>
 
-<div class="alert alert-success no-autoclose">
-  <strong>Assinatura Ativa</strong><br>
-  Sua assinatura está ativa e será renovada em <strong>{{ fim }} h</strong>.
+  <!-- Sub-seção: Renovação desativada -->
+  {% else %}
+    <div class="alert alert-success no-autoclose">
+      <strong>Assinatura Ativa</strong><br>
+      Sua assinatura está ativa e termina em <strong>{{ fim }} h</strong>. Ela não será renovada.
+    </div>
+    <p class="text-muted text-center">Acesse o link abaixo para permitir a renovação.</p>
+    <a href="{{ url_for('billing') }}" class="btn btn-outline-secondary w-100 mt-2">Acessar</a>
+  {% endif %}
+
+{% elif status == "paused" and payment_status == "paid" %}
+<div class="alert alert-warning no-autoclose">
+  <strong>Plano Suspenso</strong><br>
+  Seu período de teste expirou em <strong>{{ fim }}</strong> e o plano foi suspenso porque você não informou um cartão de crédito válido.
 </div>
-<a href="{{ url_for('billing') }}" class="btn btn-outline-secondary w-100 mt-2">
-  Gerenciar/Cancelar
+<p class="text-muted text-center">Efetue um pagamento para ativar sua assinatura.</p>
+<a href="{{ url_for('billing') }}" class="btn btn-outline-warning w-100 mt-2">
+  Assinar/Cancelar
 </a>
-{% else %}
 
-<div class="alert alert-success no-autoclose">
-  <strong>Assinatura Ativa</strong><br>
-  Sua assinatura está ativa e termina em <strong>{{ fim }} h</strong>. Ela não será renovada.
-</div>
-<p class="text-muted text-center">Acesse o link abaixo para permitir a renovação.</p>
+{% elif status == "paused" and payment_status == "canceled" %}
+        <div class="alert alert-danger no-autoclose">
+          <strong>Assinatura Cancelada</strong><br>
+          Você encerrou sua assinatura. Crie uma nova a qualquer momento.
+        </div>
+        <button id="checkout-button" class="btn btn-primary w-100 mt-3">Assinar Plano Business</button>
 
-<a href="{{ url_for('billing') }}" class="btn btn-outline-secondary w-100 mt-2">
-  Acessar
-</a>
+
 {% endif %}
-{% endif %}
+
 
 
 
