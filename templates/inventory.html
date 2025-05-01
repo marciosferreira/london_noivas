@@ -3,8 +3,7 @@
 {% endblock %} {% block content %}
 <div class="container mt-3">
   <h2 class="mb-4">Inventário de itens</h2>
-
-  {% if not itens %}
+   {% if not itens %}
   <div
     style="
       display: flex;
@@ -95,6 +94,9 @@
 <ul class="pagination justify-content-center"></ul>
 {% endif %}
 
+{% set active_statuses = ["trialing", "active", "past_due"] %}
+{% set max_limit = 300 if current_transaction and current_transaction.subscription_status in active_statuses else 0 %}
+
 <div class="container mt-4">
   <div class="row g-3 justify-content-center">
     <div class="usage-banner container-fluid py-2 px-3 my-2">
@@ -102,17 +104,19 @@
         <div class="col-12 col-md-auto mb-2 mb-md-0">
           <div>
             <strong>Transações ativas:</strong>
-            {{ total_relevant_transactions }} de 30 grátis
+            {{ total_relevant_transactions }} de {{ max_limit }} no seu plano
           </div>
         </div>
         <div class="col-12 col-md-auto">
           <div>
             <strong>Itens cadastrados:</strong>
-            {{ total_items }} de 50 grátis
+            {{ total_items }} de {{ max_limit }} no seu plano
           </div>
         </div>
       </div>
     </div>
+</div>
+
 
     <!-- MODAL para imagem -->
     {% include 'components/image_modal.html' %} {% endblock %} {% block scripts %}
@@ -162,13 +166,40 @@
     <script>
       function checkTransactionLimit(event) {
         const totalTransactions = {{ total_relevant_transactions if total_relevant_transactions is not none else 0 | tojson }};
-        if (totalTransactions >= 30) {
-          alert("O limite de transações ativas foi atingido. Entre em contato conosco.");
+        const paymentStatus = "{{ current_transaction.payment_status if current_transaction else '' }}";
+
+        const allowStatuses = ["trialing", "active", "past_due"];
+        const maxTransactions = allowStatuses.includes(paymentStatus) ? 300 : 0;
+
+        if (totalTransactions >= maxTransactions) {
+          alert("O limite de transações ativas do seu plano foi atingido.");
           event.preventDefault();
           return false;
         }
         return true;
       }
+    </script>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        const totalItems = {{ total_items }};
+        const subscriptionStatus = "{{ current_transaction.subscription_status | default('none') }}";
+        const allowedStatuses = ["trialing", "active", "past_due"];
+        const maxItems = allowedStatuses.includes(subscriptionStatus) ? 300 : 0;
+
+        const addButton = document.getElementById("add-item-btn");
+        if (addButton) {
+          addButton.addEventListener("click", function (event) {
+            event.preventDefault();
+            if (totalItems >= maxItems) {
+              alert("Você atingiu o limite de itens cadastrados no seu plano.");
+            } else {
+              const targetUrl = addButton.getAttribute("data-add-url");
+              window.location.href = targetUrl;
+            }
+          });
+        }
+      });
     </script>
 
     <script>

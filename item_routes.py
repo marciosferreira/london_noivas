@@ -41,6 +41,7 @@ def init_item_routes(
     clients_table,
     users_table,
     text_models_table,
+    payment_transactions_table,
 ):
 
     @app.route("/rented")
@@ -103,6 +104,8 @@ def init_item_routes(
             "Itens Arquivados",
             itens_table,
             transactions_table,
+            users_table,
+            payment_transactions_table,
         )
 
     @app.route("/trash_itens")
@@ -113,6 +116,8 @@ def init_item_routes(
             "Histórico de alterações",
             itens_table,
             transactions_table,
+            users_table,
+            payment_transactions_table,
         )
 
     @app.route("/trash_transactions")
@@ -136,6 +141,8 @@ def init_item_routes(
             "Inventário",
             itens_table,
             transactions_table,
+            users_table,
+            payment_transactions_table,
         )
 
     @app.route("/add_item", methods=["GET", "POST"])
@@ -1691,8 +1698,50 @@ def list_transactions(
     )
 
 
+def get_latest_transaction(user_id, users_table, payment_transactions_table):
+    """Retorna a transação mais recente e válida do usuário (ou None)."""
+
+    from boto3.dynamodb.conditions import Key
+
+    response = users_table.get_item(Key={"user_id": user_id})
+    if "Item" not in response:
+        return None
+
+    user = response["Item"]
+    stripe_customer_id = user.get("stripe_customer_id")
+    if not stripe_customer_id:
+        return None
+
+    response = payment_transactions_table.query(
+        IndexName="customer_id-index",
+        KeyConditionExpression=Key("customer_id").eq(stripe_customer_id),
+    )
+    transactions = response.get("Items", [])
+    transactions.sort(key=lambda x: x.get("updated_at", 0), reverse=True)
+
+    for tx in transactions:
+        if tx.get("subscription_status") in [
+            "trialing",
+            "active",
+            "past_due",
+            "unpaid",
+            "canceled",
+            "paused",
+        ]:
+            return tx
+
+    return None
+
+
 def list_raw_itens(
-    status_list, template, title, itens_table, transactions_table, limit=5
+    status_list,
+    template,
+    title,
+    itens_table,
+    transactions_table,
+    users_table,
+    payment_transactions_table,
+    limit=5,
 ):
     if not session.get("logged_in"):
         return redirect(url_for("login"))
@@ -1703,6 +1752,12 @@ def list_raw_itens(
         return redirect(url_for("login"))
 
     force_no_next = request.args.get("force_no_next")
+
+    # isso será usado para limitar o plano teste
+    user_id = session.get("user_id")
+    current_transaction = get_latest_transaction(
+        user_id, users_table, payment_transactions_table
+    )
 
     current_path = request.path
     session["previous_path_itens"] = current_path  # 🔥 Marcar o path atual
@@ -1913,6 +1968,7 @@ def list_raw_itens(
         itens_count=len(valid_itens),
         has_next=has_next,
         has_prev=current_page > 1,
+        current_transaction=current_transaction,
     )
 
 

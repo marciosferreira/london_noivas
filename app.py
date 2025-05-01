@@ -93,6 +93,7 @@ init_item_routes(
     clients_table,
     users_table,
     text_models_table,
+    payment_transactions,
 )
 init_status_routes(app, itens_table, transactions_table, users_table)
 init_transaction_routes(

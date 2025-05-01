@@ -8,8 +8,7 @@
 {% endblock %}
 
 {% block content %}
-{{current_transaction}}
-
+{{ current_transaction }}
 <div class="container mt-4">
   <h2 class="text-center text-dark-blue mb-4">Ajustes e Planos</h2>
 
@@ -40,7 +39,7 @@
   </div>
 
   <!-- Sub-seção: Sem cancelamento agendado -->
-  {% if cancel_at_period_end is not defined or cancel_at_period_end == False %}
+  {% if cancel_at_period_end is none or cancel_at_period_end == False %}
 
     <!-- Sub-subseção: Cliente ainda não tem cartão -->
     {% if not has_card %}

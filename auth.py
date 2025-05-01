@@ -893,6 +893,23 @@ def init_auth_routes(app, users_table, reset_tokens_table, payment_transactions_
         # inserir info sobre se o cliente tem cartão cadastrado
         current_transaction["has_card"] = cliente_tem_cartao(stripe_customer_id)
 
+        # Garante que current_transaction tenha todas as chaves esperadas
+        expected_keys = [
+            "subscription_status",
+            "created_at",
+            "current_period_end",
+            "payment_status",
+            "cancel_at_period_end",
+            "has_card",
+        ]
+
+        # Garante que current_transaction nunca seja None
+        current_transaction = current_transaction or {}
+
+        # Preenche valores ausentes com None
+        for key in expected_keys:
+            current_transaction.setdefault(key, None)
+
         return render_template(
             "adjustments.html",
             username=username,
