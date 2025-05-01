@@ -1,5 +1,4 @@
-<!-- Mensagem de teste: ajustes.html carregado -->
-<!-- Mensagem de teste 2: patch aplicado novamente -->
+
 {% extends "base.html" %}
 
 {% block title %}Ajustes e Planos{% endblock %}
@@ -16,7 +15,6 @@
   <div class="d-flex flex-wrap justify-content-center align-items-stretch gap-4">
 
 
-
  <!-- CARD: Plano e Assinatura -->
 <div class="card shadow-sm" style="flex: 1 1 350px; max-width: 500px;">
   <div class="card-body d-flex flex-column justify-content-center text-center">
@@ -27,69 +25,102 @@
       {% set inicio = current_transaction.created_at | datetimeformat %}
       {% set fim = current_transaction.current_period_end | datetimeformat %}
       {% set payment_status = current_transaction.payment_status %}
+      {% set cancel_at_period_end = current_transaction.cancel_at_period_end %}
+      {% set has_card = current_transaction.has_card %}
 
-      {% if status == "trialing" %}
-        <div class="alert alert-info no-autoclose">
-          <strong>Período de Teste Ativo</strong><br>
-          Você pode usar todos os recursos até <strong>{{ fim }} h</strong>.
-        </div>
-        <p class="text-muted text-center">Cadastre um cartão de crédito para evitar interrupções.</p>
-        <a href="{{ url_for('billing') }}" class="btn btn-outline-primary w-100 mt-2">
-          Cadastrar Cartão
-        </a>
-
-      {% elif status == "paused" and payment_status != "canceled" %}
-        <div class="alert alert-warning no-autoclose">
-          <strong>Plano Suspenso</strong><br>
-          Seu período de teste expirou em <strong>{{ fim }}</strong> e o plano foi suspenso porque você não informou um cartão de crédito válido.
-        </div>
-        <p class="text-muted text-center">Efetue um pagamento para ativar sua assinatura.</p>
-        <a href="{{ url_for('billing') }}" class="btn btn-outline-warning w-100 mt-2">
-          Assinar
-        </a>
-
-      {% elif status == "active" %}
-        <div class="alert alert-success no-autoclose">
-          <strong>Assinatura Ativa</strong><br>
-          Sua assinatura está ativa e será renovada em <strong>{{ fim }}</strong>.
-        </div>
-        <a href="{{ url_for('billing') }}" class="btn btn-outline-secondary w-100 mt-2">
-          Gerenciar Pagamento
-        </a>
-
-      {% elif status in ["past_due", "unpaid"] %}
-        <div class="alert alert-warning no-autoclose">
-          <strong>Pagamento Pendente</strong><br>
-          Sua assinatura está com pagamento pendente. Atualize seu cartão para evitar a suspensão.
-        </div>
-        <a href="{{ url_for('billing') }}" class="btn btn-outline-warning w-100 mt-2">
-          Atualizar Cartão
-        </a>
-
-      {% elif status == "paused" and payment_status == "canceled" %}
-        <div class="alert alert-danger no-autoclose">
-          <strong>Assinatura Cancelada</strong><br>
-          Você encerrou sua assinatura. Crie uma nova a qualquer momento.
-        </div>
-        <button id="checkout-button" class="btn btn-primary w-100 mt-3">Assinar Plano Business</button>
-
-      {% else %}
-        <div class="alert alert-secondary no-autoclose">
-          Nenhuma assinatura ativa detectada.
-        </div>
-        <a href="{{ url_for('billing') }}" class="btn btn-primary w-100 mt-2">
-          Assinar Plano Business
-        </a>
       {% endif %}
 
 
-    {% else %}
-      <div class="alert alert-secondary no-autoclose">
-        Nenhuma assinatura encontrada.
-      </div>
-      <button id="checkout-button" class="btn btn-primary w-100 mt-3">Assinar Plano Business</button>
 
+<!-- Seção: Trial ativo e pagamento não cancelado -->
+{% if status == "trialing" and payment_status != "canceled" %}
+  <div class="alert alert-info no-autoclose">
+    <strong>Período de Teste Ativo</strong><br>
+    Você pode usar todos os recursos até <strong>{{ fim }} h</strong>.
+  </div>
+
+  <!-- Sem cancelamento agendado -->
+  {% if cancel_at_period_end is not defined or cancel_at_period_end == False %}
+
+    <!-- Cliente ainda não tem cartão -->
+    {% if not has_card %}
+      <p class="text-muted text-center">Você não cadastrou nenhum cartão. Cadastre-o para evitar interrupções.</p>
+      <p class="text-muted text-center">
+        No botão abaixo você pode:<br>
+        - Cadastrar cartão<br>
+        - Cancelar sua assinatura
+      </p>
+      <a href="{{ url_for('billing') }}" class="btn btn-outline-warning w-100 mt-2">Acessar</a>
+
+    <!-- Cliente já tem cartão -->
+    {% else %}
+      <p class="text-muted text-center">Você já cadastrou seu cartão para renovação automática.</p>
+      <p class="text-muted text-center">
+        No botão abaixo você pode:<br>
+        - Alterar cartão<br>
+        - Cancelar sua assinatura
+      </p>
+      <a href="{{ url_for('billing') }}" class="btn btn-outline-warning w-100 mt-2">Acessar</a>
     {% endif %}
+
+  <!-- Cancelamento agendado -->
+  {% else %}
+    <p class="text-muted text-center">Você solicitou cancelamento da assinatura após o teste.</p>
+    <p class="text-muted text-center">Acesse o link abaixo para renovar a assinatura após o teste.</p>
+    <a href="{{ url_for('billing') }}" class="btn btn-outline-warning w-100 mt-2">Acessar</a>
+  {% endif %}
+
+<!-- Seção: Assinatura foi cancelada manualmente -->
+{% elif payment_status == "canceled" %}
+  <div class="alert alert-danger no-autoclose">
+    <strong>Assinatura Cancelada</strong><br>
+    Sua assinatura está cancelada. Crie uma nova a qualquer momento.
+  </div>
+  <button id="checkout-button" class="btn btn-primary w-100 mt-3">Assinar Plano Business</button>
+
+{% elif payment_status == "paid" and status == "active"%}
+
+{% if cancel_at_period_end is not defined or cancel_at_period_end == False %}
+
+<div class="alert alert-success no-autoclose">
+  <strong>Assinatura Ativa</strong><br>
+  Sua assinatura está ativa e será renovada em <strong>{{ fim }} h</strong>.
+</div>
+<a href="{{ url_for('billing') }}" class="btn btn-outline-secondary w-100 mt-2">
+  Gerenciar/Cancelar
+</a>
+{% else %}
+
+<div class="alert alert-success no-autoclose">
+  <strong>Assinatura Ativa</strong><br>
+  Sua assinatura está ativa e termina em <strong>{{ fim }} h</strong>. Ela não será renovada.
+</div>
+<p class="text-muted text-center">Acesse o link abaixo para permitir a renovação.</p>
+
+<a href="{{ url_for('billing') }}" class="btn btn-outline-secondary w-100 mt-2">
+  Acessar
+</a>
+{% endif %}
+{% endif %}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   </div>
 </div>
 

@@ -853,6 +853,13 @@ def init_auth_routes(app, users_table, reset_tokens_table, payment_transactions_
         current_timezone = user.get("timezone", "America/Sao_Paulo")
         stripe_customer_id = user.get("stripe_customer_id")
 
+        # checa se o cliente tem cartao salvo
+        def cliente_tem_cartao(stripe_customer_id):
+            payment_methods = stripe.PaymentMethod.list(
+                customer=stripe_customer_id, type="card"
+            )
+            return len(payment_methods.data) > 0
+
         transactions = []
         current_transaction = None
 
@@ -883,7 +890,9 @@ def init_auth_routes(app, users_table, reset_tokens_table, payment_transactions_
             except Exception as e:
                 print("🔴 Erro ao buscar transações:", e)
                 flash("Erro ao buscar dados de cobrança.", "danger")
-        print(current_transaction)
+        # inserir info sobre se o cliente tem cartão cadastrado
+        current_transaction["has_card"] = cliente_tem_cartao(stripe_customer_id)
+
         return render_template(
             "adjustments.html",
             username=username,
