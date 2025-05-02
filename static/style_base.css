@@ -180,3 +180,15 @@ body {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
   padding: 40px 30px;
 }
+
+.responsive-table {
+  border-collapse: separate;
+  border-spacing: 0 5px; /* espaço vertical entre linhas */
+}
+
+.responsive-table tbody tr {
+  background-color: white;
+  border-radius: 8px;
+  border: 3px solid #dee2e6;
+  overflow: hidden;
+}
