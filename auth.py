@@ -141,7 +141,7 @@ def init_auth_routes(app, users_table, reset_tokens_table, payment_transactions_
     def login():
 
         if session.get("logged_in"):  # Verifica se o usuário já está logado
-            flash("Você já está logado!", "info")
+            # flash("Você já está logado!", "info")
             return redirect(url_for("index"))
 
         remember_me = request.form.get("remember_me")
