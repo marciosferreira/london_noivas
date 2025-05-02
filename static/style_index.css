@@ -289,3 +289,9 @@
   font-weight: bold;
   color: #2e7d32;
 }
+
+.btn-video-ajustado {
+  margin-top: -100px; /* puxa o botão para cima */
+  position: relative;
+  z-index: 1;
+}
