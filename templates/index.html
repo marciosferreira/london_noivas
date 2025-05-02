@@ -1,283 +1,133 @@
 {% extends "base.html" %} {% block title %}Transações iniciadas (itens alugados){% endblock %} {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='style_index.css') }}" />
-{% endblock %} {% block content %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+{% endblock %} {% block content %} {% include 'not_logged_header.html' %}
 
-{% include 'not_logged_header.html' %}
+<div class="container py-4">
+  <!-- HERO HEADER -->
+  <section class="text-center mb-4">
+    <h1 class="titulo-site">Alugue QQC</h1>
+    <h3 class="mt-3 mb-2">Sistema de Gestão para Locadoras em Geral</h3>
+    <h5 class="mb-1">Teste por 30 dias, sem cartão de crédito.</h5>
+    <h5 class="mb-3">
+      Depois, apenas
+      <strong>R$ 49,90</strong>
+    </h5>
+    <a class="btn btn-success px-4" href="{{ url_for('register') }}">Cadastre-se</a>
+  </section>
 
+  <hr class="my-4" />
 
-
-<div class="wrapper">
-    {# Barra com ícones se não estiver logado #}
-
-    <section class="hero text-center">
-      {% if not session.get('logged_in') %}
-      <h1 class="titulo-site">Alugue QQC</h1>
-
-
-      {% endif %} {% if not session.get('logged_in') %}
-      <h3 class="text-center mt-3 mb-1">Sistema de Gestão para Locadoras em Geral</h3>
-      <h5 class="text-center mt-3 mb-1">Teste todas as funcionalidades por 30 dias, sem cartão de crédito.
-        <h5 class="text-center mt-1 mb-1">Depois, apenas <strong>R$ 49,90</strong>
-       </h5>
-
-
-
-      {% endif %}
-    </section>
-    <div class="text-center">
-      <a class="btn-index-register" href="{{ url_for('register') }}">Cadastre-se</a>
-    </div>
-    <hr class="section-divider" />
-
-
-<!-- Inclua isso no <head> se ainda não estiver usando Font Awesome -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-
-  <style>
-
-    .section-divider {
-      border: 0;
-      height: 2px;
-      background: linear-gradient(to right, transparent, #2d2c2c, transparent);
-      margin-top: 1rem;
-      margin-bottom: 1rem;
-      width: 90%;
-    }
-
-
-
-
-    .feature-block {
-      max-width: 100%;
-    }
-
-    .feature-text {
-      max-width: 320px;
-      word-wrap: break-word;
-    }
-
-    @media (max-width: 576px) {
-      .custom-spacing {
-        margin-top: 0rem !important;
-      }
-
-      .custom-spacing .row {
-        row-gap: 1rem !important;
-      }
-    }
-
-    .features-wrapper {
-      max-width: 960px;
-      margin-left: 15%;  /* empurra levemente para a direita */
-      margin-right: auto;
-    }
-
-    @media (max-width: 768px) {
-      .features-wrapper {
-        margin-left: auto;
-        margin-right: auto;
-        padding-left: 1rem;
-        padding-right: 1rem;
-      }
-    }
-
-    .feature-accent {
-      color: #003366; /* exemplo de verde escuro elegante */
-    }
-    .titulo-site {
-      font-size: 2.75rem;
-      font-weight: bold;
-      color: #2e7d32;
-      text-shadow: 0px 4px 2px rgba(37, 36, 36, 0.25);
-      display: inline-block;
-      margin-bottom: 0.5rem;
-    }
-
-
-
-  </style>
-
-  <section class="container custom-spacing">
-    <div class="features-wrapper">
-      <div class="row row-cols-1 row-cols-md-2 g-4">
-
-        <!-- Clientes -->
-        <div class="col d-flex align-items-start feature-block ps-2">
-          <i class="fas fa-users fa-2x feature-accent me-3 mt-1"></i>
-          <div class="feature-text">
-            <a href="{{ url_for('listar_clientes') }}" class="text-decoration-none">
-              <h5 class="mb-1 feature-accent">Clientes</h5>
-            </a>
-            <p class="mb-0 text-muted">Gerencie seu portfólio de clientes com praticidade e agilidade.</p>
-          </div>
-        </div>
-
-        <!-- Inventário -->
-        <div class="col d-flex align-items-start feature-block ps-2">
-          <i class="fas fa-boxes-stacked fa-2x feature-accent me-3 mt-1"></i>
-          <div class="feature-text">
-            <a href="{{ url_for('inventory') }}" class="text-decoration-none">
-              <h5 class="mb-1 feature-accent">Inventário</h5>
-            </a>
-            <p class="mb-0 text-muted">Controle todos os seus itens e acesse facilmente via QR Codes.</p>
-          </div>
-        </div>
-
-        <!-- Arquivados -->
-        <div class="col d-flex align-items-start feature-block ps-2">
-          <i class="fas fa-box-archive fa-2x feature-accent me-3 mt-1"></i>
-          <div class="feature-text">
-            <a href="{{ url_for('archive') }}" class="text-decoration-none">
-              <h5 class="mb-1 feature-accent">Itens Arquivados</h5>
-            </a>
-            <p class="mb-0 text-muted">Organize seu estoque desativando temporariamente itens não disponíveis.</p>
-          </div>
-        </div>
-
-        <!-- Reservados -->
-        <div class="col d-flex align-items-start feature-block ps-2">
-          <i class="fas fa-calendar-check fa-2x feature-accent me-3 mt-1"></i>
-          <div class="feature-text">
-            <a href="{{ url_for('reserved') }}" class="text-decoration-none">
-              <h5 class="mb-1 feature-accent">Reservados</h5>
-            </a>
-            <p class="mb-0 text-muted">Acompanhe reservas com agenda integrada e evite conflitos de datas.</p>
-          </div>
-        </div>
-
-        <!-- Retirados -->
-        <div class="col d-flex align-items-start feature-block ps-2">
-          <i class="fas fa-truck-moving fa-2x feature-accent me-3 mt-1"></i>
-          <div class="feature-text">
-            <a href="{{ url_for('rented') }}" class="text-decoration-none">
-              <h5 class="mb-1 feature-accent">Retirados</h5>
-            </a>
-            <p class="mb-0 text-muted">Gerencie transações ativas e receba alertas automáticos de atraso.</p>
-          </div>
-        </div>
-
-        <!-- Devolvidos -->
-        <div class="col d-flex align-items-start feature-block ps-2">
-          <i class="fas fa-clipboard-check fa-2x feature-accent me-3 mt-1"></i>
-          <div class="feature-text">
-            <a href="{{ url_for('returned') }}" class="text-decoration-none">
-              <h5 class="mb-1 feature-accent">Devolvidos</h5>
-            </a>
-            <p class="mb-0 text-muted">Acompanhe o histórico completo de devoluções e encerramentos.</p>
-          </div>
-        </div>
-
-        <!-- Relatórios -->
-        <div class="col d-flex align-items-start feature-block ps-2">
-          <i class="fas fa-chart-line fa-2x feature-accent me-3 mt-1"></i>
-          <div class="feature-text">
-            <a href="{{ url_for('reports') }}" class="text-decoration-none">
-              <h5 class="mb-1 feature-accent">Relatórios</h5>
-            </a>
-            <p class="mb-0 text-muted">Visualize relatórios de desempenho e métricas financeiras.</p>
-          </div>
-        </div>
-
-        <!-- Contratos -->
-        <div class="col d-flex align-items-start feature-block ps-2">
-          <i class="fas fa-file-signature fa-2x feature-accent me-3 mt-1"></i>
-          <div class="feature-text">
-            <a href="{{ url_for('listar_modelos') }}" class="text-decoration-none">
-              <h5 class="mb-1 feature-accent">Contratos</h5>
-            </a>
-            <p class="mb-0 text-muted">Imprima contratos e recibos pré-preenchidos em segundos.</p>
-          </div>
-        </div>
-
+  <!-- VANTAGENS -->
+  <section class="text-center mb-5">
+    <h2 class="mb-4">Por que usar o Alugue QQC?</h2>
+    <div class="row g-4">
+      <div class="col-sm-6 col-lg-4">
+        <img src="/static/icons/icon_1.png" alt="Plano gratuito" class="img-fluid mb-3" style="max-height: 80px" />
+        <h5>Plano mensal econômico</h5>
+        <p>Sabemos dos custos envolvidos em gerenciar um negócio. Por isso nosso sistema tem preço justo.</p>
+      </div>
+      <div class="col-sm-6 col-lg-4">
+        <img src="/static/icons/icon_2.png" alt="Para qualquer locadora" class="img-fluid mb-3" style="max-height: 80px" />
+        <h5>Serve para qualquer tipo de aluguel</h5>
+        <p>De vestidos a ferramentas. Se adapta à qualquer realidade no ramo de aluguéis de itens em geral.</p>
+      </div>
+      <div class="col-sm-6 col-lg-4">
+        <img src="/static/icons/icon_3.png" alt="Fácil e seguro" class="img-fluid mb-3" style="max-height: 80px" />
+        <h5>Fácil, rápido e seguro</h5>
+        <p>Com a experiência de qeum é do ramo, focamos nas funcionalidades mais importantes.</p>
       </div>
     </div>
   </section>
 
+  <hr class="my-4" />
 
-  <hr class="section-divider" />
+  <!-- FUNCIONALIDADES -->
+  <section class="mb-5">
+    <h2 class="text-center mb-4">Algumas funcionalidades</h2>
+    <div class="px-3 ps-lg-5 ms-lg-auto">
+      <div class="margin-left-desktop">
+        <div class="row row-cols-1 row-cols-md-2 g-4">
+        {% for feature in [ {'icon': 'users', 'url': 'listar_clientes', 'title': 'Clientes', 'desc': 'Gerencie seu portfólio de clientes com
+        agilidade.'}, {'icon': 'boxes-stacked', 'url': 'inventory', 'title': 'Inventário', 'desc': 'Controle seus itens com QR Codes.'}, {'icon':
+        'box-archive', 'url': 'archive', 'title': 'Itens Arquivados', 'desc': 'Desative itens temporariamente.'}, {'icon': 'calendar-check', 'url':
+        'reserved', 'title': 'Reservados', 'desc': 'Evite conflitos com agenda integrada.'}, {'icon': 'truck-moving', 'url': 'rented', 'title':
+        'Retirados', 'desc': 'Acompanhe retiradas e atrasos.'}, {'icon': 'clipboard-check', 'url': 'returned', 'title': 'Devolvidos', 'desc':
+        'Histórico completo de devoluções.'}, {'icon': 'chart-line', 'url': 'reports', 'title': 'Relatórios', 'desc': 'Visualize desempenho e
+        métricas.'}, {'icon': 'file-signature', 'url': 'listar_modelos', 'title': 'Contratos', 'desc': 'Gere contratos e recibos automáticos.'} ] %}
+        <div class="col">
+          <div class="d-flex flex-column flex-sm-row align-items-center text-center text-sm-start h-100">
+            <i class="fas fa-{{ feature.icon }} fa-2x feature-accent mb-2 mb-sm-0 me-sm-3"></i>
 
-
-    {% if not session.get('logged_in') %}
-    <section class="features container text-center mt-2">
-      <h2 class="mb-4">Por que usar o Alugue QQC?</h2>
-      <div class="row">
-        <div class="col-12 col-sm-6 col-md-4 d-flex flex-column align-items-center feature-box">
-          <img src="/static/icons/icon_1.png" alt="Plano gratuito" class="feature-img" />
-          <h3 class="mt-3">Teste grátis e plano econômico</h3>
-          <p class="feature-text">Tenha certeza que o QQC é pra você, sem cartão de crédito.</p>
+            <div>
+              <a href="{{ url_for(feature.url) }}" class="text-decoration-none">
+                <h5 class="mb-1 feature-accent">{{ feature.title }}</h5>
+              </a>
+              <p class="mb-0 text-muted">{{ feature.desc }}</p>
+            </div>
+          </div>
         </div>
-        <div class="col-12 col-sm-6 col-md-4 d-flex flex-column align-items-center feature-box">
-          <img src="/static/icons/icon_2.png" alt="Para qualquer locadora" class="feature-img" />
-          <h3 class="mt-3">Serve para qualquer tipo de aluguel</h3>
-          <p class="feature-text">Desde vestidos até ferramentas e decoração. Se adapta à quaquer negócio.</p>
-        </div>
-        <div class="col-12 col-sm-6 col-md-4 d-flex flex-column align-items-center feature-box">
-          <img src="/static/icons/icon_3.png" alt="Fácil e seguro" class="feature-img" />
-          <h3 class="mt-3">Fácil, rápido e seguro</h3>
-          <p class="feature-text">Interface intuitiva e de fácil aprendizagem. Feito pra quem quer agilidade.</p>
-        </div>
+        {% endfor %}
       </div>
-    </section>
-    {% endif %}
-    <hr class="section-divider" />
-
-    <h3 class="text-center mt-2 mb-4">Algumas telas do sistema</h3>
-
-    <section class="screenshot-container">
-      <div class="screenshot-wrapper">
-        <img src="/static/icons/telas_transactions.png" alt="Tela Transações" data-bs-toggle="modal" data-bs-target="#imageModal" />
-      </div>
-      <div class="screenshot-wrapper">
-        <img src="/static/icons/yyy.png" alt="Tela Inventário" data-bs-toggle="modal" data-bs-target="#imageModal" />
-      </div>
-      <div class="screenshot-wrapper">
-        <img src="/static/icons/zzz.png" alt="Tela Clientes" data-bs-toggle="modal" data-bs-target="#imageModal" />
-      </div>
-      <div class="screenshot-wrapper">
-        <img src="/static/icons/www.png" alt="Tela Relatórios" data-bs-toggle="modal" data-bs-target="#imageModal" />
-      </div>
-    </section>
-
-    <section class="video-showcase container text-center mt-5">
-      <h3 class="mb-4">Veja o sistema em ação</h3>
-      <video controls preload="metadata"
-  style="max-width: 100%; border-radius: 12px; box-shadow: 0 0 15px rgba(0,0,0,0.2); margin-bottom: 0.5rem;">
-  <source src="https://alugueqqc-images.s3.us-east-1.amazonaws.com/video/alugue_qqc.mp4" type="video/mp4">
-</video>
-
-    </section>
-
-    <div class="text-center">
-      <a class="btn-index-register" href="{{ url_for('register') }}">Cadastre-se</a>
+      </div></section>
     </div>
+  </section>
 
+  <hr class="my-4" />
 
+  <!-- TELAS DO SISTEMA -->
+  <section class="mb-5 text-center">
+    <h2 class="mb-4">Algumas telas do sistema</h2>
+    <div class="row g-3 justify-content-center">
+      {% for img in ['telas_transactions.png', 'yyy.png', 'zzz.png', 'www.png'] %}
+      <div class="col-6 col-md-3">
+        <img src="/static/icons/{{ img }}" alt="Tela" class="img-fluid fixed-height-img shadow-sm" data-bs-toggle="modal" data-bs-target="#imageModal" />
+      </div>
+      {% endfor %}
+    </div>
+  </section>
 
+  <hr class="my-4" />
+
+  <!-- VÍDEO -->
+  <section class="mb-4 text-center">
+    <h2 class="mb-3">Assista o sistema em ação</h2>
+    <video controls preload="metadata" class="w-100 rounded shadow" style="max-width: 720px">
+      <source src="https://alugueqqc-images.s3.us-east-1.amazonaws.com/video/alugue_qqc.mp4" type="video/mp4" />
+    </video>
+  </section>
+
+  <div class="text-center mt-4">
+    <a class="btn btn-success px-4" href="{{ url_for('register') }}">Cadastre-se</a>
   </div>
 </div>
 
+<!-- Modal permanece igual -->
+
 <!-- Modal -->
 <div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
+  <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down modal-lg">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title" id="imageModalLabel">Tela do Sistema</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
       </div>
-      <div class="modal-body">
-        <img id="modalImage" src="" alt="Imagem Modal" class="img-fluid" />
+      <div class="modal-body text-center">
+        <img id="modalImage" src="" alt="Imagem Modal" class="img-fluid rounded" />
       </div>
     </div>
+  </div>
 </div>
 
 {% endblock %} {% block scripts %}
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-  // Adiciona o evento de clique nas imagens
-  const images = document.querySelectorAll('.screenshot-container img');
+  const images = document.querySelectorAll('section.mb-5.text-center img');
   images.forEach((img) => {
     img.addEventListener('click', function () {
       const modalImage = document.getElementById('modalImage');
-      modalImage.src = this.src; // Define a imagem clicada no modal
+      modalImage.src = this.src;
     });
   });
 </script>

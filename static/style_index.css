@@ -1,297 +1,183 @@
 /* === RESET E BASE === */
 * {
   box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
-/* === CONTAINER PRINCIPAL === */
-.page-container {
-  max-width: 1200px;
-  width: 90%;
-  margin: 0px auto;
-  background: #ffffff;
-  border-radius: 16px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-  padding: 40px 30px;
-  margin-top: 40px;
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #fff;
+  color: #333;
 }
 
-/* === WRAPPER GERAL === */
+/* === CONTAINER E WRAPPER === */
 .wrapper {
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
+  padding: 2rem 1rem;
 }
 
-/* === BARRA DE ÍCONES (INÍCIO) === */
-.full-width-bar {
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
-  padding: 20px 0;
-  border-radius: 12px;
-  background-color: #fdfdfd;
-  margin-bottom: 30px;
-}
-
-.styled-img {
-  max-width: 80px;
-  height: auto;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.styled-img:hover {
-  transform: scale(1.05);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
-}
-
-/* === HERO (TÍTULOS E BOTÃO) === */
-.hero h1 {
+/* === HERO === */
+.titulo-site {
   font-size: 2.5rem;
-  margin-bottom: 0.5rem;
-  color: #2c3e50;
+  font-weight: bold;
+  color: #2e7d32;
+  text-shadow: 0px 4px 2px rgba(37, 36, 36, 0.25);
+  margin-bottom: 1rem;
 }
 
 .hero h3,
-.hero h4,
 .hero h5 {
   font-weight: 400;
   color: #666;
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.75rem;
 }
 
-/* === BOTÃO PRINCIPAL === */
-.btn-aqua {
-  background-color: #20c997;
-  color: white;
-  font-weight: 600;
-  padding: 0.75rem 1.5rem;
+/* === BOTÃO DE REGISTRO === */
+.btn-index-register {
+  background-color: #28a745;
+  color: #fff;
+  font-weight: 500;
+  padding: 0.5rem 1.25rem;
+  border-radius: 6px;
   border: none;
-  border-radius: 10px;
   font-size: 1rem;
-  cursor: pointer;
-  transition: background-color 0.3s ease, transform 0.2s ease;
+  transition: background-color 0.3s ease;
 }
 
-/* === ################################################ === */
-
-.btn-aqua:hover {
-  background-color: #17a589;
-  transform: scale(1.04);
+.btn-index-register:hover {
+  background-color: #218838;
 }
 
-.image-wrapper {
-  background-color: #f8f9fa;
-  border-radius: 12px;
-  overflow: hidden;
-  padding: 12px;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+/* === SEÇÃO DIVISÓRIA === */
+.section-divider {
+  border: 0;
+  height: 2px;
+  background: linear-gradient(to right, transparent, #2d2c2c, transparent);
+  margin: 2rem 0 1.5rem;
+  width: 90%;
 }
 
-/* === ################################################ === */
-
-/* === BADGE ESTATÍSTICO === */
-.badge-counter {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  background-color: #c0392b;
-  color: white;
-  border-radius: 50%;
-  width: 28px;
-  height: 28px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-weight: bold;
-  font-size: 0.9rem;
-}
-
-/* === DESCRIÇÃO DOS CARDS === */
-/* Estilo para as descrições dos cards */
-.card-description {
-  font-size: 1rem; /* Aumenta o tamanho da fonte para melhorar a leitura */
-  margin-top: 10px; /* Distância maior para não grudar nos ícones */
-  color: #333; /* Torna o texto mais escuro para melhor contraste */
-  min-height: 3em;
-  line-height: 1.5; /* Melhora o espaçamento entre as linhas */
-  text-decoration: none; /* Garante que não haja sublinhado */
-  font-weight: 500; /* Aumenta o peso da fonte para dar mais destaque */
-}
-
-/* Estilo para links dentro de .card-description */
-.card-description a {
-  text-decoration: none; /* Remove qualquer estilo de link, como sublinhado */
-  color: #333; /* Garante que o link tenha a mesma cor do texto normal */
-}
-
-/* === SEÇÃO DE VANTAGENS === */
-.features h2 {
-  color: #34495e;
-  margin-bottom: 1.5rem;
-}
-
+/* === FEATURE BOXES === */
 .feature-box {
-  background-color: #ffffff;
+  background-color: #fff;
   border-radius: 12px;
-  padding: 20px;
-  margin-bottom: 20px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.05);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition: transform 0.3s ease;
+  text-align: center;
 }
 
 .feature-box:hover {
   transform: translateY(-6px);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
 }
 
 .feature-img {
   width: 80px;
-  margin-bottom: 12px;
+  margin-bottom: 1rem;
 }
 
 .feature-text {
   font-size: 0.95rem;
   color: #555;
-  margin-top: 10px;
   line-height: 1.5;
 }
 
-/* === RESPONSIVIDADE === */
-@media (max-width: 768px) {
-  .page-container {
-    padding: 20px 16px;
-  }
-
-  .hero h1 {
-    font-size: 2rem;
-  }
-
-  .styled-img {
-    max-width: 60px;
-  }
-
-  .feature-box {
-    padding: 16px;
-  }
+/* === FUNCIONALIDADES === */
+.feature-accent {
+  color: #003366;
+  font-weight: bold;
 }
 
-.btn-outline-aqua {
-  background-color: transparent;
-  color: #20c997;
-  font-weight: 600;
-  padding: 0.75rem 1.5rem;
-  border: 2px solid #20c997;
-  border-radius: 10px;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: background-color 0.3s ease, color 0.3s ease, transform 0.2s ease;
-}
-
-.btn-outline-aqua:hover {
-  background-color: #20c997;
-  color: white;
-  transform: scale(1.04);
-}
-
-.btn-login-register {
-  min-width: 140px; /* Largura mínima padronizada */
-  text-align: center;
-  padding: 0.75rem 1.5rem;
-  font-size: 1rem;
-  flex: 1 1 140px; /* Responsivo: permite crescer, mas tem base */
-  max-width: 200px;
-}
-
-.btn-login-register {
-  width: 180px;
-  text-align: center;
-}
-
-.login-form#forgot-password-form,
-.login-form#reset-password-form {
-  display: block;
-  text-align: center;
-}
-
-.login-form#forgot-password-form h2,
-.login-form#reset-password-form h2 {
+.feature-block {
   margin-bottom: 1rem;
-  color: #2c3e50;
 }
 
-.login-form#forgot-password-form p,
-.login-form#reset-password-form p {
-  margin-bottom: 2rem;
-  font-size: 1rem;
-  color: #555;
-}
-
-.img-quick-access {
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.img-quick-access:hover {
-  transform: scale(1.05);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-}
-
-.image-wrapper {
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.image-wrapper:hover {
-  transform: scale(1.03);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
-}
-
+/* === SCREENSHOTS === */
 .screenshot-container {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 20px;
-  padding: 20px;
-}
-
-.screenshot-container {
-  display: flex;
-  gap: 10px;
+  gap: 1rem;
+  margin-bottom: 2rem;
 }
 
 .screenshot-wrapper img {
-  height: 200px; /* Defina a altura desejada */
-  width: auto; /* A largura se ajusta automaticamente mantendo a proporção */
-  object-fit: contain; /* Garante que a imagem não será cortada */
-}
-
-/* Tamanho do Modal */
-.modal-dialog {
-  max-width: 80%; /* Aumentando a largura do modal */
-  margin: 30px auto;
-}
-
-.modal-body img {
-  max-width: 100%; /* Não ultrapassa o tamanho do modal */
-  height: auto; /* Mantém proporção */
-  object-fit: contain; /* Segurança extra para evitar cortes */
-  display: block; /* Remove espaçamentos indesejados abaixo da imagem */
-  margin: 0 auto; /* Centraliza horizontalmente */
-}
-
-.screenshot-wrapper img {
+  height: 200px;
+  width: auto;
+  object-fit: contain;
   cursor: pointer;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-.video-showcase {
-  padding-bottom: 4rem;
+/* === VÍDEO SHOWCASE === */
+.video-showcase video {
+  width: 100%;
+  max-width: 720px;
+  border-radius: 12px;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+  margin: 0 auto;
+  display: block;
 }
 
-.video-showcase h3 {
-  font-weight: bold;
-  color: #2e7d32;
+/* === RESPONSIVO === */
+@media (max-width: 768px) {
+  .titulo-site {
+    font-size: 2rem;
+  }
+
+  .section-divider {
+    margin: 1.5rem 0;
+  }
+
+  .btn-index-register {
+    width: 100%;
+    max-width: 300px;
+  }
 }
 
-.btn-video-ajustado {
-  margin-top: -100px; /* puxa o botão para cima */
-  position: relative;
-  z-index: 1;
+@media (max-width: 576px) {
+  .feature-box {
+    padding: 1rem 0.75rem;
+  }
+
+  .screenshot-wrapper img {
+    height: 160px;
+  }
+
+  .video-showcase video {
+    max-width: 100%;
+  }
+}
+
+@media (min-width: 992px) {
+  .features-wrapper {
+    max-width: 100% !important;
+  }
+}
+
+@media (min-width: 992px) {
+  .shift-right-lg {
+    margin-left: 30rem;
+    padding-left: 4rem;
+  }
+}
+
+@media (min-width: 992px) {
+  .margin-left-desktop {
+    margin-left: 7rem;
+  }
+}
+
+.feature-accent {
+  color: #003366 !important; /* verde escuro */
+}
+
+.fixed-height-img {
+  height: 200px;
+  width: 100%;
+  object-fit: cover; /* ou "contain" se quiser mostrar a imagem toda */
+  border-radius: 8px;
+  cursor: pointer; /* 👈 isso garante a mãozinha */
 }
