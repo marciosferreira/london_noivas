@@ -238,3 +238,42 @@ input:focus {
   display: inline-block;
   margin-top: 5px;
 }
+
+.btn-green-custom {
+  background-color: #28a745;
+  color: white;
+  font-weight: 500;
+  border: none;
+  padding: 0.5rem 1.25rem;
+  border-radius: 6px;
+  font-size: 1rem;
+  transition: background-color 0.3s ease;
+}
+
+.btn-green-custom:hover {
+  background-color: #218838;
+}
+
+.captcha-wrapper {
+  max-width: 100%;
+  overflow: hidden; /* 🔥 Esconde qualquer barra de rolagem */
+  display: inline-block;
+}
+
+.captcha-wrapper .g-recaptcha {
+  transform: scale(0.88);
+  transform-origin: 0 0;
+  width: fit-content; /* 🔥 Reduz a largura lógica também */
+}
+
+@media (max-width: 375px) {
+  .captcha-wrapper .g-recaptcha {
+    transform: scale(0.82);
+  }
+}
+
+@media (max-width: 320px) {
+  .captcha-wrapper .g-recaptcha {
+    transform: scale(0.75);
+  }
+}
