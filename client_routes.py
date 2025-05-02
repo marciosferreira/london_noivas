@@ -407,10 +407,10 @@ def init_client_routes(
     @app.route("/client_transactions/<client_id>/")
     def client_transactions(client_id):
         # Import here to avoid circular imports
-        from item_routes import listar_itens_per_transaction
+        from item_routes import list_transactions
 
         # Lógica aqui para buscar transações do cliente
-        return listar_itens_per_transaction(
+        return list_transactions(
             ["rented", "returned", "reserved"],
             "client_transactions.html",
             "Transações do cliente",

@@ -1283,44 +1283,89 @@ def init_item_routes(
         user_utc = get_user_timezone(users_table, user_id)
         username = session.get("username", None)
 
-        # Estatísticas integradas (da antiga rota /home)
         stats = {}
-        response = itens_table.query(
-            IndexName="account_id-status-index",
-            KeyConditionExpression=Key("account_id").eq(account_id),
-        )
-        items = response["Items"]
-        stats["total_items_available"] = len(
-            [item for item in items if item.get("status") == "available"]
-        )
-        stats["total_items_archived"] = len(
-            [item for item in items if item.get("status") == "archive"]
-        )
+        # aqui vamos pegar ps totais, sem filtro de data.
+        # Contadores iniciais
+        stats["total_items_available"] = 0
+        stats["total_items_archived"] = 0
 
-        stats["total_rented"] = transactions_table.query(
-            IndexName="account_id-transaction_status-index",
-            KeyConditionExpression=Key("account_id").eq(account_id)
-            & Key("transaction_status").eq("rented"),
-        )["Count"]
+        # Lista de status que queremos contar
+        status_targets = {
+            "available": "total_items_available",
+            "archive": "total_items_archived",
+        }
 
-        stats["total_returned"] = transactions_table.query(
-            IndexName="account_id-transaction_status-index",
-            KeyConditionExpression=Key("account_id").eq(account_id)
-            & Key("transaction_status").eq("returned"),
-        )["Count"]
+        # Loop por cada status
+        for status_value, stats_key in status_targets.items():
+            last_evaluated_key = None
 
-        stats["total_reserved"] = transactions_table.query(
-            IndexName="account_id-transaction_status-index",
-            KeyConditionExpression=Key("account_id").eq(account_id)
-            & Key("transaction_status").eq("reserved"),
-        )["Count"]
+            while True:
+                query_params = {
+                    "IndexName": "account_id-status-index",
+                    "KeyConditionExpression": Key("account_id").eq(account_id)
+                    & Key("status").eq(status_value),
+                    "Select": "COUNT",
+                }
 
-        stats["total_clients"] = clients_table.query(
-            IndexName="account_id-index",
-            KeyConditionExpression=Key("account_id").eq(account_id),
-        )["Count"]
+                if last_evaluated_key:
+                    query_params["ExclusiveStartKey"] = last_evaluated_key
 
-        # Datas iniciais e finais (30 dias)
+                response = itens_table.query(**query_params)
+                stats[stats_key] += response.get("Count", 0)
+
+                last_evaluated_key = response.get("LastEvaluatedKey")
+                if not last_evaluated_key:
+                    break
+
+        stats["total_clients"] = 0
+        last_evaluated_key = None
+
+        while True:
+            query_params = {
+                "IndexName": "account_id-index",
+                "KeyConditionExpression": Key("account_id").eq(account_id),
+                "Select": "COUNT",
+            }
+
+            if last_evaluated_key:
+                query_params["ExclusiveStartKey"] = last_evaluated_key
+
+            response = clients_table.query(**query_params)
+            stats["total_clients"] += response.get("Count", 0)
+
+            last_evaluated_key = response.get("LastEvaluatedKey")
+            if not last_evaluated_key:
+                break
+
+        def count_transactions_by_status(account_id, status):
+            total = 0
+            last_evaluated_key = None
+
+            while True:
+                query_params = {
+                    "IndexName": "account_id-transaction_status-index",
+                    "KeyConditionExpression": Key("account_id").eq(account_id)
+                    & Key("transaction_status").eq(status),
+                    "Select": "COUNT",
+                }
+
+                if last_evaluated_key:
+                    query_params["ExclusiveStartKey"] = last_evaluated_key
+
+                response = transactions_table.query(**query_params)
+                total += response.get("Count", 0)
+
+                last_evaluated_key = response.get("LastEvaluatedKey")
+                if not last_evaluated_key:
+                    break
+
+            return total
+
+        # 🔢 Aplicando para cada status
+        stats["total_rented"] = count_transactions_by_status(account_id, "rented")
+        stats["total_returned"] = count_transactions_by_status(account_id, "returned")
+        stats["total_reserved"] = count_transactions_by_status(account_id, "reserved")
+
         end_date = datetime.datetime.now(user_utc).date()
         start_date = end_date - datetime.timedelta(days=30)
 
@@ -1345,39 +1390,71 @@ def init_item_routes(
                     username=username,
                 )
 
-        response = transactions_table.query(
-            IndexName="account_id-index",
-            KeyConditionExpression=Key("account_id").eq(account_id),
-            FilterExpression=Attr("transaction_status").is_in(
-                ["rented", "returned", "reserved"]
-            ),
-        )
-        transactions = response.get("Items", [])
+        # conta novos clientes dentro de um tiemframe
+        num_new_clients = 0
+        last_evaluated_key = None
 
-        clients_response = users_table.query(
-            IndexName="account_id-index",
-            KeyConditionExpression=Key("account_id").eq(account_id),
-        )
+        while True:
+            query_params = {
+                "IndexName": "account_id-index",
+                "KeyConditionExpression": Key("account_id").eq(account_id),
+                "ProjectionExpression": "created_at",
+            }
 
-        new_clients = []
-        for client in clients_response.get("Items", []):
-            try:
-                created_at = datetime.datetime.fromisoformat(
-                    client.get("created_at")
-                ).date()
-                if start_date <= created_at <= end_date:
-                    new_clients.append(client)
-            except Exception as e:
-                print("Erro ao processar created_at:", e)
+            if last_evaluated_key:
+                query_params["ExclusiveStartKey"] = last_evaluated_key
 
-        num_new_clients = len(new_clients)
+            response = users_table.query(**query_params)
+            clients_batch = response.get("Items", [])
+
+            for client in clients_batch:
+                try:
+                    created_at_str = client.get("created_at")
+                    if created_at_str:
+                        created_at = datetime.datetime.fromisoformat(
+                            created_at_str
+                        ).date()
+                        if start_date <= created_at <= end_date:
+                            num_new_clients += 1  # ⚠️ só conta, não armazena
+                except Exception as e:
+                    print("Erro ao processar created_at:", e)
+
+            last_evaluated_key = response.get("LastEvaluatedKey")
+            if not last_evaluated_key:
+                break
+
+        # pega as transações
+        transactions = []
+        last_evaluated_key = None
+        while True:
+            query_params = {
+                "IndexName": "account_id-index",
+                "KeyConditionExpression": Key("account_id").eq(account_id),
+                "FilterExpression": Attr("transaction_status").is_in(
+                    ["rented", "returned", "reserved"]
+                ),
+            }
+            if last_evaluated_key:
+                query_params["ExclusiveStartKey"] = last_evaluated_key
+            response = transactions_table.query(**query_params)
+            transactions.extend(response.get("Items", []))
+            last_evaluated_key = response.get("LastEvaluatedKey")
+            if not last_evaluated_key:
+                break
+
+        from collections import defaultdict
 
         total_paid = 0
         total_due = 0
         num_transactions = 0
         sum_valor = 0
-        status_counter = {"rented": 0, "returned": 0, "reserved": 0}
         item_counter = {}
+
+        status_counter = {"rented": 0, "returned": 0, "reserved": 0}
+
+        event_counts = defaultdict(
+            lambda: {"created": 0, "devolvido": 0, "retirado": 0, "pagamento": 0}
+        )
 
         for transaction in transactions:
             try:
@@ -1394,19 +1471,53 @@ def init_item_routes(
                     total_due += max(0, valor - pagamento)
                     sum_valor += valor
 
-                    status_counter[
-                        transaction.get("transaction_status", "unknown")
-                    ] += 1
+                    # ✅ Contador de reservados: toda transação criada é considerada um "reserved"
+                    status_counter["reserved"] += 1
 
                     item_id = transaction.get("item_id")
                     if item_id:
                         item_counter[item_id] = item_counter.get(item_id, 0) + 1
 
+                    event_counts[transaction_date]["created"] += 1
+                    if pagamento > 0:
+                        event_counts[transaction_date]["pagamento"] += pagamento
+
+                    if transaction.get("dev_date"):
+                        dev_date = datetime.datetime.strptime(
+                            transaction.get("dev_date"), "%Y-%m-%d"
+                        ).date()
+                        if start_date <= dev_date <= end_date:
+                            status_counter["returned"] += 1  # ✅ Devolvido
+                            event_counts[dev_date]["devolvido"] += 1
+
+                    if transaction.get("ret_date"):
+                        ret_date = datetime.datetime.strptime(
+                            transaction.get("ret_date"), "%Y-%m-%d"
+                        ).date()
+                        if start_date <= ret_date <= end_date:
+                            status_counter["rented"] += 1  # ✅ Retirado
+                            event_counts[ret_date]["retirado"] += 1
             except (ValueError, TypeError):
                 continue
 
         preco_medio = sum_valor / num_transactions if num_transactions else 0
         total_general = total_paid + total_due
+
+        date_labels = []
+        created_list = []
+        dev_list = []
+        ret_list = []
+        pagamento_list = []
+
+        current_date = start_date
+        while current_date <= end_date:
+            daily = event_counts[current_date]
+            date_labels.append(current_date.isoformat())
+            created_list.append(daily["created"])
+            dev_list.append(daily["devolvido"])
+            ret_list.append(daily["retirado"])
+            pagamento_list.append(daily["pagamento"])
+            current_date += datetime.timedelta(days=1)
 
         if request.method == "POST":
             flash("Relatório atualizado com sucesso!", "success")
@@ -1425,6 +1536,11 @@ def init_item_routes(
             item_counter=item_counter,
             stats=stats,
             username=username,
+            date_labels=date_labels,
+            created_list=created_list,
+            dev_list=dev_list,
+            ret_list=ret_list,
+            pagamento_list=pagamento_list,
         )
 
     @app.route("/query", methods=["POST"])

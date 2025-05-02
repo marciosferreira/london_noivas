@@ -1,5 +1,21 @@
 {% extends "base.html" %} {% block title %}Relatórios{% endblock %} {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='style_reports.css') }}" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+<style>
+  .dashboard-card {
+    background-color: #fff;
+    transition: box-shadow 0.3s;
+  }
+
+  .dashboard-card:hover {
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.08);
+  }
+
+  canvas {
+    cursor: pointer;
+  }
+</style>
 {% endblock %} {% block content %}
 <div class="container my-3">
   <h2 class="mb-4">Relatórios</h2>
@@ -25,185 +41,400 @@
   <div class="text-center mt-3 text-muted">
     <small>Período: {{ start_date.strftime("%d/%m/%Y") }} a {{ end_date.strftime("%d/%m/%Y") }} ({{ (end_date - start_date).days }} dias)</small>
   </div>
+  <br />
+  <br />
+  <h3 class="mb-1 text-center">Resumo do Período</h3>
+  <p class="text-muted text-center mb-4" style="font-size: 0.95rem">(dados filtrados pela data selecionada)</p>
 
-  <!-- Resumo Financeiro -->
-  <div class="row text-center g-3 mt-4">
-    <div class="col-md-4">
-      <div class="card shadow-sm">
-        <div class="card-body">
-          <h5>Total Recebido</h5>
-          <h3 class="text-success">R$ {{ "%.2f"|format(total_paid) }}</h3>
+  <section class="container mt-4">
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-3">
+      <!-- Total Recebido -->
+      <div class="col">
+        <div class="dashboard-card d-flex align-items-center justify-content-between p-3 shadow-sm rounded">
+          <div class="d-flex align-items-center gap-3">
+            <i class="fas fa-circle-dollar-to-slot fa-2x text-success"></i>
+            <div class="text-dark fw-semibold">Recebido</div>
+          </div>
+          <span class="badge bg-success-subtle text-success-emphasis fs-6">R$ {{ "%.2f"|format(total_paid) }}</span>
+        </div>
+      </div>
+
+      <!-- Total a Receber -->
+      <div class="col">
+        <div class="dashboard-card d-flex align-items-center justify-content-between p-3 shadow-sm rounded">
+          <div class="d-flex align-items-center gap-3">
+            <i class="fas fa-wallet fa-2x text-danger"></i>
+            <div class="text-dark fw-semibold">À Receber</div>
+          </div>
+          <span class="badge bg-danger-subtle text-danger-emphasis fs-6">R$ {{ "%.2f"|format(total_due) }}</span>
+        </div>
+      </div>
+
+      <!-- Total Geral -->
+      <div class="col">
+        <div class="dashboard-card d-flex align-items-center justify-content-between p-3 shadow-sm rounded">
+          <div class="d-flex align-items-center gap-3">
+            <i class="fas fa-coins fa-2x text-dark"></i>
+            <div class="text-dark fw-semibold">Total Geral</div>
+          </div>
+          <span class="badge bg-secondary fs-6">R$ {{ "%.2f"|format(total_general) }}</span>
+        </div>
+      </div>
+
+      <!-- Transações -->
+      <div class="col">
+        <div class="dashboard-card d-flex align-items-center justify-content-between p-3 shadow-sm rounded">
+          <div class="d-flex align-items-center gap-3">
+            <i class="fas fa-file-contract fa-2x text-primary"></i>
+            <div class="text-dark fw-semibold">Transações</div>
+          </div>
+          <span class="badge bg-secondary fs-6">{{ num_transactions }}</span>
+        </div>
+      </div>
+
+      <!-- Preço Médio -->
+      <div class="col">
+        <div class="dashboard-card d-flex align-items-center justify-content-between p-3 shadow-sm rounded">
+          <div class="d-flex align-items-center gap-3">
+            <i class="fas fa-tag fa-2x text-warning"></i>
+            <div class="text-dark fw-semibold">Preço Médio</div>
+          </div>
+          <span class="badge bg-warning-subtle text-dark fs-6">R$ {{ "%.2f"|format(preco_medio) }}</span>
+        </div>
+      </div>
+
+      <!-- Novos Clientes -->
+      <div class="col">
+        <div class="dashboard-card d-flex align-items-center justify-content-between p-3 shadow-sm rounded">
+          <div class="d-flex align-items-center gap-3">
+            <i class="fas fa-user-plus fa-2x text-info"></i>
+            <div class="text-dark fw-semibold">Novos Clientes</div>
+          </div>
+          <span class="badge bg-info-subtle text-dark fs-6">{{ num_new_clients }}</span>
         </div>
       </div>
     </div>
-    <div class="col-md-4">
-      <div class="card shadow-sm">
-        <div class="card-body">
-          <h5>Total à Receber</h5>
-          <h3 class="text-danger">R$ {{ "%.2f"|format(total_due) }}</h3>
-        </div>
+  </section>
+
+  <br />
+  <br />
+  <!-- Gráficos de Relatório -->
+  <div class="container mt-5">
+    <div class="row g-4">
+      <!-- Gráfico de Pizza: Status das Transações -->
+      <div class="col-12 col-md-4">
+        <h5 class="text-center">Distribuição por Status</h5>
+        <div style="height: 300px"><canvas id="statusChart"></canvas></div>
+        {% if status_counter is defined and status_counter.values() | sum == 0 %}
+        <p class="text-muted text-center">Aguardando dados...</p>
+        {% endif %}
       </div>
-    </div>
-    <div class="col-md-4">
-      <div class="card shadow-sm">
-        <div class="card-body">
-          <h5>Total Geral</h5>
-          <h3 class="text-dark">R$ {{ "%.2f"|format(total_general) }}</h3>
-        </div>
+
+      <!-- Gráfico de Linhas: Eventos Diários -->
+      <div class="col-12 col-md-4">
+        <h5 class="text-center">Eventos Diários</h5>
+        <div style="height: 300px"><canvas id="eventosChart"></canvas></div>
+        {% if created_list | sum == 0 and dev_list | sum == 0 and ret_list | sum == 0 %}
+        <p class="text-muted text-center">Aguardando dados...</p>
+        {% endif %}
+      </div>
+
+      <!-- Gráfico de Linhas: Total Recebido por Dia -->
+
+      <!-- Gráfico de Linhas: Total Recebido por Dia -->
+      <div class="col-12 col-md-4">
+        <h5 class="text-center">Total Recebido por Dia</h5>
+        <div style="height: 300px"><canvas id="recebidoChart"></canvas></div>
+        {% if pagamento_list | sum == 0 %}
+        <p class="text-muted text-center">Aguardando dados...</p>
+        {% endif %}
       </div>
     </div>
   </div>
 
-  <!-- Informações Extras -->
-  <div class="row text-center g-3 mt-4">
-    <div class="col-md-4">
-      <div class="card shadow-sm">
-        <div class="card-body">
-          <h5>Transações no Período</h5>
-          <h3>{{ num_transactions }}</h3>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-4">
-      <div class="card shadow-sm">
-        <div class="card-body">
-          <h5>Preço Médio dos Itens</h5>
-          <h3>R$ {{ "%.2f"|format(preco_medio) }}</h3>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-4">
-      <div class="card shadow-sm">
-        <div class="card-body">
-          <h5>Novos Clientes no período</h5>
-          <h3>{{ num_new_clients }}</h3>
-        </div>
-      </div>
-    </div>
-  </div>
+  <br />
+  <br />
+  <br />
 
-  <!-- Gráfico -->
-  <div class="mt-5 text-center">
-    <h4>Distribuição por Status das Transações</h4>
-    {% if status_counter is defined and status_counter.values() | sum > 0 %}
-    <div style="max-width: 300px; margin: auto">
-      <canvas id="statusChart" width="300" height="300"></canvas>
+  <h3 class="mb-1 text-center">Totais Gerais</h3>
+  <p class="text-muted text-center mb-4" style="font-size: 0.95rem">(total agora no banco de dados)</p>
+
+  <section class="container mt-4">
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-3">
+      <!-- Clientes -->
+      <div class="col">
+        <a
+          href="{{ url_for('listar_clientes') }}"
+          class="dashboard-card d-flex align-items-center justify-content-between p-3 shadow-sm rounded text-decoration-none"
+        >
+          <div class="d-flex align-items-center gap-3">
+            <i class="fas fa-users fa-2x text-primary"></i>
+            <div class="text-dark fw-semibold">Clientes</div>
+          </div>
+          <span class="badge bg-secondary fs-6">{{ stats.total_clients }}</span>
+        </a>
+      </div>
+
+      <!-- Inventário -->
+      <div class="col">
+        <a
+          href="{{ url_for('inventory') }}"
+          class="dashboard-card d-flex align-items-center justify-content-between p-3 shadow-sm rounded text-decoration-none"
+        >
+          <div class="d-flex align-items-center gap-3">
+            <i class="fas fa-boxes-stacked fa-2x text-primary"></i>
+            <div class="text-dark fw-semibold">Itens disponíveis</div>
+          </div>
+          <span class="badge bg-secondary fs-6">{{ stats.total_items_available }}</span>
+        </a>
+      </div>
+
+      <!-- Arquivados -->
+      <div class="col">
+        <a
+          href="{{ url_for('archive') }}"
+          class="dashboard-card d-flex align-items-center justify-content-between p-3 shadow-sm rounded text-decoration-none"
+        >
+          <div class="d-flex align-items-center gap-3">
+            <i class="fas fa-box-archive fa-2x text-primary"></i>
+            <div class="text-dark fw-semibold">Itens arquivados</div>
+          </div>
+          <span class="badge bg-secondary fs-6">{{ stats.total_items_archived }}</span>
+        </a>
+      </div>
+
+      <!-- Reservados -->
+      <div class="col">
+        <a
+          href="{{ url_for('reserved') }}"
+          class="dashboard-card d-flex align-items-center justify-content-between p-3 shadow-sm rounded text-decoration-none"
+        >
+          <div class="d-flex align-items-center gap-3">
+            <i class="fas fa-calendar-check fa-2x text-primary"></i>
+            <div class="text-dark fw-semibold">Itens reservados</div>
+          </div>
+          <span class="badge bg-secondary fs-6">{{ stats.total_reserved }}</span>
+        </a>
+      </div>
+
+      <!-- Retirados -->
+      <div class="col">
+        <a
+          href="{{ url_for('rented') }}"
+          class="dashboard-card d-flex align-items-center justify-content-between p-3 shadow-sm rounded text-decoration-none"
+        >
+          <div class="d-flex align-items-center gap-3">
+            <i class="fas fa-truck-moving fa-2x text-primary"></i>
+            <div class="text-dark fw-semibold">Itens retirados</div>
+          </div>
+          <span class="badge bg-secondary fs-6">{{ stats.total_rented }}</span>
+        </a>
+      </div>
+
+      <!-- Devolvidos -->
+      <div class="col">
+        <a
+          href="{{ url_for('returned') }}"
+          class="dashboard-card d-flex align-items-center justify-content-between p-3 shadow-sm rounded text-decoration-none"
+        >
+          <div class="d-flex align-items-center gap-3">
+            <i class="fas fa-clipboard-check fa-2x text-primary"></i>
+            <div class="text-dark fw-semibold">Itens devolvidos</div>
+          </div>
+          <span class="badge bg-secondary fs-6">{{ stats.total_returned }}</span>
+        </a>
+      </div>
     </div>
-    {% else %}
-    <p class="text-muted mt-4">Aguardando dados...</p>
-    {% endif %}
+  </section>
+</div>
+
+<!-- Modal para gráficos -->
+<div class="modal fade" id="chartModal" tabindex="-1" aria-labelledby="chartModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="chartModalLabel">Gráfico Ampliado</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body text-center">
+        <canvas id="modalChart" style="max-width: 100%; height: 500px"></canvas>
+      </div>
+    </div>
   </div>
 </div>
-<br />
-<h3 class="mb-4 text-center">Totais Gerais no momento</h3>
 
-<section class="container mt-4">
-  <div class="row row-cols-2 row-cols-sm-2 row-cols-md-4 g-4 text-center">
-    <!-- Bloco 1 - Clientes -->
-    <div class="col">
-      <a href="{{ url_for('listar_clientes') }}">
-        <div class="position-relative">
-          <span class="badge-counter">{{ stats.total_clients }}</span>
-          <div class="image-wrapper">
-            <img src="/static/icons/clients.png" alt="Clientes" class="img-fluid img-quick-access mb-2 rounded shadow" />
-          </div>
-        </div>
-      </a>
-    </div>
-
-    <!-- Bloco 2 - Inventário -->
-    <div class="col">
-      <a href="{{ url_for('inventory') }}">
-        <div class="position-relative">
-          <span class="badge-counter">{{ stats.total_items_available }}</span>
-          <div class="image-wrapper">
-            <img src="/static/icons/inventory.png" alt="Disponíveis" class="img-fluid img-quick-access mb-2 rounded shadow" />
-          </div>
-        </div>
-      </a>
-    </div>
-
-    <!-- Bloco 3 - Arquivados -->
-    <div class="col">
-      <a href="{{ url_for('archive') }}">
-        <div class="position-relative">
-          <span class="badge-counter">{{ stats.total_items_archived }}</span>
-          <div class="image-wrapper">
-            <img src="/static/icons/archive.png" alt="Arquivados" class="img-fluid img-quick-access mb-2 rounded shadow" />
-          </div>
-        </div>
-      </a>
-    </div>
-
-    <!-- Bloco 4 - Reservados -->
-    <div class="col">
-      <a href="{{ url_for('reserved') }}">
-        <div class="position-relative">
-          <span class="badge-counter">{{ stats.total_reserved }}</span>
-          <div class="image-wrapper">
-            <img src="/static/icons/reserved.png" alt="Reservados" class="img-fluid img-quick-access mb-2 rounded shadow" />
-          </div>
-        </div>
-      </a>
-    </div>
-
-    <!-- Bloco 5 - Retirados -->
-    <div class="col">
-      <a href="{{ url_for('rented') }}">
-        <div class="position-relative">
-          <span class="badge-counter">{{ stats.total_rented }}</span>
-          <div class="image-wrapper">
-            <img src="/static/icons/rented.png" alt="Retirados" class="img-fluid img-quick-access mb-2 rounded shadow" />
-          </div>
-        </div>
-      </a>
-    </div>
-
-    <!-- Bloco 6 - Devolvidos -->
-    <div class="col">
-      <a href="{{ url_for('returned') }}">
-        <div class="position-relative">
-          <span class="badge-counter">{{ stats.total_returned }}</span>
-          <div class="image-wrapper">
-            <img src="/static/icons/returned.png" alt="Devolvidos" class="img-fluid img-quick-access mb-2 rounded shadow" />
-          </div>
-        </div>
-      </a>
-    </div>
-  </div>
-</section>
 {% endblock %} {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-  const statusData = {{ status_counter|tojson }};
-  const statusLabelsMap = {
-    rented: "Retirado",
-    returned: "Devolvido",
-    reserved: "Reservado"
-  };
-  if (Object.keys(statusData).length > 0) {
-    const ctx = document.getElementById('statusChart').getContext('2d');
-    new Chart(ctx, {
-      type: 'pie',
+  let eventosChartInstance;
+  let recebidoChartInstance;
+  let statusChartInstance;
+  let modalChartInstance = null;
+
+  function destroyIfExists(chart) {
+    if (chart) chart.destroy();
+  }
+
+  function cloneChartData(originalChart) {
+    return {
+      type: originalChart.config.type,
+      data: JSON.parse(JSON.stringify(originalChart.config.data)),
+      options: Object.assign({}, originalChart.config.options, {
+        responsive: true,
+        maintainAspectRatio: false
+      })
+    };
+  }
+
+  function openChartModal(chartInstance, title) {
+    const modalCanvas = document.getElementById("modalChart");
+    const ctx = modalCanvas.getContext("2d");
+
+    if (modalChartInstance) modalChartInstance.destroy();
+    modalChartInstance = new Chart(ctx, cloneChartData(chartInstance));
+
+    document.getElementById("chartModalLabel").textContent = title;
+    const chartModal = new bootstrap.Modal(document.getElementById("chartModal"));
+    chartModal.show();
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    const dateLabels = {{ date_labels | tojson }};
+    const createdList = {{ created_list | tojson }};
+    const devList = {{ dev_list | tojson }};
+    const retList = {{ ret_list | tojson }};
+    const pagamentoList = {{ pagamento_list | tojson }};
+    const statusData = {{ status_counter | tojson }};
+
+    const statusLabelsMap = {
+      rented: "Retirado",
+      returned: "Devolvido",
+      reserved: "Reservado"
+    };
+
+    destroyIfExists(statusChartInstance);
+    destroyIfExists(eventosChartInstance);
+    destroyIfExists(recebidoChartInstance);
+
+    // ---------- Gráfico de Pizza ----------
+    const ctx1 = document.getElementById("statusChart").getContext("2d");
+    const hasPieData = Object.values(statusData).some(val => val > 0);
+
+    const pieLabels = hasPieData
+      ? Object.keys(statusData).map(key => statusLabelsMap[key] || key)
+      : ["Sem dados"];
+
+    const pieData = hasPieData
+      ? Object.values(statusData)
+      : [1];
+
+    const pieColor = hasPieData
+      ? ["#dc3545", "#ffc107", "#28a745"]
+      : ["#dee2e6"]; // cinza claro
+
+    statusChartInstance = new Chart(ctx1, {
+      type: "pie",
       data: {
-        labels: Object.keys(statusData).map(key => statusLabelsMap[key] || key),
+        labels: pieLabels,
         datasets: [{
-          data: Object.values(statusData),
-          backgroundColor: ['#4CAF50', '#FFC107', '#2196F3'],
+          data: pieData,
+          backgroundColor: pieColor,
+          borderColor: pieColor
         }]
       },
       options: {
         responsive: true,
-        maintainAspectRatio: true
+        maintainAspectRatio: false
       }
     });
-  }
 
-  const form = document.querySelector('form');
-  const submitBtn = document.getElementById('submitBtn');
-  form.addEventListener('submit', () => {
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Carregando...`;
+    // ---------- Gráfico de Eventos ----------
+    const hasEventData = createdList.some(v => v > 0) || devList.some(v => v > 0) || retList.some(v => v > 0);
+    const fallbackEvents = new Array(dateLabels.length).fill(0);
+
+    const ctx2 = document.getElementById("eventosChart").getContext("2d");
+    eventosChartInstance = new Chart(ctx2, {
+      type: "line",
+      data: {
+        labels: dateLabels.length ? dateLabels : ["Sem dados"],
+        datasets: [
+          {
+            label: "Retirados",
+            data: hasEventData ? retList : fallbackEvents,
+            borderColor: hasEventData ? "#dc3545" : "#dee2e6",
+            backgroundColor: hasEventData ? "#dc3545" : "#dee2e6",
+            fill: false
+          },
+          {
+            label: "Reservado",
+            data: hasEventData ? createdList : fallbackEvents,
+            borderColor: hasEventData ? "#ffc107" : "#dee2e6",
+            backgroundColor: hasEventData ? "#ffc107" : "#dee2e6",
+            fill: false
+          },
+          {
+            label: "Devolvidos",
+            data: hasEventData ? devList : fallbackEvents,
+            borderColor: hasEventData ? "#28a745" : "#dee2e6",
+            backgroundColor: hasEventData ? "#28a745" : "#dee2e6",
+            fill: false
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: { beginAtZero: true }
+        }
+      }
+    });
+
+    // ---------- Gráfico de Recebido ----------
+    const hasPaymentData = pagamentoList.some(v => v > 0);
+    const fallbackPayments = new Array(dateLabels.length).fill(0);
+
+    const ctx3 = document.getElementById("recebidoChart").getContext("2d");
+    recebidoChartInstance = new Chart(ctx3, {
+      type: "bar",
+      data: {
+        labels: dateLabels.length ? dateLabels : ["Sem dados"],
+        datasets: [{
+          label: "Total Recebido (R$)",
+          data: hasPaymentData ? pagamentoList : fallbackPayments,
+          backgroundColor: hasPaymentData ? "#0d6efd" : "#dee2e6",
+          borderColor: hasPaymentData ? "#0d6efd" : "#dee2e6",
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: { beginAtZero: true }
+        }
+      }
+    });
+
+    // Clique nos gráficos para abrir modal
+    document.getElementById("statusChart").addEventListener("click", () => {
+      openChartModal(statusChartInstance, "Distribuição por Status");
+    });
+    document.getElementById("eventosChart").addEventListener("click", () => {
+      openChartModal(eventosChartInstance, "Eventos Diários");
+    });
+    document.getElementById("recebidoChart").addEventListener("click", () => {
+      openChartModal(recebidoChartInstance, "Total Recebido por Dia");
+    });
+
+    // Botão de envio
+    const form = document.querySelector("form");
+    const submitBtn = document.getElementById("submitBtn");
+    form.addEventListener("submit", () => {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Carregando...`;
+    });
   });
 </script>
+
 {% endblock %}
