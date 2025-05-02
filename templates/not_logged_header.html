@@ -13,38 +13,12 @@
         </span>
       </a>
 
-      <!-- Botão hamburguer para mobile -->
-      <button
-        class="navbar-toggler"
-        type="button"
-        data-bs-toggle="collapse"
-        data-bs-target="#navbarNav"
-        aria-controls="navbarNav"
-        aria-expanded="false"
-        aria-label="Toggle navigation"
-      >
-        <span class="navbar-toggler-icon"></span>
-      </button>
-
-      <!-- Login e Cadastro -->
-      <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
-        <ul class="navbar-nav d-flex align-items-center gap-2">
-          <li class="nav-item">
-            {% if request.endpoint == 'login' or request.endpoint == 'index' %}
-            <a class="btn btn-login-style" href="{{ url_for('login') }}">Login</a>
-            {% else %}
-            <a class="nav-link text-white" href="{{ url_for('login') }}">Login</a>
-            {% endif %}
-          </li>
-          <li class="nav-item">
-            {% if request.endpoint == 'register' or request.endpoint == 'index' %}
-            <a class="btn btn-register-style" href="{{ url_for('register') }}">Cadastrar</a>
-            {% else %}
-            <a class="nav-link text-white" href="{{ url_for('register') }}">Cadastrar</a>
-            {% endif %}
-          </li>
-        </ul>
-      </div>
+      <!-- Botão Login (direto, sem menu) -->
+      {% if request.endpoint == 'login' or request.endpoint == 'index' %}
+      <a class="btn btn-login-style" href="{{ url_for('login') }}">Login</a>
+      {% else %}
+      <a class="nav-link text-white" href="{{ url_for('login') }}">Login</a>
+      {% endif %}
     </div>
   </nav>
 </header>
