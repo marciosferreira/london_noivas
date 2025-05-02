@@ -184,11 +184,11 @@ body {
 .responsive-table {
   border-collapse: separate;
   border-spacing: 0 5px; /* espaço vertical entre linhas */
+  border: 3px solid #dee2e6;
 }
 
 .responsive-table tbody tr {
   background-color: white;
   border-radius: 8px;
   border: 3px solid #dee2e6;
-  overflow: hidden;
 }
