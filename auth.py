@@ -32,7 +32,9 @@ from utils import (
 )
 
 
-def init_auth_routes(app, users_table, reset_tokens_table, payment_transactions_table):
+def init_auth_routes(
+    app, users_table, reset_tokens_table, payment_transactions_table, field_config_table
+):
     # Registration route
     @app.route("/register", methods=["GET", "POST"])
     def register():
@@ -120,6 +122,7 @@ def init_auth_routes(app, users_table, reset_tokens_table, payment_transactions_
                 users_table,
                 app,
                 payment_transactions_table,
+                field_config_table,
                 role="admin",
                 user_ip=user_ip,
                 status="active",
@@ -1057,6 +1060,7 @@ def create_user(
     users_table,
     app,
     payment_transactions_table,
+    field_config_table,
     role="admin",
     user_ip=None,
     status="active",
@@ -1097,6 +1101,96 @@ def create_user(
                 metadata={"account_id": account_id},
             )
 
+            # cria os campos default para itens
+            # cria os campos default para itens
+            import re
+            import unicodedata
+
+            def slugify(text):
+                text = unicodedata.normalize("NFKD", text)
+                text = text.encode("ASCII", "ignore").decode("ASCII")
+                text = text.strip().lower()
+                text = re.sub(r"[^\w\s-]", "", text)
+                return re.sub(r"[-\s]+", "_", text)
+
+            # Mapas fixos com slugs esperados
+            slug_overrides = {
+                "Item Custom ID#": "item_custom_id",
+                "Descrição": "descricao",
+                "Observações": "observacoes",
+                "Preço do aluguel": "valor",
+                "Imagem": "image_url",
+            }
+
+            DEFAULT_FIELDS = [
+                {
+                    "label": "Item Custom ID#",
+                    "type": "string",
+                    "order_sequence": 1,
+                    "filterable": True,
+                    "preview": True,
+                    "f_type": "fixed",
+                },
+                {
+                    "label": "Descrição",
+                    "type": "string",
+                    "order_sequence": 2,
+                    "filterable": True,
+                    "preview": True,
+                    "f_type": "fixed",
+                },
+                {
+                    "label": "Observações",
+                    "type": "string",
+                    "order_sequence": 3,
+                    "filterable": True,
+                    "preview": True,
+                    "f_type": "fixed",
+                },
+                {
+                    "label": "Preço do aluguel",
+                    "type": "number",
+                    "order_sequence": 4,
+                    "filterable": True,
+                    "preview": True,
+                    "f_type": "fixed",
+                },
+                {
+                    "label": "Imagem",
+                    "type": "string",
+                    "order_sequence": 5,
+                    "filterable": False,
+                    "preview": True,
+                    "f_type": "fixed",
+                },
+            ]
+
+            fields_config = {}
+            for field in DEFAULT_FIELDS:
+                label = field["label"]
+                slug = slug_overrides.get(
+                    label, slugify(label)
+                )  # Slug fixo se estiver no mapa
+
+                fields_config[slug] = {
+                    "label": label,
+                    "type": field["type"],
+                    "visible": True,
+                    "required": slug in {"item_custom_id", "descricao", "valor"},
+                    "order_sequence": field["order_sequence"],
+                    "filterable": field["filterable"],
+                    "preview": field["preview"],
+                    "f_type": field["f_type"],
+                }
+
+            # Salva configuração dos campos
+            field_config_table.put_item(
+                Item={
+                    "account_id": account_id,
+                    "entity": "item",
+                    "fields_config": fields_config,
+                }
+            )
             # ⬇️ Cria o novo usuário no banco
             item = {
                 "user_id": user_id,

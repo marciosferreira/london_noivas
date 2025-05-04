@@ -1,49 +1,74 @@
-{% extends "base.html" %} {% block title %}Editar Item{% endblock %} {% block styles %}
+{% extends "base.html" %}
+{% block title %}Editar Item{% endblock %}
+{% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='style_edit_item.css') }}" />
-{% endblock %} {% block content %}
+{% endblock %}
+{% block content %}
 <div class="form-container">
   <h1>Editar Item</h1>
   <a href="{{ request.args.get('next', url_for('index')) }}" class="cancel-link">Sair sem Finalizar</a>
 
   <form method="POST" enctype="multipart/form-data">
-    <label for="item_custom_id">Item ID#:</label>
-    <input
-      type="text"
-      id="item_custom_id"
-      name="item_custom_id"
-      placeholder="ID personalizado do item"
-      value="{{ item.item_custom_id | default('') }}"
-    />
+    <input type="hidden" name="next" value="{{ request.args.get('next', url_for('index')) }}" />
+    {% for field in all_fields if field.visible %}
+    <label for="{{ field.id }}">{{ field.label }}{% if field.required %} *{% endif %}</label>
+    <br />
 
-    <label for="description">Descrição:</label>
-    <textarea id="description" name="description" rows="3" required>{{item.description}}</textarea>
-
-    <label for="item_obs">Obs do item:</label>
-    <textarea id="item_obs" name="item_obs" rows="3">{{ item.item_obs }}</textarea>
-
-    <label for="valor">Preço do aluguel (R$):</label>
-    <input type="text" id="valor" name="valor" value="{{ item.valor or '' }}" required />
-
-    {% set image_url = item.image_url if item.image_url and item.image_url != 'N/A' else '' %}
-
-    <label>Foto Atual:</label>
-    <div id="image-container" style="text-align: center; margin-bottom: 20px">
-      <img
-        id="item-image"
-        src="{{ image_url if image_url else url_for('static', filename='item-placeholder.png') }}"
-        alt="Imagem do item"
-        style="max-width: 150px; display: block; margin: 0 auto"
-      />
-
-      <input type="text" name="image_url" id="image-url-input" value="{{ image_url }}" style="opacity: 0; position: absolute; left: -9999px" />
-
-      <button type="button" onclick="removeImage()" id="remove-btn" style="margin: 10px auto; display: {{ 'block' if image_url else 'none' }};">
+    {% if field.type == 'string' %}
+      {% if field.id == 'image_url' %}
+      <!-- Campo especial para imagem -->
+      <div id="image-container" style="text-align: center; margin-bottom: 20px">
+        <img
+          id="item-image"
+          src="{{ item.image_url if item.image_url and item.image_url != 'N/A' else url_for('static', filename='item-placeholder.png') }}"
+          style="max-width: 150px; margin: 0 auto"
+        />
+        <input type="text" name="image_url" id="image-url-input" value="{{ item.image_url if item.image_url != 'N/A' else '' }}" style="opacity: 0; position: absolute; left: -9999px" />
+        <button type="button" onclick="removeImage()" id="remove-btn"
+        style="margin: 10px auto; {{ 'display: block;' if item.image_url and item.image_url != 'N/A' else 'display: none;' }}">
         Excluir imagem
       </button>
-    </div>
 
-    <label for="image_file">Trocar a Imagem:</label>
-    <input type="file" id="image_file" name="image_file" accept="image/*;capture=camera" />
+            </div>
+      <input type="file" id="image_file" name="image_file" accept="image/*" />
+      {% else %}
+      <input
+        type="text"
+        id="{{ field.id }}"
+        name="{{ field.id }}"
+        value="{{ item[field.id] if item[field.id] is defined else '' }}"
+        {% if field.required %}required{% endif %}
+      />
+      {% endif %}
+      {% elif field.type == 'number' %}
+      {% set raw_value = item[field.id] if item[field.id] is defined else '' %}
+      <input
+        type="text"
+        id="{{ field.id }}"
+        name="{{ field.id }}"
+        value="{% if field.id == 'valor' %}{{ raw_value|format_brl }}{% else %}{{ raw_value|string|replace('.', ',') }}{% endif %}"
+        {% if field.required %}required{% endif %}
+      />
+
+
+    {% elif field.type == 'date' %}
+      <input
+        type="date"
+        id="{{ field.id }}"
+        name="{{ field.id }}"
+        value="{{ item[field.id] if item[field.id] is defined else '' }}"
+        {% if field.required %}required{% endif %}
+      />
+    {% elif field.type == 'dropdown' %}
+      <select id="{{ field.id }}" name="{{ field.id }}" {% if field.required %}required{% endif %}>
+        <option value="">Selecione</option>
+        {% for option in field.options %}
+        <option value="{{ option }}" {% if item[field.id] == option %}selected{% endif %}>{{ option }}</option>
+        {% endfor %}
+      </select>
+    {% endif %}
+    <br /><br />
+    {% endfor %}
 
     <div style="margin-bottom: 20px; display: flex; align-items: center; gap: 8px">
       <input type="checkbox" id="update_all_transactions" name="update_all_transactions" />
@@ -52,25 +77,11 @@
 
     <button type="submit">Salvar</button>
   </form>
+
 </div>
-{% endblock %} {% block scripts %}
-<script>
-  function removeImage() {
-    const imageInput = document.getElementById('image-url-input');
-    const imageElement = document.getElementById('item-image');
-    const removeButton = document.getElementById('remove-btn');
+{% endblock %}
 
-    if (imageInput) {
-      imageInput.value = 'DELETE_IMAGE'; // Marcar para exclusão no backend
-      console.log('Imagem marcada para exclusão:', imageInput.value);
-    }
-
-    // Ocultar imagem e botão
-    if (imageElement) imageElement.style.display = 'none';
-    if (removeButton) removeButton.style.display = 'none';
-  }
-</script>
-
+{% block scripts %}
 <script>
   function removeImage() {
     const imageInput = document.getElementById('image-url-input');
@@ -94,23 +105,28 @@
     const file = event.target.files[0];
     const imageElement = document.getElementById('item-image');
     const removeButton = document.getElementById('remove-btn');
+    const hiddenInput = document.getElementById('image-url-input');
 
     if (file && imageElement) {
       const reader = new FileReader();
       reader.onload = function (e) {
         imageElement.src = e.target.result;
         imageElement.style.display = 'block';
-        imageElement.style.margin = '0 auto'; // garantir centralização
+        imageElement.style.margin = '0 auto';
         if (removeButton) {
           removeButton.style.display = 'block';
         }
       };
       reader.readAsDataURL(file);
+
+      // ✅ Limpa instrução de exclusão, já que uma nova imagem foi selecionada
+      if (hiddenInput && hiddenInput.value === 'DELETE_IMAGE') {
+        hiddenInput.value = '';
+      }
     }
   });
-</script>
 
-<script>
+
   function formatarCampoMonetario(input) {
     input.addEventListener('input', function (e) {
       let value = e.target.value.replace(/\D/g, '');
@@ -127,9 +143,7 @@
     });
   }
 
-  // Aplica em todos os campos que precisam
   const campos = [document.getElementById('valor')];
-
   campos.forEach((campo) => {
     if (campo) {
       formatarCampoMonetario(campo);
@@ -137,4 +151,33 @@
   });
 </script>
 
+
+<script>
+    // Validação obrigatória da imagem (para edição)
+    document.querySelector('form')?.addEventListener('submit', function (e) {
+      const imageFile = document.getElementById('image_file');
+      const hiddenImageUrl = document.getElementById('image-url-input');
+
+      // Essa flag será criada com base no all_fields
+      let imageRequired = false;
+
+      {% for field in all_fields %}
+        {% if field.id == 'image_url' and field.required %}
+          imageRequired = true;
+        {% endif %}
+      {% endfor %}
+
+      if (imageRequired) {
+        const noNewImage = !imageFile || imageFile.files.length === 0;
+        const noExistingImage = !hiddenImageUrl || hiddenImageUrl.value === '' || hiddenImageUrl.value === 'N/A' || hiddenImageUrl.value === 'DELETE_IMAGE';
+
+        if (noNewImage && noExistingImage) {
+          e.preventDefault();
+          alert('A imagem é obrigatória. Por favor, selecione uma imagem.');
+          imageFile.focus();
+        }
+      }
+    });
+
+</script>
 {% endblock %}

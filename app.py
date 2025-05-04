@@ -41,6 +41,8 @@ clients_table = dynamodb.Table("alugueqqc_clients")
 reset_tokens_table = dynamodb.Table("RentqqcResetTokens")
 text_models_table = dynamodb.Table("alugue_qqc_text_models")
 payment_transactions = dynamodb.Table("alugueqqc_payment_transactions")
+custom_fields_table = dynamodb.Table("alugueqqc_custom_fields")
+field_config_table = dynamodb.Table("alugueqqc_field_config_table")
 
 
 s3 = boto3.client(
@@ -83,7 +85,9 @@ from datetime import datetime, timezone
 
 
 # Initialize routes from modules
-init_auth_routes(app, users_table, reset_tokens_table, payment_transactions)
+init_auth_routes(
+    app, users_table, reset_tokens_table, payment_transactions, field_config_table
+)
 init_item_routes(
     app,
     itens_table,
@@ -94,6 +98,8 @@ init_item_routes(
     users_table,
     text_models_table,
     payment_transactions,
+    custom_fields_table,
+    field_config_table,
 )
 init_status_routes(app, itens_table, transactions_table, users_table)
 init_transaction_routes(
@@ -148,6 +154,32 @@ def datetimeformat(value):
         return "-"
     dt = datetime.fromtimestamp(value, tz=timezone.utc)
     return dt.strftime("%d/%m/%Y %H:%M")
+
+
+@app.template_filter("format_brl")
+def format_brl(value):
+    print(value)
+    try:
+        return (
+            f"{float(value):,.2f}".replace(",", "v").replace(".", ",").replace("v", ".")
+        )
+    except:
+        return value
+
+
+@app.template_filter("format_date")
+def format_date(value):
+    if not value:
+        return "-"
+    try:
+        if isinstance(value, str) and "-" in value:
+            parts = value.split("-")
+            return f"{parts[2]}/{parts[1]}/{parts[0]}"
+        value = float(value)
+        dt = datetime.fromtimestamp(value, tz=timezone.utc)
+        return dt.strftime("%d/%m/%Y")
+    except Exception:
+        return value
 
 
 if __name__ == "__main__":
