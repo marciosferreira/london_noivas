@@ -106,7 +106,13 @@ init_transaction_routes(
     app, itens_table, s3, s3_bucket_name, transactions_table, clients_table, users_table
 )
 init_client_routes(
-    app, clients_table, transactions_table, itens_table, users_table, text_models_table
+    app,
+    clients_table,
+    transactions_table,
+    itens_table,
+    users_table,
+    text_models_table,
+    field_config_table,
 )
 
 

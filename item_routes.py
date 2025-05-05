@@ -208,7 +208,7 @@ def init_item_routes(
 
         # -------------------------- GET --------------------------
         if request.method == "GET":
-            all_fields = get_all_fields(account_id, field_config_table)
+            all_fields = get_all_fields(account_id, field_config_table, "item")
             return render_template(
                 "add_item.html", next=next_page, all_fields=all_fields, item={}
             )
@@ -217,10 +217,7 @@ def init_item_routes(
             import json
             from decimal import Decimal, InvalidOperation
 
-            ordered_ids_raw = request.form.get("ordered_ids")
-            ordered_ids = json.loads(ordered_ids_raw) if ordered_ids_raw else []
-
-            all_fields = get_all_fields(account_id, field_config_table)
+            all_fields = get_all_fields(account_id, field_config_table, "item")
 
             item_data = {
                 "user_id": user_id,

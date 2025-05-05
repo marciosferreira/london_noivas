@@ -1,73 +1,72 @@
-{% extends "base.html" %} {% block title %}Adicionar Cliente{% endblock %} {% block styles %}
+{% extends "base.html" %}
+{% block title %}Adicionar Cliente{% endblock %}
+
+{% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='style_add_client.css') }}" />
-{% endblock %} {% block content %}
-<body>
-  <div class="page-wrapper">
-    <div class="form-container">
-      <h1>Novo Cliente</h1>
-      <a href="{{ request.args.get('next', url_for('listar_clientes')) }}" class="cancel-link">Cancelar</a>
+{% endblock %}
 
-      <form method="POST" id="clientForm">
-        <label for="client_name">Nome:</label>
-        <div class="position-relative">
-          <input type="text" id="client_name" name="client_name" class="form-control" autocomplete="off" required />
-          <div id="client-suggestions-title" class="suggestions-title" style="display: none">Clientes encontrados:</div>
-          <div id="client_suggestions" class="autocomplete-suggestions"></div>
-        </div>
-        <div id="client-status-message" class="status-message mt-2"></div>
+{% block content %}
+<div class="page-wrapper">
+  <div class="form-container">
+    <h1>Novo Cliente</h1>
+    <a href="{{ request.args.get('next', url_for('listar_clientes')) }}" class="cancel-link">Cancelar</a>
 
-        <br />
+    <form method="POST" id="clientForm">
+      <input type="hidden" name="next" value="{{ request.args.get('next', url_for('listar_clientes')) }}" />
 
-        <label for="client_tel">Telefone:</label>
-        <input type="tel" id="client_tel" name="client_tel" class="form-control" placeholder="(xx) xxxxx-xxxx" data-only-digits="true" />
+      {% for field in all_fields if field.visible %}
+        <label for="{{ field.id }}">{{ field.label if field.fixed else field.title }}{% if field.required %} *{% endif %}</label><br/>
 
-        <label for="client_email">E-mail:</label>
-        <input type="email" id="client_email" name="client_email" class="form-control" placeholder="exemplo@email.com" />
+        {% if field.type == 'string' %}
+          <input
+            type="text"
+            id="{{ field.id }}"
+            name="{{ field.id }}"
+            class="form-control"
+            value="{{ client[field.id] if client[field.id] is defined else '' }}"
+            {% if field.required %}required{% endif %}
+          />
+        {% elif field.type == 'number' %}
+          <input
+            type="text"
+            id="{{ field.id }}"
+            name="{{ field.id }}"
+            class="form-control"
+            value="{{ client[field.id] if client[field.id] is defined else '' }}"
+            {% if field.required %}required{% endif %}
+          />
+        {% elif field.type == 'date' %}
+          <input
+            type="date"
+            id="{{ field.id }}"
+            name="{{ field.id }}"
+            class="form-control"
+            value="{{ client[field.id] if client[field.id] is defined else '' }}"
+            {% if field.required %}required{% endif %}
+          />
+        {% elif field.type == 'dropdown' %}
+          <select id="{{ field.id }}" name="{{ field.id }}" class="form-control" {% if field.required %}required{% endif %}>
+            <option value="">Selecione</option>
+            {% for option in field.options %}
+              <option value="{{ option }}" {% if client[field.id] == option %}selected{% endif %}>{{ option }}</option>
+            {% endfor %}
+          </select>
+        {% endif %}
 
-        <label for="client_address">Endereço:</label>
-        <input type="text" id="client_address" name="client_address" class="form-control" />
+        <br /><br />
+      {% endfor %}
 
-        <label for="client_cpf">CPF:</label>
-        <input
-          type="text"
-          id="client_cpf"
-          name="client_cpf"
-          maxlength="14"
-          placeholder="000.000.000-00"
-          class="form-control"
-          data-only-digits="true"
-          data-mask="cpf"
-        />
-
-        <label for="client_cnpj">CNPJ:</label>
-        <input
-          type="text"
-          id="client_cnpj"
-          name="client_cnpj"
-          maxlength="18"
-          placeholder="00.000.000/0000-00"
-          class="form-control"
-          data-only-digits="true"
-          data-mask="cnpj"
-        />
-
-        <label for="client_obs">Observações do cliente:</label>
-        <input type="text" id="client_obs" name="client_obs" class="form-control" />
-
-        <!-- Campo oculto para telefone -->
-        <input type="hidden" id="client_tel_digits" name="client_tel_digits" />
-        <!-- Campo oculto para CPF -->
-        <input type="hidden" id="client_cpf_digits" name="client_cpf_digits" />
-        <!-- Campo oculto para CNPJ -->
-        <input type="hidden" id="client_cnpj_digits" name="client_cnpj_digits" />
-
-        <button type="submit">Salvar</button>
-      </form>
-    </div>
+      <button type="submit">Salvar</button>
+    </form>
   </div>
-</body>
+</div>
+{% endblock %}
 
-{% endblock %} {% block scripts %}
+
+
+
+
+ {% block scripts %}
 <script>
   // Função para aplicar máscara ao CPF
   function maskCPF(cpf) {

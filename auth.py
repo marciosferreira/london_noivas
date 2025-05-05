@@ -1053,6 +1053,9 @@ def init_auth_routes(
         return redirect(url_for("admin_dashboard"))
 
 
+# from field_config_utils import get_default_fields_and_slugs
+
+
 def create_user(
     email,
     username,
@@ -1073,11 +1076,9 @@ def create_user(
         email_token = secrets.token_urlsafe(16)
         user_id = str(uuid.uuid4())
         account_id = str(uuid.uuid4())
-
         current_user_id = session.get("user_id") if "user_id" in session else None
         user_utc = get_user_timezone(users_table, current_user_id)
 
-        # Verifica se o e-mail já está cadastrado
         response = users_table.query(
             IndexName="email-index", KeyConditionExpression=Key("email").eq(email)
         )
@@ -1085,7 +1086,6 @@ def create_user(
             return False  # E-mail já cadastrado
 
         try:
-            # ✅ Cria o Stripe Customer
             customer = stripe.Customer.create(
                 email=email,
                 name=username,
@@ -1093,7 +1093,6 @@ def create_user(
             )
             stripe_customer_id = customer.id
 
-            # ✅ Cria a assinatura com 30 dias de trial (sem cartão)
             subscription = stripe.Subscription.create(
                 customer=stripe_customer_id,
                 items=[{"price": os.getenv("STRIPE_PRICE_ID")}],
@@ -1101,191 +1100,17 @@ def create_user(
                 metadata={"account_id": account_id},
             )
 
-            # cria os campos default para itens
-            # cria os campos default para itens
-            import re
-            import unicodedata
+            # ✅ Campos default para item e client
+            for entity in ["item", "client"]:
+                fields_config = get_default_fields_and_slugs(entity)
+                field_config_table.put_item(
+                    Item={
+                        "account_id": account_id,
+                        "entity": entity,
+                        "fields_config": fields_config,
+                    }
+                )
 
-            def slugify(text):
-                text = unicodedata.normalize("NFKD", text)
-                text = text.encode("ASCII", "ignore").decode("ASCII")
-                text = text.strip().lower()
-                text = re.sub(r"[^\w\s-]", "", text)
-                return re.sub(r"[-\s]+", "_", text)
-
-            # Mapas fixos com slugs esperados
-            slug_overrides = {
-                "Item Custom ID#": "item_custom_id",
-                "Descrição": "descricao",
-                "Observações": "observacoes",
-                "Preço do aluguel": "valor",
-                "Imagem": "image_url",
-            }
-
-            DEFAULT_FIELDS = [
-                {
-                    "label": "Item Custom ID#",
-                    "type": "string",
-                    "order_sequence": 1,
-                    "filterable": True,
-                    "preview": True,
-                    "f_type": "fixed",
-                },
-                {
-                    "label": "Descrição",
-                    "type": "string",
-                    "order_sequence": 2,
-                    "filterable": True,
-                    "preview": True,
-                    "f_type": "fixed",
-                },
-                {
-                    "label": "Observações",
-                    "type": "string",
-                    "order_sequence": 3,
-                    "filterable": True,
-                    "preview": True,
-                    "f_type": "fixed",
-                },
-                {
-                    "label": "Preço do aluguel",
-                    "type": "number",
-                    "order_sequence": 4,
-                    "filterable": True,
-                    "preview": True,
-                    "f_type": "fixed",
-                },
-                {
-                    "label": "Imagem",
-                    "type": "string",
-                    "order_sequence": 5,
-                    "filterable": False,
-                    "preview": True,
-                    "f_type": "fixed",
-                },
-            ]
-
-            fields_config = {}
-
-            for field in DEFAULT_FIELDS:
-                label = field["label"]
-                slug = slug_overrides.get(label, slugify(label))
-
-                fields_config[slug] = {
-                    "label": label,
-                    "type": field["type"],
-                    "visible": True,
-                    "required": slug in {"item_custom_id", "descricao", "valor"},
-                    "order_sequence": field["order_sequence"],
-                    "filterable": field["filterable"],
-                    "preview": field["preview"],
-                    "f_type": field["f_type"],
-                    "options": [],  # garante compatibilidade com campos do tipo dropdown
-                }
-
-            # Salva no DynamoDB
-            field_config_table.put_item(
-                Item={
-                    "account_id": account_id,
-                    "entity": "item",
-                    "fields_config": fields_config,
-                }
-            )
-
-            DEFAULT_FIELDS = [
-                {
-                    "label": "Nome",
-                    "type": "string",
-                    "order_sequence": 1,
-                    "filterable": True,
-                    "preview": True,
-                    "f_type": "fixed",
-                },
-                {
-                    "label": "Telefone",
-                    "type": "string",
-                    "order_sequence": 2,
-                    "filterable": True,
-                    "preview": True,
-                    "f_type": "fixed",
-                },
-                {
-                    "label": "E-mail",
-                    "type": "string",
-                    "order_sequence": 3,
-                    "filterable": True,
-                    "preview": True,
-                    "f_type": "fixed",
-                },
-                {
-                    "label": "Endereço",
-                    "type": "string",
-                    "order_sequence": 4,
-                    "filterable": True,
-                    "preview": True,
-                    "f_type": "fixed",
-                },
-                {
-                    "label": "CPF",
-                    "type": "string",
-                    "order_sequence": 5,
-                    "filterable": False,
-                    "preview": True,
-                    "f_type": "fixed",
-                },
-                {
-                    "label": "CNPJ",
-                    "type": "string",
-                    "order_sequence": 5,
-                    "filterable": False,
-                    "preview": True,
-                    "f_type": "fixed",
-                },
-                {
-                    "label": "Observações do cliente",
-                    "type": "string",
-                    "order_sequence": 5,
-                    "filterable": False,
-                    "preview": True,
-                    "f_type": "fixed",
-                },
-            ]
-
-            # Slugs fixos caso deseje manter nomes específicos
-            slug_overrides = {
-                "E-mail": "email",
-                "Endereço": "endereco",
-                "Observações do cliente": "obsdocliente",
-            }
-
-            fields_config = {}
-
-            for field in DEFAULT_FIELDS:
-                label = field["label"]
-                slug = slug_overrides.get(label, slugify(label))
-
-                fields_config[slug] = {
-                    "label": label,
-                    "type": field["type"],
-                    "visible": True,
-                    "required": slug in {"item_custom_id", "descricao", "valor"},
-                    "order_sequence": field["order_sequence"],
-                    "filterable": field["filterable"],
-                    "preview": field["preview"],
-                    "f_type": field["f_type"],
-                    "options": [],  # garante compatibilidade com campos do tipo dropdown
-                }
-
-            # Salva no DynamoDB
-            field_config_table.put_item(
-                Item={
-                    "account_id": account_id,
-                    "entity": "client",
-                    "fields_config": fields_config,
-                }
-            )
-
-            # ⬇️ Cria o novo usuário no banco
             item = {
                 "user_id": user_id,
                 "account_id": account_id,
@@ -1300,15 +1125,11 @@ def create_user(
                 "status": status,
                 "stripe_customer_id": stripe_customer_id,
             }
-
             if user_ip:
                 item["ip"] = user_ip
 
             users_table.put_item(Item=item)
 
-            # Não salvamos mais a transação aqui. O webhook cuidará disso!
-
-            # 🔔 E-mails de boas-vindas e confirmação
             confirm_url = url_for("confirm_email", token=email_token, _external=True)
             send_confirmation_email(email, username, confirm_url)
             send_admin_notification_email(
@@ -1401,3 +1222,203 @@ def get_user_stats(
     except Exception as e:
         print(f"Erro ao recuperar estatísticas do usuário: {e}")
         return None
+
+
+import re
+import unicodedata
+
+import re
+import unicodedata
+
+
+def slugify(text):
+    text = unicodedata.normalize("NFKD", text).encode("ASCII", "ignore").decode("ASCII")
+    text = text.strip().lower()
+    return re.sub(r"[^\w\s-]", "", text).replace(" ", "_")
+
+
+def get_default_fields_and_slugs(entity):
+    if entity == "item":
+        DEFAULT_FIELDS = [
+            {
+                "label": "Item Custom ID#",
+                "type": "string",
+                "order_sequence": 1,
+                "filterable": True,
+                "preview": True,
+                "f_type": "fixed",
+                "required": True,
+            },
+            {
+                "label": "Descrição",
+                "type": "string",
+                "order_sequence": 2,
+                "filterable": True,
+                "preview": True,
+                "f_type": "fixed",
+                "required": True,
+            },
+            {
+                "label": "Observações",
+                "type": "string",
+                "order_sequence": 3,
+                "filterable": True,
+                "preview": True,
+                "f_type": "fixed",
+            },
+            {
+                "label": "Preço do aluguel",
+                "type": "number",
+                "order_sequence": 4,
+                "filterable": True,
+                "preview": True,
+                "f_type": "fixed",
+                "required": True,
+            },
+            {
+                "label": "Imagem",
+                "type": "string",
+                "order_sequence": 5,
+                "filterable": False,
+                "preview": True,
+                "f_type": "fixed",
+            },
+        ]
+        slug_overrides = {
+            "Item Custom ID#": "item_custom_id",
+            "Descrição": "descricao",
+            "Observações": "observacoes",
+            "Preço do aluguel": "valor",
+            "Imagem": "image_url",
+        }
+    elif entity == "client":
+        DEFAULT_FIELDS = [
+            {
+                "label": "Nome",
+                "type": "string",
+                "order_sequence": 1,
+                "filterable": True,
+                "preview": True,
+                "f_type": "fixed",
+            },
+            {
+                "label": "Telefone",
+                "type": "string",
+                "order_sequence": 2,
+                "filterable": True,
+                "preview": True,
+                "f_type": "fixed",
+            },
+            {
+                "label": "E-mail",
+                "type": "string",
+                "order_sequence": 3,
+                "filterable": True,
+                "preview": True,
+                "f_type": "fixed",
+            },
+            {
+                "label": "Endereço",
+                "type": "string",
+                "order_sequence": 4,
+                "filterable": True,
+                "preview": True,
+                "f_type": "fixed",
+            },
+            {
+                "label": "CPF",
+                "type": "string",
+                "order_sequence": 5,
+                "filterable": False,
+                "preview": True,
+                "f_type": "fixed",
+            },
+            {
+                "label": "CNPJ",
+                "type": "string",
+                "order_sequence": 6,
+                "filterable": False,
+                "preview": True,
+                "f_type": "fixed",
+            },
+            {
+                "label": "Observações do cliente",
+                "type": "string",
+                "order_sequence": 7,
+                "filterable": False,
+                "preview": True,
+                "f_type": "fixed",
+            },
+        ]
+
+    elif entity == "transaction":
+        DEFAULT_FIELDS = [
+            {
+                "label": "Status da Transação",
+                "type": "string",
+                "order_sequence": 1,
+                "filterable": True,
+                "preview": True,
+                "f_type": "fixed",
+            },
+            {
+                "label": "Preço do aluguel (R$)",
+                "type": "number",
+                "order_sequence": 2,
+                "filterable": True,
+                "preview": True,
+                "f_type": "fixed",
+            },
+            {
+                "label": "Observações da Transação",
+                "type": "string",
+                "order_sequence": 3,
+                "filterable": True,
+                "preview": True,
+                "f_type": "fixed",
+            },
+            {
+                "label": "Valor já pago (R$)",
+                "type": "number",
+                "order_sequence": 3,
+                "filterable": True,
+                "preview": True,
+                "f_type": "fixed",
+            },
+            {
+                "label": "Defina as datas",
+                "type": "string",
+                "order_sequence": 3,
+                "filterable": True,
+                "preview": True,
+                "f_type": "fixed",
+            },
+        ]
+
+        slug_overrides = {
+            "Status da Transação": "transactionstatus",
+            "Preço do aluguel (R$)": "precodoaluguel",
+            "Observações da Transação": "obstransaction",
+            "Valor já pago (R$)": "valorpago",
+            "Defina as datas": "definaasdatas",
+        }
+    else:
+        raise ValueError(f"Entidade desconhecida: {entity}")
+
+    fields_config = {}
+    for field in DEFAULT_FIELDS:
+        label = field["label"]
+        slug = slug_overrides.get(label, slugify(label))
+        fields_config[slug] = {
+            "label": label,
+            "type": field["type"],
+            "visible": True,
+            "required": field.get("required", False),
+            "order_sequence": field["order_sequence"],
+            "filterable": field["filterable"],
+            "preview": field["preview"],
+            "f_type": field["f_type"],
+            "options": [],
+        }
+
+    return fields_config
