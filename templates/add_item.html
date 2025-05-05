@@ -1,144 +1,128 @@
-{% extends "base.html" %} {% block title %}Adicionar Registro{% endblock %} {% block styles %}
-<link rel="stylesheet" href="{{ url_for('static', filename='style_add_item.css') }}" />
-{% endblock %} {% block content %}
+{% extends "base.html" %}
+{% block title %}Adicionar Item{% endblock %}
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='style_edit_item.css') }}" />
+{% endblock %}
+{% block content %}
+
 <div class="form-container">
-  {% set destino = request.args.get("next", "") %} {% set ultima_parte = destino.strip('/').split('/')[-1] %}
-
-  <h1>
-    {% if ultima_parte == "archive" %} Inserir Novo Item em arquivo {% elif ultima_parte == "inventory" %} Inserir Novo Item em inventário {% else %}
-    Inserir Novo Item {% endif %}
-  </h1>
-
-  <!-- Link "Sair sem Finalizar" -->
-  <a href="{{ next }}" class="cancel-link">Sair sem Finalizar</a>
+  <h1>Adicionar Item</h1>
+  <a href="{{ request.args.get('next', url_for('index')) }}" class="cancel-link">Sair sem Finalizar</a>
 
   <form method="POST" enctype="multipart/form-data">
-    <!-- Campo oculto para preservar a página de origem -->
-    <input type="hidden" name="next" value="{{ next }}" />
+    <input type="hidden" name="next" value="{{ request.args.get('next', url_for('index')) }}" />
 
-    <label for="item_custom_id">Item ID#:</label>
-    <input type="text" id="item_custom_id" name="item_custom_id" placeholder="ID personalizado do item" />
-    <br />
+    {% for field in all_fields if field.visible %}
+    <label for="{{ field.id }}">{{ field.label if field.fixed else field.title }}{% if field.required %} *{% endif %}</label>
     <br />
 
-    <label for="description">Descrição:</label>
-    <br />
-    <textarea id="description" name="description" rows="2" required></textarea>
-    <br />
-    <br />
-
-    <label for="item_obs">Observações do item:</label>
-    <br />
-    <textarea id="item_obs" name="item_obs" rows="2"></textarea>
-    <br />
-    <br />
-
-    <label for="valor">Preço do aluguel (R$):</label>
-    <input type="text" id="valor" name="valor" required />
-
-    <br />
-    <br />
-
-    {% set image_url = "" %}
-    <label>Foto:</label>
-    <div id="image-container" style="text-align: center; margin-bottom: 20px">
-      <img
-        id="item-image"
-        src="{{ url_for('static', filename='item-placeholder.png') }}"
-        alt="Imagem do item"
-        style="max-width: 150px; display: block; margin: 0 auto"
+    {% if field.type == 'string' %}
+      {% if field.id == 'image_url' %}
+      <!-- Campo especial para imagem -->
+      <div id="image-container" style="text-align: center; margin-bottom: 20px">
+        <img
+          id="item-image"
+          src="{{ item.image_url if item.image_url and item.image_url != 'N/A' else url_for('static', filename='item-placeholder.png') }}"
+          style="max-width: 150px; margin: 0 auto"
+        />
+        <input type="text" name="image_url" id="image-url-input" value="{{ item.image_url if item.image_url != 'N/A' else '' }}" style="opacity: 0; position: absolute; left: -9999px" />
+        <button type="button" onclick="removeImage()" id="remove-btn"
+        style="display: {{ 'block' if item.image_url and item.image_url != 'N/A' else 'none' }}; margin: 10px auto; display: block;">
+        Excluir imagem
+      </button>      </div>
+      <input type="file" id="image_file" name="image_file"
+      {% if field.required %}data-required="true"{% endif %} />
+      {% else %}
+      <input
+        type="text"
+        id="{{ field.id }}"
+        name="{{ field.id }}"
+        value="{{ item[field.id] if item[field.id] is defined else '' }}"
+        {% if field.required %}required{% endif %}
       />
+      {% endif %}
+    {% elif field.type == 'number' %}
+      <input
+        type="text"
+        id="{{ field.id }}"
+        name="{{ field.id }}"
+        value="{{ item[field.id] if item[field.id] is defined else '' }}"
+        {% if field.required %}required{% endif %}
+      />
+    {% elif field.type == 'date' %}
+      <input
+        type="date"
+        id="{{ field.id }}"
+        name="{{ field.id }}"
+        value="{{ item[field.id] if item[field.id] is defined else '' }}"
+        {% if field.required %}required{% endif %}
+      />
+    {% elif field.type == 'dropdown' %}
+      <select id="{{ field.id }}" name="{{ field.id }}" {% if field.required %}required{% endif %}>
+        <option value="">Selecione</option>
+        {% for option in field.options %}
+        <option value="{{ option }}" {% if item[field.id] == option %}selected{% endif %}>{{ option }}</option>
+        {% endfor %}
+      </select>
+    {% endif %}
+    <br /><br />
+    {% endfor %}
 
-      <input type="text" name="image_url" id="image-url-input" value="" style="opacity: 0; position: absolute; left: -9999px" />
 
-      <button type="button" onclick="removeImage()" id="remove-btn" style="margin: 10px auto; display: none">Excluir imagem</button>
-    </div>
 
-    <label for="image_file">Adicionar Imagem:</label>
-    <input type="file" id="image_file" name="image_file" accept="image/*;capture=camera" />
-
-    <br />
-    <br />
-
-    <button type="submit">Inserir</button>
+    <button type="submit">Salvar</button>
   </form>
 </div>
+
+{% endblock %}
+
 {% block scripts %}
 <script>
   function removeImage() {
-    const imageInput = document.getElementById('image-url-input');
-    const imageElement = document.getElementById('item-image');
-    const removeButton = document.getElementById('remove-btn');
-
-    if (imageInput) {
-      imageInput.value = 'DELETE_IMAGE';
-    }
-
-    if (imageElement) {
-      imageElement.src = "{{ url_for('static', filename='item-placeholder.png') }}";
-    }
-
-    if (removeButton) {
-      removeButton.style.display = 'none';
-    }
-
+    document.getElementById('item-image').src = "{{ url_for('static', filename='item-placeholder.png') }}";
+    document.getElementById('image-url-input').value = 'DELETE_IMAGE';
+    document.getElementById('remove-btn').style.display = 'none';
     document.getElementById('image_file').value = '';
   }
 
-  document.getElementById('image_file').addEventListener('change', function (event) {
-    const file = event.target.files[0];
-    const imageElement = document.getElementById('item-image');
-    const removeButton = document.getElementById('remove-btn');
-
-    if (file && imageElement) {
-      const reader = new FileReader();
-      reader.onload = function (e) {
-        imageElement.src = e.target.result;
-        imageElement.style.display = 'block';
-        imageElement.style.margin = '0 auto';
-        if (removeButton) {
-          removeButton.style.display = 'block';
-        }
-      };
-      reader.readAsDataURL(file);
-    }
+  document.getElementById('image_file')?.addEventListener('change', function (e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      document.getElementById('item-image').src = e.target.result;
+      document.getElementById('remove-btn').style.display = 'block';
+    };
+    reader.readAsDataURL(file);
   });
 
-  // Oculta o botão se estiver mostrando o placeholder ao carregar
-  window.addEventListener('load', function () {
-    const imageElement = document.getElementById('item-image');
-    const removeButton = document.getElementById('remove-btn');
-    if (imageElement.src.includes('item-placeholder.png') && removeButton) {
-      removeButton.style.display = 'none';
-    }
-  });
-</script>
-
-<script>
   function formatarCampoMonetario(input) {
     input.addEventListener('input', function (e) {
       let value = e.target.value.replace(/\D/g, '');
-
       if (!value) {
         e.target.value = '';
         return;
       }
-
-      let intValue = parseInt(value, 10);
-      let floatValue = intValue / 100;
-
-      e.target.value = floatValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      let floatValue = parseInt(value, 10) / 100;
+      e.target.value = floatValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
     });
   }
 
-  // Aplica em todos os campos que precisam
-  const campos = [document.getElementById('valor')];
-
-  campos.forEach((campo) => {
-    if (campo) {
-      formatarCampoMonetario(campo);
-    }
-  });
+  const campoValor = document.getElementById('valor');
+  if (campoValor) formatarCampoMonetario(campoValor);
 </script>
 
-{% endblock %} {% endblock %}
+
+<script>
+  document.querySelector('form')?.addEventListener('submit', function (e) {
+    const imageInput = document.getElementById('image_file');
+
+    if (imageInput?.dataset.required === "true" && imageInput.files.length === 0) {
+      e.preventDefault();
+      alert('A imagem é obrigatória. Por favor, selecione uma imagem.');
+      imageInput.focus();
+    }
+  });
+
+</script>
+{% endblock %}

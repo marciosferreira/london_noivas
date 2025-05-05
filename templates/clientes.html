@@ -1,117 +1,78 @@
-{% extends "base.html" %} {% block title %}Clientes{% endblock %}{% block styles %}
+{% extends "base.html" %}
+{% block title %}Clientes{% endblock %}
+{% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='style_clientes.css') }}" />
-{% endblock %} {% block content %}
-
+{% endblock %}
+{% block content %}
 <div class="container my-3">
   <h2 class="mb-4">Clientes cadastrados</h2>
 
-
-
-
-  {% set show_add_button = True %} {% set add_route = url_for('add_item') %} {% include "components/client_filter_section.html" with context %}
-
-
-
-
-
+  {% set show_add_button = True %}
+  {% set add_route = url_for('adicionar_cliente') %}
+  {% include "components/client_filter_section.html" with context %}
 
   {% if not itens %}
-  <div
-    style="
-      display: flex;
-      align-items: center;
-      background-color: #cce5ff;
-      border-left: 6px solid #007bff; /* Tarja azul à esquerda */
-      color: #004085;
-      padding: 1rem;
-      border-radius: 0.25rem;
-      margin-top: 1rem;
-    "
-  >
-    <span>Não há itens que satisfazem os cirtérios selecionados.</span>
+    <div class="alert alert-info mt-3">
+      Não há clientes que satisfazem os critérios selecionados.
+    </div>
+  {% endif %}
+{{fields_config}}
+  {% if itens %}
+  <div class="table-container mt-4">
+    <table class="table table-hover responsive-table align-middle rounded-table">
+      <thead>
+        <tr>
+          {% for field in fields_config if field.preview and field.visible %}
+            <th>{{ field.label }}</th>
+          {% endfor %}
+          <th class="text-center">Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in itens %}
+        <tr>
+          {% for field in fields_config if field.preview and field.visible %}
+          <td data-label="{{ field.label }}">
+            {% set value = item.key_values[field.id] if item.key_values is defined and field.id in item.key_values else item[field.id] if field.id in item else '' %}
+
+            {% if value == 'None' or value is none %}
+              <span class="text-muted">-</span>
+            {% else %}
+              {% if field.id.startswith("client_tel") %}
+                {{ value | format_telefone }}
+              {% elif field.id.startswith("date") %}
+                {{ value | format_date }}
+              {% elif field.id.startswith("cpf") or field.id.startswith("cnpj") %}
+                {{ value }}
+              {% else %}
+                {{ value | truncate(30, True) }}
+              {% endif %}
+            {% endif %}
+          </td>
+          {% endfor %}
+
+          <td data-label="Ações">
+            <div class="d-flex flex-wrap gap-2 justify-content-center align-items-center">
+              {% set show_delete_client = True %}
+              {% set show_edit_client = True %}
+              {% set show_client_transactions = True %}
+              {% include 'components/action_buttons.html' with context %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
-  <br>
   {% endif %}
 
+  {% if itens %}
+  <ul class="pagination justify-content-center"></ul>
+  {% endif %}
 
-
-
-
-  {% if
-  itens %}
-
-
-
-
-  <!-- Tabela (que vira "cards" no mobile) -->
-    <!-- Tabela -->
-    <div class="table-container mt-4">
-      <table class="table table-hover responsive-table align-middle rounded-table">
-        <thead>
-          <tr>
-            <th></th>
-            <th>Nome</th>
-            <th>Criado em</th>
-            <th>Telefone</th>
-            <th>Observações C.</th>
-
-            <th class="text-center"></th>
-            <!-- 🔧 Aqui -->
-          </tr>
-        </thead>
-        <tbody>
-          {% if itens %} {% for item in itens %}
-          <tr>
-            <td>
-              <img src="{{ url_for('static', filename='icons/user-icon.png') }}" alt="Ícone Cliente" class="icon-customer" />
-            </td>
-
-            <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Cliente">
-              {{ item.client_name | default('', true) | truncate(10, True) }}
-            </td>
-
-            <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Criado em">
-              {{ item.created_at | format_brasil_data }}
-            </td>
-
-            <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Telefone">
-              {{ item.client_tel | format_telefone }}
-            </td>
-
-            <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Observações">
-              {{ item.client_obs | default('', true) | truncate(15, True) }}
-            </td>
-
-            <td data-label="Ações">
-              <div class="d-flex flex-wrap gap-2 justify-content-center align-items-center">
-                {% set show_delete_client = True %}
-                {% set show_edit_client = True %}
-                {% set show_client_transactions = True %}
-                {% include 'components/action_buttons.html' with context %}
-              </div>
-            </td>
-          </tr>
-
-          {% endfor %} {% else %}
-          <div class="alert alert-warning">Nenhum cliente encontrado.</div>
-          {% endif %}
-        </tbody>
-      </table>
-
-
-    </div>
-
-
-    {% endif %}
-
-    {% if itens %}
-
-  <!-- Pagination -->
-  <ul class="pagination justify-content-center"></ul>  {% endif %}
-
-
-    {% include 'components/info_modal_client.html' %}
-    {% endblock %} {% block scripts %}
+  {% include 'components/info_modal_client.html' %}
+</div>
+{% endblock %} {% block scripts %}
     <!-- scripts extras -->
     <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
     <!-- Bootstrap Bundle com Popper -->

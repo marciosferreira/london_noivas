@@ -1,0 +1,22 @@
+{% extends "base.html" %} {% block content %}
+<div class="container mt-4">
+  <h2>Customização de Campos</h2>
+  <ul class="nav nav-tabs" id="tabs" role="tablist">
+    {% for entity in ['item', 'client', 'transaction'] %}
+    <li class="nav-item" role="presentation">
+      <button class="nav-link {% if loop.first %}active{% endif %}" data-bs-toggle="tab" data-bs-target="#{{ entity }}">
+        {{ entity|capitalize }}
+      </button>
+    </li>
+    {% endfor %}
+  </ul>
+
+  <div class="tab-content mt-3">
+    {% for entity in ['item', 'client', 'transaction'] %}
+    <div class="tab-pane fade {% if loop.first %}show active{% endif %}" id="{{ entity }}">
+      {% set fields = all_fields[entity] %} {% include "partials/custom_fields_form_" ~ entity ~ ".html" %}
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

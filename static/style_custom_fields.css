@@ -1,0 +1,70 @@
+/* Bloco geral */
+.container h2 {
+  font-weight: bold;
+  color: #003366;
+}
+
+h4 {
+  margin-top: 20px;
+  color: #005c99;
+  font-weight: 600;
+}
+
+form .border {
+  background-color: #f8f9fa;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
+  border-radius: 10px;
+}
+
+input[type='text'],
+select,
+input[type='number'],
+input[type='date'] {
+  border-radius: 6px;
+}
+
+.form-check-input {
+  margin-right: 8px;
+}
+
+/* Botões */
+button.btn {
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+button.btn-outline-primary {
+  color: #0056b3;
+  border-color: #0056b3;
+}
+
+button.btn-outline-primary:hover {
+  background-color: #0056b3;
+  color: white;
+}
+
+button.btn-outline-danger {
+  color: #c82333;
+  border-color: #c82333;
+}
+
+button.btn-outline-danger:hover {
+  background-color: #c82333;
+  color: white;
+}
+
+/* Espaço entre campos customizados */
+#custom-fields-area .border {
+  background-color: #eef3f8;
+}
+
+/* Responsivo */
+@media (max-width: 768px) {
+  .row .col-md-4,
+  .row .col-md-3,
+  .row .col-md-2,
+  .row .col-md-10 {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+}

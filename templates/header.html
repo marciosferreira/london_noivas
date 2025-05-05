@@ -72,6 +72,15 @@
                   Estatisticas da conta
                 </a>
               </li>
+              <li>
+                <a
+                  class="dropdown-item {% if request.endpoint == 'reports' %}active{% endif %}"
+                  href="{{ url_for('custom_fields', entity='item') }}
+"
+                >
+                  Customização do site
+                </a>
+              </li>
 
               <li>
                 <a class="dropdown-item {% if request.endpoint == 'archive' %}active{% endif %}" href="{{ url_for('archive') }}">Itens Arquivados</a>

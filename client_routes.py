@@ -3,6 +3,11 @@ import uuid
 from boto3.dynamodb.conditions import Key
 from utils import get_user_timezone
 import os
+from decimal import Decimal, InvalidOperation
+
+import re
+import base64
+import json
 
 from flask import (
     render_template,
@@ -16,7 +21,13 @@ from flask import (
 
 
 def init_client_routes(
-    app, clients_table, transactions_table, itens_table, users_table, text_models_table
+    app,
+    clients_table,
+    transactions_table,
+    itens_table,
+    users_table,
+    text_models_table,
+    field_config_table,
 ):
 
     @app.route("/autocomplete_clients")
@@ -68,17 +79,20 @@ def init_client_routes(
         if not account_id:
             return redirect(url_for("login"))
 
+        # Campos configuráveis
+        fields_config = get_all_fields(account_id, field_config_table, entity="client")
+        fields_config = sorted(fields_config, key=lambda x: x["order_sequence"])
+        custom_fields_preview = [
+            {"field_id": field["id"], "title": field["label"]}
+            for field in fields_config
+            if field.get("preview")
+        ]
+
         force_no_next = request.args.get("force_no_next")
+        session["previous_path_clients"] = request.path
 
-        current_path = request.path
-        # Atualiza o caminho atual para comparação futura
-        session["previous_path_clients"] = current_path
-
-        # --- Pegando parâmetros ---
         filtros = request.args.to_dict()
-        page = int(
-            filtros.pop("page", 1)
-        )  # 🛑 Mudamos para controle de página baseado em número
+        page = int(filtros.pop("page", 1))
 
         if page == 1:
             session.pop("current_page_clients", None)
@@ -86,25 +100,20 @@ def init_client_routes(
             session.pop("last_page_clients", None)
 
         cursor_pages = session.get("cursor_pages_clients", {"1": None})
-
-        # Se for primeira página, limpa histórico
         if page == 1:
             session["cursor_pages_clients"] = {"1": None}
             cursor_pages = {"1": None}
 
         session["current_page_clients"] = page
+        exclusive_start_key = (
+            decode_dynamo_key(cursor_pages.get(str(page)))
+            if str(page) in cursor_pages
+            else None
+        )
 
-        # --- Definindo ExclusiveStartKey se houver ---
-        exclusive_start_key = None
-        if str(page) in cursor_pages and cursor_pages[str(page)]:
-            exclusive_start_key = decode_dynamo_key(cursor_pages[str(page)])
-
-        # --- Query no banco ---
-        # --- Query no banco ---
         valid_clientes = []
-        limit = 5  # Quantidade de clientes válidos desejada
-        batch_size = 10  # Quantidade bruta trazida a cada chamada do DynamoDB
-
+        limit = 5
+        batch_size = 10
         last_valid_cliente = None
         raw_last_evaluated_key = None
 
@@ -123,32 +132,29 @@ def init_client_routes(
             raw_last_evaluated_key = response.get("LastEvaluatedKey")
 
             if not clientes:
-                break  # Não há mais clientes no banco
+                break
 
             for cliente in clientes:
-                if not cliente_atende_filtros(cliente, filtros):
+                if not cliente_atende_filtros_dinamico(cliente, filtros, fields_config):
                     continue
 
                 valid_clientes.append(cliente)
-                last_valid_cliente = cliente  # Atualiza o último cliente adicionado
+                last_valid_cliente = cliente
 
                 if len(valid_clientes) == limit:
                     break
 
-            # Se não atingiu o limite, mas ainda há last evaluated key, continua buscando
             if len(valid_clientes) < limit:
                 if raw_last_evaluated_key:
                     exclusive_start_key = raw_last_evaluated_key
                 else:
-                    break  # Não há mais itens no banco para buscar
+                    break
 
-        # --- Define next_cursor_token com base no último cliente válido ---
         next_cursor_token = None
         if last_valid_cliente:
-            if (
-                last_valid_cliente.get("account_id")
-                and last_valid_cliente.get("created_at")
-                and last_valid_cliente.get("client_id")
+            if all(
+                k in last_valid_cliente
+                for k in ("account_id", "created_at", "client_id")
             ):
                 next_cursor_token = encode_dynamo_key(
                     {
@@ -158,37 +164,26 @@ def init_client_routes(
                     }
                 )
 
-        # --- Atualiza sessão para a próxima página ---
         if next_cursor_token:
             session["cursor_pages_clients"][str(page + 1)] = next_cursor_token
         else:
             session["cursor_pages_clients"].pop(str(page + 1), None)
 
-        # --- Quando for renderizar normal:
         last_page_clients = session.get("last_page_clients")
         current_page = session.get("current_page_clients", 1)
 
-        # Se:
-        # 1. O número de itens na página é menor que o limite (ou seja, não preencheu a página completamente)
-        # 2. OU se a página atual já é maior ou igual à última página registrada
+        has_next = False
+        if not force_no_next and (
+            len(valid_clientes) == limit
+            and (last_page_clients is None or current_page < last_page_clients)
+        ):
+            has_next = True
 
-        if force_no_next:
-            has_next = False
-        else:
-            if len(valid_clientes) < limit or (
-                last_page_clients is not None and current_page >= last_page_clients
-            ):
-                has_next = False
-            else:
-                has_next = True
-
-        # --- Caso não haja clientes encontrados em página >1 (quando tentou ir além do limite) ---
-        # --- Se clicou para avançar e não há clientes
         if not valid_clientes and page > 1:
             flash("Não há mais clientes para exibir.", "info")
             last_valid_page = page - 1
             session["current_page_clients"] = last_valid_page
-            session["last_page_clients"] = last_valid_page  # 🔥 Grava última página
+            session["last_page_clients"] = last_valid_page
             return redirect(
                 url_for("listar_clientes", page=last_valid_page, force_no_next=1)
             )
@@ -196,9 +191,11 @@ def init_client_routes(
         return render_template(
             "clientes.html",
             itens=valid_clientes,
-            current_page=session.get("current_page_clients", 1),
+            current_page=current_page,
             has_next=has_next,
-            has_prev=session.get("current_page_clients", 1) > 1,
+            has_prev=current_page > 1,
+            fields_config=fields_config,
+            custom_fields_preview=custom_fields_preview,
         )
 
     @app.route("/editar_cliente/<client_id>", methods=["GET", "POST"])
@@ -370,12 +367,7 @@ def init_client_routes(
             redirect,
             url_for,
             "add_client.html",
-        )
-
-    @app.route("/add_client", methods=["GET", "POST"])
-    def add_client():
-        return add_client_common(
-            request, clients_table, session, flash, redirect, url_for, "add_client.html"
+            field_config_table,
         )
 
     @app.route("/clientes/deletar/<client_id>", methods=["POST"])
@@ -451,74 +443,79 @@ def add_client_common(
     redirect,
     url_for,
     template,
+    field_config_table,
 ):
     if not session.get("logged_in"):
         return redirect(url_for("login"))
 
     next_page = request.args.get("next", url_for("listar_clientes"))
 
+    account_id = session.get("account_id")
+    user_id = session.get("user_id")
+    user_utc = get_user_timezone(users_table, user_id)
+
+    # Pega campos configurados para 'client'
+    all_fields = get_all_fields(account_id, field_config_table, entity="client")
+
     if request.method == "POST":
-        client_name = request.form.get("client_name", "").strip()
-        client_email = request.form.get("client_email", "").strip()
-        client_address = request.form.get("client_address", "").strip()
-
-        # Usar os campos ocultos que já contêm apenas dígitos (sem formatação)
-        client_tel_digits = request.form.get("client_tel_digits", "").strip()
-        client_cpf_digits = request.form.get("client_cpf_digits", "").strip()
-        client_cnpj_digits = request.form.get("client_cnpj_digits", "").strip()
-
-        client_obs = request.form.get("client_obs", "").strip()
-
-        if not client_name:
-            flash("O nome do cliente é obrigatório.", "error")
-            return redirect(request.url)
-
         client_id = str(uuid.uuid4())
-        account_id = session.get("account_id")
-
-        user_id = session.get("user_id") if "user_id" in session else None
-        user_utc = get_user_timezone(users_table, user_id)
-
-        # Verificação de duplicatas por nome, CPF ou CNPJ
-        existing_clients = clients_table.scan().get("Items", [])
-
-        for client in existing_clients:
-            if client.get("account_id") != account_id:
-                continue  # Ignorar clientes de outras contas
-
-            # Verifica duplicatas por nome, CPF ou CNPJ
-            if client.get("client_name") == client_name:
-                flash("Já existe um cliente com esse nome.", "error")
-                return redirect(request.url)
-
-            if client_cpf_digits and client.get("client_cpf") == client_cpf_digits:
-                flash("Já existe um cliente com esse CPF.", "error")
-                return redirect(request.url)
-
-            if client_cnpj_digits and client.get("client_cnpj") == client_cnpj_digits:
-                flash("Já existe um cliente com esse CNPJ.", "error")
-                return redirect(request.url)
-
         new_client = {
             "client_id": client_id,
             "account_id": account_id,
-            "client_name": client_name,
             "created_at": datetime.datetime.now(user_utc).strftime("%Y-%m-%d %H:%M:%S"),
         }
 
-        # Adiciona apenas se os campos tiverem valor
-        if client_tel_digits:
-            new_client["client_tel"] = client_tel_digits
-        if client_email:
-            new_client["client_email"] = client_email
-        if client_address:
-            new_client["client_address"] = client_address
-        if client_cpf_digits:
-            new_client["client_cpf"] = client_cpf_digits
-        if client_cnpj_digits:
-            new_client["client_cnpj"] = client_cnpj_digits
-        if client_obs:
-            new_client["client_obs"] = client_obs
+        key_values = {}
+
+        for field in all_fields:
+            field_id = field["id"]
+            label = field.get("label", field_id)
+            value = request.form.get(field_id, "").strip()
+
+            if not value:
+                continue
+
+            # Se o campo estiver presente, salva direto
+            if field["type"] == "number":
+                try:
+                    value = Decimal(value.replace(".", "").replace(",", "."))
+                except InvalidOperation:
+                    flash(f"O campo {label} possui um número inválido.", "danger")
+                    return redirect(request.url)
+
+            key_values[field_id] = value
+
+        # Se 'client_name' estiver nos campos, usa ele como título principal
+        client_name = key_values.get("client_name")
+        if client_name:
+            new_client["client_name"] = client_name
+
+        # Verificação de duplicatas — apenas se algum dos campos-chave estiver presente
+        existing_clients = clients_table.scan().get("Items", [])
+        for client in existing_clients:
+            if client.get("account_id") != account_id:
+                continue
+
+            if client_name and client.get("client_name") == client_name:
+                flash("Já existe um cliente com esse nome.", "error")
+                return redirect(request.url)
+
+            if (
+                key_values.get("client_cpf")
+                and client.get("client_cpf") == key_values["client_cpf"]
+            ):
+                flash("Já existe um cliente com esse CPF.", "error")
+                return redirect(request.url)
+
+            if (
+                key_values.get("client_cnpj")
+                and client.get("client_cnpj") == key_values["client_cnpj"]
+            ):
+                flash("Já existe um cliente com esse CNPJ.", "error")
+                return redirect(request.url)
+
+        # Junta os campos no cliente
+        new_client.update(key_values)
 
         try:
             clients_table.put_item(Item=new_client)
@@ -529,12 +526,7 @@ def add_client_common(
             flash("Erro ao salvar cliente. Tente novamente.", "error")
             return redirect(request.url)
 
-    return render_template(template)
-
-
-import re
-import base64
-import json
+    return render_template(template, all_fields=all_fields, next=next_page, client={})
 
 
 def encode_dynamo_key(key_dict):
@@ -558,30 +550,108 @@ def decode_dynamo_key(encoded_key):
         return None
 
 
-def cliente_atende_filtros(cliente, filtros):
-    """
-    Verifica se o cliente atende aos filtros fornecidos.
-    """
-    client_name = filtros.get("client_name", "").strip().lower()
-    client_tel = "".join(filter(str.isdigit, filtros.get("client_tel", "")))
-    client_email = filtros.get("client_email", "").strip().lower()
-    client_address = filtros.get("client_address", "").strip().lower()
-    client_cpf = "".join(filter(str.isdigit, filtros.get("client_cpf", "")))
-    client_cnpj = "".join(filter(str.isdigit, filtros.get("client_cnpj", "")))
-    client_obs = filtros.get("client_obs", "").strip().lower()
+def cliente_atende_filtros_dinamico(cliente, filtros, fields_config):
+    from decimal import Decimal, InvalidOperation
 
-    return (
-        (not client_name or client_name in (cliente.get("client_name") or "").lower())
-        and (not client_tel or client_tel in (cliente.get("client_tel") or ""))
-        and (
-            not client_email
-            or client_email in (cliente.get("client_email") or "").lower()
+    for field in fields_config:
+        field_id = field["id"]
+        field_type = field.get("type")
+        value = (
+            cliente.get("key_values", {}).get(field_id) or cliente.get(field_id) or ""
         )
-        and (
-            not client_address
-            or client_address in (cliente.get("client_address") or "").lower()
-        )
-        and (not client_cpf or client_cpf in (cliente.get("client_cpf") or ""))
-        and (not client_cnpj or client_cnpj in (cliente.get("client_cnpj") or ""))
-        and (not client_obs or client_obs in (cliente.get("client_obs") or "").lower())
+
+        if field_type == "string":
+            filtro = filtros.get(field_id)
+            if filtro and filtro.lower() not in str(value).lower():
+                return False
+
+        elif field_type == "number":
+            min_val = filtros.get(f"min_" + field_id)
+            max_val = filtros.get(f"max_" + field_id)
+            try:
+                value = Decimal(str(value))
+                if min_val and value < Decimal(min_val):
+                    return False
+                if max_val and value > Decimal(max_val):
+                    return False
+            except (InvalidOperation, ValueError):
+                return False
+
+        elif field_type == "dropdown":
+            selected = filtros.get(field_id)
+            if selected and selected != value:
+                return False
+
+        elif field_type == "date":
+            start_date = filtros.get(f"start_{field_id}")
+            end_date = filtros.get(f"end_{field_id}")
+            try:
+                date_val = datetime.datetime.strptime(value, "%Y-%m-%d").date()
+                if (
+                    start_date
+                    and date_val
+                    < datetime.datetime.strptime(start_date, "%Y-%m-%d").date()
+                ):
+                    return False
+                if (
+                    end_date
+                    and date_val
+                    > datetime.datetime.strptime(end_date, "%Y-%m-%d").date()
+                ):
+                    return False
+            except:
+                if start_date or end_date:
+                    return False
+
+    return True
+
+
+def get_all_fields(account_id, field_config_table, entity):
+
+    config_response = field_config_table.get_item(
+        Key={"account_id": account_id, "entity": entity}
     )
+    fields_config = config_response.get("Item", {}).get("fields_config", {})
+
+    all_fields = []
+    for field_id, cfg in fields_config.items():
+        label = cfg.get("label", field_id.replace("_", " ").capitalize())
+        print(f"Field ID: {field_id}")
+        print(f"CFG: {cfg}")
+        print(f"Label: {cfg.get('label')}")
+        print(f"Title: {cfg.get('title')}")
+
+        all_fields.append(
+            {
+                "id": field_id,
+                "label": label,
+                "title": label,  # usado em outras rotas
+                "type": cfg.get("type", "string"),
+                "required": cfg.get("required", False),
+                "visible": cfg.get("visible", True),
+                "preview": cfg.get("preview", False),
+                "filterable": cfg.get("filterable", False),
+                "order_sequence": int(cfg.get("order_sequence", 999)),
+                "options": (
+                    cfg.get("options", []) if cfg.get("type") == "dropdown" else []
+                ),
+                "fixed": cfg.get("f_type", "custom") == "fixed",
+            }
+        )
+    return sorted(all_fields, key=lambda x: x["order_sequence"])
+
+
+"""
+     @app.route("/add_client", methods=["GET", "POST"])
+    def add_client():
+        return add_client_common(
+            request,
+            clients_table,
+            session,
+            flash,
+            redirect,
+            url_for,
+            "add_client.html",
+            field_config_table,
+        )
+"""

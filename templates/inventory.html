@@ -4,93 +4,180 @@
 <div class="container mt-3">
   <h2 class="mb-4">Inventário de itens</h2>
 
-
-   {% if not itens %}
+  {% if not itens %}
   <div
-    style="
-      display: flex;
-      align-items: center;
-      background-color: #cce5ff;
-      border-left: 6px solid #007bff; /* Tarja azul à esquerda */
-      color: #004085;
-      padding: 1rem;
-      border-radius: 0.25rem;
-      margin-top: 1rem;
-    "
-  >
-    <span>Não há itens que satisfazem os cirtérios selecionados.</span>
+    style="display: flex; align-items: center; background-color: #cce5ff; border-left: 6px solid #007bff; color: #004085; padding: 1rem; border-radius: 0.25rem; margin-top: 1rem;">
+    <span>Não há itens que satisfazem os critérios selecionados.</span>
   </div>
   <br />
-  {% endif %} {% if total_relevant_transactions == 0 and itens|length == 1 %}
-  <div
-    style="
-      background-color: rgba(255, 193, 7, 0.3);
-      border: 1px solid #ffc107;
-      padding: 1rem;
-      border-radius: 0.5rem;
-      display: inline-flex;
-      align-items: center;
-      gap: 1rem;
-      margin-bottom: 1rem;
-      position: relative;
-    "
-  >
-    <span style="color: #664d03; font-weight: 500">Para iniciar uma transação, abra o menu "Ações" do item e clique em "Iniciar transação".</span>
+  {% endif %}
 
-    <!-- Botão de adicionar item -->
+  {% if total_relevant_transactions == 0 and itens|length == 1 %}
+  <div
+    style="background-color: rgba(255, 193, 7, 0.3); border: 1px solid #ffc107; padding: 1rem; border-radius: 0.5rem; display: inline-flex; align-items: center; gap: 1rem; margin-bottom: 1rem; position: relative;">
+    <span style="color: #664d03; font-weight: 500">Dica: para iniciar uma transação, abra o menu "Ações" do item e clique em "Iniciar transação".</span>
   </div>
   {% endif %}
 </div>
-{% if last_page == False and not itens%}
+
+{% if last_page == False and not itens %}
 <p style="color: #308be3; font-weight: bold; font-size: 1.2rem; margin-top: -1rem; margin-left: 0.25rem">Nada por aqui!</p>
-{% endif %} {% if request.args or itens %} {% set show_item_filter = True %} {% endif %} {% set show_add_item = True %} {% include
-"components/item_filter_section.html" with context %} {% if itens %}
-<!-- Tabela (que vira "cards" no mobile) -->
+{% endif %}
+
+{% if request.args or itens %}
+{% set show_item_filter = True %}
+{% endif %}
+
+{% set show_add_item = True %}
+{% include "components/item_filter_section.html" with context %}
+
+{% if itens %}
 <div class="table-container mt-4">
   <table class="table table-hover responsive-table align-middle rounded-table">
     <thead>
       <tr>
-        <th>Imagem</th>
-        <th>Item ID#</th>
-        <th>Descrição</th>
-        <th>Preço (R$)</th>
-        <th>Comentários</th>
-        <th></th>
+        {% for field in fields_config if field.preview and field.visible %}
+  <th>{{ field.label }}</th>
+{% endfor %}
+
+
+        <th>Ações</th>
       </tr>
     </thead>
     <tbody>
+
       {% for item in itens %}
       <tr>
-        <td data-label="Imagem">
-          {% if item.image_url and item.image_url != "N/A" %}
-          <img src="{{ item.image_url }}" alt="Imagem do item" class="img-fluid item-thumbnail" style="max-width: 100px" />
-          {% else %}
-          <img
-            src="{{ url_for('static', filename='item-placeholder.png') }}"
-            alt="Sem Imagem"
-            class="img-fluid item-thumbnail"
-            style="max-width: 100px"
-          />
+        {% for field in fields_config if field.preview and field.visible %}
+        <td data-label="{{ field.label }}">
+          {% if field.id == 'image_url' %}
+          {% set value = item.key_values[field.id] if item.key_values is defined and field.id in item.key_values else item[field.id] if field.id in item else '' %}
+          {% if value and value != "N/A" %}
+  <img src="{{ value }}" alt="Imagem" class="img-fluid item-thumbnail"
+       style="max-width: 100px; cursor: pointer;"
+       onclick="mostrarImagemModal('{{ value }}')" />
+{% else %}
+  <img src="{{ url_for('static', filename='item-placeholder.png') }}" alt="Sem Imagem" class="img-fluid item-thumbnail"
+       style="max-width: 100px; cursor: pointer;"
+       onclick="mostrarImagemModal('{{ url_for('static', filename='item-placeholder.png') }}')" />
+{% endif %}
+{% else %}
+
+          {% set value = item.key_values[field.id] if item.key_values is defined and field.id in item.key_values else item[field.id] if field.id in item else '' %}
+          {% if value == 'None' or value is none %}
+              <span class="text-muted">-</span>
+            {% else %}
+            <span>
+              {% if field.id.startswith("valor") %}
+  {{ value | format_brl }}
+{% elif field.id.startswith("date") %}
+  {{ value | format_date }}
+{% else %}
+  {{ value }}
+{% endif %}
+
+            </span>
+
+            {% endif %}
           {% endif %}
         </td>
-        <td data-label="Item ID#">{{ '' if item.item_custom_id == 'None' else item.item_custom_id or '' }}</td>
-        <td data-label="Descrição" style="white-space: pre-wrap; text-align: left">{{ item.description }}</td>
-        <td data-label="Valor">{{ item.valor }}</td>
-        <td data-label="Comentários">{{ '' if item.item_obs == 'None' else item.item_obs or '' }}</td>
+        {% endfor %}
         <td data-label="Ações">
-          <div class="d-flex flex-wrap gap-2 justify-content-center align-items-center">
-            {% set show_delete_item = True %} {% set show_edit_item = True %} {% set show_rent = True %} {% set show_archive = True %} {% set
-            show_consult = True %} {% set show_qrcode = True %} {% set show_share = True %} {% set show_item_transactions = True %} {% include
-            'components/action_buttons.html' with context %}
+          <div class="d-flex flex-column gap-2 align-items-center">
+            <div style="width: 120px;">
+              {% set show_delete_item = True %}
+              {% set show_edit_item = True %}
+              {% set show_rent = True %}
+              {% set show_archive = True %}
+              {% set show_consult = True %}
+              {% set show_qrcode = True %}
+              {% set show_share = True %}
+              {% set show_item_transactions = True %}
+              {% include 'components/action_buttons.html' with context %}
+            </div>
+            <button class="btn btn-primary btn-sm" style="width: 120px;" data-bs-toggle="modal" data-bs-target="#modalItem{{ loop.index }}">
+              Detalhes
+            </button>
           </div>
         </td>
       </tr>
+
+
+      <div class="modal fade" id="modalItem{{ loop.index }}" tabindex="-1" aria-labelledby="modalItemLabel{{ loop.index }}" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-scrollable modal-lg">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="modalItemLabel{{ loop.index }}">Detalhes do Item</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+
+              {% set show_image = (fields_config | selectattr("id", "equalto", "image_url") | selectattr("visible") | list | length) > 0 %}
+
+
+              {% if show_image %}
+              <!-- Imagem do item -->
+              <div class="text-center mb-3">
+                {% set image = item.key_values['image_url'] if item.key_values is defined and 'image_url' in item.key_values else item['image_url'] if 'image_url' in item else '' %}
+                {% if image and image != "N/A" %}
+                <img src="{{ image }}" alt="Imagem do item"
+                class="img-fluid"
+                style="max-width: 200px; cursor: pointer;"
+                onclick="mostrarImagemModal('{{ image }}')" />
+                           {% else %}
+                <img src="{{ url_for('static', filename='item-placeholder.png') }}" alt="Sem imagem" class="img-fluid" style="max-width: 200px; cursor: pointer;" onclick="mostrarImagemModal('{{ url_for('static', filename='item-placeholder.png') }}')" />
+                {% endif %}
+              </div>
+              {% endif %}
+
+              <div class="container-fluid">
+                <div class="row g-3">
+                  {% for field in fields_config if field.id != 'image_url' %}
+                  <div class="col-12 col-md-6">
+                    <strong>{{ field.label }}:</strong><br />
+                    {% set value = item.key_values[field.id] if item.key_values is defined and field.id in item.key_values else item[field.id] if field.id in item else '' %}
+                    {% if value == 'None' or value is none %}
+                      <span class="text-muted">-</span>
+                    {% else %}
+                    <span>
+                      <span>
+
+                        {% if field.id.startswith("date") %}
+  {{ value | format_date }}
+{% elif field.id.startswith("valor") %}
+  {{ value | format_brl }}
+{% else %}
+  {{ value }}
+{% endif %}
+
+                      </span>
+
+                    </span>
+                    {% endif %}
+                  </div>
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
       {% endfor %}
     </tbody>
   </table>
 </div>
+{% endif %}
 
-{% endif %} {% if itens %}
+
+
+
+
+
+
+
+{% if itens %}
 
 <!-- Pagination -->
 <ul class="pagination justify-content-center"></ul>
@@ -211,19 +298,25 @@
 
       const paginacao = document.querySelector('.pagination');
 
-      // Botão ← Anterior
+      // Remove o parâmetro de página antes de recriar a URL
+      urlParams.delete('page');
+
+      const baseParams = urlParams.toString();
+      const prefix = baseParams ? `?${baseParams}&` : '?';
+
+      // ← Anterior
       if (currentPage > 1) {
         const liPrev = document.createElement('li');
         liPrev.className = 'page-item';
         const aPrev = document.createElement('a');
         aPrev.className = 'page-link';
         aPrev.innerText = '← Anterior';
-        aPrev.href = `?page=${currentPage - 1}`;
+        aPrev.href = `${prefix}page=${currentPage - 1}`;
         liPrev.appendChild(aPrev);
         paginacao.appendChild(liPrev);
       }
 
-      // Página Atual
+      // Página atual
       const liCurrent = document.createElement('li');
       liCurrent.className = 'page-item active';
       const aCurrent = document.createElement('a');
@@ -233,17 +326,40 @@
       liCurrent.appendChild(aCurrent);
       paginacao.appendChild(liCurrent);
 
-      // Botão Próxima →
+      // → Próxima
       {% if has_next %}
         const liNext = document.createElement('li');
         liNext.className = 'page-item';
         const aNext = document.createElement('a');
         aNext.className = 'page-link';
         aNext.innerText = 'Próxima →';
-        aNext.href = `?page=${currentPage + 1}`;
+        aNext.href = `${prefix}page=${currentPage + 1}`;
         liNext.appendChild(aNext);
         paginacao.appendChild(liNext);
       {% endif %}
     </script>
+
+
+
+    <script>
+      function mostrarImagemModal(imageUrl) {
+        const modalImage = document.getElementById('modalImg');
+        modalImage.src = imageUrl;
+
+        // Fecha o modal atual antes de abrir o novo
+        const modals = document.querySelectorAll('.modal.show');
+        modals.forEach(modalEl => {
+          bootstrap.Modal.getInstance(modalEl)?.hide();
+        });
+
+        // Aguarda o fechamento e então abre o novo modal
+        setTimeout(() => {
+          const imageModal = new bootstrap.Modal(document.getElementById('imageModal'));
+          imageModal.show();
+        }, 300); // espera 300ms
+      }
+    </script>
+
+
     {% endblock %}
 
