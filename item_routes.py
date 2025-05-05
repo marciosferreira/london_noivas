@@ -191,6 +191,7 @@ def init_item_routes(
             users_table,
             payment_transactions_table,
             field_config_table,
+            entity="item",
         )
 
     @app.route("/add_item", methods=["GET", "POST"])
@@ -277,8 +278,6 @@ def init_item_routes(
         if not session.get("logged_in"):
             return redirect(url_for("login"))
 
-        valor_str = request.form.get("valor", "").replace(",", ".")
-        pagamento_str = request.form.get("pagamento", "").replace(",", ".")
         next_page = request.args.get("next", url_for("index"))
 
         # Buscar a transação atual
@@ -286,23 +285,21 @@ def init_item_routes(
         transaction = response.get("Item")
 
         if not transaction:
-            flash("Item não encontrado.", "danger")
+            flash("Transação não encontrada.", "danger")
             return redirect(next_page)
 
         item_id = transaction.get("item_id")
 
-        # Obter todas as transações relacionadas ao item
+        # Obter todas as transações relacionadas ao item, exceto esta
         response = transactions_table.query(
             IndexName="item_id-index",
             KeyConditionExpression="item_id = :item_id_val",
             ExpressionAttributeValues={":item_id_val": item_id},
         )
-        all_transaction = response.get("Items", [])
 
-        # Reservar intervalos de datas para aluguéis
         reserved_ranges = [
             [tx["rental_date"], tx["return_date"]]
-            for tx in all_transaction
+            for tx in response.get("Items", [])
             if tx.get("status") == "rented"
             and tx.get("transaction_id") != transaction_id
             and tx.get("rental_date")
@@ -310,10 +307,13 @@ def init_item_routes(
         ]
 
         if request.method == "POST":
-            # Captura dos novos dados do formulário
+            # Captura dos dados do formulário
+            valor_str = request.form.get("valor", "").replace(",", ".")
+            pagamento_str = request.form.get("pagamento", "").replace(",", ".")
             ret_date = request.form.get("ret_date")
             range_date = request.form.get("range_date")
             rental_str, return_str = range_date.split(" - ")
+
             rental_date = datetime.datetime.strptime(
                 rental_str.strip(), "%d/%m/%Y"
             ).strftime("%Y-%m-%d")
@@ -321,7 +321,6 @@ def init_item_routes(
                 return_str.strip(), "%d/%m/%Y"
             ).strftime("%Y-%m-%d")
 
-            # Criação de um dicionário com os dados atualizados
             new_data = {
                 "rental_date": rental_date,
                 "return_date": return_date,
@@ -330,133 +329,56 @@ def init_item_routes(
                 "valor": Decimal(valor_str) if valor_str else Decimal("0.0"),
                 "transaction_obs": request.form.get("transaction_obs", "").strip(),
                 "pagamento": (
-                    Decimal(pagamento_str) if pagamento_str else Decimal("0.0") or None
+                    Decimal(pagamento_str) if pagamento_str else Decimal("0.0")
                 ),
             }
 
-            # Se a transação for "reserved", remove o campo dev_date
-            if new_data.get("transaction_status") in ["reserved", "rented"]:
+            if new_data["transaction_status"] in ["reserved", "rented"]:
                 new_data["dev_date"] = None
 
-            # Adiciona o ret_date apenas se foi enviado
             if ret_date:
                 new_data["ret_date"] = ret_date
 
-            # Detectar as mudanças ignorando campos específicos
+            # Detectar alterações reais
             changes = {
-                key: value
-                for key, value in new_data.items()
-                if transaction.get(key) != value
-                and not (transaction.get(key) == "" and value is None)
+                k: v
+                for k, v in new_data.items()
+                if transaction.get(k) != v
+                and not (transaction.get(k) == "" and v is None)
             }
 
-            # Verifique se há mudanças antes de atualizar
             if not changes:
                 flash("Nenhuma alteração foi feita.", "warning")
                 return redirect(next_page)
 
-            # Atualizar campos no banco de dados se houver alterações
-            if set(changes.keys()).issubset({"transaction_status", "pagamento"}):
-                update_expression = []
-                expression_values = {}
+            # Atualiza somente os campos alterados
+            update_expr = []
+            expr_values = {}
 
-                if "transaction_status" in changes:
-                    update_expression.append("transaction_status = :status")
-                    expression_values[":status"] = new_data["transaction_status"]
+            for k, v in changes.items():
+                update_expr.append(f"{k} = :{k}")
+                expr_values[f":{k}"] = v
 
-                if "pagamento" in changes:
-                    update_expression.append("pagamento = :pagamento")
-                    expression_values[":pagamento"] = new_data["pagamento"]
-
-                transactions_table.update_item(
-                    Key={"transaction_id": transaction_id},
-                    UpdateExpression="SET " + ", ".join(update_expression),
-                    ExpressionAttributeValues=expression_values,
-                )
-
-                flash("Item atualizado com sucesso.", "success")
-                return redirect(
-                    next_page
-                )  # Redireciona para a página de origem após sucesso
-
-            # Se houver outras alterações, cria uma nova transação como versão
-            new_transaction_id = str(uuid.uuid4())
-            copied_item = {
-                k: v
-                for k, v in transaction.items()
-                if k != "transaction_id" and v not in [None, ""]
-            }
-            copied_item.update(
-                {
-                    "transaction_id": new_transaction_id,
-                    "parent_transaction_id": transaction_id,
-                    "transaction_status": "version",
-                    "edited_date": datetime.datetime.now().strftime(
-                        "%d/%m/%Y %H:%M:%S"
-                    ),
-                    "edited_by": session.get("username"),
-                    "transaction_previous_status": transaction.get(
-                        "transaction_status"
-                    ),
-                }
+            transactions_table.update_item(
+                Key={"transaction_id": transaction_id},
+                UpdateExpression="SET " + ", ".join(update_expr),
+                ExpressionAttributeValues=expr_values,
             )
 
-            transactions_table.put_item(Item=copied_item)
+            flash("Transação atualizada com sucesso.", "success")
+            return redirect(next_page)
 
-            # Atualizar o item original com as mudanças
-            update_expression = []
-            expression_values = {}
-            expression_names = {}
-
-            for key, value in changes.items():
-                # Ex: key = "key_values.image_url"
-                parts = key.split(".")
-                attr_path = []
-                for part in parts:
-                    alias = f"#{part}"
-                    expression_names[alias] = part
-                    attr_path.append(alias)
-
-                full_path = ".".join(attr_path)  # Ex: "#key_values.#image_url"
-                value_alias = f":val_{parts[-1]}"  # Ex: ":val_image_url"
-
-                update_expression.append(f"{full_path} = {value_alias}")
-                expression_values[value_alias] = value
-
-            itens_table.update_item(
-                Key={"item_id": item_id},
-                UpdateExpression="SET " + ", ".join(update_expression),
-                ExpressionAttributeValues=expression_values,
-                ExpressionAttributeNames=expression_names,
-            )
-
-            flash("Item atualizado com sucesso.", "success")
-        else:
-            flash("Nenhuma alteração foi feita.", "warning")
-
-            # Prepare a transação para enviar ao template
-            transaction_copy = transaction.copy()
-            transaction_copy["range_date"] = (
-                f"{datetime.datetime.strptime(transaction['rental_date'], '%Y-%m-%d').strftime('%d/%m/%Y')} - "
-                f"{datetime.datetime.strptime(transaction['return_date'], '%Y-%m-%d').strftime('%d/%m/%Y')}"
-            )
-
-            return redirect(
-                next_page
-            )  # Redirecionar para a página de origem após o processo de cópia ou atualização
-
-        # Caso seja uma requisição GET, renderize o template com a transação
-        transaction_copy = transaction.copy()
-        transaction_copy["range_date"] = (
+        # GET: preparar os dados para o template
+        transaction["range_date"] = (
             f"{datetime.datetime.strptime(transaction['rental_date'], '%Y-%m-%d').strftime('%d/%m/%Y')} - "
             f"{datetime.datetime.strptime(transaction['return_date'], '%Y-%m-%d').strftime('%d/%m/%Y')}"
         )
 
         return render_template(
             "edit_transaction.html",
-            item=transaction_copy,
+            item=transaction,
             reserved_ranges=reserved_ranges,
-        )  # Retorna a página de edição se for um GET
+        )
 
     ############################################################################################################
 
@@ -1805,10 +1727,14 @@ def init_item_routes(
                 fields_config_map[field_id] = {
                     "label": title,
                     "type": type_,
-                    "visible": combined_visible[idx] == "true",
-                    "required": combined_required[idx] == "true",
-                    "filterable": combined_filterable[idx] == "true",
-                    "preview": combined_preview[idx] == "true",
+                    "visible": idx < len(combined_visible)
+                    and combined_visible[idx] == "true",
+                    "required": idx < len(combined_required)
+                    and combined_required[idx] == "true",
+                    "filterable": idx < len(combined_filterable)
+                    and combined_filterable[idx] == "true",
+                    "preview": idx < len(combined_preview)
+                    and combined_preview[idx] == "true",
                     "f_type": "custom",
                     "options": options if type_ == "dropdown" else [],
                     "order_sequence": order,
@@ -1831,6 +1757,8 @@ def init_item_routes(
         config_response = field_config_table.get_item(
             Key={"account_id": account_id, "entity": entity}
         )
+
+        print(config_response)
 
         fields_config_map = config_response.get("Item", {}).get("fields_config", {})
         fields_to_show = []
@@ -1859,7 +1787,7 @@ def init_item_routes(
 
         all_fields = sorted(fields_to_show, key=lambda x: x["order_sequence"])
         return render_template(
-            "custom_fields.html", entity=entity, all_fields=all_fields
+            f"custom_{entity}.html", entity=entity, all_fields=all_fields
         )
 
 
@@ -2130,6 +2058,7 @@ def list_raw_itens(
     payment_transactions_table,
     field_config_table,
     limit=5,
+    entity="item",
 ):
     if not session.get("logged_in"):
         return redirect(url_for("login"))
@@ -2139,9 +2068,7 @@ def list_raw_itens(
         print("Erro: Usuário não autenticado corretamente.")
         return redirect(url_for("login"))
 
-    fields_config = get_all_fields(account_id, field_config_table)
-
-    print(fields_config)
+    fields_config = get_all_fields(account_id, field_config_table, entity)
 
     force_no_next = request.args.get("force_no_next")
 
@@ -2165,8 +2092,6 @@ def list_raw_itens(
     image_url_required = None
     if image_url_filter is not None:
         image_url_required = image_url_filter.lower() == "true"
-
-    print(image_url_required)
 
     if page == 1:
         session.pop("current_page_itens", None)
@@ -2214,15 +2139,6 @@ def list_raw_itens(
             print(f"Erro ao buscar item por ID: {e}")
             flash("Erro ao buscar item.", "danger")
             return redirect(request.referrer or url_for("inventory"))
-
-    # 🔥 Continua fluxo normal
-
-    # 🧹 Recupera filtros opcionais
-    item_custom_id = request.args.get("item_custom_id")
-    description = request.args.get("description")
-    item_obs = request.args.get("item_obs")
-    min_valor = request.args.get("min_valor")
-    max_valor = request.args.get("max_valor")
 
     # 🧹 Definindo ExclusiveStartKey
     exclusive_start_key = None
@@ -2513,9 +2429,6 @@ def list_raw_itens(
     # ordenar fields_config para o filtro mostrar na mesma ordem.
     fields_config = sorted(fields_config, key=lambda x: x["order_sequence"])
 
-    print("HHHHHHHHHHHH")
-    print(fields_config)
-
     # ⚡ Extrair apenas os campos com preview=True
     custom_fields_preview = [
         {"field_id": field["id"], "title": field["label"]}
@@ -2659,11 +2572,10 @@ def get_fields_config(account_id, field_config_table):
         return []
 
 
-def get_all_fields(account_id, field_config_table):
+def get_all_fields(account_id, field_config_table, entity):
 
-    print("ALLLLLLLLLLLLLLL")
     config_response = field_config_table.get_item(
-        Key={"account_id": account_id, "entity": "item"}
+        Key={"account_id": account_id, "entity": entity}
     )
     fields_config = config_response.get("Item", {}).get("fields_config", {})
 

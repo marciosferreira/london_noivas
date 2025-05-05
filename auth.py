@@ -1166,11 +1166,10 @@ def create_user(
             ]
 
             fields_config = {}
+
             for field in DEFAULT_FIELDS:
                 label = field["label"]
-                slug = slug_overrides.get(
-                    label, slugify(label)
-                )  # Slug fixo se estiver no mapa
+                slug = slug_overrides.get(label, slugify(label))
 
                 fields_config[slug] = {
                     "label": label,
@@ -1181,9 +1180,10 @@ def create_user(
                     "filterable": field["filterable"],
                     "preview": field["preview"],
                     "f_type": field["f_type"],
+                    "options": [],  # garante compatibilidade com campos do tipo dropdown
                 }
 
-            # Salva configuração dos campos
+            # Salva no DynamoDB
             field_config_table.put_item(
                 Item={
                     "account_id": account_id,
@@ -1191,6 +1191,100 @@ def create_user(
                     "fields_config": fields_config,
                 }
             )
+
+            DEFAULT_FIELDS = [
+                {
+                    "label": "Nome",
+                    "type": "string",
+                    "order_sequence": 1,
+                    "filterable": True,
+                    "preview": True,
+                    "f_type": "fixed",
+                },
+                {
+                    "label": "Telefone",
+                    "type": "string",
+                    "order_sequence": 2,
+                    "filterable": True,
+                    "preview": True,
+                    "f_type": "fixed",
+                },
+                {
+                    "label": "E-mail",
+                    "type": "string",
+                    "order_sequence": 3,
+                    "filterable": True,
+                    "preview": True,
+                    "f_type": "fixed",
+                },
+                {
+                    "label": "Endereço",
+                    "type": "string",
+                    "order_sequence": 4,
+                    "filterable": True,
+                    "preview": True,
+                    "f_type": "fixed",
+                },
+                {
+                    "label": "CPF",
+                    "type": "string",
+                    "order_sequence": 5,
+                    "filterable": False,
+                    "preview": True,
+                    "f_type": "fixed",
+                },
+                {
+                    "label": "CNPJ",
+                    "type": "string",
+                    "order_sequence": 5,
+                    "filterable": False,
+                    "preview": True,
+                    "f_type": "fixed",
+                },
+                {
+                    "label": "Observações do cliente",
+                    "type": "string",
+                    "order_sequence": 5,
+                    "filterable": False,
+                    "preview": True,
+                    "f_type": "fixed",
+                },
+            ]
+
+            # Slugs fixos caso deseje manter nomes específicos
+            slug_overrides = {
+                "E-mail": "email",
+                "Endereço": "endereco",
+                "Observações do cliente": "obsdocliente",
+            }
+
+            fields_config = {}
+
+            for field in DEFAULT_FIELDS:
+                label = field["label"]
+                slug = slug_overrides.get(label, slugify(label))
+
+                fields_config[slug] = {
+                    "label": label,
+                    "type": field["type"],
+                    "visible": True,
+                    "required": slug in {"item_custom_id", "descricao", "valor"},
+                    "order_sequence": field["order_sequence"],
+                    "filterable": field["filterable"],
+                    "preview": field["preview"],
+                    "f_type": field["f_type"],
+                    "options": [],  # garante compatibilidade com campos do tipo dropdown
+                }
+
+            # Salva no DynamoDB
+            field_config_table.put_item(
+                Item={
+                    "account_id": account_id,
+                    "entity": "client",
+                    "fields_config": fields_config,
+                }
+            )
+
             # ⬇️ Cria o novo usuário no banco
             item = {
                 "user_id": user_id,

@@ -26,8 +26,10 @@
           style="max-width: 150px; margin: 0 auto"
         />
         <input type="text" name="image_url" id="image-url-input" value="{{ item.image_url if item.image_url != 'N/A' else '' }}" style="opacity: 0; position: absolute; left: -9999px" />
-        <button type="button" onclick="removeImage()" id="remove-btn" style="display: {{ 'block' if item.image_url and item.image_url != 'N/A' else 'none' }}; margin-top: 10px">Excluir imagem</button>
-      </div>
+        <button type="button" onclick="removeImage()" id="remove-btn"
+        style="display: {{ 'block' if item.image_url and item.image_url != 'N/A' else 'none' }}; margin: 10px auto; display: block;">
+        Excluir imagem
+      </button>      </div>
       <input type="file" id="image_file" name="image_file"
       {% if field.required %}data-required="true"{% endif %} />
       {% else %}

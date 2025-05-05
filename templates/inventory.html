@@ -12,7 +12,7 @@
   <br />
   {% endif %}
 
-  {% if total_relevant_transactions == 0 %}
+  {% if total_relevant_transactions == 0 and itens|length == 1 %}
   <div
     style="background-color: rgba(255, 193, 7, 0.3); border: 1px solid #ffc107; padding: 1rem; border-radius: 0.5rem; display: inline-flex; align-items: center; gap: 1rem; margin-bottom: 1rem; position: relative;">
     <span style="color: #664d03; font-weight: 500">Dica: para iniciar uma transação, abra o menu "Ações" do item e clique em "Iniciar transação".</span>
