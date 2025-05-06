@@ -71,16 +71,13 @@ label {
   color: #333;
 }
 
-/* Botão de submit */
-button[type='submit'] {
-  width: 100%;
-  background-color: #28a745;
-  color: white;
-  font-size: 16px;
-  padding: 12px;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
+/* Corrige a largura do botão de envio específico */
+.btn-submit {
+  width: auto !important;
+  padding-left: 24px;
+  padding-right: 24px;
+  display: block; /* Necessário para o margin funcionar corretamente */
+  margin: 0 auto; /* Centraliza horizontalmente */
 }
 button[type='submit']:hover {
   background-color: #218838;

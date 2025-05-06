@@ -5,77 +5,124 @@
 {% endblock %}
 
 {% block content %}
-<div class="form-container">
-  <h1>Alugar item</h1>
-  <a href="{{ url_for('inventory') }}" class="cancel-link">Sair sem Finalizar</a>
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="mb-0">Iniciar Transação</h1>
+    <a href="{{ url_for('inventory') }}" class="cancel-link">Sair sem Finalizar</a>
+  </div>
 
   <form method="POST" enctype="multipart/form-data" id="form-rent" novalidate>
-    <div class="tabs">
+    <div class="tabs mb-3">
       <button type="button" class="tab-button active" data-tab="tab-cliente">Cliente</button>
       <button type="button" class="tab-button" data-tab="tab-transacao">Transação</button>
     </div>
 
     <div id="tab-cliente" class="tab-content active">
-      <label for="client_name">Nome do Cliente:</label>
-      <div class="position-relative">
-        <input type="text" id="client_name" name="client_name" autocomplete="off" class="form-control" required />
-        <div id="client_suggestions" class="autocomplete-suggestions"></div>
+      <div class="row row-cols-1 row-cols-md-3 g-4">
+        <div class="col d-flex">
+          <div class="bg-light shadow-sm rounded p-3 border w-100 h-100 d-flex flex-column justify-content-center">
+            <label for="client_name" class="form-label fw-semibold">Nome do Cliente *</label>
+            <input type="text" class="form-control" id="client_name" name="client_name" required />
+            <div id="client-suggestions-title" style="display: none;">Clientes encontrados:</div>
+            <div id="client_suggestions" class="autocomplete-box"></div>
+            <div id="client-status-message" class="status-message" style="display: none;"></div>
+            <input type="hidden" name="client_id" id="client_id" />
+          </div>
+        </div>
+
+        <div class="col d-flex">
+          <div class="bg-light shadow-sm rounded p-3 border w-100 h-100 d-flex flex-column justify-content-center">
+            <label for="client_tel" class="form-label fw-semibold">Telefone *</label>
+            <input type="text" class="form-control" id="client_tel" name="client_tel" required />
+          </div>
+        </div>
+
+        <div class="col d-flex">
+          <div class="bg-light shadow-sm rounded p-3 border w-100 h-100 d-flex flex-column justify-content-center">
+            <label for="client_email" class="form-label fw-semibold">E-mail</label>
+            <input type="email" class="form-control" id="client_email" name="client_email" />
+          </div>
+        </div>
+
+        <div class="col d-flex">
+          <div class="bg-light shadow-sm rounded p-3 border w-100 h-100 d-flex flex-column justify-content-center">
+            <label for="client_cpf" class="form-label fw-semibold">CPF</label>
+            <input type="text" class="form-control" id="client_cpf" name="client_cpf" />
+          </div>
+        </div>
+
+        <div class="col d-flex">
+          <div class="bg-light shadow-sm rounded p-3 border w-100 h-100 d-flex flex-column justify-content-center">
+            <label for="client_cnpj" class="form-label fw-semibold">CNPJ</label>
+            <input type="text" class="form-control" id="client_cnpj" name="client_cnpj" />
+          </div>
+        </div>
+
+        <div class="col d-flex">
+          <div class="bg-light shadow-sm rounded p-3 border w-100 h-100 d-flex flex-column justify-content-center">
+            <label for="client_address" class="form-label fw-semibold">Endereço</label>
+            <input type="text" class="form-control" id="client_address" name="client_address" />
+          </div>
+        </div>
+
+        <div class="col-12">
+          <div class="bg-light shadow-sm rounded p-3 border w-100 d-flex flex-column justify-content-center">
+            <label for="client_obs" class="form-label fw-semibold">Observações</label>
+            <textarea id="client_obs" name="client_obs" class="form-control" rows="2"></textarea>
+          </div>
+        </div>
       </div>
-      <!-- Tarja de mensagem de status -->
-      <div id="client-status-message" class="status-message"></div>
-      <input type="hidden" name="client_id" id="client_id" />
-      <label for="client_tel">Telefone do Cliente:</label>
-      <input type="tel" id="client_tel" name="client_tel" class="form-control" placeholder="(xx) xxxxx-xxxx" required />
-
-      <label for="client_email">E-mail do Cliente:</label>
-      <input type="email" id="client_email" name="client_email" class="form-control" placeholder="cliente@email.com" />
-
-      <label for="client_cpf">CPF:</label>
-      <input type="text" id="client_cpf" name="client_cpf" maxlength="14" placeholder="000.000.000-00" class="form-control" />
-      <label for="client_cnpj">CNPJ:</label>
-      <input type="text" id="client_cnpj" name="client_cnpj" maxlength="18" placeholder="00.000.000/0000-00" class="form-control" />
-      <label for="client_address">Endereço do Cliente:</label>
-      <input type="text" id="client_address" name="client_address" class="form-control" placeholder="Rua Exemplo, 123 - Bairro - Cidade" />
-
-      <label for="client_obs">Observações do Cliente:</label>
-      <textarea id="client_obs" name="client_obs" class="form-control" rows="2" placeholder="Observações relevantes sobre o cliente..."></textarea>
-
-      <input type="hidden" id="client_tel_digits" name="client_tel_digits" />
-      <input type="hidden" id="client_cpf_digits" name="client_cpf_digits" />
-      <input type="hidden" id="client_cnpj_digits" name="client_cnpj_digits" />
-
-
-
     </div>
-
-    <br />
 
     <div id="tab-transacao" class="tab-content">
-      <label for="transaction_status">Status da Transação:</label>
-      <select id="transaction_status" name="transaction_status" class="form-control" required>
-        <option value="" disabled selected>Selecione o status</option>
-        <option value="reserved" {% if item.transaction_status == 'reserved' %}selected{% endif %}>Reservado</option>
-        <option value="rented" {% if item.transaction_status == 'rented' %}selected{% endif %}>Alugado</option>
-      </select>
+      <div class="row row-cols-1 row-cols-md-3 g-4">
+        <div class="col d-flex">
+          <div class="bg-light shadow-sm rounded p-3 border w-100 h-100 d-flex flex-column justify-content-center">
+            <label for="transaction_status" class="form-label fw-semibold">Status da Transação *</label>
+            <select id="transaction_status" name="transaction_status" class="form-select" required>
+              <option value="" disabled selected>Selecione o status</option>
+              <option value="reserved" {% if item.transaction_status == 'reserved' %}selected{% endif %}>Reservado</option>
+              <option value="rented" {% if item.transaction_status == 'rented' %}selected{% endif %}>Alugado</option>
+            </select>
+          </div>
+        </div>
 
-      <label for="datepicker">Defina as datas:</label>
-      <input id="datepicker" name="range_date" class="form-control" />
+        <div class="col d-flex">
+          <div class="bg-light shadow-sm rounded p-3 border w-100 h-100 d-flex flex-column justify-content-center">
+            <label for="datepicker" class="form-label fw-semibold">Datas *</label>
+            <input id="datepicker" name="range_date" class="form-control" value="Clique para abrir" required />
+          </div>
+        </div>
 
-      <label for="valor">Preço do aluguel (R$):</label>
-      <input type="text" class="form-control" id="valor" name="valor" value="{{ item.valor or '' }}" required />
+        <div class="col d-flex">
+          <div class="bg-light shadow-sm rounded p-3 border w-100 h-100 d-flex flex-column justify-content-center">
+            <label for="valor" class="form-label fw-semibold">Preço do aluguel (R$) *</label>
+            <input type="text" class="form-control" id="valor" name="valor" value="{{ item.valor or '' }}" required />
+          </div>
+        </div>
 
-      <label for="pagamento">Valor já pago (R$):</label>
-      <input type="text" class="form-control" id="pagamento" name="pagamento" value="{{ item.pagamento or '' }}" />
+        <div class="col d-flex">
+          <div class="bg-light shadow-sm rounded p-3 border w-100 h-100 d-flex flex-column justify-content-center">
+            <label for="pagamento" class="form-label fw-semibold">Valor já pago (R$)</label>
+            <input type="text" class="form-control" id="pagamento" name="pagamento" value="{{ item.pagamento or '' }}" />
+          </div>
+        </div>
 
-      <label for="transaction_obs">Observações da Transação:</label>
-      <textarea id="transaction_obs" name="transaction_obs" class="form-control" rows="2" placeholder="Ex: combinado com o cliente que ..."></textarea>
+        <div class="col-12">
+          <div class="bg-light shadow-sm rounded p-3 border w-100 d-flex flex-column justify-content-center">
+            <label for="transaction_obs" class="form-label fw-semibold">Observações</label>
+            <textarea id="transaction_obs" name="transaction_obs" class="form-control" rows="2"></textarea>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- Botão de envio do formulário dentro da tag form -->
-    <br />
-    <button type="submit">Salvar</button>
+    <div class="d-flex justify-content-center mt-4">
+      <button type="submit" class="btn btn-success btn-submit w-auto px-4">Salvar</button>
+    </div>
   </form>
 </div>
+
 {% endblock %} {% block scripts %} {{ super() }}
 <script src="https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.umd.min.js"></script>
 
@@ -156,12 +203,21 @@
           // Ao clicar numa sugestão, preenche os campos com os dados do cliente
           div.addEventListener("click", () => {
             clientInput.value = client.client_name || "";
-            suggestionSelected = true; // Marca que uma sugestão foi selecionada
-            suggestionsBox.innerHTML = ""; // Limpa as sugestões após a seleção
-            statusMessage.className = 'status-message user-found'; // Exibe como "Usuário encontrado"
+            document.getElementById('client_id').value = client.client_id || "";
+            document.getElementById('client_tel').value = client.client_tel ? maskPhone(client.client_tel) : "";
+            document.getElementById('client_email').value = client.client_email || "";
+            document.getElementById('client_cpf').value = client.client_cpf ? maskCPF(client.client_cpf) : "";
+            document.getElementById('client_cnpj').value = client.client_cnpj ? maskCNPJ(client.client_cnpj) : "";
+            document.getElementById('client_address').value = client.client_address || "";
+            document.getElementById('client_obs').value = client.client_obs || "";
+
+            suggestionSelected = true;
+            suggestionsBox.innerHTML = "";
+            statusMessage.className = 'status-message user-found';
             statusMessage.innerHTML = 'Cliente encontrado';
-            statusMessage.style.display = 'block'; // Exibe a faixa de status
+            statusMessage.style.display = 'block';
           });
+
 
           suggestionsBox.appendChild(div);
         });

@@ -75,21 +75,7 @@ input[type='checkbox'] {
   margin-right: 10px;
 }
 
-/* Botão */
-button[type='submit'] {
-  background-color: #28a745; /* Verde */
-  color: #fff;
-  border: none;
-  padding: 12px 20px;
-  font-size: 16px;
-  border-radius: 5px;
-  cursor: pointer;
-  width: 100%;
-}
 
-button[type='submit']:hover {
-  background-color: #218838; /* Verde mais escuro */
-}
 
 /* Responsividade para dispositivos móveis */
 @media (max-width: 600px) {
@@ -353,3 +339,25 @@ input.form-control {
   #datepicker {
     cursor: pointer !important;
   }
+
+
+  /* Botão de envio */
+button[type='submit'] {
+  background-color: #28a745;
+  color: #fff;
+  border: none;
+  padding: 12px 20px;
+  font-size: 16px;
+  border-radius: 5px;
+  cursor: pointer;
+  width: 100%;
+}
+
+button[type='submit']:hover {
+  background-color: #218838;
+}
+
+
+button.btn-submit {
+  width: auto !important;
+}

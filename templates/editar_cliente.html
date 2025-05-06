@@ -2,244 +2,196 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='style_edit_client.css') }}" />
 {% endblock %} {% block content %}
 
-<div class="form-container">
-  <h1>Editar Cliente</h1>
-  <a href="{{ request.args.get('next', url_for('listar_clientes')) }}" class="cancel-link">Cancelar</a>
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="mb-0">Editar Cliente</h1>
+    <a href="{{ request.args.get('next', url_for('listar_clientes')) }}" class="cancel-link">Cancelar</a>
+  </div>
 
+{{all_fields}}
+{{cliente}}
   <form method="POST" id="editClientForm">
-    <label for="client_name">Nome:</label>
-    <input type="text" id="client_name" name="client_name" value="{{ cliente.client_name }}" required class="form-control" />
+    <div class="row row-cols-1 row-cols-md-3 g-4">
+      {% for field in all_fields if field.visible %}
+      <div class="col d-flex">
+        <div class="bg-light shadow-sm rounded p-3 border w-100 h-100 d-flex flex-column justify-content-center">
+          <label for="{{ field.id }}" class="form-label fw-semibold">
+            {{ field.label if field.fixed else field.title }}{% if field.required %} *{% endif %}
+          </label>
 
-    <label for="client_tel">Telefone:</label>
-    <input
-      type="tel"
-      id="client_tel"
-      name="client_tel"
-      class="form-control"
-      placeholder="(xx) xxxxx-xxxx"
-      value="{{ cliente.client_tel|default('', true) }}"
-      data-only-digits="true"
-    />
+          {% set value = cliente.get(field.id, '') %}
 
-    <label for="client_email">E-mail:</label>
-    <input
-      type="email"
-      id="client_email"
-      name="client_email"
-      class="form-control"
-      placeholder="exemplo@email.com"
-      value="{{ cliente.client_email|default('', true) }}"
-    />
+          {% if field.type in ['string', 'value', 'cpf', 'cnpj', 'email', 'phone'] %}
+            <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+              value="{{ value }}" {% if field.required %}required{% endif %} />
+              {{ field.id }}
 
-    <label for="client_address">Endereço:</label>
-    <input type="text" id="client_address" name="client_address" value="{{ cliente.client_address|default('', true) }}" class="form-control" />
+              {% elif field.type == "client_name" %}
+            <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+              value="{{ value }}" {% if field.required %}required{% endif %} />
 
-    <label for="client_cpf">CPF:</label>
-    <input
-      type="text"
-      id="client_cpf"
-      name="client_cpf"
-      maxlength="14"
-      placeholder="000.000.000-00"
-      value="{{ cliente.client_cpf|default('', true) }}"
-      class="form-control"
-      data-only-digits="true"
-      data-mask="cpf"
-    />
 
-    <label for="client_cnpj">CNPJ:</label>
-    <input
-      type="text"
-      id="client_cnpj"
-      name="client_cnpj"
-      maxlength="18"
-      placeholder="00.000.000/0000-00"
-      value="{{ cliente.client_cnpj|default('', true) }}"
-      class="form-control"
-      data-only-digits="true"
-      data-mask="cnpj"
-    />
 
-    <label for="client_obs">Observações do cliente:</label>
-    <textarea id="client_obs" name="client_obs" class="form-control" rows="3" placeholder="">{{ cliente.client_obs|default('', true) }}</textarea>
+          {% elif field.type == 'number' %}
+            <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+              value="{{ value }}" {% if field.required %}required{% endif %} />
 
-    <!-- Campos ocultos para valores sem formatação -->
-    <input type="hidden" id="client_tel_digits" name="client_tel_digits" />
-    <input type="hidden" id="client_cpf_digits" name="client_cpf_digits" />
-    <input type="hidden" id="client_cnpj_digits" name="client_cnpj_digits" />
+          {% elif field.type == 'date' %}
+            <input type="date" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+              value="{{ value }}" {% if field.required %}required{% endif %} />
 
-    <div style="margin-bottom: 20px; display: flex; align-items: center; gap: 8px">
-      <input type="checkbox" id="update_all_transactions" name="update_all_transactions" />
-      <label for="update_all_transactions" style="margin: 0; cursor: pointer">Alterar também todas as transações existentes?</label>
+          {% elif field.type == 'dropdown' %}
+            <select class="form-select" id="{{ field.id }}" name="{{ field.id }}" {% if field.required %}required{% endif %}>
+              <option value="">Selecione</option>
+              {% for option in field.options %}
+                <option value="{{ option }}" {% if value == option %}selected{% endif %}>{{ option }}</option>
+              {% endfor %}
+            </select>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
     </div>
 
-    <button type="submit">Salvar</button>
+    <div class="d-flex justify-content-center mt-4">
+      <button type="submit" class="btn btn-success btn-submit">Salvar</button>
+    </div>
   </form>
 </div>
 
 {% endblock %}{% block scripts %}
 
 <script>
-  const telInput = document.getElementById('client_tel');
-
-  if (telInput) {
-    telInput.addEventListener('input', function (e) {
-      let input = e.target.value.replace(/\D/g, ''); // Remove tudo que não for número
-
-      if (input.length > 11) input = input.slice(0, 11); // Limita a 11 dígitos
-
-      let formatted = '';
-
-      if (input.length > 0) formatted += '(' + input.substring(0, 2);
-      if (input.length >= 3) formatted += ') ' + input.substring(2, 7);
-      if (input.length >= 8) formatted += '-' + input.substring(7);
-
-      e.target.value = formatted;
-    });
-  }
-
-  function formatCPF(cpf) {
-    cpf = cpf.replace(/\D/g, '');
-    if (cpf.length <= 11) {
-      cpf = cpf.replace(/(\d{3})(\d)/, '$1.$2');
-      cpf = cpf.replace(/(\d{3})(\d)/, '$1.$2');
-      cpf = cpf.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
-    }
-    return cpf;
-  }
-
-  function formatCNPJ(cnpj) {
-    cnpj = cnpj.replace(/\D/g, '');
-    if (cnpj.length <= 14) {
-      cnpj = cnpj.replace(/^(\d{2})(\d)/, '$1.$2');
-      cnpj = cnpj.replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3');
-      cnpj = cnpj.replace(/\.(\d{3})(\d)/, '.$1/$2');
-      cnpj = cnpj.replace(/(\d{4})(\d)/, '$1-$2');
-    }
-    return cnpj;
-  }
-
-  function validaCPF(cpf) {
-    if (cpf.length !== 11 || /^(\d)\1+$/.test(cpf)) return false;
-    let soma = 0,
-      resto;
-    for (let i = 1; i <= 9; i++) soma += parseInt(cpf[i - 1]) * (11 - i);
-    resto = (soma * 10) % 11;
-    if (resto === 10 || resto === 11) resto = 0;
-    if (resto !== parseInt(cpf[9])) return false;
-    soma = 0;
-    for (let i = 1; i <= 10; i++) soma += parseInt(cpf[i - 1]) * (12 - i);
-    resto = (soma * 10) % 11;
-    if (resto === 10 || resto === 11) resto = 0;
-    return resto === parseInt(cpf[10]);
-  }
-
-  function validaCNPJ(cnpj) {
-    if (cnpj.length !== 14 || /^(\d)\1+$/.test(cnpj)) return false;
-    let tamanho = cnpj.length - 2;
-    let numeros = cnpj.substring(0, tamanho);
-    let digitos = cnpj.substring(tamanho);
-    let soma = 0;
-    let pos = tamanho - 7;
-
-    for (let i = tamanho; i >= 1; i--) {
-      soma += parseInt(numeros.charAt(tamanho - i)) * pos--;
-      if (pos < 2) pos = 9;
-    }
-
-    let resultado = soma % 11 < 2 ? 0 : 11 - (soma % 11);
-    if (resultado != parseInt(digitos.charAt(0))) return false;
-
-    tamanho += 1;
-    numeros = cnpj.substring(0, tamanho);
-    soma = 0;
-    pos = tamanho - 7;
-    for (let i = tamanho; i >= 1; i--) {
-      soma += parseInt(numeros.charAt(tamanho - i)) * pos--;
-      if (pos < 2) pos = 9;
-    }
-
-    resultado = soma % 11 < 2 ? 0 : 11 - (soma % 11);
-    return resultado == parseInt(digitos.charAt(1));
-  }
-
-  window.addEventListener('DOMContentLoaded', function () {
+  document.addEventListener('DOMContentLoaded', function () {
     const cpfInput = document.getElementById('client_cpf');
     const cnpjInput = document.getElementById('client_cnpj');
-    const telInput = document.getElementById('client_tel');
+    const telInput = document.getElementById('client_phone');
+    const form = document.getElementById('editClientForm') || document.getElementById('clientForm');
 
-    // Função para formatar o CPF
-    function formatCPF(cpf) {
-      cpf = cpf.replace(/\D/g, ''); // Remove tudo o que não é número
-      if (cpf.length <= 11) {
-        cpf = cpf.replace(/(\d{3})(\d)/, '$1.$2');
-        cpf = cpf.replace(/(\d{3})(\d)/, '$1.$2');
-        cpf = cpf.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
-      }
-      return cpf;
+    function maskCPF(value) {
+      return value
+        .replace(/\D/g, '')
+        .replace(/(\d{3})(\d)/, '$1.$2')
+        .replace(/(\d{3})(\d)/, '$1.$2')
+        .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
     }
 
-    // Função para formatar o CNPJ
-    function formatCNPJ(cnpj) {
-      cnpj = cnpj.replace(/\D/g, ''); // Remove tudo o que não é número
-      if (cnpj.length <= 14) {
-        cnpj = cnpj.replace(/^(\d{2})(\d)/, '$1.$2');
-        cnpj = cnpj.replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3');
-        cnpj = cnpj.replace(/\.(\d{3})(\d)/, '.$1/$2');
-        cnpj = cnpj.replace(/(\d{4})(\d)/, '$1-$2');
-      }
-      return cnpj;
+    function maskCNPJ(value) {
+      return value
+        .replace(/\D/g, '')
+        .replace(/^(\d{2})(\d)/, '$1.$2')
+        .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
+        .replace(/\.(\d{3})(\d)/, '.$1/$2')
+        .replace(/(\d{4})(\d)/, '$1-$2');
     }
 
-    // Função para formatar o telefone
-    function formatPhone(phone) {
-      phone = phone.replace(/\D/g, ''); // Remove tudo o que não é número
-      if (phone.length > 11) phone = phone.slice(0, 11); // Limita a 11 dígitos
+    function maskPhone(value) {
+      value = value.replace(/\D/g, '').slice(0, 11);
       let formatted = '';
-      if (phone.length > 0) formatted += '(' + phone.substring(0, 2);
-      if (phone.length >= 3) formatted += ') ' + phone.substring(2, 7);
-      if (phone.length >= 8) formatted += '-' + phone.substring(7);
+      if (value.length > 0) formatted += '(' + value.substring(0, 2);
+      if (value.length >= 3) formatted += ') ' + value.substring(2, 7);
+      if (value.length >= 8) formatted += '-' + value.substring(7);
       return formatted;
     }
 
-    // Preenchendo os campos ocultos com valores sem formatação
-    const form = document.getElementById('editClientForm');
+    function unmask(value) {
+      return value.replace(/\D/g, '');
+    }
+
+    function isValidCPF(cpf) {
+      cpf = unmask(cpf);
+      if (cpf.length !== 11 || /^(\d)\1+$/.test(cpf)) return false;
+      let soma = 0, resto;
+      for (let i = 1; i <= 9; i++) soma += parseInt(cpf[i - 1]) * (11 - i);
+      resto = (soma * 10) % 11;
+      if (resto === 10 || resto === 11) resto = 0;
+      if (resto !== parseInt(cpf[9])) return false;
+      soma = 0;
+      for (let i = 1; i <= 10; i++) soma += parseInt(cpf[i - 1]) * (12 - i);
+      resto = (soma * 10) % 11;
+      if (resto === 10 || resto === 11) resto = 0;
+      return resto === parseInt(cpf[10]);
+    }
+
+    function isValidCNPJ(cnpj) {
+      cnpj = unmask(cnpj);
+      if (cnpj.length !== 14 || /^(\d)\1+$/.test(cnpj)) return false;
+      let tamanho = cnpj.length - 2;
+      let numeros = cnpj.substring(0, tamanho);
+      let digitos = cnpj.substring(tamanho);
+      let soma = 0, pos = tamanho - 7;
+
+      for (let i = tamanho; i >= 1; i--) {
+        soma += parseInt(numeros.charAt(tamanho - i)) * pos--;
+        if (pos < 2) pos = 9;
+      }
+      let resultado = soma % 11 < 2 ? 0 : 11 - (soma % 11);
+      if (resultado != parseInt(digitos.charAt(0))) return false;
+
+      tamanho += 1;
+      numeros = cnpj.substring(0, tamanho);
+      soma = 0;
+      pos = tamanho - 7;
+      for (let i = tamanho; i >= 1; i--) {
+        soma += parseInt(numeros.charAt(tamanho - i)) * pos--;
+        if (pos < 2) pos = 9;
+      }
+      resultado = soma % 11 < 2 ? 0 : 11 - (soma % 11);
+      return resultado == parseInt(digitos.charAt(1));
+    }
+
+    // 🟡 Aplica máscara inicial se valor já estiver preenchido
+    if (cpfInput && cpfInput.value) cpfInput.value = maskCPF(cpfInput.value);
+    if (cnpjInput && cnpjInput.value) cnpjInput.value = maskCNPJ(cnpjInput.value);
+    if (telInput && telInput.value) telInput.value = maskPhone(telInput.value);
+
+    // 🟡 Eventos de digitação
+    if (cpfInput) {
+      cpfInput.addEventListener('input', e => {
+        e.target.value = maskCPF(e.target.value);
+      });
+    }
+
+    if (cnpjInput) {
+      cnpjInput.addEventListener('input', e => {
+        e.target.value = maskCNPJ(e.target.value);
+      });
+    }
+
+    if (telInput) {
+      telInput.addEventListener('input', e => {
+        e.target.value = maskPhone(e.target.value);
+      });
+    }
+
+    // 🔒 Validação ao submeter
     if (form) {
       form.addEventListener('submit', function (e) {
-        const telFormatted = telInput ? telInput.value : '';
-        const cpfFormatted = cpfInput ? cpfInput.value : '';
-        const cnpjFormatted = cnpjInput ? cnpjInput.value : '';
+        const cpf = cpfInput?.value || '';
+        const cnpj = cnpjInput?.value || '';
+        const tel = telInput?.value || '';
 
-        const telDigits = telFormatted.replace(/\D/g, ''); // Remove a formatação e pega os dígitos
-        const cpfDigits = cpfFormatted.replace(/\D/g, '');
-        const cnpjDigits = cnpjFormatted.replace(/\D/g, '');
-
-        // Preenche os campos ocultos com os valores limpos
-        document.getElementById('client_tel_digits').value = telDigits;
-        document.getElementById('client_cpf_digits').value = cpfDigits;
-        document.getElementById('client_cnpj_digits').value = cnpjDigits;
-
-        // Validação dos valores
-        if (cpfDigits && !validaCPF(cpfDigits)) {
+        if (cpf && !isValidCPF(cpf)) {
           e.preventDefault();
           alert('CPF inválido!');
           return false;
         }
 
-        if (cnpjDigits && !validaCNPJ(cnpjDigits)) {
+        if (cnpj && !isValidCNPJ(cnpj)) {
           e.preventDefault();
           alert('CNPJ inválido!');
           return false;
         }
 
-        if (telDigits && telDigits.length !== 11) {
+        if (tel && unmask(tel).length !== 11) {
           e.preventDefault();
-          alert('Telefone inválido! O número deve ter 11 dígitos.');
+          alert('Telefone inválido! Deve conter 11 dígitos.');
           return false;
         }
       });
     }
   });
-</script>
+  </script>
+
 
 {% endblock %}

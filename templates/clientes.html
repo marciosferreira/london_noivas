@@ -38,11 +38,13 @@
             {% if value == 'None' or value is none %}
               <span class="text-muted">-</span>
             {% else %}
-              {% if field.id.startswith("client_tel") %}
+              {% if field.type == "phone" %}
                 {{ value | format_telefone }}
-              {% elif field.id.startswith("date") %}
+              {% elif field.type == "date" %}
                 {{ value | format_date }}
-              {% elif field.id.startswith("cpf") or field.id.startswith("cnpj") %}
+              {% elif field.type == "cpf" %}
+                {{ value }}
+                {% elif field.type == "cnpj" %}
                 {{ value }}
               {% else %}
                 {{ value | truncate(30, True) }}

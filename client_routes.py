@@ -203,99 +203,112 @@ def init_client_routes(
         if not session.get("logged_in"):
             return redirect(url_for("login"))
 
-        print("---- FORM DATA ----")
-        print(request.form.to_dict())  # Campos do formulário
-        next_page = request.args.get("next", url_for("index"))
+        next_page = request.args.get("next", url_for("listar_clientes"))
+        account_id = session.get("account_id")
+        user_id = session.get("user_id")
+        user_utc = get_user_timezone(users_table, user_id)
 
         response = clients_table.get_item(Key={"client_id": client_id})
         cliente = response.get("Item")
 
-        if not cliente:
-            flash("Cliente não encontrado.", "danger")
-            # return redirect(url_for("listar_clientes"))
+        if not cliente or cliente.get("account_id") != account_id:
+            flash("Cliente não encontrado ou acesso negado.", "danger")
             return redirect(next_page)
 
+        all_fields = get_all_fields(account_id, field_config_table, entity="client")
+
         if request.method == "POST":
-            # Obter valores do formulário
-            client_name = request.form.get("client_name", "").strip()
-            client_email = request.form.get("client_email", "").strip()
-            client_address = request.form.get("client_address", "").strip()
+            for field in all_fields:
+                field_id = field["id"]
+                field_type = field.get("type")
+                value = request.form.get(field_id, "").strip()
 
-            # Usar os campos ocultos que já contêm apenas dígitos (sem formatação)
-            client_tel_digits = request.form.get("client_tel_digits", "").strip()
-            client_cpf_digits = request.form.get("client_cpf_digits", "").strip()
-            client_cnpj_digits = request.form.get("client_cnpj_digits", "").strip()
-            client_obs = request.form.get("client_obs", "").strip()
+                # Dentro do loop all_fields
+                if not value:
+                    continue
 
-            # Atualizar dados do cliente
-            cliente["client_name"] = client_name
-            cliente["client_obs"] = client_obs
+                if field_type in ["cpf", "cnpj", "phone"]:
+                    value = re.sub(r"\D", "", value)
+                elif field_type == "value":
+                    value = value.replace(".", "").replace(",", ".")
+                    try:
+                        value = float(value)
+                    except ValueError:
+                        flash(
+                            f"Valor inválido no campo {field.get('label', field_id)}.",
+                            "error",
+                        )
+                        return render_template(
+                            "add_client.html",
+                            all_fields=all_fields,
+                            next=next_page,
+                            client=request.form,
+                        )
 
-            # Só atualizar os campos se tiverem valor
-            if client_email:
-                cliente["client_email"] = client_email
-            if client_address:
-                cliente["client_address"] = client_address
+            # Verificação de unicidade (desconsidera o próprio cliente)
+            existing_clients = clients_table.scan().get("Items", [])
+            for c in existing_clients:
+                if c.get("account_id") != account_id or c.get("client_id") == client_id:
+                    continue
 
-            # Usar os valores sem formatação (apenas dígitos)
-            # Usar os valores sem formatação (apenas dígitos)
-            cliente["client_cpf"] = client_cpf_digits if client_cpf_digits else None
-            cliente["client_cnpj"] = client_cnpj_digits if client_cnpj_digits else None
-
-            # valida se telefone tem 11 digitos
-            if client_tel_digits:
-                if bool(re.fullmatch(r"\d{11}", client_tel_digits)):
-                    cliente["client_tel"] = client_tel_digits
-                else:
-                    flash(
-                        "Número de telefone inválido! Deve conter 11 dígitos.", "error"
+                if (
+                    cliente.get("client_name")
+                    and c.get("client_name") == cliente["client_name"]
+                ):
+                    flash("Já existe um cliente com esse nome.", "error")
+                    return render_template(
+                        "editar_cliente.html",
+                        cliente=cliente,
+                        all_fields=all_fields,
+                        next=next_page,
                     )
-                    return redirect(request.referrer)
-            else:
-                cliente["client_tel"] = (
-                    ""  # ou delete se preferir não manter campo vazio
-                )
 
-            user_id = session.get("user_id") if "user_id" in session else None
-            user_utc = get_user_timezone(users_table, user_id)
-            # Marcar como editado
+                if (
+                    cliente.get("client_cpf")
+                    and c.get("client_cpf") == cliente["client_cpf"]
+                ):
+                    flash("Já existe um cliente com esse CPF.", "error")
+                    return render_template(
+                        "editar_cliente.html",
+                        cliente=cliente,
+                        all_fields=all_fields,
+                        next=next_page,
+                    )
+
+                if (
+                    cliente.get("client_cnpj")
+                    and c.get("client_cnpj") == cliente["client_cnpj"]
+                ):
+                    flash("Já existe um cliente com esse CNPJ.", "error")
+                    return render_template(
+                        "editar_cliente.html",
+                        cliente=cliente,
+                        all_fields=all_fields,
+                        next=next_page,
+                    )
+
             cliente["updated_at"] = datetime.datetime.now(user_utc).strftime(
                 "%Y-%m-%d %H:%M:%S"
             )
 
             try:
                 clients_table.put_item(Item=cliente)
-                # caso o user decida alterar todos os clientes na db
-                # Campos do cliente que precisam ser atualizados nas transações
-                if request.form.get("update_all_transactions"):
-                    client_fields = [
-                        "client_address",
-                        "client_cnpj",
-                        "client_cpf",
-                        "client_email",
-                        "client_id",
-                        "client_name",
-                        "client_obs",
-                        "client_tel",
-                    ]
 
-                    # Query no GSI client_id-index para buscar transações relacionadas
+                if request.form.get("update_all_transactions"):
                     response = transactions_table.query(
                         IndexName="client_id-index",
-                        KeyConditionExpression="client_id = :client_id_val",
-                        ExpressionAttributeValues={":client_id_val": client_id},
+                        KeyConditionExpression=Key("client_id").eq(client_id),
                     )
+                    transacoes = response.get("Items", [])
 
-                    transacoes_relacionadas = response.get("Items", [])
-
-                    for transacao in transacoes_relacionadas:
+                    for transacao in transacoes:
                         update_expr = [
-                            f"{key} = :{key}" for key in client_fields if key in cliente
+                            f"{k} = :{k}" for k in cliente if k.startswith("client_")
                         ]
                         expr_values = {
-                            f":{key}": cliente[key]
-                            for key in client_fields
-                            if key in cliente
+                            f":{k}": cliente[k]
+                            for k in cliente
+                            if k.startswith("client_")
                         }
 
                         transactions_table.update_item(
@@ -305,69 +318,139 @@ def init_client_routes(
                         )
 
                 flash("Cliente atualizado com sucesso!", "success")
-                # return redirect(url_for("listar_clientes"))
                 return redirect(next_page)
             except Exception as e:
                 print("Erro ao atualizar cliente:", e)
                 flash("Erro ao atualizar cliente. Tente novamente.", "danger")
                 return redirect(next_page)
-                # return redirect(request.url)
 
-        # formatar cpf, teleofne e cnpj pra passar pro front exe 25.013.698-24
-        def format_phone(phone):
-            # Se cnpj for None ou vazio, retorna o próprio valor sem formatação
-            if not phone:
-                return phone
-            # Remove todos os caracteres não numéricos
-            phone = re.sub(r"\D", "", phone)
-            # Formata como (XX) XXXXX-XXXX
-            if len(phone) == 11:
-                return f"({phone[:2]}) {phone[2:7]}-{phone[7:]}"
-            return phone
-
-        def format_cpf(cpf):
-            if not cpf:
-                return cpf
-            # Remove todos os caracteres não numéricos
-            cpf = re.sub(r"\D", "", cpf)
-            # Formata como XXX.XXX.XXX-XX
-            if len(cpf) == 11:
-                return f"{cpf[:3]}.{cpf[3:6]}.{cpf[6:9]}-{cpf[9:]}"
-            return cpf
-
-        def format_cnpj(cnpj):
-            if not cnpj:
-                return cnpj
-            # Remove todos os caracteres não numéricos
-            cnpj = re.sub(r"\D", "", cnpj)
-            # Formata como XX.XXX.XXX/0001-XX
-            if len(cnpj) == 14:
-                return f"{cnpj[:2]}.{cnpj[2:5]}.{cnpj[5:8]}/{cnpj[8:12]}-{cnpj[12:]}"
-            return cnpj
-
-        if "client_tel" in cliente:
-            cliente["client_tel"] = format_phone(cliente["client_tel"])
-
-        if "client_cpf" in cliente:
-            cliente["client_cpf"] = format_cpf(cliente["client_cpf"])
-
-        if "client_cnpj" in cliente:
-            cliente["client_cnpj"] = format_cnpj(cliente["client_cnpj"])
-
-        return render_template("editar_cliente.html", cliente=cliente)
+        return render_template(
+            "editar_cliente.html",
+            cliente=cliente,
+            all_fields=all_fields,
+            next=next_page,
+        )
 
     @app.route("/clientes/adicionar", methods=["GET", "POST"])
     def adicionar_cliente():
-        return add_client_common(
-            request,
-            clients_table,
-            users_table,
-            session,
-            flash,
-            redirect,
-            url_for,
+        if not session.get("logged_in"):
+            return redirect(url_for("login"))
+
+        next_page = request.args.get("next", url_for("listar_clientes"))
+        account_id = session.get("account_id")
+        user_id = session.get("user_id")
+        user_utc = get_user_timezone(users_table, user_id)
+
+        all_fields = get_all_fields(account_id, field_config_table, entity="client")
+
+        if request.method == "POST":
+            client_id = str(uuid.uuid4())
+            new_client = {
+                "client_id": client_id,
+                "account_id": account_id,
+                "created_at": datetime.datetime.now(user_utc).strftime(
+                    "%Y-%m-%d %H:%M:%S"
+                ),
+            }
+
+            import re
+
+            key_values = {}
+            for field in all_fields:
+                field_id = field["id"]
+                field_type = field.get("type")
+                value = request.form.get(field_id, "").strip()
+
+                # Dentro do loop all_fields
+                if not value:
+                    continue
+
+                if field_type in ["cpf", "cnpj", "phone"]:
+                    value = re.sub(r"\D", "", value)
+                elif field_type == "value":
+                    value = value.replace(".", "").replace(",", ".")
+                    try:
+                        value = float(value)
+                    except ValueError:
+                        flash(
+                            f"Valor inválido no campo {field.get('label', field_id)}.",
+                            "error",
+                        )
+                        return render_template(
+                            "add_client.html",
+                            all_fields=all_fields,
+                            next=next_page,
+                            client=request.form,
+                        )
+
+                # Remove caracteres especiais para campos específicos
+                if field_type in ["cpf", "cnpj", "phone"]:
+                    value = re.sub(r"\D", "", value)  # Remove tudo que não é número
+
+                key_values[field_id] = value
+
+            # Define client_name se presente
+            if "client_name" in key_values:
+                new_client["client_name"] = key_values["client_name"]
+
+            # Verificação de duplicatas
+            existing_clients = clients_table.scan().get("Items", [])
+            for client in existing_clients:
+                if client.get("account_id") != account_id:
+                    continue
+
+                if (
+                    key_values.get("client_name")
+                    and client.get("client_name") == key_values["client_name"]
+                ):
+                    flash("Já existe um cliente com esse nome.", "error")
+                    return render_template(
+                        "add_client.html",
+                        all_fields=all_fields,
+                        next=next_page,
+                        client=request.form,
+                    )
+
+                if (
+                    key_values.get("client_cpf")
+                    and client.get("client_cpf") == key_values["client_cpf"]
+                ):
+                    flash("Já existe um cliente com esse CPF.", "error")
+                    return render_template(
+                        "add_client.html",
+                        all_fields=all_fields,
+                        next=next_page,
+                        client=request.form,
+                    )
+
+                if (
+                    key_values.get("client_cnpj")
+                    and client.get("client_cnpj") == key_values["client_cnpj"]
+                ):
+                    flash("Já existe um cliente com esse CNPJ.", "error")
+                    return render_template(
+                        "add_client.html",
+                        all_fields=all_fields,
+                        next=next_page,
+                        client=request.form,
+                    )
+
+            new_client.update(key_values)
+
+            try:
+                clients_table.put_item(Item=new_client)
+                flash("Cliente adicionado com sucesso!", "success")
+                return redirect(next_page)
+            except Exception as e:
+                print("Erro ao adicionar cliente:", e)
+                flash("Erro ao salvar cliente. Tente novamente.", "error")
+                return redirect(request.url)
+
+        return render_template(
             "add_client.html",
-            field_config_table,
+            all_fields=all_fields,
+            next=next_page,
+            client=request.form,
         )
 
     @app.route("/clientes/deletar/<client_id>", methods=["POST"])
@@ -432,101 +515,6 @@ def init_client_routes(
             return f"({digits[:2]}) {digits[2:6]}-{digits[6:]}"
         else:
             return value
-
-
-def add_client_common(
-    request,
-    clients_table,
-    users_table,
-    session,
-    flash,
-    redirect,
-    url_for,
-    template,
-    field_config_table,
-):
-    if not session.get("logged_in"):
-        return redirect(url_for("login"))
-
-    next_page = request.args.get("next", url_for("listar_clientes"))
-
-    account_id = session.get("account_id")
-    user_id = session.get("user_id")
-    user_utc = get_user_timezone(users_table, user_id)
-
-    # Pega campos configurados para 'client'
-    all_fields = get_all_fields(account_id, field_config_table, entity="client")
-
-    if request.method == "POST":
-        client_id = str(uuid.uuid4())
-        new_client = {
-            "client_id": client_id,
-            "account_id": account_id,
-            "created_at": datetime.datetime.now(user_utc).strftime("%Y-%m-%d %H:%M:%S"),
-        }
-
-        key_values = {}
-
-        for field in all_fields:
-            field_id = field["id"]
-            label = field.get("label", field_id)
-            value = request.form.get(field_id, "").strip()
-
-            if not value:
-                continue
-
-            # Se o campo estiver presente, salva direto
-            if field["type"] == "number":
-                try:
-                    value = Decimal(value.replace(".", "").replace(",", "."))
-                except InvalidOperation:
-                    flash(f"O campo {label} possui um número inválido.", "danger")
-                    return redirect(request.url)
-
-            key_values[field_id] = value
-
-        # Se 'client_name' estiver nos campos, usa ele como título principal
-        client_name = key_values.get("client_name")
-        if client_name:
-            new_client["client_name"] = client_name
-
-        # Verificação de duplicatas — apenas se algum dos campos-chave estiver presente
-        existing_clients = clients_table.scan().get("Items", [])
-        for client in existing_clients:
-            if client.get("account_id") != account_id:
-                continue
-
-            if client_name and client.get("client_name") == client_name:
-                flash("Já existe um cliente com esse nome.", "error")
-                return redirect(request.url)
-
-            if (
-                key_values.get("client_cpf")
-                and client.get("client_cpf") == key_values["client_cpf"]
-            ):
-                flash("Já existe um cliente com esse CPF.", "error")
-                return redirect(request.url)
-
-            if (
-                key_values.get("client_cnpj")
-                and client.get("client_cnpj") == key_values["client_cnpj"]
-            ):
-                flash("Já existe um cliente com esse CNPJ.", "error")
-                return redirect(request.url)
-
-        # Junta os campos no cliente
-        new_client.update(key_values)
-
-        try:
-            clients_table.put_item(Item=new_client)
-            flash("Cliente adicionado com sucesso!", "success")
-            return redirect(next_page)
-        except Exception as e:
-            print("Erro ao adicionar cliente:", e)
-            flash("Erro ao salvar cliente. Tente novamente.", "error")
-            return redirect(request.url)
-
-    return render_template(template, all_fields=all_fields, next=next_page, client={})
 
 
 def encode_dynamo_key(key_dict):
@@ -639,19 +627,3 @@ def get_all_fields(account_id, field_config_table, entity):
             }
         )
     return sorted(all_fields, key=lambda x: x["order_sequence"])
-
-
-"""
-     @app.route("/add_client", methods=["GET", "POST"])
-    def add_client():
-        return add_client_common(
-            request,
-            clients_table,
-            session,
-            flash,
-            redirect,
-            url_for,
-            "add_client.html",
-            field_config_table,
-        )
-"""

@@ -6,59 +6,75 @@
 {% endblock %}
 
 {% block content %}
-<div class="page-wrapper">
-  <div class="form-container">
-    <h1>Novo Cliente</h1>
-    <a href="{{ request.args.get('next', url_for('listar_clientes')) }}" class="cancel-link">Cancelar</a>
-
-    <form method="POST" id="clientForm">
-      <input type="hidden" name="next" value="{{ request.args.get('next', url_for('listar_clientes')) }}" />
-
-      {% for field in all_fields if field.visible %}
-        <label for="{{ field.id }}">{{ field.label if field.fixed else field.title }}{% if field.required %} *{% endif %}</label><br/>
-
-        {% if field.type == 'string' %}
-          <input
-            type="text"
-            id="{{ field.id }}"
-            name="{{ field.id }}"
-            class="form-control"
-            value="{{ client[field.id] if client[field.id] is defined else '' }}"
-            {% if field.required %}required{% endif %}
-          />
-        {% elif field.type == 'number' %}
-          <input
-            type="text"
-            id="{{ field.id }}"
-            name="{{ field.id }}"
-            class="form-control"
-            value="{{ client[field.id] if client[field.id] is defined else '' }}"
-            {% if field.required %}required{% endif %}
-          />
-        {% elif field.type == 'date' %}
-          <input
-            type="date"
-            id="{{ field.id }}"
-            name="{{ field.id }}"
-            class="form-control"
-            value="{{ client[field.id] if client[field.id] is defined else '' }}"
-            {% if field.required %}required{% endif %}
-          />
-        {% elif field.type == 'dropdown' %}
-          <select id="{{ field.id }}" name="{{ field.id }}" class="form-control" {% if field.required %}required{% endif %}>
-            <option value="">Selecione</option>
-            {% for option in field.options %}
-              <option value="{{ option }}" {% if client[field.id] == option %}selected{% endif %}>{{ option }}</option>
-            {% endfor %}
-          </select>
-        {% endif %}
-
-        <br /><br />
-      {% endfor %}
-
-      <button type="submit">Salvar</button>
-    </form>
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="mb-0">Novo Cliente</h1>
+    <a href="{{ next or url_for('listar_clientes') }}" class="cancel-link">Cancelar</a>
   </div>
+  <div class="alert alert-primary d-flex justify-content-between align-items-center" role="alert">
+    <div>
+      Dica: Acesse <a href="/custom_fields/item" class="alert-link">Customizar Campos</a> para criar novos ou ajustar os existentes.
+    </div>
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+  </div>
+
+  <form method="POST" id="clientForm">
+    <input type="hidden" name="next" value="{{ next or url_for('listar_clientes') }}" />
+
+    <div class="row row-cols-1 row-cols-md-3 g-4">
+      {% for field in all_fields if field.visible %}
+      <div class="col d-flex">
+        <div class="bg-light shadow-sm rounded p-3 border w-100 h-100 d-flex flex-column justify-content-center">
+          <label for="{{ field.id }}" class="form-label fw-semibold">
+            {{ field.label if field.fixed else field.title }}{% if field.required %} *{% endif %}
+          </label>
+
+          {% if field.type in ['string', 'value', 'cpf', 'cnpj', 'email'] %}
+            <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+              value="{{ client.get(field.id, '') }}" {% if field.required %}required{% endif %} />
+              {{ field.id }}
+
+              {% elif field.type == 'client_name' %}
+              <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+                value="{{ client.get(field.id, '') }}" {% if field.required %}required{% endif %} />
+                <div id="client-suggestions-title" style="display: none;">Clientes encontrados:</div>
+<div id="client_suggestions" class="autocomplete-box"></div>
+<div id="client-status-message" class="status-message" style="display: none;"></div>
+
+
+
+
+
+          {% elif field.type == 'number' %}
+            <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+              value="{{ client.get(field.id, '') }}" {% if field.required %}required{% endif %} />
+
+          {% elif field.type == 'date' %}
+            <input type="date" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+              value="{{ client.get(field.id, '') }}" {% if field.required %}required{% endif %} />
+
+              {% elif field.type == 'phone' %}
+              <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+                value="{{ client.get(field.id, '') }}" {% if field.required %}required{% endif %} />
+
+
+          {% elif field.type == 'dropdown' %}
+            <select class="form-select" id="{{ field.id }}" name="{{ field.id }}" {% if field.required %}required{% endif %}>
+              <option value="">Selecione</option>
+              {% for option in field.options %}
+                <option value="{{ option }}" {% if client.get(field.id) == option %}selected{% endif %}>{{ option }}</option>
+              {% endfor %}
+            </select>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="d-flex justify-content-center mt-4">
+      <button type="submit" class="btn btn-success btn-submit">Salvar</button>
+    </div>
+  </form>
 </div>
 {% endblock %}
 

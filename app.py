@@ -188,6 +188,42 @@ def format_date(value):
         return value
 
 
+import re
+
+
+def format_cpf(value):
+    if not value:
+        return value
+    digits = re.sub(r"\D", "", value)
+    if len(digits) == 11:
+        return f"{digits[:3]}.{digits[3:6]}.{digits[6:9]}-{digits[9:]}"
+    return value
+
+
+def format_cnpj(value):
+    if not value:
+        return value
+    digits = re.sub(r"\D", "", value)
+    if len(digits) == 14:
+        return f"{digits[:2]}.{digits[2:5]}.{digits[5:8]}/{digits[8:12]}-{digits[12:]}"
+    return value
+
+
+def format_phone(value):
+    if not value:
+        return value
+    digits = re.sub(r"\D", "", value)
+    if len(digits) == 11:
+        return f"({digits[:2]}) {digits[2:7]}-{digits[7:]}"
+    return value
+
+
+# Registrar filtros no Jinja
+app.jinja_env.filters["format_cpf"] = format_cpf
+app.jinja_env.filters["format_cnpj"] = format_cnpj
+app.jinja_env.filters["format_phone"] = format_phone
+
+
 if __name__ == "__main__":
     # Determina se está no localhost
     debug_mode = os.getenv("debug_env", "false").lower() == "true"

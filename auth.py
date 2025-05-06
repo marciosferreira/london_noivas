@@ -1286,7 +1286,7 @@ def get_default_fields_and_slugs(entity):
             "client_name": {
                 "label": "Nome",
                 "label_original": "Nome",
-                "type": "string",
+                "type": "client_name",
                 "order_sequence": 1,
                 "filterable": True,
                 "preview": True,

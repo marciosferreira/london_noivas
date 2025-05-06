@@ -6,11 +6,14 @@
 {% block content %}
 
 <div class="container py-4">
-  <h1 class="mb-3">Adicionar Item</h1>
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="mb-0">Adicionar Item</h1>
+    <a href="{{ request.args.get('next', url_for('index')) }}" class="cancel-link">Cancelar</a>
+  </div>
 
   <div class="alert alert-primary d-flex justify-content-between align-items-center" role="alert">
     <div>
-      Dica: para criar campos personalizados ou ajustar os existentes, <a href="/custom_fields/item" class="alert-link">Clique aqui!</a>
+      Dica: Acesse <a href="/custom_fields/item" class="alert-link">Customizar Campos</a> para criar novos ou ajustar os existentes.
     </div>
     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
   </div>
@@ -19,17 +22,20 @@
   <form method="POST" enctype="multipart/form-data">
     <input type="hidden" name="next" value="{{ request.args.get('next', url_for('index')) }}" />
 
-    <div class="row">
+    <div class="row row-cols-1 row-cols-md-3 g-4">
       {% for field in all_fields if field.visible %}
-      <div class="col-md-4 mb-4">
-        <div class="bg-white shadow-sm rounded p-3 border">
+      <div class="col d-flex">
+        <div class="bg-light shadow-sm rounded p-3 border w-100 h-100 d-flex flex-column justify-content-center">
           <label for="{{ field.id }}" class="form-label fw-semibold">
             {{ field.label if field.fixed else field.title }}{% if field.required %} *{% endif %}
           </label>
 
+
+
           {% if field.type in ['string', 'value'] %}
             <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
               value="{{ item.get(field.id, '') }}" {% if field.required %}required{% endif %} />
+
 
           {% elif field.type == 'number' %}
             <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
@@ -69,12 +75,11 @@
       {% endfor %}
     </div>
 
+
     <div class="d-flex justify-content-center mt-4">
       <button type="submit" class="btn btn-success btn-submit">Salvar</button>
     </div>
-    <div class="text-center mt-3">
-      <a href="{{ request.args.get('next', url_for('index')) }}" class="cancel-link">Sair sem Finalizar</a>
-    </div>
+
   </form>
 </div>
 
@@ -102,33 +107,45 @@
     reader.readAsDataURL(file);
   });
 
-  function formatarCampoMonetario(input) {
-    input.addEventListener('input', function (e) {
-      let value = e.target.value.replace(/\D/g, '');
-      if (!value) {
-        e.target.value = '';
-        return;
-      }
-      let floatValue = parseInt(value, 10) / 100;
-      e.target.value = floatValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
-    });
-  }
-
-  const campoValor = document.getElementById('valor');
-  if (campoValor) formatarCampoMonetario(campoValor);
 </script>
 
 
 <script>
-  document.querySelector('form')?.addEventListener('submit', function (e) {
-    const imageInput = document.getElementById('image_file');
+  function formatarCampoMonetario(input) {
+    input.addEventListener('input', function (e) {
+      let value = e.target.value.replace(/\D/g, '');
 
-    if (imageInput?.dataset.required === "true" && imageInput.files.length === 0) {
-      e.preventDefault();
-      alert('A imagem é obrigatória. Por favor, selecione uma imagem.');
-      imageInput.focus();
+      // Limita a 12 dígitos para evitar problemas com números muito grandes
+      if (value.length > 12) value = value.slice(0, 12);
+
+      if (!value) {
+        input.value = '';
+        return;
+      }
+
+      const floatValue = parseFloat(value) / 100;
+      input.value = floatValue.toLocaleString('pt-BR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+    });
+
+    // Formata valor já existente ao carregar a página
+    const raw = input.value.replace(/\D/g, '');
+    if (raw) {
+      const floatValue = parseFloat(raw) / 100;
+      input.value = floatValue.toLocaleString('pt-BR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
     }
-  });
+  }
 
+  document.addEventListener('DOMContentLoaded', function () {
+    const campoValor = document.getElementById('item_value');
+    if (campoValor) formatarCampoMonetario(campoValor);
+  });
 </script>
+
+
 {% endblock %}

@@ -63,20 +63,21 @@ input[type='checkbox'] {
   height: 16px;
 }
 
-/* Botão de envio */
-button[type='submit'] {
-  background-color: #28a745;
-  color: #fff;
-  border: none;
-  padding: 12px;
-  font-size: 16px;
-  border-radius: 5px;
-  cursor: pointer;
-  width: 100%;
+/* Corrige a largura do botão de envio específico */
+.btn-submit {
+  width: auto !important;
+  padding-left: 24px;
+  padding-right: 24px;
+  display: block; /* Necessário para o margin funcionar corretamente */
+  margin: 0 auto; /* Centraliza horizontalmente */
 }
-
 button[type='submit']:hover {
   background-color: #218838;
+}
+
+input.form-control,
+select.form-select {
+  transition: border-color 0.3s, box-shadow 0.3s;
 }
 
 /* Responsividade */

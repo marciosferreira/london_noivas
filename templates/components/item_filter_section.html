@@ -70,6 +70,25 @@
         </div>
         <p>Min. e Max.</p>
 
+        {% elif field.type == "item_value" %}
+        <div class="input-group">
+          <input type="number" step="0.01" name="min_{{ field['id'] }}" class="form-control"
+                 value="{{ request.args.get('min_' + field['id'], '') }}" placeholder="Mín.">
+          <input type="number" step="0.01" name="max_{{ field['id'] }}" class="form-control"
+                 value="{{ request.args.get('max_' + field['id'], '') }}" placeholder="Máx.">
+        </div>
+        <p>Min. e Max.</p>
+
+        {% elif field.type == "value" %}
+        <div class="input-group">
+          <input type="number" step="0.01" name="min_{{ field['id'] }}" class="form-control"
+                 value="{{ request.args.get('min_' + field['id'], '') }}" placeholder="Mín.">
+          <input type="number" step="0.01" name="max_{{ field['id'] }}" class="form-control"
+                 value="{{ request.args.get('max_' + field['id'], '') }}" placeholder="Máx.">
+        </div>
+        <p>Min. e Max.</p>
+
+
       {% elif field.type == "date" %}
         <div class="input-group">
           <input type="date" name="start_{{ field['id'] }}" class="form-control"

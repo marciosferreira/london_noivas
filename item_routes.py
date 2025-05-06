@@ -228,8 +228,11 @@ def init_item_routes(
             image_file = request.files.get("image_file")
             key_values = {}
 
+            import re
+
             for field in all_fields:
                 field_id = field["id"]
+                field_type = field.get("type")
                 raw_value = request.form.get(field_id, "").strip()
                 value = raw_value
 
@@ -237,7 +240,8 @@ def init_item_routes(
                     value = handle_image_upload(image_file, "N/A")
 
                 elif value:
-                    if field["type"] == "number":
+                    # 🔸 Limpa número/monetário
+                    if field_type == "number":
                         try:
                             value = Decimal(value.replace(".", "").replace(",", "."))
                         except InvalidOperation:
@@ -246,7 +250,21 @@ def init_item_routes(
                                 "danger",
                             )
                             return redirect(request.url)
-                    # Outros tipos podem ser tratados aqui
+
+                    # 🔸 Limpa CPF/CNPJ/Telefone
+                    elif field_type in ["cpf", "cnpj", "phone"]:
+                        value = re.sub(r"\D", "", value)
+
+                    # 🔸 Campo monetário
+                    elif field_type == "value":
+                        try:
+                            value = Decimal(value.replace(".", "").replace(",", "."))
+                        except InvalidOperation:
+                            flash(
+                                f"O campo {field.get('label') or field.get('title')} possui um valor monetário inválido.",
+                                "danger",
+                            )
+                            return redirect(request.url)
 
                 key_values[field_id] = value
 
@@ -512,19 +530,28 @@ def init_item_routes(
             from decimal import Decimal, InvalidOperation
 
             form_keys = set(request.form.keys())
+
+            import re
+            from decimal import Decimal, InvalidOperation
+
             new_values = {}
 
             for field in all_fields:
                 field_id = field["id"]
+                field_type = field.get("type")
                 if field_id not in form_keys:
-                    continue  # 🛑 ignora campos que não foram enviados no formulário
+                    continue
 
                 raw_value = request.form.get(field_id, "").strip()
+                if not raw_value:
+                    continue  # ignora campos vazios
+
                 value = raw_value
 
                 if field_id == "item_image_url":
                     value = new_image_url
-                elif value and field["type"] == "number":
+
+                elif field_type == "number":
                     try:
                         value = Decimal(value.replace(".", "").replace(",", "."))
                     except InvalidOperation:
@@ -533,6 +560,9 @@ def init_item_routes(
                             "danger",
                         )
                         return redirect(request.url)
+
+                elif field_type in ["cpf", "cnpj", "phone"]:
+                    value = re.sub(r"\D", "", value)
 
                 new_values[field_id] = value
 
@@ -1681,15 +1711,36 @@ def init_item_routes(
                 ordered_ids = []
 
             # 🛑 Verifica campos custom antigos que ainda existem no banco
+            used_custom_fields = set()
+
             if data_table:
-                used_custom_fields = set()
-                response = data_table.query(
-                    IndexName="account_id-status-index",
-                    KeyConditionExpression=Key("account_id").eq(account_id)
-                    & Key("status").eq("available"),
-                    ProjectionExpression="key_values",
-                )
+                if entity == "item":
+                    # Usa o índice com partition + sort key
+                    response = data_table.query(
+                        IndexName="account_id-status-index",
+                        KeyConditionExpression=Key("account_id").eq(account_id)
+                        & Key("status").eq("available"),
+                        ProjectionExpression="key_values",
+                    )
+                elif entity == "client":
+                    # Usa GSI apenas com partition key
+                    response = data_table.query(
+                        IndexName="account_id-index",
+                        KeyConditionExpression=Key("account_id").eq(account_id),
+                        ProjectionExpression="key_values",
+                    )
+                elif entity == "transaction":
+                    # Exemplo genérico, ajuste conforme o GSI usado na tabela de transações
+                    response = data_table.query(
+                        IndexName="account_id-index",
+                        KeyConditionExpression=Key("account_id").eq(account_id),
+                        ProjectionExpression="key_values",
+                    )
+                else:
+                    response = {"Items": []}
+
                 items = response.get("Items", [])
+
                 import re
 
                 for item in items:
