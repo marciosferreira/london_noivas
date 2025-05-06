@@ -82,15 +82,23 @@ input[type='checkbox'] {
 }
 
 /* Botão de envio */
+/* Regra geral: botão largo */
 button[type='submit'] {
-  background-color: #28a745; /* Verde */
+  background-color: #28a745;
   color: #fff;
   border: none;
   padding: 12px;
   font-size: 16px;
   border-radius: 5px;
   cursor: pointer;
-  width: 100%; /* Ocupa toda a largura */
+  width: 100%;
+}
+
+/* Regra específica para botões dentro da .form-container */
+.form-container button[type='submit'] {
+  width: auto;
+  padding-left: 24px;
+  padding-right: 24px;
 }
 
 button[type='submit']:hover {

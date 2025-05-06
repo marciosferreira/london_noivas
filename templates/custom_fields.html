@@ -1,18 +1,13 @@
 {% extends "base.html" %}
 {% block content %}
+{% include "components/tab_nav_custom_fields.html" %}
 
 
-
-
-
-
-
-
-
-
+<h2 class="mb-1">Customização dos Campos</h2>
+<p class="text-muted mb-4">Campos fixos não podem ser excluidos, apenas desabilitados e o label modificado.
+Você pode adicionar um campo novo, o qual será identificado como "custom".</p>
 <form id="orderForm" method="POST" action="{{ url_for('custom_fields', entity=entity) }}">
   <div id="combined-fields-area">
-
 
       {% for field in all_fields %}
       <div class="border rounded p-3 mb-3" data-id="{{ field.id }}">
@@ -21,19 +16,38 @@
         <input type="hidden" name="fields[{{ loop.index0 }}][type]" value="{{ field.type }}" />
         <input type="hidden" name="fields[{{ loop.index0 }}][title]" value="{{ field.label if field.fixed else field.title }}" />
         <input type="hidden" name="fields[{{ loop.index0 }}][options]" value="{{ field.options | join(',') if field.options else '' }}" />
+        <input type="hidden" name="fields[{{ loop.index0 }}][label_original]" value="{{ field.label_original or field.label }}">
+        <input type="hidden" name="fields[{{ loop.index0 }}][label]" value="{{ field.label }}">
+
 
         <div class="d-flex justify-content-between align-items-center mb-2">
           <div>
-            <strong class="display-title">{{ field.label if field.fixed else field.title }}</strong>
-            <span class="badge {{ 'bg-secondary' if field.fixed else 'bg-info' }}">{{ 'fixo' if field.fixed else 'custom' }}</span>
+
+            <div>
+              <strong class="display-title">{{ field.label }}</strong>
+              <span class="badge {{ 'bg-secondary' if field.fixed else 'bg-info' }}">{{ 'fixo' if field.fixed else 'custom' }}</span>
+
+              {% if field.fixed %}
+              <div class="text-muted small">Label original: {{ field.label_original }}</div>
+              {% endif %}
+            </div>
+
+
             <div class="text-muted small">
               Tipo: {{ 'Texto' if field.type == 'string' else 'Número' if field.type == 'number' else 'Data' if field.type == 'date' else 'Lista' }}
             </div>
-            {% if field.type == 'dropdown' and field.options %}
-  <div class="text-muted small mt-1">
-    Opções: {{ field.options | join(', ') }}
-  </div>
+            {% if not field.fixed %}
+<div class="text-muted small">
+  Identificador: {{ field.id }}
+</div>
 {% endif %}
+
+
+            {% if field.type == 'dropdown' and field.options %}
+              <div class="text-muted small mt-1">
+                Opções: {{ field.options | join(', ') }}
+              </div>
+            {% endif %}
 
           </div>
           {% if not field.fixed %}
@@ -42,21 +56,39 @@
             <button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('.border').remove()">🗑️</button>
           </div>
           {% endif %}
+
+
+
         </div>
 
-        {% if not field.fixed %}
-<div class="edit-area d-none mt-3">
-  <div class="row g-2">
-    <div class="col-md-4">
-      <label for="edit_title_{{ loop.index0 }}">Nome:</label>
-      <input type="text" class="form-control" id="edit_title_{{ loop.index0 }}"
-             value="{{ field.title }}"
-             oninput="updateHidden(this, 'fields[{{ loop.index0 }}][title]')">
-    </div>
+        {% if field.fixed %}
+        <div class="row g-2">
+          <div class="col-md-6">
+            <label for="fixed_label_{{ loop.index0 }}">Customizar Label:</label>
+            <input type="text" class="form-control"
+            id="fixed_label_{{ loop.index0 }}"
+            value="{{ field.label }}"
+            oninput="updateHidden(this, 'fields[{{ loop.index0 }}][label]')">
+          </div>
+        </div>
+      {% elif not field.fixed %}
+        <div class="edit-area d-none mt-3">
+          <div class="row g-2">
+            <div class="col-md-6">
+              <label for="edit_title_{{ loop.index0 }}">Novo Label:</label>
+              <input type="text" class="form-control" id="edit_title_{{ loop.index0 }}"
+                     value="{{ field.label }}"
+                     oninput="updateHidden(this, 'fields[{{ loop.index0 }}][label]')">
+            </div>
+
+
+
+
+
 
     <div class="col-md-4">
       <label for="edit_type_{{ loop.index0 }}">Tipo:</label>
-      <select class="form-select" id="edit_type_{{ loop.index0 }}"
+      <select class="form-select" id="edit_type_{{ loop.index0 }}" disabled
       onchange="updateHidden(this, 'fields[{{ loop.index0 }}][type]'); handleExistingFieldTypeChange(this)">
 
         <option value="string" {% if field.type == 'string' %}selected{% endif %}>Texto</option>
@@ -64,6 +96,8 @@
         <option value="date" {% if field.type == 'date' %}selected{% endif %}>Data</option>
         <option value="dropdown" {% if field.type == 'dropdown' %}selected{% endif %}>Lista</option>
       </select>
+      <div class="text-muted small">não pode ser alterado</div>
+
     </div>
 
     <div class="col-md-4 options-field {% if field.type != 'dropdown' %}d-none{% endif %}">
@@ -212,12 +246,6 @@
 
       if (hiddenType) hiddenType.value = newType;
 
-      if (container.dataset.id && container.dataset.id.includes('_' + timestamp)) {
-        const newId = `${newType}_${timestamp}`;
-        container.dataset.id = newId;
-        const idInput = container.querySelector("input[name='combined_id[]']");
-        if (idInput) idInput.value = newId;
-      }
 
       if (optionsField) {
         optionsField.classList.toggle('d-none', newType !== 'dropdown');
@@ -231,7 +259,7 @@
     function addCustomField() {
       const timestamp = Date.now();
       const defaultType = 'string';
-      const newId = `${defaultType}_${timestamp}`;
+      const newId = `id_${timestamp}`;
 
       const wrapper = document.createElement('div');
       wrapper.classList.add('border', 'rounded', 'p-3', 'mb-3');

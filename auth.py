@@ -1101,7 +1101,7 @@ def create_user(
             )
 
             # ✅ Campos default para item e client
-            for entity in ["item", "client"]:
+            for entity in ["item", "client", "transaction"]:
                 fields_config = get_default_fields_and_slugs(entity)
                 field_config_table.put_item(
                     Item={
@@ -1227,21 +1227,13 @@ def get_user_stats(
 import re
 import unicodedata
 
-import re
-import unicodedata
-
-
-def slugify(text):
-    text = unicodedata.normalize("NFKD", text).encode("ASCII", "ignore").decode("ASCII")
-    text = text.strip().lower()
-    return re.sub(r"[^\w\s-]", "", text).replace(" ", "_")
-
 
 def get_default_fields_and_slugs(entity):
     if entity == "item":
-        DEFAULT_FIELDS = [
-            {
+        DEFAULT_FIELDS = {
+            "item_custom_id": {
                 "label": "Item Custom ID#",
+                "label_original": "Item Custom ID#",
                 "type": "string",
                 "order_sequence": 1,
                 "filterable": True,
@@ -1249,8 +1241,9 @@ def get_default_fields_and_slugs(entity):
                 "f_type": "fixed",
                 "required": True,
             },
-            {
+            "item_description": {
                 "label": "Descrição",
+                "label_original": "Descrição",
                 "type": "string",
                 "order_sequence": 2,
                 "filterable": True,
@@ -1258,167 +1251,164 @@ def get_default_fields_and_slugs(entity):
                 "f_type": "fixed",
                 "required": True,
             },
-            {
+            "item_obs": {
                 "label": "Observações",
+                "label_original": "Observações",
                 "type": "string",
                 "order_sequence": 3,
                 "filterable": True,
                 "preview": True,
                 "f_type": "fixed",
             },
-            {
+            "item_value": {
                 "label": "Preço do aluguel",
-                "type": "number",
+                "label_original": "Preço do aluguel",
+                "type": "value",
                 "order_sequence": 4,
                 "filterable": True,
                 "preview": True,
                 "f_type": "fixed",
                 "required": True,
             },
-            {
+            "item_image_url": {
                 "label": "Imagem",
-                "type": "string",
+                "label_original": "Imagem",
+                "type": "image_url",
                 "order_sequence": 5,
                 "filterable": False,
                 "preview": True,
                 "f_type": "fixed",
             },
-        ]
-        slug_overrides = {
-            "Item Custom ID#": "item_custom_id",
-            "Descrição": "descricao",
-            "Observações": "observacoes",
-            "Preço do aluguel": "valor",
-            "Imagem": "image_url",
         }
+
     elif entity == "client":
-        DEFAULT_FIELDS = [
-            {
+        DEFAULT_FIELDS = {
+            "client_name": {
                 "label": "Nome",
+                "label_original": "Nome",
                 "type": "string",
                 "order_sequence": 1,
                 "filterable": True,
                 "preview": True,
                 "f_type": "fixed",
             },
-            {
+            "client_phone": {
                 "label": "Telefone",
-                "type": "string",
+                "label_original": "Telefone",
+                "type": "phone",
                 "order_sequence": 2,
                 "filterable": True,
                 "preview": True,
                 "f_type": "fixed",
             },
-            {
+            "client_email": {
                 "label": "E-mail",
-                "type": "string",
+                "label_original": "E-mail",
+                "type": "email",
                 "order_sequence": 3,
                 "filterable": True,
                 "preview": True,
                 "f_type": "fixed",
             },
-            {
+            "client_address": {
                 "label": "Endereço",
+                "label_original": "Endereço",
                 "type": "string",
                 "order_sequence": 4,
                 "filterable": True,
                 "preview": True,
                 "f_type": "fixed",
             },
-            {
+            "client_cpf": {
                 "label": "CPF",
-                "type": "string",
+                "label_original": "CPF",
+                "type": "cpf",
                 "order_sequence": 5,
                 "filterable": False,
                 "preview": True,
                 "f_type": "fixed",
             },
-            {
+            "client_cnpj": {
                 "label": "CNPJ",
-                "type": "string",
+                "label_original": "CNPJ",
+                "type": "cnpj",
                 "order_sequence": 6,
                 "filterable": False,
                 "preview": True,
                 "f_type": "fixed",
             },
-            {
+            "client_notes": {
                 "label": "Observações do cliente",
+                "label_original": "Observações do cliente",
                 "type": "string",
                 "order_sequence": 7,
                 "filterable": False,
                 "preview": True,
                 "f_type": "fixed",
             },
-        ]
+        }
 
     elif entity == "transaction":
-        DEFAULT_FIELDS = [
-            {
+        DEFAULT_FIELDS = {
+            "transaction_status": {
                 "label": "Status da Transação",
+                "label_original": "Status da Transação",
                 "type": "string",
                 "order_sequence": 1,
                 "filterable": True,
                 "preview": True,
                 "f_type": "fixed",
             },
-            {
+            "transaction_price": {
                 "label": "Preço do aluguel (R$)",
-                "type": "number",
+                "label_original": "Preço do aluguel (R$)",
+                "type": "value",
                 "order_sequence": 2,
                 "filterable": True,
                 "preview": True,
                 "f_type": "fixed",
             },
-            {
+            "transaction_obs": {
                 "label": "Observações da Transação",
+                "label_original": "Observações da Transação",
                 "type": "string",
                 "order_sequence": 3,
                 "filterable": True,
                 "preview": True,
                 "f_type": "fixed",
             },
-            {
+            "transaction_value_paid": {
                 "label": "Valor já pago (R$)",
-                "type": "number",
-                "order_sequence": 3,
+                "label_original": "Valor já pago (R$)",
+                "type": "value",
+                "order_sequence": 4,
                 "filterable": True,
                 "preview": True,
                 "f_type": "fixed",
             },
-            {
+            "transaction_period": {
                 "label": "Defina as datas",
-                "type": "string",
-                "order_sequence": 3,
+                "label_original": "Defina as datas",
+                "type": "period",
+                "order_sequence": 5,
                 "filterable": True,
                 "preview": True,
                 "f_type": "fixed",
             },
-        ]
-
-        slug_overrides = {
-            "Status da Transação": "transactionstatus",
-            "Preço do aluguel (R$)": "precodoaluguel",
-            "Observações da Transação": "obstransaction",
-            "Valor já pago (R$)": "valorpago",
-            "Defina as datas": "definaasdatas",
         }
+
     else:
         raise ValueError(f"Entidade desconhecida: {entity}")
 
-    fields_config = {}
-    for field in DEFAULT_FIELDS:
-        label = field["label"]
-        slug = slug_overrides.get(label, slugify(label))
-        fields_config[slug] = {
-            "label": label,
-            "type": field["type"],
+    # Finaliza os campos para persistência, adicionando garantias padrões
+    finalized_fields_config = {
+        field_id: {
+            **field_data,
             "visible": True,
-            "required": field.get("required", False),
-            "order_sequence": field["order_sequence"],
-            "filterable": field["filterable"],
-            "preview": field["preview"],
-            "f_type": field["f_type"],
-            "options": [],
+            "required": field_data.get("required", False),
+            "options": [],  # Garante compatibilidade futura com dropdowns
         }
+        for field_id, field_data in DEFAULT_FIELDS.items()
+    }
 
-    return fields_config
+    return finalized_fields_config

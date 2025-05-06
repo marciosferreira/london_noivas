@@ -43,14 +43,14 @@
     <div class="col-12 col-md-4">
       <label class="form-label">{{ field.label }}</label>
 
-      {% if field.id == "image_url" %}
+      {% if field.id == "item_image_url" %}
       <div class="form-check">
-        <input class="form-check-input" type="radio" name="image_url" value="True" id="filter_image_yes"
+        <input class="form-check-input" type="radio" name="item_image_url" value="True" id="filter_image_yes"
                {% if request.args.get('image_url') == 'True' %}checked{% endif %}>
         <label class="form-check-label" for="filter_image_yes">Com imagem</label>
       </div>
       <div class="form-check">
-        <input class="form-check-input" type="radio" name="image_url" value="False" id="filter_image_no"
+        <input class="form-check-input" type="radio" name="item_image_url" value="False" id="filter_image_no"
                {% if request.args.get('image_url') == 'False' %}checked{% endif %}>
         <label class="form-check-label" for="filter_image_no">Sem imagem</label>
       </div>
@@ -68,6 +68,7 @@
           <input type="number" step="0.01" name="max_{{ field['id'] }}" class="form-control"
                  value="{{ request.args.get('max_' + field['id'], '') }}" placeholder="Máx.">
         </div>
+        <p>Min. e Max.</p>
 
       {% elif field.type == "date" %}
         <div class="input-group">

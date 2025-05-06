@@ -7,21 +7,6 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body text-center">
-        <img class="img-fluid" id="modalImg" alt="Imagem do Item" />
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Modal for displaying images -->
-<div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="imageModalLabel">Visualizar Imagem</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body text-center">
         <img class="img-fluid" id="modalImg" alt="Imagem do Item" style="max-width: 100%" />
       </div>
     </div>
@@ -50,36 +35,6 @@
       const instanciaAtual = bootstrap.Modal.getInstance(modalAberto);
       if (instanciaAtual) instanciaAtual.hide();
     } else {
-      modalImg.src = imageUrl;
-      imageModal.show();
-    }
-  }
-</script>
-
-<script>
-  function mostrarImagemModal(imageUrl) {
-    const modalImg = document.getElementById('modalImg');
-    const imageModal = new bootstrap.Modal(document.getElementById('imageModal'));
-
-    // Encontra o modal pai que está aberto atualmente
-    const modalAberto = document.querySelector('.modal.show');
-
-    if (modalAberto) {
-      // Aguarda o fechamento do modal pai
-      modalAberto.addEventListener(
-        'hidden.bs.modal',
-        () => {
-          modalImg.src = imageUrl;
-          imageModal.show();
-        },
-        { once: true }
-      );
-
-      // Fecha o modal atual
-      const instanciaModal = bootstrap.Modal.getInstance(modalAberto);
-      if (instanciaModal) instanciaModal.hide();
-    } else {
-      // Se nenhum modal estiver aberto, mostra direto
       modalImg.src = imageUrl;
       imageModal.show();
     }

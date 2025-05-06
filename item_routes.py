@@ -41,7 +41,6 @@ from utils import upload_image_to_s3, aplicar_filtro, copy_image_in_s3
 
 def get_all_fields(account_id, field_config_table):
 
-    print("ALLLLLLLLLLLLLLL")
     config_response = field_config_table.get_item(
         Key={"account_id": account_id, "entity": "item"}
     )
@@ -50,10 +49,6 @@ def get_all_fields(account_id, field_config_table):
     all_fields = []
     for field_id, cfg in fields_config.items():
         label = cfg.get("label", field_id.replace("_", " ").capitalize())
-        print(f"Field ID: {field_id}")
-        print(f"CFG: {cfg}")
-        print(f"Label: {cfg.get('label')}")
-        print(f"Title: {cfg.get('title')}")
 
         all_fields.append(
             {
@@ -238,7 +233,7 @@ def init_item_routes(
                 raw_value = request.form.get(field_id, "").strip()
                 value = raw_value
 
-                if field_id == "image_url":
+                if field_id == "item_image_url":
                     value = handle_image_upload(image_file, "N/A")
 
                 elif value:
@@ -506,8 +501,8 @@ def init_item_routes(
         # POST: Processa edição
         if request.method == "POST":
             image_file = request.files.get("image_file")
-            image_url_field = request.form.get("image_url", "").strip()
-            old_image_url = key_values.get("image_url", "N/A")
+            image_url_field = request.form.get("item_image_url", "").strip()
+            old_image_url = key_values.get("item_image_url", "N/A")
             new_image_url = (
                 "N/A"
                 if image_url_field == "DELETE_IMAGE"
@@ -527,7 +522,7 @@ def init_item_routes(
                 raw_value = request.form.get(field_id, "").strip()
                 value = raw_value
 
-                if field_id == "image_url":
+                if field_id == "item_image_url":
                     value = new_image_url
                 elif value and field["type"] == "number":
                     try:
@@ -1641,6 +1636,14 @@ def init_item_routes(
             flash("Sessão expirada. Faça login novamente.", "danger")
             return redirect(url_for("login"))
 
+        table_mapping = {
+            "client": clients_table,
+            "transaction": transactions_table,
+            "item": itens_table,
+        }
+
+        data_table = table_mapping.get(entity)
+
         if request.method == "POST":
             fields_config_map = {}
 
@@ -1652,6 +1655,10 @@ def init_item_routes(
                     {
                         "field_id": request.form.get(f"fields[{i}][id]"),
                         "f_type": request.form.get(f"fields[{i}][kind]", "custom"),
+                        "label": request.form.get(f"fields[{i}][label]"),
+                        "label_original": request.form.get(
+                            f"fields[{i}][label_original]"
+                        ),
                         "title": request.form.get(f"fields[{i}][title]"),
                         "type": request.form.get(f"fields[{i}][type]"),
                         "required": f"fields[{i}][required]" in request.form,
@@ -1663,6 +1670,7 @@ def init_item_routes(
                         ),
                     }
                 )
+
                 i += 1
 
             # IDs ordenados
@@ -1672,11 +1680,36 @@ def init_item_routes(
             except Exception:
                 ordered_ids = []
 
+            # 🛑 Verifica campos custom antigos que ainda existem no banco
+            if data_table:
+                used_custom_fields = set()
+                response = data_table.query(
+                    IndexName="account_id-status-index",
+                    KeyConditionExpression=Key("account_id").eq(account_id)
+                    & Key("status").eq("available"),
+                    ProjectionExpression="key_values",
+                )
+                items = response.get("Items", [])
+                import re
+
+                for item in items:
+                    key_values = item.get("key_values", {})
+                    if isinstance(key_values, dict):
+                        pattern = re.compile(
+                            r"^\d{10,}$"
+                        )  # apenas dígitos, com no mínimo 10 caracteres
+                        for key, value in key_values.items():
+                            if pattern.match(key) and value:
+                                used_custom_fields.add(key)
+
             # ➕ Processa os campos fixos e custom existentes
             for idx, field in enumerate(fields):
                 field_id = field["field_id"]
                 f_type = field["f_type"]
-                title = field["title"].strip()
+                label = field.get("label", "").strip() or field.get(
+                    "label_original", field.get("title", "")
+                )
+                label_original = field.get("label_original", label)
                 type_ = field["type"]
                 required = field["required"]
                 visible = field["visible"]
@@ -1686,7 +1719,8 @@ def init_item_routes(
                 order = ordered_ids.index(field_id) if field_id in ordered_ids else idx
 
                 fields_config_map[field_id] = {
-                    "label": title,
+                    "label": label,
+                    "label_original": label_original,
                     "type": type_,
                     "visible": visible,
                     "required": required,
@@ -1707,6 +1741,25 @@ def init_item_routes(
             combined_preview = request.form.getlist("combined_preview[]")
             combined_options = request.form.getlist("combined_options[]")
 
+            # checa se o usuario esta tentando deletar um campo que ja foi preecnido
+            # Lista de IDs de campos que vieram do form
+            remaining_field_ids = [f["field_id"] for f in fields] + combined_ids
+
+            print("fcm")
+            print(fields_config_map)
+
+            # Descobre quais campos usados foram deletados
+            for used_field in used_custom_fields:
+                if used_field not in remaining_field_ids:
+                    label = fields_config_map.get(used_field, {}).get(
+                        "label", used_field
+                    )
+                    flash(
+                        f"Antes de deletar o campo de ID: '{label}' é necessário apagar seu conteúdo em todos os itens ou apagar os itens. Se preferir, apenas desabilite o campo.",
+                        "danger",
+                    )
+                    return redirect(request.url)
+
             for idx, field_id in enumerate(combined_ids):
                 title = combined_titles[idx].strip()
                 type_ = combined_types[idx]
@@ -1723,6 +1776,7 @@ def init_item_routes(
 
                 fields_config_map[field_id] = {
                     "label": title,
+                    "label_original": title,
                     "type": type_,
                     "visible": idx < len(combined_visible)
                     and combined_visible[idx] == "true",
@@ -1755,8 +1809,6 @@ def init_item_routes(
             Key={"account_id": account_id, "entity": entity}
         )
 
-        print(config_response)
-
         fields_config_map = config_response.get("Item", {}).get("fields_config", {})
         fields_to_show = []
 
@@ -1767,6 +1819,7 @@ def init_item_routes(
                     "label": cfg.get("label")
                     or cfg.get("title")
                     or field_id.replace("_", " ").capitalize(),
+                    "label_original": cfg.get("label_original", cfg.get("label")),
                     "title": cfg.get("label", field_id.replace("_", " ").capitalize()),
                     "type": cfg.get("type", "string"),
                     "visible": cfg.get("visible", False),
@@ -1784,7 +1837,7 @@ def init_item_routes(
 
         all_fields = sorted(fields_to_show, key=lambda x: x["order_sequence"])
         return render_template(
-            f"custom_{entity}.html", entity=entity, all_fields=all_fields
+            f"custom_fields.html", entity=entity, all_fields=all_fields
         )
 
 

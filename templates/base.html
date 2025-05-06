@@ -77,14 +77,3 @@
     {% block scripts %}{% endblock %}
   </body>
 </html>
-
-<script>
-  // Aguarda 4 segundos e fecha apenas alertas que NÃO têm a classe .no-autoclose
-  setTimeout(() => {
-    const alerts = document.querySelectorAll('.alert:not(.no-autoclose)');
-    alerts.forEach((alert) => {
-      const bsAlert = bootstrap.Alert.getOrCreateInstance(alert);
-      bsAlert.close();
-    });
-  }, 4000);
-</script>

@@ -47,10 +47,12 @@
     <tbody>
 
       {% for item in itens %}
+      {{item}}
+      {{fields_config}}
       <tr>
         {% for field in fields_config if field.preview and field.visible %}
         <td data-label="{{ field.label }}">
-          {% if field.id == 'image_url' %}
+          {% if field.type == 'image_url' %}
           {% set value = item.key_values[field.id] if item.key_values is defined and field.id in item.key_values else item[field.id] if field.id in item else '' %}
           {% if value and value != "N/A" %}
   <img src="{{ value }}" alt="Imagem" class="img-fluid item-thumbnail"
@@ -68,9 +70,9 @@
               <span class="text-muted">-</span>
             {% else %}
             <span>
-              {% if field.id.startswith("valor") %}
+              {% if field.type == "value" %}
   {{ value | format_brl }}
-{% elif field.id.startswith("date") %}
+{% elif field.type == "date" %}
   {{ value | format_date }}
 {% else %}
   {{ value }}
@@ -112,13 +114,13 @@
             </div>
             <div class="modal-body">
 
-              {% set show_image = (fields_config | selectattr("id", "equalto", "image_url") | selectattr("visible") | list | length) > 0 %}
+              {% set show_image = (fields_config | selectattr("id", "equalto", "item_image_url") | selectattr("visible") | list | length) > 0 %}
 
 
               {% if show_image %}
               <!-- Imagem do item -->
               <div class="text-center mb-3">
-                {% set image = item.key_values['image_url'] if item.key_values is defined and 'image_url' in item.key_values else item['image_url'] if 'image_url' in item else '' %}
+                {% set image = item.key_values['item_image_url'] if item.key_values is defined and 'item_image_url' in item.key_values else item['item_image_url'] if 'item_image_url' in item else '' %}
                 {% if image and image != "N/A" %}
                 <img src="{{ image }}" alt="Imagem do item"
                 class="img-fluid"
@@ -132,7 +134,8 @@
 
               <div class="container-fluid">
                 <div class="row g-3">
-                  {% for field in fields_config if field.id != 'image_url' %}
+                  {{fields_config}}
+                  {% for field in fields_config if field.type != 'image_url' %}
                   <div class="col-12 col-md-6">
                     <strong>{{ field.label }}:</strong><br />
                     {% set value = item.key_values[field.id] if item.key_values is defined and field.id in item.key_values else item[field.id] if field.id in item else '' %}
@@ -142,9 +145,9 @@
                     <span>
                       <span>
 
-                        {% if field.id.startswith("date") %}
+                        {% if field.type == "date" %}
   {{ value | format_date }}
-{% elif field.id.startswith("valor") %}
+{% elif field.type == "value" %}
   {{ value | format_brl }}
 {% else %}
   {{ value }}
@@ -343,22 +346,30 @@
 
     <script>
       function mostrarImagemModal(imageUrl) {
-        const modalImage = document.getElementById('modalImg');
-        modalImage.src = imageUrl;
+        const modalImg = document.getElementById('modalImg');
+        const imageModal = new bootstrap.Modal(document.getElementById('imageModal'));
 
-        // Fecha o modal atual antes de abrir o novo
-        const modals = document.querySelectorAll('.modal.show');
-        modals.forEach(modalEl => {
-          bootstrap.Modal.getInstance(modalEl)?.hide();
-        });
+        // Encontra o modal pai que está aberto atualmente
+        const modalAberto = document.querySelector('.modal.show');
 
-        // Aguarda o fechamento e então abre o novo modal
-        setTimeout(() => {
-          const imageModal = new bootstrap.Modal(document.getElementById('imageModal'));
+        if (modalAberto) {
+          // Aguarda o fechamento do modal pai
+          modalAberto.addEventListener('hidden.bs.modal', () => {
+            modalImg.src = imageUrl;
+            imageModal.show();
+          }, { once: true });
+
+          // Fecha o modal atual
+          const instanciaModal = bootstrap.Modal.getInstance(modalAberto);
+          if (instanciaModal) instanciaModal.hide();
+        } else {
+          // Se nenhum modal estiver aberto, mostra direto
+          modalImg.src = imageUrl;
           imageModal.show();
-        }, 300); // espera 300ms
+        }
       }
     </script>
+
 
 
     {% endblock %}

@@ -71,17 +71,26 @@ label {
   color: #333;
 }
 
-/* Botão de submit */
-button[type='submit'] {
-  width: 100%;
-  background-color: #28a745;
-  color: white;
-  font-size: 16px;
-  padding: 12px;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
+/* Corrige a largura do botão de envio específico */
+.btn-submit {
+  width: auto !important;
+  padding-left: 24px;
+  padding-right: 24px;
+  display: block; /* Necessário para o margin funcionar corretamente */
+  margin: 0 auto; /* Centraliza horizontalmente */
 }
-button[type='submit']:hover {
-  background-color: #218838;
+
+input.form-control,
+select.form-select {
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+input.form-control:focus,
+select.form-select:focus {
+  border-color: #86b7fe;
+  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+label.form-label {
+  color: #333;
 }
