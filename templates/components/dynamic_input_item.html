@@ -11,31 +11,69 @@
             {{ field.label if field.fixed else field.title }}{% if field.required %} *{% endif %}
           </label>
 
-          {% set value = request.form.get(field.id, '') %}
-
-          {% if field.type in ['string', 'value', 'cpf', 'cnpj', 'email', 'phone'] %}
+          {% if field.type == "text" %}
             <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
-              value="{{ value }}" {% if field.required %}required{% endif %} />
+              value="{{ item.get(field.id, '') }}" {% if field.required %}required{% endif %} />
+
+              {% elif field.type == 'value' %}
+              <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+                value="{{ item.get(field.id, '') }}" {% if field.required %}required{% endif %} />
+
 
           {% elif field.type == 'number' %}
-            <input type="number" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
-              value="{{ value }}" {% if field.required %}required{% endif %} />
+            <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+              value="{{ item.get(field.id, '') }}" {% if field.required %}required{% endif %} />
 
           {% elif field.type == 'date' %}
             <input type="date" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
-              value="{{ value }}" {% if field.required %}required{% endif %} />
+              value="{{ item.get(field.id, '') }}" {% if field.required %}required{% endif %} />
 
           {% elif field.type == 'dropdown' %}
             <select class="form-select" id="{{ field.id }}" name="{{ field.id }}" {% if field.required %}required{% endif %}>
               <option value="">Selecione</option>
               {% for option in field.options %}
-                <option value="{{ option }}" {% if value == option %}selected{% endif %}>{{ option }}</option>
+                <option value="{{ option }}" {% if item.get(field.id) == option %}selected{% endif %}>{{ option }}</option>
               {% endfor %}
             </select>
+
+          {% elif field.type == 'item_image_url' %}
+            <div class="text-center mb-2">
+              <img id="item-image"
+                   src="{{ item.item_image_url if item.item_image_url and item.item_image_url != 'N/A' else url_for('static', filename='item-placeholder.png') }}"
+                   style="max-width: 150px;" />
+              <input type="text" name="item_image_url" id="image-url-input"
+                     value="{{ item.item_image_url if item.item_image_url != 'N/A' else '' }}"
+                     style="opacity: 0; position: absolute; left: -9999px" />
+              <button type="button" onclick="removeImage()" id="remove-btn"
+                      class="btn btn-outline-danger btn-sm mt-2"
+                      style="{{ 'display: block;' if item.item_image_url and item.item_image_url != 'N/A' else 'display: none;' }}">
+                Excluir imagem
+              </button>
+            </div>
+            <input type="file" class="form-control" id="image_file" name="image_file"
+              {% if field.required %}data-required="true"{% endif %} />
+
+
+              {% elif field.type == "item_custom_id" %}
+              <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+                value="{{ item.get(field.id, '') }}" {% if field.required %}required{% endif %} />
+
+                {% elif field.type == "item_description" %}
+              <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+                value="{{ item.get(field.id, '') }}" {% if field.required %}required{% endif %} />
+
+                {% elif field.type == "item_obs" %}
+                <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+                  value="{{ item.get(field.id, '') }}" {% if field.required %}required{% endif %} />
+
+                  {% elif field.type == "item_value" %}
+                  <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+                    value="{{ item.get(field.id, '') }}" {% if field.required %}required{% endif %} />
+
+
+
           {% endif %}
         </div>
       </div>
       {% endfor %}
     </div>
-  </form>
-</div>

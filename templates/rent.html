@@ -129,25 +129,37 @@
 
         // Exibe as sugestões
         suggestionsBox.innerHTML = "";
-        clients.forEach(client => {
+        clients.forEach(cli => {
           const div = document.createElement("div");
           div.className = "autocomplete-item";
-          div.innerHTML = `<strong>${client.client_name}</strong>
-            ${client.client_tel ? `<div><small>📞 ${client.client_tel}</small></div>` : ""}
-            ${client.client_email ? `<div><small>📧 ${client.client_email}</small></div>` : ""}
-            ${client.client_cpf ? `<div><small>🆔 CPF: ${client.client_cpf}</small></div>` : ""}
-            ${client.client_cnpj ? `<div><small>🏢 CNPJ: ${client.client_cnpj}</small></div>` : ""}`;
+          div.innerHTML = `<strong>${cli.client_name}</strong>
+            ${cli.client_tel ? `<div><small>📞 ${cli.client_tel}</small></div>` : ""}
+            ${cli.client_email ? `<div><small>📧 ${cli.client_email}</small></div>` : ""}
+            ${cli.client_cpf ? `<div><small>🆔 CPF: ${cli.client_cpf}</small></div>` : ""}
+            ${cli.client_cnpj ? `<div><small>🏢 CNPJ: ${cli.client_cnpj}</small></div>` : ""}`;
 
-          // Ao clicar numa sugestão, preenche os campos com os dados do cliente
           div.addEventListener("click", () => {
-            clientInput.value = client.client_name || "";
-            document.getElementById('client_id').value = client.client_id || "";
-            document.getElementById('client_tel').value = client.client_tel ? maskPhone(client.client_tel) : "";
-            document.getElementById('client_email').value = client.client_email || "";
-            document.getElementById('client_cpf').value = client.client_cpf ? maskCPF(client.client_cpf) : "";
-            document.getElementById('client_cnpj').value = client.client_cnpj ? maskCNPJ(client.client_cnpj) : "";
-            document.getElementById('client_address').value = client.client_address || "";
-            document.getElementById('client_obs').value = client.client_obs || "";
+            document.getElementById('client_name').value = cli.client_name || "";
+            document.getElementById('client_id').value = cli.client_id || "";
+
+            const phoneEl = document.getElementById('client_phone');
+            if (phoneEl) phoneEl.value = cli.client_tel ? maskPhone(cli.client_tel) : "";
+
+            const emailEl = document.getElementById('client_email');
+            if (emailEl) emailEl.value = cli.client_email || "";
+
+            const cpfEl = document.getElementById('client_cpf');
+            if (cpfEl) cpfEl.value = cli.client_cpf ? maskCPF(cli.client_cpf) : "";
+
+            const cnpjEl = document.getElementById('client_cnpj');
+            if (cnpjEl) cnpjEl.value = cli.client_cnpj ? maskCNPJ(cli.client_cnpj) : "";
+
+            const addrEl = document.getElementById('client_address');
+            if (addrEl) addrEl.value = cli.client_address || "";
+
+            const notesEl = document.getElementById('client_notes');
+            if (notesEl) notesEl.value = cli.client_notes || "";
+
 
             suggestionSelected = true;
             suggestionsBox.innerHTML = "";
@@ -155,7 +167,6 @@
             statusMessage.innerHTML = 'Cliente encontrado';
             statusMessage.style.display = 'block';
           });
-
 
           suggestionsBox.appendChild(div);
         });
