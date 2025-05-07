@@ -6,104 +6,103 @@
 
   {% if not itens %}
   <div
-    style="display: flex; align-items: center; background-color: #cce5ff; border-left: 6px solid #007bff; color: #004085; padding: 1rem; border-radius: 0.25rem; margin-top: 1rem;">
+    style="
+      display: flex;
+      align-items: center;
+      background-color: #cce5ff;
+      border-left: 6px solid #007bff;
+      color: #004085;
+      padding: 1rem;
+      border-radius: 0.25rem;
+      margin-top: 1rem;
+    "
+  >
     <span>Não há itens que satisfazem os critérios selecionados.</span>
   </div>
   <br />
-  {% endif %}
-
-  {% if total_relevant_transactions == 0 and itens|length == 1 %}
+  {% endif %} {% if total_relevant_transactions == 0 and itens|length == 1 %}
   <div
-    style="background-color: rgba(255, 193, 7, 0.3); border: 1px solid #ffc107; padding: 1rem; border-radius: 0.5rem; display: inline-flex; align-items: center; gap: 1rem; margin-bottom: 1rem; position: relative;">
-    <span style="color: #664d03; font-weight: 500">Dica: para iniciar uma transação, abra o menu "Ações" do item e clique em "Iniciar transação".</span>
+    style="
+      background-color: rgba(255, 193, 7, 0.3);
+      border: 1px solid #ffc107;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1rem;
+      position: relative;
+    "
+  >
+    <span style="color: #664d03; font-weight: 500">
+      Dica: para iniciar uma transação, abra o menu "Ações" do item e clique em "Iniciar transação".
+    </span>
   </div>
   {% endif %}
 </div>
 
 {% if last_page == False and not itens %}
 <p style="color: #308be3; font-weight: bold; font-size: 1.2rem; margin-top: -1rem; margin-left: 0.25rem">Nada por aqui!</p>
-{% endif %}
-
-{% if request.args or itens %}
-{% set show_item_filter = True %}
-{% endif %}
-
-{% set show_add_item = True %}
-{% include "components/item_filter_section.html" with context %}
-
-{% if itens %}
+{% endif %} {% if request.args or itens %} {% set show_item_filter = True %} {% endif %} {% set show_add_item = True %} {% include
+"components/item_filter_section.html" with context %} {% if itens %}
 <div class="table-container mt-4">
   <table class="table table-hover responsive-table align-middle rounded-table">
     <thead>
       <tr>
         {% for field in fields_config if field.preview and field.visible %}
-  <th>{{ field.label }}</th>
-{% endfor %}
-
+        <th>{{ field.label }}</th>
+        {% endfor %}
 
         <th>Ações</th>
       </tr>
     </thead>
     <tbody>
-
-      {% for item in itens %}
-      {{item}}
-      {{fields_config}}
+      {% for item in itens %} {{item}} {{fields_config}}
       <tr>
         {% for field in fields_config if field.preview and field.visible %}
         <td data-label="{{ field.label }}">
-          {% if field.type == 'image_url' %}
-          {% set value = item.key_values[field.id] if item.key_values is defined and field.id in item.key_values else item[field.id] if field.id in item else '' %}
-          {% if value and value != "N/A" %}
-  <img src="{{ value }}" alt="Imagem" class="img-fluid item-thumbnail"
-       style="max-width: 100px; cursor: pointer;"
-       onclick="mostrarImagemModal('{{ value }}')" />
-{% else %}
-  <img src="{{ url_for('static', filename='item-placeholder.png') }}" alt="Sem Imagem" class="img-fluid item-thumbnail"
-       style="max-width: 100px; cursor: pointer;"
-       onclick="mostrarImagemModal('{{ url_for('static', filename='item-placeholder.png') }}')" />
-{% endif %}
-{% else %}
-
-          {% set value = item.key_values[field.id] if item.key_values is defined and field.id in item.key_values else item[field.id] if field.id in item else '' %}
-          {% if value == 'None' or value is none %}
-              <span class="text-muted">-</span>
-            {% else %}
-            <span>
-              {% if field.type == "value" %}
-  {{ value | format_brl }}
-{% elif field.type == "date" %}
-  {{ value | format_date }}
-{% else %}
-  {{ value }}
-{% endif %}
-
-            </span>
-
-            {% endif %}
-          {% endif %}
+          {% if field.type == 'item_image_url' %} {% set value = ( item.key_values[field.id] if item.key_values is defined and field.id in
+          item.key_values else item[field.id] if field.id in item else '' ) %} {% if value and value != "N/A" %}
+          <img
+            src="{{ value }}"
+            alt="Imagem"
+            class="img-fluid item-thumbnail"
+            style="max-width: 100px; cursor: pointer"
+            onclick="mostrarImagemModal('{{ value }}')"
+          />
+          {% else %}
+          <img
+            src="{{ url_for('static', filename='item-placeholder.png') }}"
+            alt="Sem Imagem"
+            class="img-fluid item-thumbnail"
+            style="max-width: 100px; cursor: pointer"
+            onclick="mostrarImagemModal('{{ url_for('static', filename='item-placeholder.png') }}')"
+          />
+          {% endif %} {% else %} {% set value = ( item.key_values[field.id] if item.key_values is defined and field.id in item.key_values else
+          item[field.id] if field.id in item else '' ) %} {% if value == 'None' or value is none %}
+          <span class="text-muted">-</span>
+          {% else %}
+          <span>
+            {% if field.type in ["value", "item_value"] %} {{ value | format_brl }} {% elif field.type == "date" %} {{ value | format_date }} {% else
+            %} {{ value }} {% endif %}
+          </span>
+          {% endif %} {% endif %}
         </td>
         {% endfor %}
+
         <td data-label="Ações">
           <div class="d-flex flex-column gap-2 align-items-center">
-            <div style="width: 120px;">
-              {% set show_delete_item = True %}
-              {% set show_edit_item = True %}
-              {% set show_rent = True %}
-              {% set show_archive = True %}
-              {% set show_consult = True %}
-              {% set show_qrcode = True %}
-              {% set show_share = True %}
-              {% set show_item_transactions = True %}
-              {% include 'components/action_buttons.html' with context %}
+            <div style="width: 120px">
+              {% set show_delete_item = True %} {% set show_edit_item = True %} {% set show_rent = True %} {% set show_archive = True %} {% set
+              show_consult = True %} {% set show_qrcode = True %} {% set show_share = True %} {% set show_item_transactions = True %} {% include
+              'components/action_buttons.html' with context %}
             </div>
-            <button class="btn btn-primary btn-sm" style="width: 120px;" data-bs-toggle="modal" data-bs-target="#modalItem{{ loop.index }}">
+            <button class="btn btn-primary btn-sm" style="width: 120px" data-bs-toggle="modal" data-bs-target="#modalItem{{ loop.index }}">
               Detalhes
             </button>
           </div>
         </td>
       </tr>
-
 
       <div class="modal fade" id="modalItem{{ loop.index }}" tabindex="-1" aria-labelledby="modalItemLabel{{ loop.index }}" aria-hidden="true">
         <div class="modal-dialog modal-dialog-scrollable modal-lg">
@@ -113,48 +112,46 @@
               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
             </div>
             <div class="modal-body">
-
-              {% set show_image = (fields_config | selectattr("id", "equalto", "item_image_url") | selectattr("visible") | list | length) > 0 %}
-
-
-              {% if show_image %}
+              {% set show_image = (fields_config | selectattr("id", "equalto", "item_image_url") | selectattr("visible") | list | length) > 0 %} {% if
+              show_image %}
               <!-- Imagem do item -->
               <div class="text-center mb-3">
-                {% set image = item.key_values['item_image_url'] if item.key_values is defined and 'item_image_url' in item.key_values else item['item_image_url'] if 'item_image_url' in item else '' %}
-                {% if image and image != "N/A" %}
-                <img src="{{ image }}" alt="Imagem do item"
-                class="img-fluid"
-                style="max-width: 200px; cursor: pointer;"
-                onclick="mostrarImagemModal('{{ image }}')" />
-                           {% else %}
-                <img src="{{ url_for('static', filename='item-placeholder.png') }}" alt="Sem imagem" class="img-fluid" style="max-width: 200px; cursor: pointer;" onclick="mostrarImagemModal('{{ url_for('static', filename='item-placeholder.png') }}')" />
+                {% set image = item.key_values['item_image_url'] if item.key_values is defined and 'item_image_url' in item.key_values else
+                item['item_image_url'] if 'item_image_url' in item else '' %} {% if image and image != "N/A" %}
+                <img
+                  src="{{ image }}"
+                  alt="Imagem do item"
+                  class="img-fluid"
+                  style="max-width: 200px; cursor: pointer"
+                  onclick="mostrarImagemModal('{{ image }}')"
+                />
+                {% else %}
+                <img
+                  src="{{ url_for('static', filename='item-placeholder.png') }}"
+                  alt="Sem imagem"
+                  class="img-fluid"
+                  style="max-width: 200px; cursor: pointer"
+                  onclick="mostrarImagemModal('{{ url_for('static', filename='item-placeholder.png') }}')"
+                />
                 {% endif %}
               </div>
               {% endif %}
 
               <div class="container-fluid">
                 <div class="row g-3">
-                  {{fields_config}}
-                  {% for field in fields_config if field.type != 'image_url' %}
+                  {{fields_config}} {% for field in fields_config if field.type != 'image_url' %}
                   <div class="col-12 col-md-6">
-                    <strong>{{ field.label }}:</strong><br />
-                    {% set value = item.key_values[field.id] if item.key_values is defined and field.id in item.key_values else item[field.id] if field.id in item else '' %}
-                    {% if value == 'None' or value is none %}
-                      <span class="text-muted">-</span>
+                    <strong>{{ field.label }}:</strong>
+                    <br />
+                    {% set value = item.key_values[field.id] if item.key_values is defined and field.id in item.key_values else item[field.id] if
+                    field.id in item else '' %} {% if value == 'None' or value is none %}
+                    <span class="text-muted">-</span>
                     {% else %}
                     <span>
                       <span>
-
-                        {% if field.type == "date" %}
-  {{ value | format_date }}
-{% elif field.type == "value" %}
-  {{ value | format_brl }}
-{% else %}
-  {{ value }}
-{% endif %}
-
+                        {% if field.type == "date" %} {{ value | format_date }} {% elif field.type == "value" %} {{ value | format_brl }} {% else %}
+                        {{ value }} {% endif %}
                       </span>
-
                     </span>
                     {% endif %}
                   </div>
@@ -166,28 +163,16 @@
         </div>
       </div>
 
-
       {% endfor %}
     </tbody>
   </table>
 </div>
-{% endif %}
-
-
-
-
-
-
-
-
-{% if itens %}
+{% endif %} {% if itens %}
 
 <!-- Pagination -->
 <ul class="pagination justify-content-center"></ul>
-{% endif %}
-
-{% set active_statuses = ["trialing", "active", "past_due"] %}
-{% set max_limit = 300 if current_transaction and current_transaction.subscription_status in active_statuses else 0 %}
+{% endif %} {% set active_statuses = ["trialing", "active", "past_due"] %} {% set max_limit = 300 if current_transaction and
+current_transaction.subscription_status in active_statuses else 0 %}
 
 <div class="container mt-4">
   <div class="row g-3 justify-content-center">
@@ -207,170 +192,167 @@
         </div>
       </div>
     </div>
+  </div>
 </div>
-
-</div>
-</div>
-    <!-- MODAL para imagem -->
-    {% include 'components/image_modal.html' %} {% endblock %} {% block scripts %}
-    <!-- Modal do calendário -->
-    <div class="modal fade" id="calendarModal" tabindex="-1" aria-hidden="true">
-      <div class="modal-dialog modal-dialog-centered" style="max-width: 400px">
-        <div class="modal-content p-3">
-          <div class="modal-header">
-            <h5 class="modal-title">Calendário do Item</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
-          </div>
-          <div class="modal-body" id="calendarModalBody">Carregando...</div>
-        </div>
+<!-- MODAL para imagem -->
+{% include 'components/image_modal.html' %} {% endblock %} {% block scripts %}
+<!-- Modal do calendário -->
+<div class="modal fade" id="calendarModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" style="max-width: 400px">
+    <div class="modal-content p-3">
+      <div class="modal-header">
+        <h5 class="modal-title">Calendário do Item</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
       </div>
+      <div class="modal-body" id="calendarModalBody">Carregando...</div>
     </div>
+  </div>
+</div>
 
-    <script>
-      function abrirCalendario(url) {
-        fetch(url)
-          .then((response) => response.text())
-          .then((html) => {
-            document.getElementById('calendarModalBody').innerHTML = html;
-            const modal = new bootstrap.Modal(document.getElementById('calendarModal'));
-            modal.show();
-          })
-          .catch((error) => {
-            console.error('Erro ao carregar calendário:', error);
-            alert('Erro ao carregar calendário.');
-          });
-      }
-    </script>
+<script>
+  function abrirCalendario(url) {
+    fetch(url)
+      .then((response) => response.text())
+      .then((html) => {
+        document.getElementById('calendarModalBody').innerHTML = html;
+        const modal = new bootstrap.Modal(document.getElementById('calendarModal'));
+        modal.show();
+      })
+      .catch((error) => {
+        console.error('Erro ao carregar calendário:', error);
+        alert('Erro ao carregar calendário.');
+      });
+  }
+</script>
 
-    <script src="https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.umd.min.js"></script>
-    <script>
-      function iniciarDatePicker() {
-        const picker = new easepick.create({
-          element: document.getElementById('datepicker'),
-          css: ['https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.css'],
-          inline: true,
-          container: document.getElementById('calendar-container'),
-        });
+<script src="https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.umd.min.js"></script>
+<script>
+  function iniciarDatePicker() {
+    const picker = new easepick.create({
+      element: document.getElementById('datepicker'),
+      css: ['https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.css'],
+      inline: true,
+      container: document.getElementById('calendar-container'),
+    });
 
-        picker.show();
-      }
-    </script>
+    picker.show();
+  }
+</script>
 
-    <script>
-      function checkTransactionLimit(event) {
-        const totalTransactions = {{ total_relevant_transactions if total_relevant_transactions is not none else 0 | tojson }};
-        const paymentStatus = const paymentStatus = {{ current_transaction.payment_status | default('') | tojson }};
+<script>
+  function checkTransactionLimit(event) {
+    const totalTransactions = {{ total_relevant_transactions if total_relevant_transactions is not none else 0 | tojson }};
+    const paymentStatus = const paymentStatus = {{ current_transaction.payment_status | default('') | tojson }};
 
-        const allowStatuses = ["trialing", "active", "past_due"];
-        const maxTransactions = allowStatuses.includes(paymentStatus) ? 300 : 0;
+    const allowStatuses = ["trialing", "active", "past_due"];
+    const maxTransactions = allowStatuses.includes(paymentStatus) ? 300 : 0;
 
-        if (totalTransactions >= maxTransactions) {
-          alert("O limite de transações ativas do seu plano foi atingido.");
-          event.preventDefault();
-          return false;
-        }
-        return true;
-      }
-    </script>
+    if (totalTransactions >= maxTransactions) {
+      alert("O limite de transações ativas do seu plano foi atingido.");
+      event.preventDefault();
+      return false;
+    }
+    return true;
+  }
+</script>
 
-    <script>
-      document.addEventListener("DOMContentLoaded", function () {
-        const totalItems = {{ total_itens }};
-        const paymentStatus = {{ current_transaction.subscription_status | default('none') | tojson }};
-        const allowedStatuses = ["trialing", "active", "past_due"];
-        const maxItems = allowedStatuses.includes(paymentStatus) ? 300 : 0;
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const totalItems = {{ total_itens }};
+    const paymentStatus = {{ current_transaction.subscription_status | default('none') | tojson }};
+    const allowedStatuses = ["trialing", "active", "past_due"];
+    const maxItems = allowedStatuses.includes(paymentStatus) ? 300 : 0;
 
-        const addButton = document.getElementById("add-item-btn");
-        if (addButton) {
-          addButton.addEventListener("click", function (event) {
-            event.preventDefault();
-            if (totalItems >= maxItems) {
-              alert("Você atingiu o limite de itens cadastrados no seu plano.");
-            } else {
-              const targetUrl = addButton.getAttribute("data-add-url");
-              window.location.href = targetUrl;
-            }
-          });
+    const addButton = document.getElementById("add-item-btn");
+    if (addButton) {
+      addButton.addEventListener("click", function (event) {
+        event.preventDefault();
+        if (totalItems >= maxItems) {
+          alert("Você atingiu o limite de itens cadastrados no seu plano.");
+        } else {
+          const targetUrl = addButton.getAttribute("data-add-url");
+          window.location.href = targetUrl;
         }
       });
-    </script>
+    }
+  });
+</script>
 
-    <script>
-      const urlParams = new URLSearchParams(window.location.search);
-      let currentPage = parseInt(urlParams.get('page') || '1');
+<script>
+  const urlParams = new URLSearchParams(window.location.search);
+  let currentPage = parseInt(urlParams.get('page') || '1');
 
-      const paginacao = document.querySelector('.pagination');
+  const paginacao = document.querySelector('.pagination');
 
-      // Remove o parâmetro de página antes de recriar a URL
-      urlParams.delete('page');
+  // Remove o parâmetro de página antes de recriar a URL
+  urlParams.delete('page');
 
-      const baseParams = urlParams.toString();
-      const prefix = baseParams ? `?${baseParams}&` : '?';
+  const baseParams = urlParams.toString();
+  const prefix = baseParams ? `?${baseParams}&` : '?';
 
-      // ← Anterior
-      if (currentPage > 1) {
-        const liPrev = document.createElement('li');
-        liPrev.className = 'page-item';
-        const aPrev = document.createElement('a');
-        aPrev.className = 'page-link';
-        aPrev.innerText = '← Anterior';
-        aPrev.href = `${prefix}page=${currentPage - 1}`;
-        liPrev.appendChild(aPrev);
-        paginacao.appendChild(liPrev);
-      }
+  // ← Anterior
+  if (currentPage > 1) {
+    const liPrev = document.createElement('li');
+    liPrev.className = 'page-item';
+    const aPrev = document.createElement('a');
+    aPrev.className = 'page-link';
+    aPrev.innerText = '← Anterior';
+    aPrev.href = `${prefix}page=${currentPage - 1}`;
+    liPrev.appendChild(aPrev);
+    paginacao.appendChild(liPrev);
+  }
 
-      // Página atual
-      const liCurrent = document.createElement('li');
-      liCurrent.className = 'page-item active';
-      const aCurrent = document.createElement('a');
-      aCurrent.className = 'page-link';
-      aCurrent.innerText = `Página ${currentPage}`;
-      aCurrent.href = "#";
-      liCurrent.appendChild(aCurrent);
-      paginacao.appendChild(liCurrent);
+  // Página atual
+  const liCurrent = document.createElement('li');
+  liCurrent.className = 'page-item active';
+  const aCurrent = document.createElement('a');
+  aCurrent.className = 'page-link';
+  aCurrent.innerText = `Página ${currentPage}`;
+  aCurrent.href = "#";
+  liCurrent.appendChild(aCurrent);
+  paginacao.appendChild(liCurrent);
 
-      // → Próxima
-      {% if has_next %}
-        const liNext = document.createElement('li');
-        liNext.className = 'page-item';
-        const aNext = document.createElement('a');
-        aNext.className = 'page-link';
-        aNext.innerText = 'Próxima →';
-        aNext.href = `${prefix}page=${currentPage + 1}`;
-        liNext.appendChild(aNext);
-        paginacao.appendChild(liNext);
-      {% endif %}
-    </script>
+  // → Próxima
+  {% if has_next %}
+    const liNext = document.createElement('li');
+    liNext.className = 'page-item';
+    const aNext = document.createElement('a');
+    aNext.className = 'page-link';
+    aNext.innerText = 'Próxima →';
+    aNext.href = `${prefix}page=${currentPage + 1}`;
+    liNext.appendChild(aNext);
+    paginacao.appendChild(liNext);
+  {% endif %}
+</script>
 
+<script>
+  function mostrarImagemModal(imageUrl) {
+    const modalImg = document.getElementById('modalImg');
+    const imageModal = new bootstrap.Modal(document.getElementById('imageModal'));
 
+    // Encontra o modal pai que está aberto atualmente
+    const modalAberto = document.querySelector('.modal.show');
 
-    <script>
-      function mostrarImagemModal(imageUrl) {
-        const modalImg = document.getElementById('modalImg');
-        const imageModal = new bootstrap.Modal(document.getElementById('imageModal'));
-
-        // Encontra o modal pai que está aberto atualmente
-        const modalAberto = document.querySelector('.modal.show');
-
-        if (modalAberto) {
-          // Aguarda o fechamento do modal pai
-          modalAberto.addEventListener('hidden.bs.modal', () => {
-            modalImg.src = imageUrl;
-            imageModal.show();
-          }, { once: true });
-
-          // Fecha o modal atual
-          const instanciaModal = bootstrap.Modal.getInstance(modalAberto);
-          if (instanciaModal) instanciaModal.hide();
-        } else {
-          // Se nenhum modal estiver aberto, mostra direto
+    if (modalAberto) {
+      // Aguarda o fechamento do modal pai
+      modalAberto.addEventListener(
+        'hidden.bs.modal',
+        () => {
           modalImg.src = imageUrl;
           imageModal.show();
-        }
-      }
-    </script>
+        },
+        { once: true }
+      );
 
+      // Fecha o modal atual
+      const instanciaModal = bootstrap.Modal.getInstance(modalAberto);
+      if (instanciaModal) instanciaModal.hide();
+    } else {
+      // Se nenhum modal estiver aberto, mostra direto
+      modalImg.src = imageUrl;
+      imageModal.show();
+    }
+  }
+</script>
 
-
-    {% endblock %}
-
+{% endblock %}

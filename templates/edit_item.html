@@ -11,7 +11,7 @@
   </div>
   <form method="POST" enctype="multipart/form-data">
     <input type="hidden" name="next" value="{{ request.args.get('next', url_for('index')) }}" />
-
+{{all_fields}}
     <div class="row row-cols-1 row-cols-md-3 g-4">
       {% for field in all_fields if field.visible %}
       <div class="col d-flex">
@@ -20,9 +20,14 @@
             {{ field.label if field.fixed else field.title }}{% if field.required %} *{% endif %}
           </label>
 
-          {% if field.type in ['string', 'value'] %}
+          {% if field.type == "text" %}
             <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
               value="{{ item.get(field.id, '') }}" {% if field.required %}required{% endif %} />
+
+              {% elif field.type == 'value' %}
+              <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+                value="{{ item.get(field.id, '') }}" {% if field.required %}required{% endif %} />
+
 
           {% elif field.type == 'number' %}
             <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
@@ -40,7 +45,7 @@
               {% endfor %}
             </select>
 
-          {% elif field.type == 'image_url' %}
+          {% elif field.type == 'item_image_url' %}
             <div class="text-center mb-2">
               <img id="item-image"
                    src="{{ item.item_image_url if item.item_image_url and item.item_image_url != 'N/A' else url_for('static', filename='item-placeholder.png') }}"
@@ -56,6 +61,26 @@
             </div>
             <input type="file" class="form-control" id="image_file" name="image_file"
               {% if field.required %}data-required="true"{% endif %} />
+
+
+              {% elif field.type == "item_custom_id" %}
+              <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+                value="{{ item.get(field.id, '') }}" {% if field.required %}required{% endif %} />
+
+                {% elif field.type == "item_description" %}
+              <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+                value="{{ item.get(field.id, '') }}" {% if field.required %}required{% endif %} />
+
+                {% elif field.type == "item_obs" %}
+                <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+                  value="{{ item.get(field.id, '') }}" {% if field.required %}required{% endif %} />
+
+                  {% elif field.type == "item_value" %}
+                  <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+                    value="{{ item.get(field.id, '') }}" {% if field.required %}required{% endif %} />
+
+
+
           {% endif %}
         </div>
       </div>
@@ -127,6 +152,10 @@
   });
 
 
+</script>
+
+
+<script>
   function formatarCampoMonetario(input) {
     input.addEventListener('input', function (e) {
       let value = e.target.value.replace(/\D/g, '');
@@ -139,17 +168,26 @@
       let intValue = parseInt(value, 10);
       let floatValue = intValue / 100;
 
-      e.target.value = floatValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      e.target.value = floatValue.toLocaleString('pt-BR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
     });
   }
 
-  const campos = [document.getElementById('valor')];
-  campos.forEach((campo) => {
+  document.addEventListener('DOMContentLoaded', function () {
+    const campo = document.getElementById('item_value');
     if (campo) {
+      // 🟡 Formata valor inicial (ex: "123.45" → "123,45")
+      let valorAtual = campo.value.replace('.', ',');
+      campo.value = valorAtual;
+
+      // Ativa máscara ao digitar
       formatarCampoMonetario(campo);
     }
   });
 </script>
+
 
 
 <script>

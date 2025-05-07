@@ -39,6 +39,7 @@ def allowed_file(filename):
 from utils import upload_image_to_s3, aplicar_filtro, copy_image_in_s3
 
 
+"""
 def get_all_fields(account_id, field_config_table):
 
     config_response = field_config_table.get_item(
@@ -62,12 +63,15 @@ def get_all_fields(account_id, field_config_table):
                 "filterable": cfg.get("filterable", False),
                 "order_sequence": int(cfg.get("order_sequence", 999)),
                 "options": (
-                    cfg.get("options", []) if cfg.get("type") == "dropdown" else []
+                    cfg.get("options", [])
+                    if cfg.get("type") in ["dropdown", "transaction_status"]
+                    else []
                 ),
                 "fixed": cfg.get("f_type", "custom") == "fixed",
             }
         )
     return sorted(all_fields, key=lambda x: x["order_sequence"])
+"""
 
 
 def init_item_routes(
@@ -241,7 +245,7 @@ def init_item_routes(
 
                 elif value:
                     # 🔸 Limpa número/monetário
-                    if field_type == "number":
+                    if field_type in ["value", "item_value"]:
                         try:
                             value = Decimal(value.replace(".", "").replace(",", "."))
                         except InvalidOperation:
@@ -551,7 +555,7 @@ def init_item_routes(
                 if field_id == "item_image_url":
                     value = new_image_url
 
-                elif field_type == "number":
+                elif field_type in ["valeu", "item_value"]:
                     try:
                         value = Decimal(value.replace(".", "").replace(",", "."))
                     except InvalidOperation:
@@ -632,56 +636,77 @@ def init_item_routes(
     ##################################################################################################
     @app.route("/rent/<item_id>", methods=["GET", "POST"])
     def rent(item_id):
-
         if not session.get("logged_in"):
             return redirect(url_for("login"))
 
-        # 🔹 Buscar o item existente na tabela alugueqqc_itens
+        account_id = session.get("account_id")
+        user_id = session.get("user_id")
+        user_utc = get_user_timezone(users_table, user_id)
+
+        # 🔧 Carregar campos customizados de todas as entidades
+        all_fields = (
+            get_all_fields(account_id, field_config_table, entity="transaction")
+            + get_all_fields(account_id, field_config_table, entity="client")
+            + get_all_fields(account_id, field_config_table, entity="item")
+        )
+
+        # 🔹 Buscar o item
         response = itens_table.get_item(Key={"item_id": item_id})
         item = response.get("Item")
-
         if not item:
             flash("Item não encontrado.", "danger")
             return redirect(url_for("inventory"))
 
-        # Consulta transações existentes para esse item com status "rented"
+        # 🔍 Buscar reservas existentes
         response = transactions_table.query(
             IndexName="item_id-index",
             KeyConditionExpression="item_id = :item_id_val",
             ExpressionAttributeValues={":item_id_val": item_id},
         )
-
         transaction = response.get("Items", [])
-        reserved_ranges = []
-
-        for tx in transaction:
-            if (
-                tx.get("transaction_status") in ["reserved", "rented"]
-                and tx.get("rental_date")
-                and tx.get("return_date")
-            ):
-                reserved_ranges.append([tx["rental_date"], tx["return_date"]])
+        reserved_ranges = [
+            [tx["rental_date"], tx["return_date"]]
+            for tx in transaction
+            if tx.get("transaction_status") in ["reserved", "rented"]
+            and tx.get("rental_date")
+            and tx.get("return_date")
+        ]
 
         if request.method == "POST":
-            range_date = request.form.get("range_date")
-            client_name = request.form.get("client_name").strip()
-            client_id = request.form.get("client_id")
-            client_tel = request.form.get("client_tel").strip()
-            client_email = request.form.get("client_email", "").strip()
-            client_address = request.form.get("client_address", "").strip()
-            client_cpf = request.form.get("client_cpf", "").strip()
-            client_cnpj = request.form.get("client_cnpj", "").strip()
-            client_obs = request.form.get("client_obs", "").strip()
-            transaction_status = request.form.get("transaction_status", "").strip()
-            transaction_obs = request.form.get("transaction_obs", "").strip()
-            valor_str = request.form.get("valor", "").replace(",", ".")
-            pagamento_str = request.form.get("pagamento", "").replace(",", ".")
-            # Transforma em float ou 0.0 se vier vazio
-            # Usa Decimal
-            valor = Decimal(valor_str) if valor_str else Decimal("0.0")
-            pagamento = Decimal(pagamento_str) if pagamento_str else Decimal("0.0")
-            item_obs = request.form.get("item_obs")
+            import re
+            from decimal import Decimal
 
+            form_data = {}
+            for field in all_fields:
+                field_id = field["id"]
+                field_type = field.get("type")
+                value = request.form.get(field_id, "").strip()
+
+                if not value:
+                    continue
+
+                if field_type in ["cpf", "cnpj", "phone"]:
+                    value = re.sub(r"\D", "", value)
+                elif field_type == "value":
+                    value = value.replace(".", "").replace(",", ".")
+                    try:
+                        value = float(value)
+                    except ValueError:
+                        flash(
+                            f"Valor inválido no campo {field.get('label', field_id)}.",
+                            "error",
+                        )
+                        return render_template(
+                            "rent.html",
+                            item=item,
+                            reserved_ranges=reserved_ranges,
+                            all_fields=all_fields,
+                        )
+
+                form_data[field_id] = value
+
+            # ⚙️ Processamento especial de datas do calendário
+            range_date = request.form.get("range_date", "")
             try:
                 rental_str, return_str = range_date.split(" - ")
                 rental_date = datetime.datetime.strptime(
@@ -693,12 +718,15 @@ def init_item_routes(
             except ValueError:
                 flash("Formato de data inválido. Use DD/MM/AAAA.", "danger")
                 return render_template(
-                    "rent.html", item=item, reserved_ranges=reserved_ranges
+                    "rent.html",
+                    item=item,
+                    reserved_ranges=reserved_ranges,
+                    all_fields=all_fields,
                 )
 
-            # Criar client_id se necessário
-            user_id = session.get("user_id") if "user_id" in session else None
-            user_utc = get_user_timezone(users_table, user_id)
+            # 🔄 Verifica ou cria client_id
+            client_name = request.form.get("client_name", "").strip()
+            client_id = request.form.get("client_id")
             if not client_id:
                 response = clients_table.query(
                     IndexName="client_name-index",
@@ -707,7 +735,6 @@ def init_item_routes(
                     ExpressionAttributeValues={":client_name_val": client_name},
                 )
                 existing_clients = response.get("Items", [])
-
                 if existing_clients:
                     client_id = existing_clients[0]["client_id"]
                 else:
@@ -715,66 +742,60 @@ def init_item_routes(
                     clients_table.put_item(
                         Item={
                             "client_id": client_id,
-                            "account_id": session.get("account_id"),
+                            "account_id": account_id,
                             "client_name": client_name,
-                            "client_tel": client_tel,
-                            "client_email": client_email,
-                            "client_address": client_address,
-                            "client_cpf": client_cpf,
-                            "client_cnpj": client_cnpj,
-                            "client_obs": client_obs,
                             "created_at": datetime.datetime.now(user_utc).strftime(
                                 "%Y-%m-%d %H:%M:%S"
                             ),
                         }
+                        | {
+                            k: v
+                            for k, v in form_data.items()
+                            if k.startswith("client_")
+                        }
                     )
 
-            # Obter o item_custom_id do item original
-            item_custom_id = item.get("item_custom_id", "")
-            image_url = item.get("image_url", "")
-            item_obs = item.get("item_obs", "")
-            description = item.get("description", "")
-
-            # Criar transação
+            # 🎯 Preenche campos fixos e identificadores
             transaction_id = str(uuid.uuid4())
-            transactions_table.put_item(
-                Item={
-                    "transaction_id": transaction_id,
-                    "account_id": session.get("account_id"),
-                    "item_id": item_id,
-                    "item_custom_id": item_custom_id,  # ✅ incluído
-                    "item_obs": item_obs,  # ✅ incluído
-                    "description": description,  # ✅ incluído
-                    "client_id": client_id,
-                    "client_name": client_name,
-                    "client_tel": client_tel,
-                    "client_email": client_email,
-                    "client_address": client_address,
-                    "client_cpf": client_cpf,
-                    "client_cnpj": client_cnpj,
-                    "client_obs": client_obs,
-                    "item_obs": item_obs,
-                    "valor": valor,
-                    "pagamento": pagamento,
-                    "rental_date": rental_date,
-                    "return_date": return_date,
-                    "transaction_status": transaction_status,
-                    "image_url": image_url,
-                    "transaction_obs": transaction_obs,
-                    "created_at": datetime.datetime.now(user_utc).strftime(
-                        "%Y-%m-%d %H:%M:%S"
-                    ),
-                }
-            )
+            transaction_item = {
+                "transaction_id": transaction_id,
+                "account_id": account_id,
+                "item_id": item_id,
+                "client_id": client_id,
+                "rental_date": rental_date,
+                "return_date": return_date,
+                "created_at": datetime.datetime.now(user_utc).strftime(
+                    "%Y-%m-%d %H:%M:%S"
+                ),
+            }
 
-            if transaction_status == "reserved":
-                flash("Item <a href='/reserved'>reservado</a> com sucesso!", "success")
-            else:
-                flash("Item <a href='/rented'>retirado</a> com sucesso!", "success")
+            # 🔗 Campos herdados do item
+            for key in ["item_custom_id", "item_obs", "description", "image_url"]:
+                if key in item:
+                    transaction_item[key] = item[key]
 
-            return redirect(url_for("all_transactions"))
+            # 🔀 Juntar campos do formulário
+            transaction_item.update(form_data)
 
-        return render_template("rent.html", item=item, reserved_ranges=reserved_ranges)
+            try:
+                transactions_table.put_item(Item=transaction_item)
+                if transaction_item.get("transaction_status") == "reserved":
+                    flash(
+                        "Item <a href='/reserved'>reservado</a> com sucesso!", "success"
+                    )
+                else:
+                    flash("Item <a href='/rented'>retirado</a> com sucesso!", "success")
+                return redirect(url_for("all_transactions"))
+            except Exception as e:
+                flash("Erro ao salvar transação. Tente novamente.", "danger")
+                print("Erro ao salvar:", e)
+
+        return render_template(
+            "rent.html",
+            item=item,
+            reserved_ranges=reserved_ranges,
+            all_fields=all_fields,
+        )
 
     ###########################################################################################################
     @app.route("/view_calendar/<item_id>")
@@ -2683,10 +2704,6 @@ def get_all_fields(account_id, field_config_table, entity):
     all_fields = []
     for field_id, cfg in fields_config.items():
         label = cfg.get("label", field_id.replace("_", " ").capitalize())
-        print(f"Field ID: {field_id}")
-        print(f"CFG: {cfg}")
-        print(f"Label: {cfg.get('label')}")
-        print(f"Title: {cfg.get('title')}")
 
         all_fields.append(
             {
@@ -2700,7 +2717,9 @@ def get_all_fields(account_id, field_config_table, entity):
                 "filterable": cfg.get("filterable", False),
                 "order_sequence": int(cfg.get("order_sequence", 999)),
                 "options": (
-                    cfg.get("options", []) if cfg.get("type") == "dropdown" else []
+                    cfg.get("options", [])
+                    if cfg.get("type") in ["dropdown", "transaction_status"]
+                    else []
                 ),
                 "fixed": cfg.get("f_type", "custom") == "fixed",
             }

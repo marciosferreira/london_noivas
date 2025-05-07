@@ -1234,7 +1234,7 @@ def get_default_fields_and_slugs(entity):
             "item_custom_id": {
                 "label": "Item Custom ID#",
                 "label_original": "Item Custom ID#",
-                "type": "string",
+                "type": "item_custom_id",
                 "order_sequence": 1,
                 "filterable": True,
                 "preview": True,
@@ -1244,7 +1244,7 @@ def get_default_fields_and_slugs(entity):
             "item_description": {
                 "label": "Descrição",
                 "label_original": "Descrição",
-                "type": "string",
+                "type": "item_description",
                 "order_sequence": 2,
                 "filterable": True,
                 "preview": True,
@@ -1254,7 +1254,7 @@ def get_default_fields_and_slugs(entity):
             "item_obs": {
                 "label": "Observações",
                 "label_original": "Observações",
-                "type": "string",
+                "type": "item_obs",
                 "order_sequence": 3,
                 "filterable": True,
                 "preview": True,
@@ -1263,7 +1263,7 @@ def get_default_fields_and_slugs(entity):
             "item_value": {
                 "label": "Preço do aluguel",
                 "label_original": "Preço do aluguel",
-                "type": "value",
+                "type": "item_value",
                 "order_sequence": 4,
                 "filterable": True,
                 "preview": True,
@@ -1273,7 +1273,7 @@ def get_default_fields_and_slugs(entity):
             "item_image_url": {
                 "label": "Imagem",
                 "label_original": "Imagem",
-                "type": "image_url",
+                "type": "item_image_url",
                 "order_sequence": 5,
                 "filterable": False,
                 "preview": True,
@@ -1295,7 +1295,7 @@ def get_default_fields_and_slugs(entity):
             "client_phone": {
                 "label": "Telefone",
                 "label_original": "Telefone",
-                "type": "phone",
+                "type": "client_phone",
                 "order_sequence": 2,
                 "filterable": True,
                 "preview": True,
@@ -1304,7 +1304,7 @@ def get_default_fields_and_slugs(entity):
             "client_email": {
                 "label": "E-mail",
                 "label_original": "E-mail",
-                "type": "email",
+                "type": "client_email",
                 "order_sequence": 3,
                 "filterable": True,
                 "preview": True,
@@ -1313,7 +1313,7 @@ def get_default_fields_and_slugs(entity):
             "client_address": {
                 "label": "Endereço",
                 "label_original": "Endereço",
-                "type": "string",
+                "type": "client_address",
                 "order_sequence": 4,
                 "filterable": True,
                 "preview": True,
@@ -1322,7 +1322,7 @@ def get_default_fields_and_slugs(entity):
             "client_cpf": {
                 "label": "CPF",
                 "label_original": "CPF",
-                "type": "cpf",
+                "type": "client_cpf",
                 "order_sequence": 5,
                 "filterable": False,
                 "preview": True,
@@ -1331,7 +1331,7 @@ def get_default_fields_and_slugs(entity):
             "client_cnpj": {
                 "label": "CNPJ",
                 "label_original": "CNPJ",
-                "type": "cnpj",
+                "type": "client_cnpj",
                 "order_sequence": 6,
                 "filterable": False,
                 "preview": True,
@@ -1340,7 +1340,7 @@ def get_default_fields_and_slugs(entity):
             "client_notes": {
                 "label": "Observações do cliente",
                 "label_original": "Observações do cliente",
-                "type": "string",
+                "type": "client_notes",
                 "order_sequence": 7,
                 "filterable": False,
                 "preview": True,
@@ -1353,16 +1353,17 @@ def get_default_fields_and_slugs(entity):
             "transaction_status": {
                 "label": "Status da Transação",
                 "label_original": "Status da Transação",
-                "type": "string",
+                "type": "transaction_status",
                 "order_sequence": 1,
                 "filterable": True,
                 "preview": True,
                 "f_type": "fixed",
+                "options": ["reserved", "rented"],
             },
             "transaction_price": {
                 "label": "Preço do aluguel (R$)",
                 "label_original": "Preço do aluguel (R$)",
-                "type": "value",
+                "type": "transaction_price",
                 "order_sequence": 2,
                 "filterable": True,
                 "preview": True,
@@ -1371,7 +1372,7 @@ def get_default_fields_and_slugs(entity):
             "transaction_obs": {
                 "label": "Observações da Transação",
                 "label_original": "Observações da Transação",
-                "type": "string",
+                "type": "transaction_obs",
                 "order_sequence": 3,
                 "filterable": True,
                 "preview": True,
@@ -1380,7 +1381,7 @@ def get_default_fields_and_slugs(entity):
             "transaction_value_paid": {
                 "label": "Valor já pago (R$)",
                 "label_original": "Valor já pago (R$)",
-                "type": "value",
+                "type": "transaction_value_paid",
                 "order_sequence": 4,
                 "filterable": True,
                 "preview": True,
@@ -1389,7 +1390,7 @@ def get_default_fields_and_slugs(entity):
             "transaction_period": {
                 "label": "Defina as datas",
                 "label_original": "Defina as datas",
-                "type": "period",
+                "type": "transaction_period",
                 "order_sequence": 5,
                 "filterable": True,
                 "preview": True,
@@ -1406,7 +1407,9 @@ def get_default_fields_and_slugs(entity):
             **field_data,
             "visible": True,
             "required": field_data.get("required", False),
-            "options": [],  # Garante compatibilidade futura com dropdowns
+            "options": field_data.get(
+                "options", []
+            ),  # Garante compatibilidade futura com dropdowns
         }
         for field_id, field_data in DEFAULT_FIELDS.items()
     }

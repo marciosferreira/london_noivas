@@ -1,0 +1,44 @@
+<div id="tab-cliente" class="tab-content active">
+  <form>
+
+    {{all_fields}}
+    <div class="row row-cols-1 row-cols-md-3 g-4">
+      {% for field in all_fields if field.id.startswith("client_") and field.visible %}
+      <div class="col d-flex">
+        <div class="bg-light shadow-sm rounded p-3 border w-100 h-100 d-flex flex-column justify-content-center">
+          <label for="{{ field.id }}" class="form-label fw-semibold">
+            {{ field.label if field.fixed else field.title }}{% if field.required %} *{% endif %}
+          </label>
+
+          {% set value = request.form.get(field.id, '') %}
+
+          {% if field.type in ['string', 'value', 'cpf', 'cnpj', 'email', 'phone'] %}
+            <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+              value="{{ value }}" {% if field.required %}required{% endif %} />
+
+              {% elif field.type == "client_name" %}
+            <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+              value="{{ value }}" {% if field.required %}required{% endif %} />
+
+          {% elif field.type == 'number' %}
+            <input type="number" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+              value="{{ value }}" {% if field.required %}required{% endif %} />
+
+          {% elif field.type == 'date' %}
+            <input type="date" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+              value="{{ value }}" {% if field.required %}required{% endif %} />
+
+          {% elif field.type == 'dropdown' %}
+            <select class="form-select" id="{{ field.id }}" name="{{ field.id }}" {% if field.required %}required{% endif %}>
+              <option value="">Selecione</option>
+              {% for option in field.options %}
+                <option value="{{ option }}" {% if value == option %}selected{% endif %}>{{ option }}</option>
+              {% endfor %}
+            </select>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </form>
+</div>

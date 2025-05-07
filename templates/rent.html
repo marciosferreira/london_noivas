@@ -1,8 +1,16 @@
-{% extends "base.html" %}
-{% block title %}Alugar Item{% endblock %}
-{% block styles %}
+{% extends "base.html" %} {% block title %}Alugar Item{% endblock %} {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='style_rent.css') }}" />
 {% endblock %}
+
+<style>
+  .d-none {
+    display: none;
+  }
+  .tab-btn.active {
+    font-weight: bold;
+    border-width: 2px;
+  }
+</style>
 
 {% block content %}
 <div class="container py-4">
@@ -11,110 +19,30 @@
     <a href="{{ url_for('inventory') }}" class="cancel-link">Sair sem Finalizar</a>
   </div>
 
+  <!-- 🔘 Botões de navegação entre blocos -->
+  <div class="mb-3 text-center">
+    <button type="button" class="btn btn-outline-primary mx-1 tab-btn active" data-target="bloco-cliente">Cliente</button>
+    <button type="button" class="btn btn-outline-primary mx-1 tab-btn" data-target="bloco-transacao">Transação</button>
+    <button type="button" class="btn btn-outline-primary mx-1 tab-btn" data-target="bloco-item">Item</button>
+  </div>
+
   <form method="POST" enctype="multipart/form-data" id="form-rent" novalidate>
-    <div class="tabs mb-3">
-      <button type="button" class="tab-button active" data-tab="tab-cliente">Cliente</button>
-      <button type="button" class="tab-button" data-tab="tab-transacao">Transação</button>
+    <!-- 🔹 Bloco Cliente -->
+    <div id="bloco-cliente" class="form-section">
+      <h4 class="mb-3">Informações do Cliente</h4>
+      <div class="mb-4">{% include 'components/dynamic_input_client.html' with context %}</div>
     </div>
 
-    <div id="tab-cliente" class="tab-content active">
-      <div class="row row-cols-1 row-cols-md-3 g-4">
-        <div class="col d-flex">
-          <div class="bg-light shadow-sm rounded p-3 border w-100 h-100 d-flex flex-column justify-content-center">
-            <label for="client_name" class="form-label fw-semibold">Nome do Cliente *</label>
-            <input type="text" class="form-control" id="client_name" name="client_name" required />
-            <div id="client-suggestions-title" style="display: none;">Clientes encontrados:</div>
-            <div id="client_suggestions" class="autocomplete-box"></div>
-            <div id="client-status-message" class="status-message" style="display: none;"></div>
-            <input type="hidden" name="client_id" id="client_id" />
-          </div>
-        </div>
-
-        <div class="col d-flex">
-          <div class="bg-light shadow-sm rounded p-3 border w-100 h-100 d-flex flex-column justify-content-center">
-            <label for="client_tel" class="form-label fw-semibold">Telefone *</label>
-            <input type="text" class="form-control" id="client_tel" name="client_tel" required />
-          </div>
-        </div>
-
-        <div class="col d-flex">
-          <div class="bg-light shadow-sm rounded p-3 border w-100 h-100 d-flex flex-column justify-content-center">
-            <label for="client_email" class="form-label fw-semibold">E-mail</label>
-            <input type="email" class="form-control" id="client_email" name="client_email" />
-          </div>
-        </div>
-
-        <div class="col d-flex">
-          <div class="bg-light shadow-sm rounded p-3 border w-100 h-100 d-flex flex-column justify-content-center">
-            <label for="client_cpf" class="form-label fw-semibold">CPF</label>
-            <input type="text" class="form-control" id="client_cpf" name="client_cpf" />
-          </div>
-        </div>
-
-        <div class="col d-flex">
-          <div class="bg-light shadow-sm rounded p-3 border w-100 h-100 d-flex flex-column justify-content-center">
-            <label for="client_cnpj" class="form-label fw-semibold">CNPJ</label>
-            <input type="text" class="form-control" id="client_cnpj" name="client_cnpj" />
-          </div>
-        </div>
-
-        <div class="col d-flex">
-          <div class="bg-light shadow-sm rounded p-3 border w-100 h-100 d-flex flex-column justify-content-center">
-            <label for="client_address" class="form-label fw-semibold">Endereço</label>
-            <input type="text" class="form-control" id="client_address" name="client_address" />
-          </div>
-        </div>
-
-        <div class="col-12">
-          <div class="bg-light shadow-sm rounded p-3 border w-100 d-flex flex-column justify-content-center">
-            <label for="client_obs" class="form-label fw-semibold">Observações</label>
-            <textarea id="client_obs" name="client_obs" class="form-control" rows="2"></textarea>
-          </div>
-        </div>
-      </div>
+    <!-- 🔹 Bloco Transação -->
+    <div id="bloco-transacao" class="form-section d-none">
+      <h4 class="mb-3">Detalhes da Transação</h4>
+      <div class="mb-4">{% include 'components/dynamic_input_transaction.html' with context %}</div>
     </div>
 
-    <div id="tab-transacao" class="tab-content">
-      <div class="row row-cols-1 row-cols-md-3 g-4">
-        <div class="col d-flex">
-          <div class="bg-light shadow-sm rounded p-3 border w-100 h-100 d-flex flex-column justify-content-center">
-            <label for="transaction_status" class="form-label fw-semibold">Status da Transação *</label>
-            <select id="transaction_status" name="transaction_status" class="form-select" required>
-              <option value="" disabled selected>Selecione o status</option>
-              <option value="reserved" {% if item.transaction_status == 'reserved' %}selected{% endif %}>Reservado</option>
-              <option value="rented" {% if item.transaction_status == 'rented' %}selected{% endif %}>Alugado</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="col d-flex">
-          <div class="bg-light shadow-sm rounded p-3 border w-100 h-100 d-flex flex-column justify-content-center">
-            <label for="datepicker" class="form-label fw-semibold">Datas *</label>
-            <input id="datepicker" name="range_date" class="form-control" value="Clique para abrir" required />
-          </div>
-        </div>
-
-        <div class="col d-flex">
-          <div class="bg-light shadow-sm rounded p-3 border w-100 h-100 d-flex flex-column justify-content-center">
-            <label for="valor" class="form-label fw-semibold">Preço do aluguel (R$) *</label>
-            <input type="text" class="form-control" id="valor" name="valor" value="{{ item.valor or '' }}" required />
-          </div>
-        </div>
-
-        <div class="col d-flex">
-          <div class="bg-light shadow-sm rounded p-3 border w-100 h-100 d-flex flex-column justify-content-center">
-            <label for="pagamento" class="form-label fw-semibold">Valor já pago (R$)</label>
-            <input type="text" class="form-control" id="pagamento" name="pagamento" value="{{ item.pagamento or '' }}" />
-          </div>
-        </div>
-
-        <div class="col-12">
-          <div class="bg-light shadow-sm rounded p-3 border w-100 d-flex flex-column justify-content-center">
-            <label for="transaction_obs" class="form-label fw-semibold">Observações</label>
-            <textarea id="transaction_obs" name="transaction_obs" class="form-control" rows="2"></textarea>
-          </div>
-        </div>
-      </div>
+    <!-- 🔹 Bloco Item -->
+    <div id="bloco-item" class="form-section d-none">
+      <h4 class="mb-3">Dados do Item</h4>
+      <div class="mb-4">{% include 'components/dynamic_input_item.html' with context %}</div>
     </div>
 
     <div class="d-flex justify-content-center mt-4">
@@ -122,21 +50,31 @@
     </div>
   </form>
 </div>
-
 {% endblock %} {% block scripts %} {{ super() }}
 <script src="https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.umd.min.js"></script>
 
 <script>
-  // 🟦 Alternância entre abas
-  document.querySelectorAll('.tab-button').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-      const selectedTab = document.getElementById(btn.dataset.tab);
-      if (selectedTab) selectedTab.classList.add('active');
+  document.addEventListener('DOMContentLoaded', function () {
+    const buttons = document.querySelectorAll('.tab-btn');
+    const sections = document.querySelectorAll('.form-section');
+
+    buttons.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        // Remove classes 'active' e esconde todos
+        buttons.forEach((b) => b.classList.remove('active'));
+        sections.forEach((sec) => sec.classList.add('d-none'));
+
+        // Ativa o selecionado
+        btn.classList.add('active');
+        const target = document.getElementById(btn.dataset.target);
+        if (target) target.classList.remove('d-none');
+      });
     });
   });
+</script>
+
+<script>
+
 
   // 🧼 Máscaras
   function maskPhone(value) {
@@ -274,7 +212,7 @@
     });
 
     new easepick.create({
-      element: document.getElementById('datepicker'),
+      element: document.getElementById('transaction_period'),
       css: [
         'https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.css',
         'https://easepick.com/css/demo_hotelcal.css',
@@ -322,7 +260,7 @@
       const dp = document.getElementById('datepicker');
 
 
-      const telFormatted = document.getElementById('client_tel').value;
+      const telFormatted = document.getElementById('client_phone').value;
       const cpfFormatted = document.getElementById('client_cpf').value;
       const cnpjFormatted = document.getElementById('client_cnpj').value;
 
@@ -330,9 +268,9 @@
       const cpfDigits = cpfFormatted.replace(/\D/g, '');
       const cnpjDigits = cnpjFormatted.replace(/\D/g, '');
 
-      document.getElementById('client_tel_digits').value = telDigits;
-      document.getElementById('client_cpf_digits').value = cpfDigits;
-      document.getElementById('client_cnpj_digits').value = cnpjDigits;
+      document.getElementById('client_phone').value = telDigits;
+      document.getElementById('client_cpf').value = cpfDigits;
+      document.getElementById('client_cnpj').value = cnpjDigits;
 
       if (cpfDigits && !validaCPF(cpfDigits)) {
         e.preventDefault();
@@ -397,8 +335,8 @@
     configurarValidacao();
 
     // 🧼 Aplicar máscara de telefone ao digitar
-  const telInput = document.getElementById('client_tel');
-  if (telInput) {
+    const telInput = document.getElementById('client_phone');
+    if (telInput) {
     telInput.addEventListener('input', (e) => {
       e.target.value = maskPhone(e.target.value);
     });
@@ -429,10 +367,10 @@
 
     form.addEventListener('submit', function (e) {
       const nomeCliente = document.getElementById('client_name');
-      const telCliente = document.getElementById('client_tel');
-      const dataPicker = document.getElementById('datepicker');
+      const telCliente = document.getElementById('client_phone');
+      const dataPicker = document.getElementById('transaction_period');
       const statusTransacao = document.getElementById('transaction_status');
-      const valorItem = document.getElementById('valor');
+      const valorItem = document.getElementById('transaction_price');
 
       if (!nomeCliente.value.trim()) {
         e.preventDefault();
@@ -490,8 +428,7 @@
   }
 
   // Aplica em todos os campos que precisam
-  const campos = [document.getElementById('valor'), document.getElementById('pagamento')];
-
+  const campos = [document.getElementById('transaction_price'), document.getElementById('transaction_value_paid')];
   campos.forEach((campo) => {
     if (campo) {
       formatarCampoMonetario(campo);
@@ -499,20 +436,14 @@
   });
 </script>
 
-
-
 <script>
   const clientNameInput = document.getElementById('client_name');
   const clientIdInput = document.getElementById('client_id');
 
   // Sempre que digitar no nome do cliente, limpa o client_id
   clientNameInput.addEventListener('input', function () {
-    clientIdInput.value = "";
+    clientIdInput.value = '';
   });
-
-
-
 </script>
-
 
 {% endblock %}

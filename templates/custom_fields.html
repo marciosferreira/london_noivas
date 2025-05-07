@@ -34,7 +34,7 @@ Você pode adicionar um campo novo, o qual será identificado como "custom".</p>
 
 
             <div class="text-muted small">
-              Tipo: {{ 'Texto' if field.type == 'string' else 'Número' if field.type == 'number' else 'Data' if field.type == 'date' else 'Lista' }}
+              Tipo: {{ 'Texto' if field.type == 'text' else 'Número' if field.type == 'number' else 'Data' if field.type == 'date' else 'Lista' if field.type == 'list' else 'value'}}
             </div>
             {% if not field.fixed %}
 <div class="text-muted small">
@@ -91,10 +91,12 @@ Você pode adicionar um campo novo, o qual será identificado como "custom".</p>
       <select class="form-select" id="edit_type_{{ loop.index0 }}" disabled
       onchange="updateHidden(this, 'fields[{{ loop.index0 }}][type]'); handleExistingFieldTypeChange(this)">
 
-        <option value="string" {% if field.type == 'string' %}selected{% endif %}>Texto</option>
+        <option value="text" {% if field.type == 'text' %}selected{% endif %}>Texto</option>
         <option value="number" {% if field.type == 'number' %}selected{% endif %}>Número</option>
         <option value="date" {% if field.type == 'date' %}selected{% endif %}>Data</option>
         <option value="dropdown" {% if field.type == 'dropdown' %}selected{% endif %}>Lista</option>
+        <option value="dropdown" {% if field.type == 'dropdown' %}selected{% endif %}>Valor</option>
+
       </select>
       <div class="text-muted small">não pode ser alterado</div>
 
@@ -258,7 +260,7 @@ Você pode adicionar um campo novo, o qual será identificado como "custom".</p>
 
     function addCustomField() {
       const timestamp = Date.now();
-      const defaultType = 'string';
+      const defaultType = 'text';
       const newId = `id_${timestamp}`;
 
       const wrapper = document.createElement('div');
@@ -284,10 +286,12 @@ Você pode adicionar um campo novo, o qual será identificado como "custom".</p>
           <div class="col-md-6">
             <label>Tipo:</label>
             <select class="form-select" onchange="updateFieldType(this, '${timestamp}')">
-              <option value="string" selected>Texto</option>
+              <option value="text" selected>Texto</option>
               <option value="number">Número</option>
               <option value="date">Data</option>
               <option value="dropdown">Lista</option>
+              <option value="dropdown">Valor</option>
+
             </select>
           </div>
         </div>

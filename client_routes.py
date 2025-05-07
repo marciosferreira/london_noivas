@@ -54,7 +54,7 @@ def init_client_routes(
                     "client_name": item.get("client_name", ""),
                     "client_cpf": item.get("client_cpf", ""),
                     "client_cnpj": item.get("client_cnpj", ""),
-                    "client_tel": item.get("client_tel", ""),
+                    "client_tel": item.get("client_phone", ""),
                     "client_id": item.get("client_id", ""),
                     "client_email": item.get("client_email", ""),  # 👈 adiciona aqui
                     "client_address": item.get("client_address", ""),  # 👈 e aqui
@@ -64,6 +64,7 @@ def init_client_routes(
             ]
 
             print(f"Encontrados {len(suggestions)} sugestões para '{term}'")
+            print(suggestions)
             return jsonify(suggestions)
 
         except Exception as e:
@@ -258,7 +259,7 @@ def init_client_routes(
                     flash("Já existe um cliente com esse nome.", "error")
                     return render_template(
                         "editar_cliente.html",
-                        cliente=cliente,
+                        client=cliente,
                         all_fields=all_fields,
                         next=next_page,
                     )
@@ -270,7 +271,7 @@ def init_client_routes(
                     flash("Já existe um cliente com esse CPF.", "error")
                     return render_template(
                         "editar_cliente.html",
-                        cliente=cliente,
+                        client=cliente,
                         all_fields=all_fields,
                         next=next_page,
                     )
@@ -282,7 +283,7 @@ def init_client_routes(
                     flash("Já existe um cliente com esse CNPJ.", "error")
                     return render_template(
                         "editar_cliente.html",
-                        cliente=cliente,
+                        client=cliente,
                         all_fields=all_fields,
                         next=next_page,
                     )
@@ -326,7 +327,7 @@ def init_client_routes(
 
         return render_template(
             "editar_cliente.html",
-            cliente=cliente,
+            client=cliente,
             all_fields=all_fields,
             next=next_page,
         )
@@ -365,9 +366,9 @@ def init_client_routes(
                 if not value:
                     continue
 
-                if field_type in ["cpf", "cnpj", "phone"]:
+                if field_type in ["client_cpf", "client_cnpj", "client_phone"]:
                     value = re.sub(r"\D", "", value)
-                elif field_type == "value":
+                elif field_type in ["value"]:
                     value = value.replace(".", "").replace(",", ".")
                     try:
                         value = float(value)

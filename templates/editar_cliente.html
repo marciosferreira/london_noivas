@@ -1,16 +1,21 @@
 {% extends "base.html" %} {% block title %}Editar Cliente{% endblock %} {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='style_edit_client.css') }}" />
 {% endblock %} {% block content %}
-
 <div class="container py-4">
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h1 class="mb-0">Editar Cliente</h1>
-    <a href="{{ request.args.get('next', url_for('listar_clientes')) }}" class="cancel-link">Cancelar</a>
+    <a href="{{ next or url_for('listar_clientes') }}" class="cancel-link">Cancelar</a>
+  </div>
+  <div class="alert alert-primary d-flex justify-content-between align-items-center" role="alert">
+    <div>
+      Dica: Acesse <a href="/custom_fields/item" class="alert-link">Customizar Campos</a> para criar novos ou ajustar os existentes.
+    </div>
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
   </div>
 
-{{all_fields}}
-{{cliente}}
-  <form method="POST" id="editClientForm">
+  <form method="POST" id="clientForm">
+    <input type="hidden" name="next" value="{{ next or url_for('listar_clientes') }}" />
+
     <div class="row row-cols-1 row-cols-md-3 g-4">
       {% for field in all_fields if field.visible %}
       <div class="col d-flex">
@@ -19,32 +24,44 @@
             {{ field.label if field.fixed else field.title }}{% if field.required %} *{% endif %}
           </label>
 
-          {% set value = cliente.get(field.id, '') %}
-
-          {% if field.type in ['string', 'value', 'cpf', 'cnpj', 'email', 'phone'] %}
+          {% if field.type == 'client_phone' %}
             <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
-              value="{{ value }}" {% if field.required %}required{% endif %} />
-              {{ field.id }}
+              value="{{ client.get(field.id, '') }}" {% if field.required %}required{% endif %} />
 
-              {% elif field.type == "client_name" %}
+              {% elif field.type == 'client_name' %}
+              <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+                value="{{ client.get(field.id, '') }}" {% if field.required %}required{% endif %} />
+                <div id="client-suggestions-title" style="display: none;">Clientes encontrados:</div>
+<div id="client_suggestions" class="autocomplete-box"></div>
+<div id="client-status-message" class="status-message" style="display: none;"></div>
+
+
+          {% elif field.type == 'client_email' %}
+            <input type="email" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+              value="{{ client.get(field.id, '') }}" {% if field.required %}required{% endif %} />
+
+              {% elif field.type == 'client_address' %}
             <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
-              value="{{ value }}" {% if field.required %}required{% endif %} />
+              value="{{ client.get(field.id, '') }}" {% if field.required %}required{% endif %} />
 
-
-
-          {% elif field.type == 'number' %}
+          {% elif field.type == 'client_cpf' %}
             <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
-              value="{{ value }}" {% if field.required %}required{% endif %} />
+              value="{{ client.get(field.id, '') }}" {% if field.required %}required{% endif %} />
 
-          {% elif field.type == 'date' %}
-            <input type="date" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
-              value="{{ value }}" {% if field.required %}required{% endif %} />
+              {% elif field.type == 'client_cnpj' %}
+            <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+              value="{{ client.get(field.id, '') }}" {% if field.required %}required{% endif %} />
+
+              {% elif field.type == 'client_notes' %}
+              <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+                value="{{ client.get(field.id, '') }}" {% if field.required %}required{% endif %} />
+
 
           {% elif field.type == 'dropdown' %}
             <select class="form-select" id="{{ field.id }}" name="{{ field.id }}" {% if field.required %}required{% endif %}>
               <option value="">Selecione</option>
               {% for option in field.options %}
-                <option value="{{ option }}" {% if value == option %}selected{% endif %}>{{ option }}</option>
+                <option value="{{ option }}" {% if client.get(field.id) == option %}selected{% endif %}>{{ option }}</option>
               {% endfor %}
             </select>
           {% endif %}
@@ -58,27 +75,24 @@
     </div>
   </form>
 </div>
+{% endblock %}
 
-{% endblock %}{% block scripts %}
 
-<script>
+
+
+
+ {% block scripts %}
+ <script>
   document.addEventListener('DOMContentLoaded', function () {
-    const cpfInput = document.getElementById('client_cpf');
-    const cnpjInput = document.getElementById('client_cnpj');
-    const telInput = document.getElementById('client_phone');
-    const form = document.getElementById('editClientForm') || document.getElementById('clientForm');
-
-    function maskCPF(value) {
-      return value
-        .replace(/\D/g, '')
+    function maskCPF(cpf) {
+      return cpf.replace(/\D/g, '')
         .replace(/(\d{3})(\d)/, '$1.$2')
         .replace(/(\d{3})(\d)/, '$1.$2')
         .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
     }
 
-    function maskCNPJ(value) {
-      return value
-        .replace(/\D/g, '')
+    function maskCNPJ(cnpj) {
+      return cnpj.replace(/\D/g, '')
         .replace(/^(\d{2})(\d)/, '$1.$2')
         .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
         .replace(/\.(\d{3})(\d)/, '.$1/$2')
@@ -86,112 +100,91 @@
     }
 
     function maskPhone(value) {
-      value = value.replace(/\D/g, '').slice(0, 11);
-      let formatted = '';
-      if (value.length > 0) formatted += '(' + value.substring(0, 2);
-      if (value.length >= 3) formatted += ') ' + value.substring(2, 7);
-      if (value.length >= 8) formatted += '-' + value.substring(7);
-      return formatted;
+      const v = value.replace(/\D/g, '').slice(0, 11);
+      return v.length >= 8
+        ? `(${v.slice(0,2)}) ${v.slice(2,7)}-${v.slice(7)}`
+        : v.length >= 3
+        ? `(${v.slice(0,2)}) ${v.slice(2)}`
+        : v.length >= 1
+        ? `(${v}`
+        : '';
     }
 
-    function unmask(value) {
-      return value.replace(/\D/g, '');
-    }
+    const cpfInput = document.getElementById('client_cpf');
+    const cnpjInput = document.getElementById('client_cnpj');
+    const telInput = document.getElementById('client_phone');
 
-    function isValidCPF(cpf) {
-      cpf = unmask(cpf);
-      if (cpf.length !== 11 || /^(\d)\1+$/.test(cpf)) return false;
-      let soma = 0, resto;
-      for (let i = 1; i <= 9; i++) soma += parseInt(cpf[i - 1]) * (11 - i);
-      resto = (soma * 10) % 11;
-      if (resto === 10 || resto === 11) resto = 0;
-      if (resto !== parseInt(cpf[9])) return false;
-      soma = 0;
-      for (let i = 1; i <= 10; i++) soma += parseInt(cpf[i - 1]) * (12 - i);
-      resto = (soma * 10) % 11;
-      if (resto === 10 || resto === 11) resto = 0;
-      return resto === parseInt(cpf[10]);
-    }
-
-    function isValidCNPJ(cnpj) {
-      cnpj = unmask(cnpj);
-      if (cnpj.length !== 14 || /^(\d)\1+$/.test(cnpj)) return false;
-      let tamanho = cnpj.length - 2;
-      let numeros = cnpj.substring(0, tamanho);
-      let digitos = cnpj.substring(tamanho);
-      let soma = 0, pos = tamanho - 7;
-
-      for (let i = tamanho; i >= 1; i--) {
-        soma += parseInt(numeros.charAt(tamanho - i)) * pos--;
-        if (pos < 2) pos = 9;
-      }
-      let resultado = soma % 11 < 2 ? 0 : 11 - (soma % 11);
-      if (resultado != parseInt(digitos.charAt(0))) return false;
-
-      tamanho += 1;
-      numeros = cnpj.substring(0, tamanho);
-      soma = 0;
-      pos = tamanho - 7;
-      for (let i = tamanho; i >= 1; i--) {
-        soma += parseInt(numeros.charAt(tamanho - i)) * pos--;
-        if (pos < 2) pos = 9;
-      }
-      resultado = soma % 11 < 2 ? 0 : 11 - (soma % 11);
-      return resultado == parseInt(digitos.charAt(1));
-    }
-
-    // 🟡 Aplica máscara inicial se valor já estiver preenchido
-    if (cpfInput && cpfInput.value) cpfInput.value = maskCPF(cpfInput.value);
-    if (cnpjInput && cnpjInput.value) cnpjInput.value = maskCNPJ(cnpjInput.value);
-    if (telInput && telInput.value) telInput.value = maskPhone(telInput.value);
-
-    // 🟡 Eventos de digitação
     if (cpfInput) {
-      cpfInput.addEventListener('input', e => {
-        e.target.value = maskCPF(e.target.value);
-      });
+      cpfInput.value = maskCPF(cpfInput.value);
+      cpfInput.addEventListener('input', e => e.target.value = maskCPF(e.target.value));
     }
 
     if (cnpjInput) {
-      cnpjInput.addEventListener('input', e => {
-        e.target.value = maskCNPJ(e.target.value);
-      });
+      cnpjInput.value = maskCNPJ(cnpjInput.value);
+      cnpjInput.addEventListener('input', e => e.target.value = maskCNPJ(e.target.value));
     }
 
     if (telInput) {
-      telInput.addEventListener('input', e => {
-        e.target.value = maskPhone(e.target.value);
-      });
+      telInput.value = maskPhone(telInput.value);
+      telInput.addEventListener('input', e => e.target.value = maskPhone(e.target.value));
     }
 
-    // 🔒 Validação ao submeter
+
+    const form = document.getElementById('clientForm');
     if (form) {
       form.addEventListener('submit', function (e) {
-        const cpf = cpfInput?.value || '';
-        const cnpj = cnpjInput?.value || '';
-        const tel = telInput?.value || '';
+        const cpf = cpfInput?.value.replace(/\D/g, '');
+        const cnpj = cnpjInput?.value.replace(/\D/g, '');
 
-        if (cpf && !isValidCPF(cpf)) {
+        if (cpf && !validaCPF(cpf)) {
           e.preventDefault();
           alert('CPF inválido!');
-          return false;
         }
 
-        if (cnpj && !isValidCNPJ(cnpj)) {
+        if (cnpj && !validaCNPJ(cnpj)) {
           e.preventDefault();
           alert('CNPJ inválido!');
-          return false;
-        }
-
-        if (tel && unmask(tel).length !== 11) {
-          e.preventDefault();
-          alert('Telefone inválido! Deve conter 11 dígitos.');
-          return false;
         }
       });
     }
+
+    function validaCPF(cpf) {
+      if (cpf.length !== 11 || /^(\d)\1+$/.test(cpf)) return false;
+      let soma = 0;
+      for (let i = 0; i < 9; i++) soma += parseInt(cpf[i]) * (10 - i);
+      let resto = soma % 11;
+      let dig1 = resto < 2 ? 0 : 11 - resto;
+
+      if (dig1 != parseInt(cpf[9])) return false;
+
+      soma = 0;
+      for (let i = 0; i < 10; i++) soma += parseInt(cpf[i]) * (11 - i);
+      resto = soma % 11;
+      let dig2 = resto < 2 ? 0 : 11 - resto;
+
+      return dig2 == parseInt(cpf[10]);
+    }
+
+    function validaCNPJ(cnpj) {
+      if (cnpj.length !== 14 || /^(\d)\1+$/.test(cnpj)) return false;
+      let t = cnpj.length - 2, d = cnpj.substring(t), n = cnpj.substring(0, t), s = 0, p = t - 7;
+      for (let i = t; i >= 1; i--) {
+        s += n.charAt(t - i) * p--;
+        if (p < 2) p = 9;
+      }
+      let r = s % 11 < 2 ? 0 : 11 - s % 11;
+      if (r != d.charAt(0)) return false;
+
+      t += 1; n = cnpj.substring(0, t); s = 0; p = t - 7;
+      for (let i = t; i >= 1; i--) {
+        s += n.charAt(t - i) * p--;
+        if (p < 2) p = 9;
+      }
+      r = s % 11 < 2 ? 0 : 11 - s % 11;
+      return r == d.charAt(1);
+    }
   });
-  </script>
+</script>
 
 
 {% endblock %}
