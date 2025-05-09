@@ -215,13 +215,14 @@ def init_item_routes(
         if request.method == "POST":
             import json
             from decimal import Decimal, InvalidOperation
+            import re
 
             all_fields = get_all_fields(account_id, field_config_table, "item")
 
             item_data = {
                 "user_id": user_id,
                 "account_id": account_id,
-                "item_id": str(uuid.uuid4()),
+                "item_id": str(uuid.uuid4().hex[:12]),
                 "status": origin_status,
                 "previous_status": request.form.get("status"),
                 "created_at": datetime.datetime.now(
@@ -232,11 +233,10 @@ def init_item_routes(
             image_file = request.files.get("image_file")
             key_values = {}
 
-            import re
-
             for field in all_fields:
                 field_id = field["id"]
                 field_type = field.get("type")
+                is_fixed = field.get("fixed", False)
                 raw_value = request.form.get(field_id, "").strip()
                 value = raw_value
 
@@ -259,21 +259,13 @@ def init_item_routes(
                     elif field_type in ["cpf", "cnpj", "phone"]:
                         value = re.sub(r"\D", "", value)
 
-                    # 🔸 Campo monetário
-                    elif field_type == "value":
-                        try:
-                            value = Decimal(value.replace(".", "").replace(",", "."))
-                        except InvalidOperation:
-                            flash(
-                                f"O campo {field.get('label') or field.get('title')} possui um valor monetário inválido.",
-                                "danger",
-                            )
-                            return redirect(request.url)
-
-                key_values[field_id] = value
+                # Decide onde armazenar
+                if is_fixed:
+                    item_data[field_id] = value
+                else:
+                    key_values[field_id] = value
 
             item_data["key_values"] = key_values
-
             itens_table.put_item(Item=item_data)
 
             flash("Item adicionado com sucesso!", "success")
@@ -302,7 +294,23 @@ def init_item_routes(
             flash("Transação não encontrada.", "danger")
             return redirect(next_page)
 
+        account_id = session.get("account_id")
+        user_id = session.get("user_id")
+        user_utc = get_user_timezone(users_table, user_id)
+
         item_id = transaction.get("item_id")
+        client_id = transaction.get("client_id")
+
+        # Obter item e cliente
+        item = itens_table.get_item(Key={"item_id": item_id}).get("Item", {})
+        client = clients_table.get_item(Key={"client_id": client_id}).get("Item", {})
+
+        # Carregar campos customizados
+        all_fields = (
+            get_all_fields(account_id, field_config_table, entity="transaction")
+            + get_all_fields(account_id, field_config_table, entity="client")
+            + get_all_fields(account_id, field_config_table, entity="item")
+        )
 
         # Obter todas as transações relacionadas ao item, exceto esta
         response = transactions_table.query(
@@ -314,16 +322,17 @@ def init_item_routes(
         reserved_ranges = [
             [tx["rental_date"], tx["return_date"]]
             for tx in response.get("Items", [])
-            if tx.get("status") == "rented"
+            if tx.get("transaction_status") in ["rented", "reserved"]
             and tx.get("transaction_id") != transaction_id
             and tx.get("rental_date")
             and tx.get("return_date")
         ]
 
         if request.method == "POST":
-            # Captura dos dados do formulário
-            valor_str = request.form.get("valor", "").replace(",", ".")
-            pagamento_str = request.form.get("pagamento", "").replace(",", ".")
+            valor_str = request.form.get("valor", "").replace(".", "").replace(",", ".")
+            pagamento_str = (
+                request.form.get("pagamento", "").replace(".", "").replace(",", ".")
+            )
             ret_date = request.form.get("ret_date")
             range_date = request.form.get("range_date")
             rental_str, return_str = range_date.split(" - ")
@@ -353,7 +362,6 @@ def init_item_routes(
             if ret_date:
                 new_data["ret_date"] = ret_date
 
-            # Detectar alterações reais
             changes = {
                 k: v
                 for k, v in new_data.items()
@@ -365,7 +373,6 @@ def init_item_routes(
                 flash("Nenhuma alteração foi feita.", "warning")
                 return redirect(next_page)
 
-            # Atualiza somente os campos alterados
             update_expr = []
             expr_values = {}
 
@@ -382,7 +389,6 @@ def init_item_routes(
             flash("Transação atualizada com sucesso.", "success")
             return redirect(next_page)
 
-        # GET: preparar os dados para o template
         transaction["range_date"] = (
             f"{datetime.datetime.strptime(transaction['rental_date'], '%Y-%m-%d').strftime('%d/%m/%Y')} - "
             f"{datetime.datetime.strptime(transaction['return_date'], '%Y-%m-%d').strftime('%d/%m/%Y')}"
@@ -390,8 +396,12 @@ def init_item_routes(
 
         return render_template(
             "edit_transaction.html",
-            item=transaction,
+            item=item,
+            client=client,
             reserved_ranges=reserved_ranges,
+            all_fields=all_fields,
+            item_editavel=False,
+            client_editavel=False,
         )
 
     ############################################################################################################
@@ -489,8 +499,7 @@ def init_item_routes(
 
         key_values = item.get("key_values", {})
 
-        # Carregar configurações dos campos
-        # Carrega configuração completa (fixos + custom)
+        # Carregar configuração dos campos
         config_response = field_config_table.get_item(
             Key={"account_id": account_id, "entity": "item"}
         )
@@ -498,11 +507,6 @@ def init_item_routes(
 
         all_fields = []
         for field_id, cfg in fields_config_map.items():
-            print(f"Field ID: {field_id}")
-            print(f"CFG: {cfg}")
-            print(f"Label: {cfg.get('label')}")
-            print(f"Title: {cfg.get('title')}")
-
             all_fields.append(
                 {
                     "id": field_id,
@@ -517,73 +521,77 @@ def init_item_routes(
                     ),
                 }
             )
-
         all_fields = sorted(all_fields, key=lambda x: x["order_sequence"])
 
-        # POST: Processa edição
+        # ---------------- POST ----------------
         if request.method == "POST":
             image_file = request.files.get("image_file")
             image_url_field = request.form.get("item_image_url", "").strip()
-            old_image_url = key_values.get("item_image_url", "N/A")
+            old_image_url = item.get("item_image_url") or key_values.get(
+                "item_image_url", "N/A"
+            )
             new_image_url = (
                 "N/A"
                 if image_url_field == "DELETE_IMAGE"
                 else handle_image_upload(image_file, old_image_url)
             )
 
-            from decimal import Decimal, InvalidOperation
-
-            form_keys = set(request.form.keys())
-
             import re
             from decimal import Decimal, InvalidOperation
 
             new_values = {}
+            fixed_updates = {}
+            form_keys = set(request.form.keys())
 
             for field in all_fields:
                 field_id = field["id"]
-                field_type = field.get("type")
+                field_type = field["type"]
                 if field_id not in form_keys:
                     continue
 
                 raw_value = request.form.get(field_id, "").strip()
-                if not raw_value:
-                    continue  # ignora campos vazios
+                if not raw_value and field_type != "item_image_url":
+                    continue  # Ignora campos vazios, exceto imagem
 
                 value = raw_value
 
                 if field_id == "item_image_url":
                     value = new_image_url
 
-                elif field_type in ["valeu", "item_value"]:
+                elif field_type in ["value", "item_value"]:
                     try:
                         value = Decimal(value.replace(".", "").replace(",", "."))
                     except InvalidOperation:
                         flash(
-                            f"O campo {field.get('label') or field.get('title')} possui um número inválido.",
-                            "danger",
+                            f"O campo {field['label']} possui valor inválido.", "danger"
                         )
                         return redirect(request.url)
 
                 elif field_type in ["cpf", "cnpj", "phone"]:
                     value = re.sub(r"\D", "", value)
 
-                new_values[field_id] = value
+                # Separar entre fixo e customizado
+                if field["fixed"]:
+                    fixed_updates[field_id] = value
+                else:
+                    new_values[field_id] = value
 
-            # Detecta alterações
-            old_values = item.get("key_values", {})
-            changes = {
-                f"key_values.{k}": v
-                for k, v in new_values.items()
-                if old_values.get(k) != v
-            }
+            # Verifica alterações
+            changes = {}
+            for k, v in new_values.items():
+                if key_values.get(k) != v:
+                    changes[f"key_values.{k}"] = v
+
+            for k, v in fixed_updates.items():
+                if item.get(k) != v:
+                    changes[k] = v
 
             if not changes:
                 flash("Nenhuma alteração foi feita.", "warning")
                 return redirect(next_page)
 
-            # Backup anterior
-            new_item_id = str(uuid.uuid4())
+            # Backup do item anterior
+            new_item_id = str(uuid.uuid4().hex[:12])
             user_utc = get_user_timezone(users_table, session.get("user_id"))
             edited_date = datetime.datetime.now(user_utc).strftime("%d/%m/%Y %H:%M:%S")
             copied_item = {
@@ -601,7 +609,7 @@ def init_item_routes(
             )
             itens_table.put_item(Item=copied_item)
 
-            # Atualiza principal
+            # Atualiza item principal
             update_expression = []
             expression_values = {}
             for key, value in changes.items():
@@ -617,66 +625,41 @@ def init_item_routes(
             flash("Item atualizado com sucesso.", "success")
             return redirect(next_page)
 
-        # GET: Prepara para o template
-        key_values = item.get("key_values", {})
+        # ---------------- GET ----------------
+        # Prepara dados para o formulário
         prepared = {}
-
         for f in all_fields:
             field_id = f["id"]
-            prepared[field_id] = key_values.get(field_id, "")
+            if f["fixed"]:
+                prepared[field_id] = item.get(field_id, "")
+            else:
+                prepared[field_id] = key_values.get(field_id, "")
 
-        prepared["item_id"] = item.get(
-            "item_id"
-        )  # sempre injeta item_id explicitamente
+        prepared["item_id"] = item["item_id"]
 
         return render_template(
             "edit_item.html", item=prepared, all_fields=all_fields, next=next_page
         )
 
     ##################################################################################################
-    @app.route("/rent/<item_id>", methods=["GET", "POST"])
-    def rent(item_id):
-        if not session.get("logged_in"):
-            return redirect(url_for("login"))
+    @app.route("/rent", methods=["GET", "POST"])
+    def rent():
 
-        account_id = session.get("account_id")
-        user_id = session.get("user_id")
-        user_utc = get_user_timezone(users_table, user_id)
-
-        # 🔧 Carregar campos customizados de todas as entidades
-        all_fields = (
-            get_all_fields(account_id, field_config_table, entity="transaction")
-            + get_all_fields(account_id, field_config_table, entity="client")
-            + get_all_fields(account_id, field_config_table, entity="item")
-        )
-
-        # 🔹 Buscar o item
-        response = itens_table.get_item(Key={"item_id": item_id})
-        item = response.get("Item")
-        if not item:
-            flash("Item não encontrado.", "danger")
-            return redirect(url_for("inventory"))
-
-        # 🔍 Buscar reservas existentes
-        response = transactions_table.query(
-            IndexName="item_id-index",
-            KeyConditionExpression="item_id = :item_id_val",
-            ExpressionAttributeValues={":item_id_val": item_id},
-        )
-        transaction = response.get("Items", [])
-        reserved_ranges = [
-            [tx["rental_date"], tx["return_date"]]
-            for tx in transaction
-            if tx.get("transaction_status") in ["reserved", "rented"]
-            and tx.get("rental_date")
-            and tx.get("return_date")
-        ]
-
-        if request.method == "POST":
+        def processar_transacao(account_id, user_id, user_utc):
             import re
             from decimal import Decimal
 
+            all_fields = (
+                get_all_fields(account_id, field_config_table, entity="transaction")
+                + get_all_fields(account_id, field_config_table, entity="client")
+                + get_all_fields(account_id, field_config_table, entity="item")
+            )
+
             form_data = {}
+            item_id = request.form.get("item_id")
+            client_id = request.form.get("client_id")
+
+            # 🔄 Extrai e normaliza os dados enviados via formulário
             for field in all_fields:
                 field_id = field["id"]
                 field_type = field.get("type")
@@ -687,28 +670,30 @@ def init_item_routes(
 
                 if field_type in ["cpf", "cnpj", "phone"]:
                     value = re.sub(r"\D", "", value)
-                elif field_type == "value":
+                elif field_type in ["item_value", "value", "transaction_value_paid"]:
                     value = value.replace(".", "").replace(",", ".")
                     try:
-                        value = float(value)
-                    except ValueError:
+                        value = Decimal(value)
+                    except InvalidOperation:
                         flash(
                             f"Valor inválido no campo {field.get('label', field_id)}.",
                             "error",
                         )
                         return render_template(
                             "rent.html",
-                            item=item,
-                            reserved_ranges=reserved_ranges,
+                            item={},
+                            reserved_ranges=[],
                             all_fields=all_fields,
+                            cliente_editavel=True,
                         )
 
                 form_data[field_id] = value
 
-            # ⚙️ Processamento especial de datas do calendário
-            range_date = request.form.get("range_date", "")
+            # 📅 Validação e formatação das datas
             try:
-                rental_str, return_str = range_date.split(" - ")
+                rental_str, return_str = request.form.get(
+                    "transaction_period", ""
+                ).split(" - ")
                 rental_date = datetime.datetime.strptime(
                     rental_str.strip(), "%d/%m/%Y"
                 ).strftime("%Y-%m-%d")
@@ -719,44 +704,80 @@ def init_item_routes(
                 flash("Formato de data inválido. Use DD/MM/AAAA.", "danger")
                 return render_template(
                     "rent.html",
-                    item=item,
-                    reserved_ranges=reserved_ranges,
+                    item={},
+                    reserved_ranges=[],
                     all_fields=all_fields,
+                    cliente_editavel=True,
                 )
 
-            # 🔄 Verifica ou cria client_id
+            # 👤 Cliente: criar novo ou usar existente
             client_name = request.form.get("client_name", "").strip()
-            client_id = request.form.get("client_id")
             if not client_id:
-                response = clients_table.query(
-                    IndexName="client_name-index",
-                    KeyConditionExpression="#cn = :client_name_val",
-                    ExpressionAttributeNames={"#cn": "client_name"},
-                    ExpressionAttributeValues={":client_name_val": client_name},
-                )
-                existing_clients = response.get("Items", [])
-                if existing_clients:
-                    client_id = existing_clients[0]["client_id"]
-                else:
-                    client_id = str(uuid.uuid4())
-                    clients_table.put_item(
-                        Item={
-                            "client_id": client_id,
-                            "account_id": account_id,
-                            "client_name": client_name,
-                            "created_at": datetime.datetime.now(user_utc).strftime(
-                                "%Y-%m-%d %H:%M:%S"
-                            ),
-                        }
-                        | {
+                client_id = str(uuid.uuid4().hex[:12])
+                clients_table.put_item(
+                    Item={
+                        "client_id": client_id,
+                        "account_id": account_id,
+                        "client_name": client_name,
+                        "created_at": datetime.datetime.now(user_utc).strftime(
+                            "%Y-%m-%d %H:%M:%S"
+                        ),
+                        **{
                             k: v
                             for k, v in form_data.items()
                             if k.startswith("client_")
-                        }
+                        },
+                    }
+                )
+
+            else:
+                # Atualiza cliente existente
+                update_data = {
+                    k: v for k, v in form_data.items() if k.startswith("client_")
+                }
+                if update_data:
+                    clients_table.update_item(
+                        Key={"client_id": client_id},
+                        UpdateExpression="SET "
+                        + ", ".join(f"#{k}=:{k}" for k in update_data),
+                        ExpressionAttributeNames={f"#{k}": k for k in update_data},
+                        ExpressionAttributeValues={
+                            f":{k}": v for k, v in update_data.items()
+                        },
                     )
 
-            # 🎯 Preenche campos fixos e identificadores
-            transaction_id = str(uuid.uuid4())
+            # 📦 Item: criar novo ou usar existente
+            if not item_id or item_id == "new":
+                item_id = str(uuid.uuid4().hex[:12])
+                item = {
+                    "item_id": item_id,
+                    "account_id": account_id,
+                    "created_at": datetime.datetime.now(user_utc).strftime(
+                        "%Y-%m-%d %H:%M:%S"
+                    ),
+                    **{k: v for k, v in form_data.items() if k.startswith("item_")},
+                }
+                itens_table.put_item(Item=item)
+            else:
+                # Atualiza item existente
+                update_data = {
+                    k: v for k, v in form_data.items() if k.startswith("item_")
+                }
+                if update_data:
+                    itens_table.update_item(
+                        Key={"item_id": item_id},
+                        UpdateExpression="SET "
+                        + ", ".join(f"#{k}=:{k}" for k in update_data),
+                        ExpressionAttributeNames={f"#{k}": k for k in update_data},
+                        ExpressionAttributeValues={
+                            f":{k}": v for k, v in update_data.items()
+                        },
+                    )
+                response = itens_table.get_item(Key={"item_id": item_id})
+                item = response.get("Item") or {}
+
+            # 💾 Cria transação
+            transaction_id = str(uuid.uuid4().hex[:12])
             transaction_item = {
                 "transaction_id": transaction_id,
                 "account_id": account_id,
@@ -769,12 +790,10 @@ def init_item_routes(
                 ),
             }
 
-            # 🔗 Campos herdados do item
             for key in ["item_custom_id", "item_obs", "description", "image_url"]:
-                if key in item:
+                if item and key in item:
                     transaction_item[key] = item[key]
 
-            # 🔀 Juntar campos do formulário
             transaction_item.update(form_data)
 
             try:
@@ -788,13 +807,72 @@ def init_item_routes(
                 return redirect(url_for("all_transactions"))
             except Exception as e:
                 flash("Erro ao salvar transação. Tente novamente.", "danger")
-                print("Erro ao salvar:", e)
+                print("Erro ao salvar transação:", e)
+                return render_template(
+                    "rent.html",
+                    item=item,
+                    reserved_ranges=[],
+                    all_fields=all_fields,
+                    cliente_editavel=True,
+                )
+
+                ################################################################################################################
+
+        if not session.get("logged_in"):
+            return redirect(url_for("login"))
+
+        account_id = session.get("account_id")
+        user_id = session.get("user_id")
+        user_utc = get_user_timezone(users_table, user_id)
+
+        if request.method == "POST":
+            return processar_transacao(account_id, user_id, user_utc)
+
+        # --- GET: renderiza tela de nova transação ---
+        item_id = request.args.get("item_id")
+        client_id = request.args.get("client_id")
+
+        item = {}
+        client = {}
+        reserved_ranges = []
+
+        if item_id:
+            response = itens_table.get_item(Key={"item_id": item_id})
+            item = response.get("Item") or {}
+
+            # 🔍 Buscar reservas existentes
+            response = transactions_table.query(
+                IndexName="item_id-index",
+                KeyConditionExpression="item_id = :item_id_val",
+                ExpressionAttributeValues={":item_id_val": item_id},
+            )
+            transaction = response.get("Items", [])
+            reserved_ranges = [
+                [tx["rental_date"], tx["return_date"]]
+                for tx in transaction
+                if tx.get("transaction_status") in ["reserved", "rented"]
+                and tx.get("rental_date")
+                and tx.get("return_date")
+            ]
+
+        if client_id:
+            response = clients_table.get_item(Key={"client_id": client_id})
+            client = response.get("Item") or {}
+
+        all_fields = (
+            get_all_fields(account_id, field_config_table, entity="transaction")
+            + get_all_fields(account_id, field_config_table, entity="client")
+            + get_all_fields(account_id, field_config_table, entity="item")
+        )
 
         return render_template(
             "rent.html",
             item=item,
+            client=client,
             reserved_ranges=reserved_ranges,
             all_fields=all_fields,
+            item_editavel=not bool(item_id),
+            client_editavel=not bool(client_id),
         )
 
     ###########################################################################################################
@@ -1723,7 +1801,10 @@ def init_item_routes(
                 )
 
                 i += 1
-
+            print("RRRRRRRRFFFFFFFFFFFFF")
+            print(request.form)
+            print("AFTER")
+            print(fields)
             # IDs ordenados
             ordered_ids = request.form.get("ordered_ids", "[]")
             try:
@@ -1799,7 +1880,9 @@ def init_item_routes(
                     "filterable": filterable,
                     "preview": preview,
                     "f_type": f_type,
-                    "options": options if type_ == "dropdown" else [],
+                    "options": (
+                        options if type_ in ["dropdown", "transaction_status"] else []
+                    ),
                     "order_sequence": order,
                 }
 
@@ -1902,7 +1985,9 @@ def init_item_routes(
                     "f_type": cfg.get("f_type", "custom"),
                     "fixed": cfg.get("f_type") == "fixed",
                     "options": (
-                        cfg.get("options", []) if cfg.get("type") == "dropdown" else []
+                        cfg.get("options", [])
+                        if cfg.get("type") in ["dropdown", "transaction_status"]
+                        else []
                     ),
                 }
             )

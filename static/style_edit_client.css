@@ -158,3 +158,17 @@ button[type='submit'] {
 button[type='submit']:hover {
   background-color: #218838;
 }
+
+.exit-link {
+  color: #6c757d;
+  text-decoration: none;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  transition: color 0.2s ease;
+}
+
+.exit-link:hover {
+  color: #dc3545; /* vermelho suave ao passar o mouse */
+  text-decoration: underline;
+}

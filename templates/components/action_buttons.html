@@ -1,167 +1,206 @@
-<!-- Action Buttons Component -->
-<div class="dropdown dropend">
-  <button class="btn btn-primary dropdown-toggle btn-sm w-100" type="button" data-bs-toggle="dropdown" aria-expanded="false">Ações</button>
-  <ul class="dropdown-menu dropdown-menu-end">
-    <!-- 🟩 AÇÕES PRINCIPAIS -->
-    {% if show_rent %}
-    <li>
-      <a
-        class="dropdown-item text-success"
-        href="{{ url_for('rent', item_id=item.item_id, rent='true') }}"
-        onclick="return checkTransactionLimit(event);"
-      >
-        Iniciar transação
-      </a>
-    </li>
-    {% endif %} {% if show_mark_rented %}
-    <li>
-      <a
-        href="#"
-        class="dropdown-item text-success"
-        title="Retirar"
-        onclick="confirmarAcao('{{ url_for('mark_rented', transaction_id=item.transaction_id, next=request.url) }}'); return false;"
-      >
-        Marcar como retirado
-      </a>
-    </li>
-    {% endif %} {% if show_mark_returned %}
-    <li>
-      <a
-        class="dropdown-item text-success"
-        href="{{ url_for('mark_returned', transaction_id=item.transaction_id, next=request.url) }}"
-        onclick="return confirm('Tem certeza de que deseja marcar este item como devolvido?');"
-      >
-        Marcar como devolvido
-      </a>
-    </li>
-    {% endif %}
 
-    <!-- ✏️ EDIÇÃO -->
-    {% if show_edit_transaction %}
-    <li>
-      <a class="dropdown-item" href="{{ url_for('edit_transaction', transaction_id=item.transaction_id, next=request.url) }}">Editar transação</a>
-    </li>
-    {% endif %} {% if show_edit_item %}
-    <li>
-      <a class="dropdown-item" href="{{ url_for('edit_item', item_id=item.item_id, next=request.url) }}">Editar item</a>
-    </li>
-    {% endif %} {% if show_edit_client %}
-    <li>
-      <a
-        class="dropdown-item"
-        href="{{ url_for('editar_cliente', client_id=(cliente.client_id if cliente is defined else item.client_id), next=request.url) }}"
-      >
-        Editar cliente
-      </a>
-    </li>
-    {% endif %}
+<!-- Action Buttons Component (somente o conteúdo da dropdown) -->
+<ul class="dropdown-menu dropdown-menu-end">
+  {% if show_mark_rented %}
+  <li>
+    <a
+      href="#"
+      class="dropdown-item text-success"
+      title="Retirar"
+      onclick="confirmarAcao('{{ url_for('mark_rented', transaction_id=item.transaction_id, next=request.url) }}'); return false;"
+    >
+      <i class="fas fa-truck me-2"></i>
+      Marcar como retirado
+    </a>
+  </li>
+  {% endif %}
 
-    <!-- 🔎 VISUALIZAÇÃO -->
-    {% if show_item %}
-    <li><a class="dropdown-item" href="{{ url_for('listar_clientes') }}?client_id={{ item.client_id }}">Ver cliente</a></li>
-    {% endif %} {% if show_client %}
-    <li><a class="dropdown-item" href="{{ url_for('inventory') }}?item_id={{ item.item_id }}">Ver item</a></li>
-    {% endif %} {% if show_client_transactions %}
-    <li><a class="dropdown-item" href="{{ url_for('client_transactions', client_id=item.client_id) }}">Transações do cliente</a></li>
-    {% endif %} {% if show_item_transactions %}
-    <li><a class="dropdown-item" href="{{ url_for('all_transactions') }}?item_id={{ item.item_id }}">Transações com o item</a></li>
-    {% endif %} {% if show_consult or show_ver_reservas %}
-    <li><a class="dropdown-item" href="{{ url_for('view_calendar', item_id=item.item_id, next=request.url) }}">Ver reservas do item</a></li>
-    {% endif %}
+  {% if show_mark_returned %}
+  <li>
+    <a
+      class="dropdown-item text-success"
+      href="{{ url_for('mark_returned', transaction_id=item.transaction_id, next=request.url) }}"
+      onclick="return confirm('Tem certeza de que deseja marcar este item como devolvido?');"
+    >
+      <i class="fas fa-undo-alt me-2"></i>
+      Marcar como devolvido
+    </a>
+  </li>
+  {% endif %}
 
-    <!-- 🧾 GERAÇÃO / IMPRESSÃO -->
-    {% if show_print %}
-    <li>
-      <button class="dropdown-item" data-bs-toggle="modal" data-bs-target="#modalModelo" onclick="abrirModalModelo('{{ item.transaction_id }}')">
-        Gerar Documento
+  {% if show_edit_transaction %}
+  <li>
+    <a class="dropdown-item" href="{{ url_for('edit_transaction', transaction_id=item.transaction_id, next=request.url) }}">
+      <i class="fas fa-pen-to-square me-2"></i>
+      Editar transação
+    </a>
+  </li>
+  {% endif %}
+
+  {% if show_edit_item %}
+  <li>
+    <a class="dropdown-item" href="{{ url_for('edit_item', item_id=item.item_id, next=request.url) }}">
+      <i class="fas fa-box-open me-2"></i>
+      Editar item
+    </a>
+  </li>
+  {% endif %}
+
+  {% if show_edit_client %}
+  <li>
+    <a class="dropdown-item" href="{{ url_for('editar_cliente', client_id=(cliente.client_id if cliente is defined else item.client_id), next=request.url) }}">
+      <i class="fas fa-user-edit me-2"></i>
+      Editar cliente
+    </a>
+  </li>
+  {% endif %}
+
+  {% if show_rent %}
+  <li>
+    <a class="dropdown-item text-success" href="{{ url_for('rent') }}?item_id={{ item.item_id }}&rent=true" onclick="return checkTransactionLimit(event);">
+      <i class="fas fa-play-circle me-2"></i>
+      Iniciar transação
+    </a>
+  </li>
+  {% elif start_transaction_client %}
+  <li>
+    <a class="dropdown-item text-success" href="{{ url_for('rent') }}?client_id={{ cliente.client_id if cliente is defined else item.client_id }}&rent=true">
+      <i class="fas fa-play-circle me-2"></i>
+      Iniciar transação
+    </a>
+  </li>
+  {% endif %}
+
+  {% if show_item %}
+  <li>
+    <a class="dropdown-item" href="{{ url_for('listar_clientes') }}?client_id={{ item.client_id }}">
+      <i class="fas fa-eye me-2"></i>
+      Ver cliente
+    </a>
+  </li>
+  {% endif %}
+
+  {% if show_client %}
+  <li>
+    <a class="dropdown-item" href="{{ url_for('inventory') }}?item_id={{ item.item_id }}">
+      <i class="fas fa-eye me-2"></i>
+      Ver item
+    </a>
+  </li>
+  {% endif %}
+
+  {% if show_client_transactions %}
+  <li>
+    <a class="dropdown-item" href="{{ url_for('client_transactions', client_id=item.client_id) }}">
+      <i class="fas fa-list me-2"></i>
+      Transações do cliente
+    </a>
+  </li>
+  {% endif %}
+
+  {% if show_item_transactions %}
+  <li>
+    <a class="dropdown-item" href="{{ url_for('all_transactions') }}?item_id={{ item.item_id }}">
+      <i class="fas fa-list me-2"></i>
+      Transações com o item
+    </a>
+  </li>
+  {% endif %}
+
+  {% if show_consult or show_ver_reservas %}
+  <li>
+    <a class="dropdown-item" href="{{ url_for('view_calendar', item_id=item.item_id, next=request.url) }}">
+      <i class="fas fa-calendar-alt me-2"></i>
+      Ver reservas do item
+    </a>
+  </li>
+  {% endif %}
+
+  {% if show_print %}
+  <li>
+    <button class="dropdown-item" data-bs-toggle="modal" data-bs-target="#modalModelo" onclick="abrirModalModelo('{{ item.transaction_id }}')">
+      <i class="fas fa-file-lines me-2"></i>
+      Gerar Documento
+    </button>
+  </li>
+  {% endif %}
+
+  {% if show_qrcode %}
+  <li>
+    <button class="dropdown-item" data-bs-toggle="modal" data-bs-target="#qrModal" onclick="abrirModalQR('{{ item.item_id }}')">
+      <i class="fas fa-qrcode me-2"></i>
+      Imprimir QR Code
+    </button>
+  </li>
+  {% endif %}
+
+  {% if show_share %}
+  <li>
+    <a class="dropdown-item" href="#" onclick="copiarLinkCompartilhamento('{{ url_for('ver_item_publico', item_id=item.item_id, _external=True) }}'); return false;">
+      <i class="fas fa-share-alt me-2"></i>
+      Compartilhar link
+    </a>
+  </li>
+  {% endif %}
+
+  {% if show_archive %}
+  <li>
+    <a class="dropdown-item" href="{{ url_for('mark_archived', item_id=item.item_id, next=request.url) }}" onclick="return confirm('Tem certeza de que deseja arquivar este item?');">
+      <i class="fas fa-box-archive me-2"></i>
+      Arquivar item
+    </a>
+  </li>
+  {% endif %}
+
+  {% if show_restore %}
+  <li>
+    <a class="dropdown-item text-success" href="{{ url_for('restore_item', item_id=item.item_id, next=request.url) }}" onclick="return confirm('Tem certeza de que deseja restaurar este item?');">
+      <i class="fas fa-box-open me-2"></i>
+      Restaurar
+    </a>
+  </li>
+  {% endif %}
+
+  {% if show_mark_available %}
+  <li>
+    <a class="dropdown-item" href="{{ url_for('mark_available', item_id=item.item_id, next=request.url) }}" onclick="return confirm('Tem certeza que deseja tornar este item disponível novamente?');">
+      <i class="fas fa-check-circle me-2"></i>
+      Disponibilizar item
+    </a>
+  </li>
+  {% endif %}
+
+  {% if show_delete_item %}
+  <li>
+    <form method="POST" action="{{ url_for('delete', item_id=item.item_id, next=request.url) }}" style="display: inline">
+      <button type="submit" class="dropdown-item text-danger" onclick="return confirm('Tem certeza de que deseja deletar este item?');">
+        <i class="fas fa-trash me-2"></i>
+        Deletar item
       </button>
-    </li>
-    {% endif %} {% if show_qrcode %}
-    <li>
-      <button class="dropdown-item" data-bs-toggle="modal" data-bs-target="#qrModal" onclick="abrirModalQR('{{ item.item_id }}')">
-        Imprimir QR Code
+    </form>
+  </li>
+  {% endif %}
+
+  {% if show_delete_client %}
+  <li>
+    <form method="POST" action="{{ url_for('deletar_cliente', client_id=item.client_id) }}" onsubmit="return confirm('Tem certeza que deseja deletar este cliente? Esta ação não poderá ser desfeita.');" style="display: inline">
+      <button type="submit" class="dropdown-item text-danger" title="Deletar">
+        <i class="fas fa-trash me-2"></i>
+        Deletar cliente
       </button>
-    </li>
-    {% endif %} {% if show_share %}
-    <li>
-      <a
-        class="dropdown-item"
-        href="#"
-        onclick="copiarLinkCompartilhamento('{{ url_for('ver_item_publico', item_id=item.item_id, _external=True) }}'); return false;"
-      >
-        Compartilhar link
-      </a>
-    </li>
-    {% endif %}
+    </form>
+  </li>
+  {% endif %}
 
-    <!-- 📦 STATUS / GESTÃO -->
-    {% if show_archive %}
-    <li>
-      <a
-        class="dropdown-item"
-        href="{{ url_for('mark_archived', item_id=item.item_id, next=request.url) }}"
-        onclick="return confirm('Tem certeza de que deseja arquivar este item?');"
-      >
-        Arquivar item
-      </a>
-    </li>
-    {% endif %} {% if show_restore %}
-    <li>
-      <a
-        class="dropdown-item text-success"
-        href="{{ url_for('restore_item', item_id=item.item_id, next=request.url) }}"
-        onclick="return confirm('Tem certeza de que deseja restaurar este item?');"
-      >
-        Restaurar
-      </a>
-    </li>
-    {% endif %} {% if show_mark_available %}
-    <li>
-      <a
-        href="{{ url_for('mark_available', item_id=item.item_id, next=request.url) }}"
-        class="dropdown-item"
-        onclick="return confirm('Tem certeza que deseja tornar este item disponível novamente?');"
-      >
-        Disponibilizar item
-      </a>
-    </li>
-    {% endif %}
-
-    <!-- 🗑️ EXCLUSÃO -->
-    {% if show_delete_item %}
-    <li>
-      <form method="POST" action="{{ url_for('delete', item_id=item.item_id, next=request.url) }}" style="display: inline">
-        <button type="submit" class="dropdown-item text-danger" onclick="return confirm('Tem certeza de que deseja deletar este item?');">
-          Deletar item
-        </button>
-      </form>
-    </li>
-    {% endif %} {% if show_delete_client %}
-    <li>
-      <form
-        method="POST"
-        action="{{ url_for('deletar_cliente', client_id=item.client_id) }}"
-        onsubmit="return confirm('Tem certeza que deseja deletar este cliente? Esta ação não poderá ser desfeita.');"
-        style="display: inline"
-      >
-        <button type="submit" class="dropdown-item text-danger" title="Deletar">
-          <i class="fas fa-trash"></i>
-          Deletar cliente
-        </button>
-      </form>
-    </li>
-    {% endif %} {% if show_delete_transaction %}
-    <li>
-      <a
-        class="dropdown-item text-danger"
-        href="{{ url_for('delete_transaction', transaction_id=item.transaction_id, next=request.url) }}"
-        onclick="return confirm('Tem certeza de que deseja deletar esta transação?');"
-      >
-        Deletar transação
-      </a>
-    </li>
-    {% endif %}
-  </ul>
+  {% if show_delete_transaction %}
+  <li>
+    <a class="dropdown-item text-danger" href="{{ url_for('delete_transaction', transaction_id=item.transaction_id, next=request.url) }}" onclick="return confirm('Tem certeza de que deseja deletar esta transação?');">
+      <i class="fas fa-trash me-2"></i>
+      Deletar transação
+    </a>
+  </li>
+  {% endif %}
+</ul>
 
   <!-- Modal para Seleção do Modelo -->
   <div class="modal fade" id="modalModelo" tabindex="-1" aria-labelledby="modalModeloLabel" aria-hidden="true">

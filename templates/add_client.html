@@ -61,6 +61,23 @@
               <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
                 value="{{ client.get(field.id, '') }}" {% if field.required %}required{% endif %} />
 
+                {% elif field.type == "text" %}
+                <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+                  value="{{ client.get(field.id, '') }}" {% if field.required %}required{% endif %} />
+
+                  {% elif field.type == 'value' %}
+                  <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+                    value="{{ client.get(field.id, '') }}" {% if field.required %}required{% endif %} />
+
+
+              {% elif field.type == 'number' %}
+                <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+                  value="{{ client.get(field.id, '') }}" {% if field.required %}required{% endif %} />
+
+              {% elif field.type == 'date' %}
+                <input type="date" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+                  value="{{ client.get(field.id, '') }}" {% if field.required %}required{% endif %} />
+
 
           {% elif field.type == 'dropdown' %}
             <select class="form-select" id="{{ field.id }}" name="{{ field.id }}" {% if field.required %}required{% endif %}>

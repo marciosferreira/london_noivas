@@ -1,9 +1,15 @@
-
+{% set readonly = not item_editavel %}
 <div id="tab-cliente" class="tab-content active">
-  <form>
 
-    {{all_fields}}
-    <div class="row row-cols-1 row-cols-md-3 g-4">
+  <input type="hidden" id="item_id" name="item_id" value="{{ item.get('item_id', '') }}">
+
+
+
+
+
+
+
+{{item}}    <div class="row row-cols-1 row-cols-md-3 g-4">
       {% for field in all_fields if field.id.startswith("item_") and field.visible %}
       <div class="col d-flex">
         <div class="bg-light shadow-sm rounded p-3 border w-100 h-100 d-flex flex-column justify-content-center">
@@ -11,69 +17,61 @@
             {{ field.label if field.fixed else field.title }}{% if field.required %} *{% endif %}
           </label>
 
-          {% if field.type == "text" %}
-            <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
-              value="{{ item.get(field.id, '') }}" {% if field.required %}required{% endif %} />
+          {% set value = item.get(field.id, '') %}
 
-              {% elif field.type == 'value' %}
+          {% if field.type in ["text", "date", "item_obs"] %}
+            <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+              value="{{ value }}" {% if field.required %}required{% endif %} {% if readonly %}readonly{% endif %} />
+
+              {% elif field.type in ["value", "number", "item_value"] %}
               <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
-                value="{{ item.get(field.id, '') }}" {% if field.required %}required{% endif %} />
+                value="{{ value }}" {% if field.required %}required{% endif %} {% if readonly %}readonly{% endif %} />
 
-
-          {% elif field.type == 'number' %}
-            <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
-              value="{{ item.get(field.id, '') }}" {% if field.required %}required{% endif %} />
-
-          {% elif field.type == 'date' %}
-            <input type="date" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
-              value="{{ item.get(field.id, '') }}" {% if field.required %}required{% endif %} />
-
-          {% elif field.type == 'dropdown' %}
-            <select class="form-select" id="{{ field.id }}" name="{{ field.id }}" {% if field.required %}required{% endif %}>
+          {% elif field.type == "dropdown" %}
+            <select class="form-select" id="{{ field.id }}" name="{{ field.id }}" {% if field.required %}required{% endif %} {% if readonly %}disabled{% endif %}>
               <option value="">Selecione</option>
               {% for option in field.options %}
-                <option value="{{ option }}" {% if item.get(field.id) == option %}selected{% endif %}>{{ option }}</option>
+                <option value="{{ option }}" {% if value == option %}selected{% endif %}>{{ option }}</option>
               {% endfor %}
             </select>
 
-          {% elif field.type == 'item_image_url' %}
+          {% elif field.type == "item_image_url" %}
             <div class="text-center mb-2">
               <img id="item-image"
-                   src="{{ item.item_image_url if item.item_image_url and item.item_image_url != 'N/A' else url_for('static', filename='item-placeholder.png') }}"
+                   src="{{ value if value and value != 'N/A' else url_for('static', filename='item-placeholder.png') }}"
                    style="max-width: 150px;" />
+              {% if not readonly %}
               <input type="text" name="item_image_url" id="image-url-input"
-                     value="{{ item.item_image_url if item.item_image_url != 'N/A' else '' }}"
+                     value="{{ value if value != 'N/A' else '' }}"
                      style="opacity: 0; position: absolute; left: -9999px" />
               <button type="button" onclick="removeImage()" id="remove-btn"
                       class="btn btn-outline-danger btn-sm mt-2"
-                      style="{{ 'display: block;' if item.item_image_url and item.item_image_url != 'N/A' else 'display: none;' }}">
+                      style="{{ 'display: block;' if value and value != 'N/A' else 'display: none;' }}">
                 Excluir imagem
               </button>
+              <input type="file" class="form-control" id="image_file" name="image_file"
+                {% if field.required %}data-required="true"{% endif %} />
+              {% endif %}
             </div>
-            <input type="file" class="form-control" id="image_file" name="image_file"
-              {% if field.required %}data-required="true"{% endif %} />
 
-
-              {% elif field.type == "item_custom_id" %}
-              <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
-                value="{{ item.get(field.id, '') }}" {% if field.required %}required{% endif %} />
-
-                {% elif field.type == "item_description" %}
-              <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
-                value="{{ item.get(field.id, '') }}" {% if field.required %}required{% endif %} />
-
-                {% elif field.type == "item_obs" %}
-                <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
-                  value="{{ item.get(field.id, '') }}" {% if field.required %}required{% endif %} />
-
-                  {% elif field.type == "item_value" %}
-                  <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
-                    value="{{ item.get(field.id, '') }}" {% if field.required %}required{% endif %} />
-
-
+          {% elif field.type in ["item_custom_id", "item_description"] %}
+            <div class="autocomplete-wrapper position-relative w-100">
+              <input type="text"
+                     class="form-control"
+                     id="{{ field.id }}"
+                     name="{{ field.id }}"
+                     value="{{ value }}"
+                     autocomplete="off"
+                     {% if field.required %}required{% endif %} {% if readonly %}readonly{% endif %} />
+              <div id="{{ field.id }}_status" class="status-message mt-1" style="display: none;"></div>
+              <div id="{{ field.id }}_suggestions" class="autocomplete-box position-absolute w-100 bg-white border rounded shadow-sm z-3"></div>
+            </div>
 
           {% endif %}
         </div>
       </div>
       {% endfor %}
     </div>
+</div>
+
+

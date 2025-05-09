@@ -1,8 +1,7 @@
 
 <div id="tab-cliente" class="tab-content active">
-  <form>
 
-    {{all_fields}}
+    {{item}}
     <div class="row row-cols-1 row-cols-md-3 g-4">
       {% for field in all_fields if field.id.startswith("transaction_") and field.visible and field.type != "transaction_price" %}
       <div class="col d-flex">
@@ -36,7 +35,7 @@
                 value="{{ value }}" {% if field.required %}required{% endif %} />
 
                 {% elif field.type == 'transaction_value_paid' %}
-                <input type="number" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+                <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
                   value="{{ value }}" {% if field.required %}required{% endif %} />
 
                   {% elif field.type == 'transaction_period' %}
@@ -76,5 +75,4 @@
       </div>
       {% endfor %}
     </div>
-  </form>
 </div>

@@ -4,8 +4,10 @@
 <div class="container py-4">
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h1 class="mb-0">Editar Cliente</h1>
-    <a href="{{ next or url_for('listar_clientes') }}" class="cancel-link">Cancelar</a>
-  </div>
+    <a href="{{ url_for('listar_clientes') }}" class="exit-link">
+      <i class="fas fa-sign-out-alt me-2"></i>
+      Sair sem Finalizar
+    </a>  </div>
   <div class="alert alert-primary d-flex justify-content-between align-items-center" role="alert">
     <div>
       Dica: Acesse <a href="/custom_fields/item" class="alert-link">Customizar Campos</a> para criar novos ou ajustar os existentes.
@@ -21,7 +23,7 @@
       <div class="col d-flex">
         <div class="bg-light shadow-sm rounded p-3 border w-100 h-100 d-flex flex-column justify-content-center">
           <label for="{{ field.id }}" class="form-label fw-semibold">
-            {{ field.label if field.fixed else field.title }}{% if field.required %} *{% endif %}
+            {{ field.label }}{% if field.required %} *{% endif %}
           </label>
 
           {% if field.type == 'client_phone' %}
@@ -55,6 +57,23 @@
               {% elif field.type == 'client_notes' %}
               <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
                 value="{{ client.get(field.id, '') }}" {% if field.required %}required{% endif %} />
+
+                {% elif field.type == "text" %}
+                <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+                  value="{{ client.get(field.id, '') }}" {% if field.required %}required{% endif %} />
+
+                  {% elif field.type == 'value' %}
+                  <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+                    value="{{ client.get(field.id, '') }}" {% if field.required %}required{% endif %} />
+
+
+              {% elif field.type == 'number' %}
+                <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+                  value="{{ client.get(field.id, '') }}" {% if field.required %}required{% endif %} />
+
+              {% elif field.type == 'date' %}
+                <input type="date" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+                  value="{{ client.get(field.id, '') }}" {% if field.required %}required{% endif %} />
 
 
           {% elif field.type == 'dropdown' %}

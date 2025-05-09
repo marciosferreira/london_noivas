@@ -62,7 +62,7 @@
           <th>Preço (R$)</th>
           <th>Pago (R$)</th>
           <th>Observações</th>
-          <th></th>
+          <th>Ações</th>
         </tr>
       </thead>
       <tbody>
@@ -74,24 +74,32 @@
 
           <td data-label="Imagem">
             {% if item.image_url and item.image_url != "N/A" %}
-            <img src="{{ item.image_url }}" alt="Imagem do item" class="img-fluid item-thumbnail" style="max-width: 100px; cursor: pointer" />
+              <img
+                src="{{ item.image_url }}"
+                alt="Imagem do item"
+                class="img-fluid item-thumbnail"
+                style="max-width: 100px; cursor: pointer"
+                onclick="mostrarImagemModal('{{ item.image_url }}')"
+              />
             {% else %}
-            <img
-              src="{{ url_for('static', filename='item-placeholder.png') }}"
-              alt="Sem Imagem"
-              class="img-fluid item-thumbnail"
-              style="max-width: 100px; cursor: pointer"
-            />
+              <img
+                src="{{ url_for('static', filename='item-placeholder.png') }}"
+                alt="Sem Imagem"
+                class="img-fluid item-thumbnail"
+                style="max-width: 100px; cursor: pointer"
+                onclick="mostrarImagemModal('{{ url_for('static', filename='item-placeholder.png') }}')"
+              />
             {% endif %}
           </td>
+
           <!-- prettier-ignore -->
-          <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Cliente">
+          <td data-item='{{ item | tojson | safe }}' data-label="Cliente">
             {{ item.client_name | default('', true) | truncate(10, True) }}
           </td>
 
           <!-- prettier-ignore -->
 
-          <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Retirada P.">
+          <td data-item='{{ item | tojson | safe }}' data-label="Retirada P.">
             <div class="rental-date">{{ item.rental_date_formatted }}</div>
             {% if item.rental_message %}
               <div class="rental-message mt-1 {{ item.rental_message_color }}">
@@ -102,7 +110,7 @@
           <!-- prettier-ignore -->
 
           <!-- prettier-ignore -->
-          <td class="open-modal position-relative" data-item='{{ item | tojson | safe }}' data-label="Devolução P.">
+          <td data-item='{{ item | tojson | safe }}' data-label="Devolução P.">
             <div class="return-date">{{ item.return_date_formatted }}</div>
 
             {% if item.overdue == True %}
@@ -115,20 +123,27 @@
             {% endif %}
           </td>
 
-
+{{item}}
 
           <!-- prettier-ignore -->
-          <td class="open-modal position-relative" data-item='{{ item | tojson | safe }}' data-label="Preço (R$)">
-            {{ item.valor | round(2) | string | replace('.', ',') }}
+          <td  data-item='{{ item | tojson | safe }}' data-label="Preço (R$)">
+            {% if item.item_value is defined and item.item_value is not none %}
+  {{ item.item_value | round(2) | string | replace('.', ',') }}
+{% else %}
+  sem valor
+{% endif %}
           </td>
 
           <!-- prettier-ignore -->
-          <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Pagamento">
-            {{ item.pagamento | round(2) | string | replace('.', ',') }}
-
-            {% if item.pagamento and item.valor %}
-              {% set pagamento_float = item.pagamento | float %}
-              {% set valor_float = item.valor | float %}
+          <td data-item='{{ item | tojson | safe }}' data-label="Pagamento">
+            {% if item.transaction_value_paid is defined and item.transaction_value_paid is not none %}
+            {{ item.transaction_value_paid | round(2) | string | replace('.', ',') }}
+          {% else %}
+            sem valor
+          {% endif %}
+            {% if item.transaction_value_paid and item.item_value %}
+              {% set pagamento_float = item.transaction_value_paid | float %}
+              {% set valor_float = item.item_value | float %}
               {% if pagamento_float == valor_float %}
                 <br>(Pagamento Total)
               {% elif pagamento_float > 0 and pagamento_float < valor_float %}
@@ -142,28 +157,120 @@
           </td>
 
           <!-- prettier-ignore -->
-          <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Observações">
+          <td data-item='{{ item | tojson | safe }}' data-label="Observações">
             {{ item.item_obs | default('', true) | truncate(10, True) }}
           </td>
 
-          <!--botoes de açao -->
+
+
+
           <td data-label="Ações">
-            <div class="d-flex flex-wrap gap-2 justify-content-center align-items-center">
-              {% set show_delete_transaction = True %} {% set show_edit_transaction = True %} {% set show_ver_reservas = True %} {% if
-              item.transaction_status == 'reserved' %} {% set show_mark_rented = True %} {% set show_mark_returned = False %} {% elif
-              item.transaction_status == 'rented' %} {% set show_mark_rented = False %} {% set show_mark_returned = True %} {% else %} {% set
-              show_mark_rented = False %} {% set show_mark_returned = False %} {% endif %} {% set show_print = True %} {% set show_item = True %} {%
-              set show_client = True %} {% set show_item_transactions = True %} {% set show_client_transactions = True %}{% include
-              'components/action_buttons.html' with context %}
+            <div class="d-flex align-items-center gap-2">
+              <!-- Botão de ações com dropdown -->
+
+              <div class="position-relative d-flex gap-2 justify-content-center align-items-center">
+                <!-- Botão de ações -->
+                <button
+                  class="btn btn-outline-secondary btn-sm dropdown-toggle"
+                  type="button"
+                  id="dropdownMenuButton{{ loop.index }}"
+                  data-bs-toggle="dropdown"
+                  aria-expanded="false"
+                  title="Mais ações"
+                >
+                  <i class="fas fa-ellipsis-v"></i>
+                </button>
+
+                {% set show_delete_transaction = True %} {% set show_edit_transaction = True %} {% set show_ver_reservas = True %} {% if
+                  item.transaction_status == 'reserved' %} {% set show_mark_rented = True %} {% set show_mark_returned = False %} {% elif
+                  item.transaction_status == 'rented' %} {% set show_mark_rented = False %} {% set show_mark_returned = True %} {% else %} {% set
+                  show_mark_rented = False %} {% set show_mark_returned = False %} {% endif %} {% set show_print = True %} {% set show_item = True %} {%
+                  set show_client = True %} {% set show_item_transactions = True %} {% set show_client_transactions = True %}{% include
+                  'components/action_buttons.html' with context %}
+
+                <!-- Dropdown fora do botão -->
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton{{ loop.index }}">
+                  <!-- ... os demais itens permanecem iguais ... -->
+                </ul>
+
+                <!-- Botão olho -->
+                <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalItem{{ loop.index }}" title="Ver detalhes">
+                  <i class="fas fa-eye"></i>
+                </button>
+              </div>
             </div>
           </td>
+
+
+
+
+
+
         </tr>
+
+        <div class="modal fade" id="modalItem{{ loop.index }}" tabindex="-1" aria-labelledby="modalItemLabel{{ loop.index }}" aria-hidden="true">
+          <div class="modal-dialog modal-dialog-scrollable modal-lg">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="modalItemLabel{{ loop.index }}">Detalhes da Transação</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+              </div>
+              <div class="modal-body">
+                <div class="container-fluid">
+                  <div class="row g-3">
+                    <div class="col-12 col-md-6">
+                      <strong>Cliente:</strong><br>
+                      {{ item.client_name or 'N/A' }}
+                    </div>
+                    <div class="col-12 col-md-6">
+                      <strong>Telefone:</strong><br>
+                      {{ item.client_tel or 'N/A' }}
+                    </div>
+                    <div class="col-12 col-md-6">
+                      <strong>Email:</strong><br>
+                      {{ item.client_email or 'N/A' }}
+                    </div>
+                    <div class="col-12 col-md-6">
+                      <strong>Item:</strong><br>
+                      {{ item.description or 'N/A' }}
+                    </div>
+                    <div class="col-12 col-md-6">
+                      <strong>Retirada Prevista:</strong><br>
+                      {{ item.rental_date_formatted or 'N/A' }}
+                    </div>
+                    <div class="col-12 col-md-6">
+                      <strong>Devolução Prevista:</strong><br>
+                      {{ item.return_date_formatted or 'N/A' }}
+                    </div>
+                    <div class="col-12 col-md-6">
+                      <strong>Valor (R$):</strong><br>
+                      {{ item.item_value | round(2) | string | replace('.', ',') if item.item_value is defined else 'sem valor' }}
+                    </div>
+                    <div class="col-12 col-md-6">
+                      <strong>Valor Pago (R$):</strong><br>
+                      {{ item.transaction_value_paid | round(2) | string | replace('.', ',') if item.transaction_value_paid is defined else 'sem valor' }}
+                    </div>
+                    <div class="col-12">
+                      <strong>Observações:</strong><br>
+                      {{ item.transaction_obs or 'N/A' }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+
+
+
+
         {% endfor %}
       </tbody>
     </table>
   </div>
 
-  {% else %} {% endif %}
+ {% endif %}
 
 
   {% if itens|count > 0 %}
@@ -176,6 +283,7 @@
   {% endif %}
   <!-- Modals -->
   {% include 'components/info_modal_transaction.html' %} {% include 'components/image_modal.html' %}
+
 </div>
 {% endblock %} {% block scripts %}
 <script>

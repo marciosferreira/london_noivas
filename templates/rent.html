@@ -1,52 +1,78 @@
-{% extends "base.html" %} {% block title %}Alugar Item{% endblock %} {% block styles %}
+{% extends "base.html" %} {% block title %}Adicionar Transação{% endblock %} {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='style_rent.css') }}" />
-{% endblock %}
 
 <style>
-  .d-none {
-    display: none;
+  .stepper .step {
+    flex: 1;
+    text-align: center;
+    padding: 0.75rem;
+    border-bottom: 3px solid #ccc;
+    font-weight: 500;
   }
-  .tab-btn.active {
-    font-weight: bold;
-    border-width: 2px;
+  .stepper .step.active {
+    border-color: #0d6efd;
+    color: #0d6efd;
+  }
+
+  .exit-link {
+    color: #6c757d;
+    text-decoration: none;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    transition: color 0.2s ease;
+  }
+
+  .exit-link:hover {
+    color: #dc3545; /* vermelho suave ao passar o mouse */
+    text-decoration: underline;
   }
 </style>
-
-{% block content %}
+{% endblock %} {% block content %}
 <div class="container py-4">
   <div class="d-flex justify-content-between align-items-center mb-3">
-    <h1 class="mb-0">Iniciar Transação</h1>
-    <a href="{{ url_for('inventory') }}" class="cancel-link">Sair sem Finalizar</a>
+    <h1 class="mb-0">Adicionar Transação</h1>
+    <a href="{{ url_for('inventory') }}" class="exit-link">
+      <i class="fas fa-sign-out-alt me-2"></i>
+      Sair sem Finalizar
+    </a>
   </div>
 
-  <!-- 🔘 Botões de navegação entre blocos -->
-  <div class="mb-3 text-center">
-    <button type="button" class="btn btn-outline-primary mx-1 tab-btn active" data-target="bloco-cliente">Cliente</button>
-    <button type="button" class="btn btn-outline-primary mx-1 tab-btn" data-target="bloco-transacao">Transação</button>
-    <button type="button" class="btn btn-outline-primary mx-1 tab-btn" data-target="bloco-item">Item</button>
+  <!-- Stepper visual -->
+  <div class="stepper mb-4 d-flex justify-content-between">
+    <div class="step active" data-step="1">Cliente</div>
+    <div class="step" data-step="2">Item</div>
+    <div class="step" data-step="3">Transação</div>
   </div>
 
-  <form method="POST" enctype="multipart/form-data" id="form-rent" novalidate>
+  <form action="{{ url_for('rent') }}" method="POST" enctype="multipart/form-data" id="form-rent" novalidate>
     <!-- 🔹 Bloco Cliente -->
     <div id="bloco-cliente" class="form-section">
       <h4 class="mb-3">Informações do Cliente</h4>
       <div class="mb-4">{% include 'components/dynamic_input_client.html' with context %}</div>
-    </div>
-
-    <!-- 🔹 Bloco Transação -->
-    <div id="bloco-transacao" class="form-section d-none">
-      <h4 class="mb-3">Detalhes da Transação</h4>
-      <div class="mb-4">{% include 'components/dynamic_input_transaction.html' with context %}</div>
+      <div class="d-flex justify-content-end">
+        <button type="button" class="btn btn-primary w-auto" onclick="validarEAvancar('bloco-cliente', 'bloco-item')">Avançar</button>
+      </div>
     </div>
 
     <!-- 🔹 Bloco Item -->
     <div id="bloco-item" class="form-section d-none">
       <h4 class="mb-3">Dados do Item</h4>
       <div class="mb-4">{% include 'components/dynamic_input_item.html' with context %}</div>
+      <div class="d-flex justify-content-between">
+        <button type="button" class="btn btn-outline-secondary" onclick="mostrarAba('bloco-cliente')">Voltar</button>
+        <button type="button" class="btn btn-primary w-auto" onclick="validarEAvancar('bloco-item', 'bloco-transacao')">Avançar</button>
+      </div>
     </div>
 
-    <div class="d-flex justify-content-center mt-4">
-      <button type="submit" class="btn btn-success btn-submit w-auto px-4">Salvar</button>
+    <!-- 🔹 Bloco Transação -->
+    <div id="bloco-transacao" class="form-section d-none">
+      <h4 class="mb-3">Detalhes da Transação</h4>
+      <div class="mb-4">{% include 'components/dynamic_input_transaction.html' with context %}</div>
+      <div class="d-flex justify-content-between">
+        <button type="button" class="btn btn-outline-secondary" onclick="mostrarAba('bloco-item')">Voltar</button>
+        <button type="submit" class="btn btn-primary w-auto">Concluir</button>
+      </div>
     </div>
   </form>
 </div>
@@ -54,23 +80,40 @@
 <script src="https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.umd.min.js"></script>
 
 <script>
-  document.addEventListener('DOMContentLoaded', function () {
-    const buttons = document.querySelectorAll('.tab-btn');
+  function mostrarAba(id) {
     const sections = document.querySelectorAll('.form-section');
+    const steps = document.querySelectorAll('.step');
 
-    buttons.forEach((btn) => {
-      btn.addEventListener('click', () => {
-        // Remove classes 'active' e esconde todos
-        buttons.forEach((b) => b.classList.remove('active'));
-        sections.forEach((sec) => sec.classList.add('d-none'));
+    sections.forEach((sec) => sec.classList.add('d-none'));
+    document.getElementById(id).classList.remove('d-none');
 
-        // Ativa o selecionado
-        btn.classList.add('active');
-        const target = document.getElementById(btn.dataset.target);
-        if (target) target.classList.remove('d-none');
-      });
+    const index = ['bloco-cliente', 'bloco-item', 'bloco-transacao'].indexOf(id);
+    steps.forEach((step, i) => step.classList.toggle('active', i === index));
+  }
+</script>
+
+<script>
+  function validarEAvancar(abaAtualId, proximaAbaId) {
+    const abaAtual = document.getElementById(abaAtualId);
+    const campos = abaAtual.querySelectorAll('input, select, textarea');
+
+    let formValido = true;
+
+    campos.forEach((campo) => {
+      if (!campo.checkValidity()) {
+        campo.classList.add('is-invalid');
+        formValido = false;
+      } else {
+        campo.classList.remove('is-invalid');
+      }
     });
-  });
+
+    if (formValido) {
+      mostrarAba(proximaAbaId);
+    } else {
+      alert('Preencha todos os campos obrigatórios antes de avançar.');
+    }
+  }
 </script>
 
 <script>
@@ -434,12 +477,20 @@
       let intValue = parseInt(value, 10);
       let floatValue = intValue / 100;
 
-      e.target.value = floatValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      // 🔒 Limite de 1.000.000,00
+      if (floatValue > 1000000) {
+        floatValue = 1000000;
+      }
+
+      e.target.value = floatValue.toLocaleString('pt-BR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
     });
   }
 
-  // Aplica em todos os campos que precisam
-  const campos = [document.getElementById('transaction_price'), document.getElementById('transaction_value_paid')];
+  // Aplica nos campos que precisam
+  const campos = [document.getElementById('item_value'), document.getElementById('transaction_value_paid')];
   campos.forEach((campo) => {
     if (campo) {
       formatarCampoMonetario(campo);
@@ -457,4 +508,145 @@
   });
 </script>
 
+<script>
+  function inicializarAutocompleteItem(campoId) {
+    const input = document.getElementById(campoId);
+    const suggestionsBox = document.getElementById(`${campoId}_suggestions`);
+    const statusMsg = document.getElementById(`${campoId}_status`);
+
+    if (!input || !suggestionsBox || !statusMsg) return;
+
+    let itensSugeridos = [];
+    let camposBloqueados = false;
+
+    async function buscarSugestoes(term) {
+      const res = await fetch(`/autocomplete_items?field=${campoId}&term=${encodeURIComponent(term)}`);
+      const data = await res.json();
+      itensSugeridos = data;
+      return data;
+    }
+
+    function aplicarPreenchimento(item) {
+      for (const key in item) {
+        const field = document.getElementById(key);
+        if (field && key !== 'item_custom_id') {
+          field.value = item[key];
+        }
+      }
+
+      // 👉 Garante que item_id será incluído no form
+      if (item.item_id) {
+        let idHidden = document.getElementById('item_id');
+        if (!idHidden) {
+          idHidden = document.createElement('input');
+          idHidden.type = 'hidden';
+          idHidden.name = 'item_id';
+          idHidden.id = 'item_id';
+          document.getElementById('form-rent').appendChild(idHidden);
+        }
+        idHidden.value = item.item_id;
+      }
+    }
+
+    function bloquearCamposItem() {
+      if (camposBloqueados) return; // já bloqueado, não repetir
+      camposBloqueados = true;
+
+      const ids = ['item_description', 'item_obs', 'item_value'];
+      ids.forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) el.setAttribute('readonly', true);
+      });
+
+      const imgInput = document.getElementById('image_file');
+      if (imgInput) imgInput.style.display = 'none';
+    }
+
+    function desbloquearCamposItem() {
+      if (!camposBloqueados) return; // já desbloqueado, não repetir
+      camposBloqueados = false;
+
+      const ids = ['item_description', 'item_obs', 'item_value'];
+      ids.forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) el.removeAttribute('readonly');
+      });
+
+      const imgInput = document.getElementById('image_file');
+      if (imgInput) imgInput.style.display = '';
+    }
+
+    function checarMatchExato() {
+      const term = input.value.trim().toLowerCase();
+      const match = itensSugeridos.find((it) => (it[campoId] || '').toLowerCase() === term);
+
+      if (match) {
+        statusMsg.textContent = 'Item encontrado';
+        statusMsg.className = 'status-message user-found mt-1';
+        statusMsg.style.display = 'block';
+        aplicarPreenchimento(match);
+        bloquearCamposItem();
+      } else {
+        statusMsg.textContent = 'Novo item será criado';
+        statusMsg.className = 'status-message user-new mt-1';
+        statusMsg.style.display = 'block';
+        desbloquearCamposItem();
+      }
+    }
+
+    input.addEventListener('input', async () => {
+      const term = input.value.trim();
+      if (term.length < 1) {
+        suggestionsBox.innerHTML = '';
+        statusMsg.style.display = 'none';
+        desbloquearCamposItem();
+        return;
+      }
+
+      try {
+        const items = await buscarSugestoes(term);
+        suggestionsBox.innerHTML = '';
+
+        items.forEach((item) => {
+          const div = document.createElement('div');
+          div.className = 'autocomplete-item px-2 py-1';
+          div.innerHTML = `<strong>${item.item_custom_id || '(sem código)'}</strong><br>
+                           <small>${item.item_description || 'Sem descrição'}</small>`;
+          div.addEventListener('click', () => {
+            input.value = item[campoId] || '';
+            aplicarPreenchimento(item);
+            suggestionsBox.innerHTML = '';
+            statusMsg.textContent = 'Item encontrado';
+            statusMsg.className = 'status-message user-found mt-1';
+            statusMsg.style.display = 'block';
+            bloquearCamposItem();
+          });
+          suggestionsBox.appendChild(div);
+        });
+
+        // 🔁 Só tenta checar match se ainda não estiver bloqueado
+        if (!camposBloqueados) checarMatchExato();
+      } catch (err) {
+        console.error('Erro ao buscar itens:', err);
+      }
+    });
+
+    input.addEventListener('blur', () => {
+      setTimeout(() => {
+        suggestionsBox.innerHTML = '';
+        if (!camposBloqueados) checarMatchExato();
+      }, 200);
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!input.contains(e.target) && !suggestionsBox.contains(e.target)) {
+        suggestionsBox.innerHTML = '';
+      }
+    });
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    inicializarAutocompleteItem('item_custom_id');
+  });
+</script>
 {% endblock %}

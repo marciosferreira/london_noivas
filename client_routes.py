@@ -219,16 +219,28 @@ def init_client_routes(
         all_fields = get_all_fields(account_id, field_config_table, entity="client")
 
         if request.method == "POST":
+            import re
+
+            updated_values = {}
+            updated_key_values = cliente.get("key_values", {})
+
             for field in all_fields:
                 field_id = field["id"]
                 field_type = field.get("type")
+                is_fixed = field.get("fixed", False)
                 value = request.form.get(field_id, "").strip()
 
-                # Dentro do loop all_fields
                 if not value:
                     continue
 
-                if field_type in ["cpf", "cnpj", "phone"]:
+                if field_type in [
+                    "cpf",
+                    "cnpj",
+                    "phone",
+                    "client_cpf",
+                    "client_cnpj",
+                    "client_phone",
+                ]:
                     value = re.sub(r"\D", "", value)
                 elif field_type == "value":
                     value = value.replace(".", "").replace(",", ".")
@@ -240,11 +252,21 @@ def init_client_routes(
                             "error",
                         )
                         return render_template(
-                            "add_client.html",
+                            "editar_cliente.html",
+                            client=cliente,
                             all_fields=all_fields,
                             next=next_page,
-                            client=request.form,
                         )
+
+                if is_fixed:
+                    updated_values[field_id] = value
+                else:
+                    updated_key_values[field_id] = value
+
+            # Atualizar cliente com valores editados
+            for k, v in updated_values.items():
+                cliente[k] = v
+            cliente["key_values"] = updated_key_values
 
             # Verificação de unicidade (desconsidera o próprio cliente)
             existing_clients = clients_table.scan().get("Items", [])
@@ -345,7 +367,7 @@ def init_client_routes(
         all_fields = get_all_fields(account_id, field_config_table, entity="client")
 
         if request.method == "POST":
-            client_id = str(uuid.uuid4())
+            client_id = str(uuid.uuid4().hex[:12])
             new_client = {
                 "client_id": client_id,
                 "account_id": account_id,
@@ -357,18 +379,27 @@ def init_client_routes(
             import re
 
             key_values = {}
+
             for field in all_fields:
                 field_id = field["id"]
                 field_type = field.get("type")
+                is_fixed = field.get("fixed", False)
                 value = request.form.get(field_id, "").strip()
 
-                # Dentro do loop all_fields
                 if not value:
                     continue
 
-                if field_type in ["client_cpf", "client_cnpj", "client_phone"]:
+                # Limpeza de dados
+                if field_type in [
+                    "client_cpf",
+                    "client_cnpj",
+                    "client_phone",
+                    "cpf",
+                    "cnpj",
+                    "phone",
+                ]:
                     value = re.sub(r"\D", "", value)
-                elif field_type in ["value"]:
+                elif field_type == "value":
                     value = value.replace(".", "").replace(",", ".")
                     try:
                         value = float(value)
@@ -384,15 +415,14 @@ def init_client_routes(
                             client=request.form,
                         )
 
-                # Remove caracteres especiais para campos específicos
-                if field_type in ["cpf", "cnpj", "phone"]:
-                    value = re.sub(r"\D", "", value)  # Remove tudo que não é número
+                # Salva fixos no topo e os demais em key_values
+                if is_fixed:
+                    new_client[field_id] = value
+                else:
+                    key_values[field_id] = value
 
-                key_values[field_id] = value
-
-            # Define client_name se presente
-            if "client_name" in key_values:
-                new_client["client_name"] = key_values["client_name"]
+            if key_values:
+                new_client["key_values"] = key_values
 
             # Verificação de duplicatas
             existing_clients = clients_table.scan().get("Items", [])
@@ -401,8 +431,8 @@ def init_client_routes(
                     continue
 
                 if (
-                    key_values.get("client_name")
-                    and client.get("client_name") == key_values["client_name"]
+                    new_client.get("client_name")
+                    and client.get("client_name") == new_client["client_name"]
                 ):
                     flash("Já existe um cliente com esse nome.", "error")
                     return render_template(
@@ -413,8 +443,8 @@ def init_client_routes(
                     )
 
                 if (
-                    key_values.get("client_cpf")
-                    and client.get("client_cpf") == key_values["client_cpf"]
+                    new_client.get("client_cpf")
+                    and client.get("client_cpf") == new_client["client_cpf"]
                 ):
                     flash("Já existe um cliente com esse CPF.", "error")
                     return render_template(
@@ -425,8 +455,8 @@ def init_client_routes(
                     )
 
                 if (
-                    key_values.get("client_cnpj")
-                    and client.get("client_cnpj") == key_values["client_cnpj"]
+                    new_client.get("client_cnpj")
+                    and client.get("client_cnpj") == new_client["client_cnpj"]
                 ):
                     flash("Já existe um cliente com esse CNPJ.", "error")
                     return render_template(
@@ -435,8 +465,6 @@ def init_client_routes(
                         next=next_page,
                         client=request.form,
                     )
-
-            new_client.update(key_values)
 
             try:
                 clients_table.put_item(Item=new_client)

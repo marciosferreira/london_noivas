@@ -2,213 +2,151 @@
 {% block content %}
 {% include "components/tab_nav_custom_fields.html" %}
 
-
 <h2 class="mb-1">Customização dos Campos</h2>
-<p class="text-muted mb-4">Campos fixos não podem ser excluidos, apenas desabilitados e o label modificado.
-Você pode adicionar um campo novo, o qual será identificado como "custom".</p>
+<p class="text-muted mb-4">Campos fixos não podem ser excluídos, apenas desabilitados e o label modificado. Você pode adicionar um campo novo, o qual será identificado como "custom".</p>
 <form id="orderForm" method="POST" action="{{ url_for('custom_fields', entity=entity) }}">
   <div id="combined-fields-area">
+    {% for field in all_fields %}
+    <div class="border rounded p-3 mb-3" data-id="{{ field.id }}">
+      <!-- Sempre enviar esses dados ocultos -->
+      <input type="hidden" name="fields[{{ loop.index0 }}][id]" value="{{ field.id }}" />
+      <input type="hidden" name="fields[{{ loop.index0 }}][kind]" value="{{ 'fixed' if field.fixed else 'custom' }}" />
+      <input type="hidden" name="fields[{{ loop.index0 }}][type]" value="{{ field.type }}" />
+      <input type="hidden" name="fields[{{ loop.index0 }}][title]" value="{{ field.label if field.fixed else field.title }}" />
+      <input type="hidden" name="fields[{{ loop.index0 }}][label_original]" value="{{ field.label_original or field.label }}">
+      <input type="hidden" name="fields[{{ loop.index0 }}][label]" value="{{ field.label }}">
+      <input type="hidden" name="fields[{{ loop.index0 }}][options]" value="{{ field.options | join(',') if field.options else '' }}" />
 
-      {% for field in all_fields %}
-      <div class="border rounded p-3 mb-3" data-id="{{ field.id }}">
-        <input type="hidden" name="fields[{{ loop.index0 }}][id]" value="{{ field.id }}" />
-        <input type="hidden" name="fields[{{ loop.index0 }}][kind]" value="{{ 'fixed' if field.fixed else 'custom' }}" />
-        <input type="hidden" name="fields[{{ loop.index0 }}][type]" value="{{ field.type }}" />
-        <input type="hidden" name="fields[{{ loop.index0 }}][title]" value="{{ field.label if field.fixed else field.title }}" />
-        <input type="hidden" name="fields[{{ loop.index0 }}][options]" value="{{ field.options | join(',') if field.options else '' }}" />
-        <input type="hidden" name="fields[{{ loop.index0 }}][label_original]" value="{{ field.label_original or field.label }}">
-        <input type="hidden" name="fields[{{ loop.index0 }}][label]" value="{{ field.label }}">
+      <!-- Cabeçalho e info -->
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <div>
+          <strong class="display-title">{{ field.label }}</strong>
+          <span class="badge {{ 'bg-secondary' if field.fixed else 'bg-info' }}">{{ 'fixo' if field.fixed else 'custom' }}</span>
 
-
-        <div class="d-flex justify-content-between align-items-center mb-2">
-          <div>
-
-            <div>
-              <strong class="display-title">{{ field.label }}</strong>
-              <span class="badge {{ 'bg-secondary' if field.fixed else 'bg-info' }}">{{ 'fixo' if field.fixed else 'custom' }}</span>
-
-              {% if field.fixed %}
-              <div class="text-muted small">Label original: {{ field.label_original }}</div>
-              {% endif %}
-            </div>
-
-
-            <div class="text-muted small">
-              Tipo: {{ 'Texto' if field.type == 'text' else 'Número' if field.type == 'number' else 'Data' if field.type == 'date' else 'Lista' if field.type == 'list' else 'value'}}
-            </div>
-            {% if not field.fixed %}
-<div class="text-muted small">
-  Identificador: {{ field.id }}
-</div>
-{% endif %}
-
-
-            {% if field.type == 'dropdown' and field.options %}
-              <div class="text-muted small mt-1">
-                Opções: {{ field.options | join(', ') }}
-              </div>
-            {% endif %}
-
-          </div>
-          {% if not field.fixed %}
-          <div>
-            <button type="button" class="btn btn-sm btn-outline-primary" onclick="toggleEdit(this)">Editar</button>
-            <button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('.border').remove()">🗑️</button>
-          </div>
+          {% if field.fixed %}
+          <div class="text-muted small">Label original: {{ field.label_original }}</div>
           {% endif %}
 
+          <div class="text-muted small">
+            Tipo: {{ 'Texto' if field.type == 'string' else
+                     'Número' if field.type == 'number' else
+                     'Data' if field.type == 'date' else
+                     'Lista' if field.type in ['list', 'dropdown', 'transaction_status'] else
+                     'Valor' }}
+          </div>
 
+          {% if not field.fixed %}
+          <div class="text-muted small">Identificador: {{ field.id }}</div>
+          {% endif %}
+
+          {% if field.type in ['dropdown', "transaction_status"] %}
+          <div class="text-muted small mt-1">
+            Opções:
+            {% if field.options %}
+              {{ field.options | join(', ') }}
+            {% else %}
+              <em>sem opções definidas</em>
+            {% endif %}
+          </div>
+        {% endif %}
 
         </div>
 
-        {% if field.fixed %}
-        <div class="row g-2">
-          <div class="col-md-6">
-            <label for="fixed_label_{{ loop.index0 }}">Customizar Label:</label>
-            <input type="text" class="form-control"
-            id="fixed_label_{{ loop.index0 }}"
-            value="{{ field.label }}"
-            oninput="updateHidden(this, 'fields[{{ loop.index0 }}][label]')">
-          </div>
+        {% if not field.fixed %}
+        <div>
+          <button type="button" class="btn btn-sm btn-outline-primary" onclick="toggleEdit(this)">Editar</button>
+          <button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('.border').remove()">🗑️</button>
         </div>
-      {% elif not field.fixed %}
-        <div class="edit-area d-none mt-3">
-          <div class="row g-2">
-            <div class="col-md-6">
-              <label for="edit_title_{{ loop.index0 }}">Novo Label:</label>
-              <input type="text" class="form-control" id="edit_title_{{ loop.index0 }}"
-                     value="{{ field.label }}"
-                     oninput="updateHidden(this, 'fields[{{ loop.index0 }}][label]')">
-            </div>
+        {% endif %}
+      </div>
 
-
-
-
-
-
-    <div class="col-md-4">
-      <label for="edit_type_{{ loop.index0 }}">Tipo:</label>
-      <select class="form-select" id="edit_type_{{ loop.index0 }}" disabled
-      onchange="updateHidden(this, 'fields[{{ loop.index0 }}][type]'); handleExistingFieldTypeChange(this)">
-
-        <option value="text" {% if field.type == 'text' %}selected{% endif %}>Texto</option>
-        <option value="number" {% if field.type == 'number' %}selected{% endif %}>Número</option>
-        <option value="date" {% if field.type == 'date' %}selected{% endif %}>Data</option>
-        <option value="dropdown" {% if field.type == 'dropdown' %}selected{% endif %}>Lista</option>
-        <option value="dropdown" {% if field.type == 'dropdown' %}selected{% endif %}>Valor</option>
-
-      </select>
-      <div class="text-muted small">não pode ser alterado</div>
-
-    </div>
-
-    <div class="col-md-4 options-field {% if field.type != 'dropdown' %}d-none{% endif %}">
-      <label for="edit_options_{{ loop.index0 }}">Opções:</label>
-      <input type="text" class="form-control"
-             name="fields[{{ loop.index0 }}][options]"
-             value="{{ field.options | join(',') }}"
-             oninput="updateHidden(this, 'fields[{{ loop.index0 }}][options]')">
-    </div>
-
-  </div>
-</div>
-{% endif %}
-
-
-        <div class="row g-2 mb-2">
-          <!-- VISÍVEL -->
-          <div class="col-auto">
-            <div class="form-check">
-              <input
-                class="form-check-input"
-                type="checkbox"
-                id="visible_{{ loop.index0 }}"
-                name="fields[{{ loop.index0 }}][visible]"
-                {%
-                if
-                field.visible
-                %}checked{%
-                endif
-                %}
-              />
-              <label class="form-check-label" for="visible_{{ loop.index0 }}">Habilitado</label>
-            </div>
-          </div>
-
-          <!-- OBRIGATÓRIO -->
-          <div class="col-auto">
-            <div class="form-check">
-              <input
-                class="form-check-input"
-                type="checkbox"
-                id="required_{{ loop.index0 }}"
-                name="fields[{{ loop.index0 }}][required]"
-                {%
-                if
-                field.required
-                %}checked{%
-                endif
-                %}
-              />
-              <label class="form-check-label" for="required_{{ loop.index0 }}">Obrigatório</label>
-            </div>
-          </div>
-
-          <!-- FILTERÁVEL -->
-          <div class="col-auto">
-            <div class="form-check">
-              <input
-                class="form-check-input"
-                type="checkbox"
-                id="filterable_{{ loop.index0 }}"
-                name="fields[{{ loop.index0 }}][filterable]"
-                {%
-                if
-                field.filterable
-                %}checked{%
-                endif
-                %}
-              />
-              <label class="form-check-label" for="filterable_{{ loop.index0 }}">Filtrável</label>
-            </div>
-          </div>
-
-          <div class="col-auto">
-            <div class="form-check">
-              <input
-                class="form-check-input"
-                type="checkbox"
-                id="preview_{{ loop.index0 }}"
-                name="fields[{{ loop.index0 }}][preview]"
-                {%
-                if
-                field.preview
-                %}checked{%
-                endif
-                %}
-              />
-              <label class="form-check-label" for="preview_{{ loop.index0 }}">Pré-visualizar</label>
-            </div>
-          </div>
-        </div>
-
-        <!-- PRÉ-VISUALIZAÇÃO -->
-
-        <!-- Botões de movimentação -->
-        <div class="d-flex gap-2 mt-2">
-          <button type="button" class="btn btn-sm btn-outline-secondary" onclick="moveUp(this)">⬆️</button>
-          <button type="button" class="btn btn-sm btn-outline-secondary" onclick="moveDown(this)">⬇️</button>
+      <!-- Área de edição -->
+      {% if field.fixed %}
+      <div class="row g-2">
+        <div class="col-md-6">
+          <label for="fixed_label_{{ loop.index0 }}">Customizar Label:</label>
+          <input type="text" class="form-control"
+                 id="fixed_label_{{ loop.index0 }}"
+                 value="{{ field.label }}"
+                 oninput="updateHidden(this, 'fields[{{ loop.index0 }}][label]')">
         </div>
       </div>
-      {% endfor %}
-    </div>
+      {% else %}
+      <div class="edit-area d-none mt-3">
+        <div class="row g-2">
+          <div class="col-md-6">
+            <label for="edit_title_{{ loop.index0 }}">Novo Label:</label>
+            <input type="text" class="form-control"
+                   id="edit_title_{{ loop.index0 }}"
+                   value="{{ field.label }}"
+                   oninput="updateHidden(this, 'fields[{{ loop.index0 }}][label]')">
+          </div>
 
-    <input type="hidden" name="ordered_ids" id="ordered_ids" />
-    <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
-      <button type="button" class="btn btn-outline-primary" onclick="addCustomField()">+ Novo Campo</button>
-      <button type="submit" class="btn btn-success">Salvar</button>
+          <div class="col-md-4">
+            <label for="edit_type_{{ loop.index0 }}">Tipo:</label>
+            <select class="form-select" disabled>
+              <option value="text" {% if field.type == 'text' %}selected{% endif %}>Texto</option>
+              <option value="number" {% if field.type == 'number' %}selected{% endif %}>Número</option>
+              <option value="date" {% if field.type == 'date' %}selected{% endif %}>Data</option>
+              <option value="dropdown" {% if field.type == 'dropdown' %}selected{% endif %}>Lista</option>
+              <option value="dropdown" {% if field.type == 'dropdown' %}selected{% endif %}>Valor</option>
+            </select>
+            <div class="text-muted small">não pode ser alterado</div>
+          </div>
+
+          <div class="col-md-4 options-field {% if field.type != 'dropdown' %}d-none{% endif %}">
+            <label for="edit_options_{{ loop.index0 }}">Opções:</label>
+            <input type="text" class="form-control"
+                   id="edit_options_{{ loop.index0 }}"
+                   value="{{ field.options | join(',') if field.options else '' }}"
+                   oninput="updateHidden(this, 'fields[{{ loop.index0 }}][options]')">
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+
+      <div class="row g-2 mb-2">
+        <div class="col-auto">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="visible_{{ loop.index0 }}" name="fields[{{ loop.index0 }}][visible]" {% if field.visible %}checked{% endif %} />
+            <label class="form-check-label" for="visible_{{ loop.index0 }}">Habilitado</label>
+          </div>
+        </div>
+        <div class="col-auto">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="required_{{ loop.index0 }}" name="fields[{{ loop.index0 }}][required]" {% if field.required %}checked{% endif %} />
+            <label class="form-check-label" for="required_{{ loop.index0 }}">Obrigatório</label>
+          </div>
+        </div>
+        <div class="col-auto">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="filterable_{{ loop.index0 }}" name="fields[{{ loop.index0 }}][filterable]" {% if field.filterable %}checked{% endif %} />
+            <label class="form-check-label" for="filterable_{{ loop.index0 }}">Filtrável</label>
+          </div>
+        </div>
+        <div class="col-auto">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="preview_{{ loop.index0 }}" name="fields[{{ loop.index0 }}][preview]" {% if field.preview %}checked{% endif %} />
+            <label class="form-check-label" for="preview_{{ loop.index0 }}">Pré-visualizar</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex gap-2 mt-2">
+        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="moveUp(this)">⬆️</button>
+        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="moveDown(this)">⬇️</button>
+      </div>
     </div>
-  </form>
+    {% endfor %}
+  </div>
+
+  <input type="hidden" name="ordered_ids" id="ordered_ids" />
+  <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+    <button type="button" class="btn btn-outline-primary" onclick="addCustomField()">+ Novo Campo</button>
+    <button type="submit" class="btn btn-success">Salvar</button>
+  </div>
+</form>
 
   <script>
     function moveUp(btn) {
@@ -230,15 +168,21 @@ Você pode adicionar um campo novo, o qual será identificado como "custom".</p>
 
     function updateHidden(input, name) {
       const container = input.closest('.border');
-      const hiddenInput = container.querySelector(`input[name='${name}']`);
-      if (hiddenInput) {
-        hiddenInput.value = input.value;
-        if (name === 'combined_title[]') {
-          const titleSpan = container.querySelector('.display-title');
-          if (titleSpan) titleSpan.textContent = input.value;
+
+      // Usa todos os inputs com mesmo name
+      const inputs = container.querySelectorAll(`input[name='${name}']`);
+      inputs.forEach(el => {
+        if (el !== input) {
+          el.value = input.value;
         }
+      });
+
+      if (name === 'combined_title[]') {
+        const titleSpan = container.querySelector('.display-title');
+        if (titleSpan) titleSpan.textContent = input.value;
       }
     }
+
 
     function updateFieldType(select, timestamp) {
       const container = select.closest('.border');

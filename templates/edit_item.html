@@ -7,8 +7,15 @@
 <div class="container py-4">
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h1 class="mb-0">Editar Item</h1>
-    <a href="{{ request.args.get('next', url_for('index')) }}" class="cancel-link">Cancelar</a>
-  </div>
+    <a href="{{ url_for('inventory') }}" class="exit-link">
+      <i class="fas fa-sign-out-alt me-2"></i>
+      Sair sem Finalizar
+    </a>  </div>
+
+
+
+
+
   <form method="POST" enctype="multipart/form-data">
     <input type="hidden" name="next" value="{{ request.args.get('next', url_for('index')) }}" />
 {{all_fields}}
@@ -17,7 +24,7 @@
       <div class="col d-flex">
         <div class="bg-light shadow-sm rounded p-3 border w-100 h-100 d-flex flex-column justify-content-center">
           <label for="{{ field.id }}" class="form-label fw-semibold">
-            {{ field.label if field.fixed else field.title }}{% if field.required %} *{% endif %}
+            {{ field.label }}{% if field.required %} *{% endif %}
           </label>
 
           {% if field.type == "text" %}
