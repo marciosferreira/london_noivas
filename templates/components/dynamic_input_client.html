@@ -1,7 +1,7 @@
 {{ client_editavel }}
 
 {% set readonly = not client_editavel %}
-
+{{all_fields}}
 <div class="row row-cols-1 row-cols-md-3 g-4">
   {% for field in all_fields if field.id.startswith("client_") and field.visible %}
   <div class="col d-flex">
@@ -12,9 +12,11 @@
 
       {% set value = client.get(field.id, '') %}
 
+{{client}}
       {% if field.type == 'client_phone' %}
         <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
           value="{{ value }}" {% if field.required %}required{% endif %} {% if readonly %}readonly{% endif %} />
+
 
       {% elif field.type == 'client_name' %}
         <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
@@ -42,6 +44,22 @@
       {% elif field.type == 'client_notes' %}
         <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
           value="{{ value }}" {% if field.required %}required{% endif %} {% if readonly %}readonly{% endif %} />
+
+          {% elif field.type == 'text' %}
+          <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+            value="{{ value }}" {% if field.required %}required{% endif %} {% if readonly %}readonly{% endif %} />
+
+            {% elif field.type == 'value' %}
+            <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+              value="{{ value }}" {% if field.required %}required{% endif %} {% if readonly %}readonly{% endif %} />
+
+              {% elif field.type == 'number' %}
+              <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+                value="{{ value }}" {% if field.required %}required{% endif %} {% if readonly %}readonly{% endif %} />
+
+                  {% elif field.type == 'date' %}
+                  <input type="date" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+                    value="{{ value }}" {% if field.required %}required{% endif %} {% if readonly %}readonly{% endif %} />
 
       {% elif field.type == 'dropdown' %}
         <select class="form-select" id="{{ field.id }}" name="{{ field.id }}"

@@ -19,9 +19,15 @@
 
           {% set value = item.get(field.id, '') %}
 
-          {% if field.type in ["text", "date", "item_obs"] %}
+          {% if field.type in ["text", "item_obs"] %}
             <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
               value="{{ value }}" {% if field.required %}required{% endif %} {% if readonly %}readonly{% endif %} />
+
+              {% elif field.type == "date" %}
+              <input type="date" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+                value="{{ value }}" {% if field.required %}required{% endif %} {% if readonly %}readonly{% endif %} />
+
+
 
               {% elif field.type in ["value", "number", "item_value"] %}
               <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"

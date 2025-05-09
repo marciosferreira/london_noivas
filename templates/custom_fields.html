@@ -28,7 +28,7 @@
           {% endif %}
 
           <div class="text-muted small">
-            Tipo: {{ 'Texto' if field.type == 'string' else
+            Tipo: {{ 'Texto' if field.type == 'text' else
                      'Número' if field.type == 'number' else
                      'Data' if field.type == 'date' else
                      'Lista' if field.type in ['list', 'dropdown', 'transaction_status'] else
@@ -205,7 +205,7 @@
     function addCustomField() {
       const timestamp = Date.now();
       const defaultType = 'text';
-      const newId = `id_${timestamp}`;
+      const newId = `{{ entity | e }}_${timestamp}`;
 
       const wrapper = document.createElement('div');
       wrapper.classList.add('border', 'rounded', 'p-3', 'mb-3');

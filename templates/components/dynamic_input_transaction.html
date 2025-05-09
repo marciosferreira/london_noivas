@@ -1,7 +1,6 @@
 
 <div id="tab-cliente" class="tab-content active">
-
-    {{item}}
+  {{all_fields}}
     <div class="row row-cols-1 row-cols-md-3 g-4">
       {% for field in all_fields if field.id.startswith("transaction_") and field.visible and field.type != "transaction_price" %}
       <div class="col d-flex">
