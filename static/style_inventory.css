@@ -45,7 +45,7 @@
 }
 .usage-banner {
   background: linear-gradient(to bottom, #f8f9fa, #e0e0e0); /* Cinza prateado suave */
-  border: 1px solid #ccc;
+  border: 2px solid #ccc;
   border-radius: 12px; /* Arredonda IGUAL os 4 cantos */
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1); /* Sombra levinha */
   color: #333;

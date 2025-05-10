@@ -16,7 +16,9 @@
     cursor: pointer;
   }
 </style>
-{% endblock %} {% block content %}
+{% endblock %} {% block content %} {% set active_statuses = ["trialing", "active", "past_due"] %} {% set max_limit = 300 if current_transaction and
+current_transaction.subscription_status in active_statuses else 0 %}
+
 <div class="container my-3">
   <h2 class="mb-4">Relatórios</h2>
 
@@ -246,6 +248,26 @@
       </div>
     </div>
   </section>
+</div>
+
+<br />
+<div class="container mt-4">
+  <div class="row justify-content-center">
+    <div class="usage-banner container-fluid py-2 px-3 my-2">
+      <div class="text-center">
+        <div class="alert-line">
+          ⚠️
+          <strong>Transações ativas:</strong>
+          {{ total_relevant_transactions }} de {{ max_limit }} no seu plano
+        </div>
+        <div class="alert-line">
+          ⚠️
+          <strong>Itens cadastrados:</strong>
+          {{ total_itens }} de {{ max_limit }} no seu plano
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- Modal para gráficos -->

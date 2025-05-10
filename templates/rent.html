@@ -91,6 +91,36 @@
     </div>
   </form>
 </div>
+
+<!-- 🔹Modal limite atingido -->
+
+<div
+  class="modal fade"
+  id="limitModal"
+  tabindex="-1"
+  aria-labelledby="limitModalLabel"
+  aria-hidden="true"
+  data-bs-backdrop="static"
+  data-bs-keyboard="false"
+>
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-warning">
+      <div class="modal-header bg-warning text-dark">
+        <h5 class="modal-title" id="limitModalLabel">Limite do Plano Atingido</h5>
+      </div>
+      <div class="modal-body text-center">
+        Você atingiu os limites de
+        <strong>transações</strong>
+        permitidas pelo seu plano atual.
+        <br />
+      </div>
+      <div class="modal-footer justify-content-center">
+        <a href="{{ url_for('adjustments') }}" class="btn btn-primary btn-lg">Atualizar Plano Agora</a>
+      </div>
+    </div>
+  </div>
+</div>
+
 {% endblock %} {% block scripts %} {{ super() }}
 <script src="https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.umd.min.js"></script>
 
@@ -664,4 +694,22 @@
     inicializarAutocompleteItem('item_custom_id');
   });
 </script>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const totalTransactions = {{ total_relevant_transactions | default(0) | tojson }};
+    const subscriptionStatus = {{ current_stripe_transaction.subscription_status | default('none') | tojson }};
+
+    const allowedStatuses = ["trialing", "active", "past_due"];
+    const maxLimit = allowedStatuses.includes(subscriptionStatus) ? 300 : 0;
+
+    const atingiuLimite = totalTransactions >= maxLimit;
+
+    if (atingiuLimite) {
+      const modal = new bootstrap.Modal(document.getElementById("limitModal"));
+      modal.show();
+    }
+  });
+</script>
+
 {% endblock %}

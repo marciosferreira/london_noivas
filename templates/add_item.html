@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Adicionar Item{% endblock %}
+{% block title %}{{title}}{% endblock %}
 {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='style_edit_item.css') }}" />
 {% endblock %}
@@ -7,7 +7,7 @@
 
 <div class="container py-4">
   <div class="d-flex justify-content-between align-items-center mb-3">
-    <h1 class="mb-0">Adicionar Item</h1>
+    <h1 class="mb-0">{{title}}</h1>
     <a href="{{ url_for('inventory') }}" class="exit-link">
       <i class="fas fa-sign-out-alt me-2"></i>
       Sair sem Finalizar
@@ -19,7 +19,7 @@
     </div>
     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
   </div>
-{{all_fields}}
+
 
   <form method="POST" enctype="multipart/form-data">
     <input type="hidden" name="next" value="{{ request.args.get('next', url_for('index')) }}" />
@@ -109,7 +109,34 @@
   </form>
 </div>
 
+<!-- MODAL limite do plano atingido -->
 
+<div
+  class="modal fade"
+  id="limitModal"
+  tabindex="-1"
+  aria-labelledby="limitModalLabel"
+  aria-hidden="true"
+  data-bs-backdrop="static"
+  data-bs-keyboard="false"
+>
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-warning">
+      <div class="modal-header bg-warning text-dark">
+        <h5 class="modal-title" id="limitModalLabel">Limite de Itens Atingido</h5>
+      </div>
+      <div class="modal-body text-center">
+        Você atingiu o número máximo de
+        <strong>itens cadastrados</strong>
+        permitido pelo seu plano atual.
+        <br />
+      </div>
+      <div class="modal-footer justify-content-center">
+        <a href="{{ url_for('adjustments') }}" class="btn btn-primary btn-lg">Atualizar Plano</a>
+      </div>
+    </div>
+  </div>
+</div>
 
 {% endblock %}
 
@@ -173,5 +200,22 @@
   });
 </script>
 
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const totalItems = {{ total_itens | default(0) | tojson }};
+    const subscriptionStatus = {{ current_stripe_transaction.subscription_status | default('none') | tojson }};
+
+    const allowedStatuses = ["trialing", "active", "past_due"];
+    const maxLimit = allowedStatuses.includes(subscriptionStatus) ? 300 : 0;
+
+    const atingiuLimite = totalItems >= maxLimit;
+
+    if (atingiuLimite) {
+      const modal = new bootstrap.Modal(document.getElementById("limitModal"));
+      modal.show();
+    }
+  });
+</script>
 
 {% endblock %}

@@ -201,15 +201,44 @@ def init_item_routes(
         next_page = request.args.get("next", url_for("index"))
         origin = next_page.rstrip("/").split("/")[-1]
         origin_status = "available" if origin == "inventory" else "archive"
+        title = "Adicionar item em inventário" if origin_status == "available" else "Adicionar item em arquivo"
+
 
         user_id = session.get("user_id")
         account_id = session.get("account_id")
 
         # -------------------------- GET --------------------------
         if request.method == "GET":
+
+            #contar itens para limitar plano
+            total_itens = 0
+            exclusive_start_key = None
+            while True:
+              query_kwargs = {
+                  "IndexName": "account_id-created_at-index",
+                  "KeyConditionExpression": Key("account_id").eq(account_id),
+                  "FilterExpression": Attr("status").is_in(["available", "archive"]),
+                  "Select": "COUNT",
+              }
+
+              if exclusive_start_key:
+                  query_kwargs["ExclusiveStartKey"] = exclusive_start_key
+
+              response = itens_table.query(**query_kwargs)
+              total_itens += response.get("Count", 0)
+
+              exclusive_start_key = response.get("LastEvaluatedKey")
+              if not exclusive_start_key:
+                  break
+
+            user_id = session.get("user_id")
+            current_stripe_transaction = get_latest_transaction(user_id, users_table, payment_transactions_table)
+
+
             all_fields = get_all_fields(account_id, field_config_table, "item")
+
             return render_template(
-                "add_item.html", next=next_page, all_fields=all_fields, item={}
+                "add_item.html", next=next_page, all_fields=all_fields, total_itens=total_itens, current_stripe_transaction=current_stripe_transaction, title=title, item={}
             )
         # -------------------------- POST --------------------------
         if request.method == "POST":
@@ -637,17 +666,22 @@ def init_item_routes(
 
         prepared["item_id"] = item["item_id"]
 
+        origin = next_page.rstrip("/").split("/")[-1]
+        origin_status = "available" if origin == "inventory" else "archive"
+        title = "Editar item em inventário" if origin_status == "available" else "Editar item em arquivo"
+
         return render_template(
-            "edit_item.html", item=prepared, all_fields=all_fields, next=next_page
+            "edit_item.html", item=prepared, all_fields=all_fields, next=next_page, title=title,
         )
 
     ##################################################################################################
     @app.route("/rent", methods=["GET", "POST"])
     def rent():
 
+
         def processar_transacao(account_id, user_id, user_utc):
             import re
-            from decimal import Decimal
+
 
             all_fields = (
                 get_all_fields(account_id, field_config_table, entity="transaction")
@@ -679,12 +713,15 @@ def init_item_routes(
                             f"Valor inválido no campo {field.get('label', field_id)}.",
                             "error",
                         )
+
                         return render_template(
                             "rent.html",
                             item={},
                             reserved_ranges=[],
                             all_fields=all_fields,
                             cliente_editavel=True,
+
+
                         )
 
                 form_data[field_id] = value
@@ -814,6 +851,9 @@ def init_item_routes(
                     reserved_ranges=[],
                     all_fields=all_fields,
                     cliente_editavel=True,
+                    total_relevant_transactions=total_relevant_transactions,
+                    total_itens=total_itens,
+                    current_stripe_transaction=current_transaction,
                 )
 
                 ################################################################################################################
@@ -827,6 +867,56 @@ def init_item_routes(
 
         if request.method == "POST":
             return processar_transacao(account_id, user_id, user_utc)
+
+
+        # Conta para bloquear trail
+        user_id = session.get("user_id")
+        current_transaction = get_latest_transaction(user_id, users_table, payment_transactions_table)
+
+        total_relevant_transactions = 0
+        exclusive_start_key = None
+
+        while True:
+            query_params = {
+                "IndexName": "account_id-index",
+                "KeyConditionExpression": Key("account_id").eq(account_id),
+                "FilterExpression": Attr("transaction_status").is_in(["rented", "reserved"]),
+                "Select": "COUNT",
+            }
+
+            if exclusive_start_key:
+                query_params["ExclusiveStartKey"] = exclusive_start_key
+
+            response = transactions_table.query(**query_params)
+            total_relevant_transactions += response.get("Count", 0)
+
+            exclusive_start_key = response.get("LastEvaluatedKey")
+            if not exclusive_start_key:
+                break
+
+        total_itens = 0
+        exclusive_start_key = None
+
+        while True:
+            query_kwargs = {
+                "IndexName": "account_id-created_at-index",
+                "KeyConditionExpression": Key("account_id").eq(account_id),
+                "FilterExpression": Attr("status").is_in(["available", "archive"]),
+                "Select": "COUNT",
+            }
+
+            if exclusive_start_key:
+                query_kwargs["ExclusiveStartKey"] = exclusive_start_key
+
+            response = itens_table.query(**query_kwargs)
+            total_itens += response.get("Count", 0)
+
+            exclusive_start_key = response.get("LastEvaluatedKey")
+            if not exclusive_start_key:
+                break
+
+        # acaba aqui
+
 
         # --- GET: renderiza tela de nova transação ---
         item_id = request.args.get("item_id")
@@ -873,6 +963,10 @@ def init_item_routes(
             all_fields=all_fields,
             item_editavel=not bool(item_id),
             client_editavel=not bool(client_id),
+            current_stripe_transaction = current_transaction,
+            total_relevant_transactions=total_relevant_transactions,
+            total_itens=total_itens
+
         )
 
     ###########################################################################################################
@@ -1657,6 +1751,60 @@ def init_item_routes(
         if request.method == "POST":
             flash("Relatório atualizado com sucesso!", "success")
 
+        # 🔄 Total de transações ativas (rented + reserved)
+        current_stripe_transaction = get_latest_transaction(user_id, users_table, payment_transactions_table)
+
+
+        # 🔄 Total de transações ativas (rented + reserved)
+        total_relevant_transactions = 0
+        exclusive_start_key = None
+
+        try:
+            while True:
+                query_params = {
+                    "IndexName": "account_id-index",
+                    "KeyConditionExpression": Key("account_id").eq(account_id),
+                    "FilterExpression": Attr("transaction_status").is_in(["rented", "reserved"]),
+                    "Select": "COUNT",
+                }
+
+                if exclusive_start_key:
+                    query_params["ExclusiveStartKey"] = exclusive_start_key
+
+                response = transactions_table.query(**query_params)
+                total_relevant_transactions += response.get("Count", 0)
+
+                exclusive_start_key = response.get("LastEvaluatedKey")
+                if not exclusive_start_key:
+                    break
+        except Exception as e:
+            print(f"Erro ao contar transações ativas: {e}")
+
+        # 🔄 Total de itens ativos (available + archive)
+        total_itens = 0
+        exclusive_start_key = None
+
+        try:
+            while True:
+                query_kwargs = {
+                    "IndexName": "account_id-created_at-index",
+                    "KeyConditionExpression": Key("account_id").eq(account_id),
+                    "FilterExpression": Attr("status").is_in(["available", "archive"]),
+                    "Select": "COUNT",
+                }
+
+                if exclusive_start_key:
+                    query_kwargs["ExclusiveStartKey"] = exclusive_start_key
+
+                response = itens_table.query(**query_kwargs)
+                total_itens += response.get("Count", 0)
+
+                exclusive_start_key = response.get("LastEvaluatedKey")
+                if not exclusive_start_key:
+                    break
+        except Exception as e:
+            print(f"Erro ao contar itens ativos: {e}")
+
         return render_template(
             "reports.html",
             total_paid=total_paid,
@@ -1676,6 +1824,10 @@ def init_item_routes(
             dev_list=dev_list,
             ret_list=ret_list,
             pagamento_list=pagamento_list,
+            total_relevant_transactions=total_relevant_transactions,
+            total_itens=total_itens,
+            current_transaction=current_stripe_transaction,
+
         )
 
     @app.route("/query", methods=["POST"])
@@ -2279,26 +2431,15 @@ def list_raw_itens(
 
     force_no_next = request.args.get("force_no_next")
 
-    # isso será usado para limitar o plano teste
-    user_id = session.get("user_id")
-    current_transaction = get_latest_transaction(
-        user_id, users_table, payment_transactions_table
-    )
-
     current_path = request.path
-    session["previous_path_itens"] = current_path  # 🔥 Marcar o path atual
+    session["previous_path_itens"] = current_path
 
-    # 🔍 Parâmetros de busca
     filtros = request.args.to_dict()
     item_id = filtros.pop("item_id", None)
     page = int(filtros.pop("page", 1))
 
-    # ⚡ Filtro especial para image_url (se tem imagem ou não)
     image_url_filter = request.args.get("image_url")
-
-    image_url_required = None
-    if image_url_filter is not None:
-        image_url_required = image_url_filter.lower() == "true"
+    image_url_required = image_url_filter.lower() == "true" if image_url_filter is not None else None
 
     if page == 1:
         session.pop("current_page_itens", None)
@@ -2312,7 +2453,6 @@ def list_raw_itens(
 
     session["current_page_itens"] = page
 
-    # 🔍 Se buscar direto por item_id
     if item_id:
         try:
             response = itens_table.get_item(Key={"item_id": item_id})
@@ -2334,8 +2474,6 @@ def list_raw_itens(
                     title=title,
                     add_route=url_for("add_item"),
                     next_url=request.url,
-                    total_relevant_transactions=0,
-                    total_items=1,
                     itens_count=1,
                     current_page=1,
                 )
@@ -2347,12 +2485,10 @@ def list_raw_itens(
             flash("Erro ao buscar item.", "danger")
             return redirect(request.referrer or url_for("inventory"))
 
-    # 🧹 Definindo ExclusiveStartKey
     exclusive_start_key = None
     if str(page) in cursor_pages and cursor_pages[str(page)]:
         exclusive_start_key = decode_dynamo_key(cursor_pages[str(page)])
 
-    # 🔥 Busca no banco com múltiplos ciclos
     valid_itens = []
     batch_size = 10
     last_valid_item = None
@@ -2382,24 +2518,14 @@ def list_raw_itens(
             if item.get("status") not in status_list:
                 continue
 
-            # Filtro especial para image_url (N/A ou não)
             if image_url_required is not None:
-                item_image = (item.get("key_values", {}) or {}).get(
-                    "image_url", ""
-                ) or ""
+                item_image = (item.get("key_values", {}) or {}).get("image_url", "") or ""
                 item_image = item_image.strip().lower()
 
                 has_image = bool(item_image) and item_image != "n/a"
 
-                print(
-                    f"🔍 Avaliando imagem: '{item_image}', has_image: {has_image}, filtro exige: {image_url_required}"
-                )
-
                 if image_url_required != has_image:
-                    print("❌ Filtro de imagem rejeitou o item.")
                     continue
-                else:
-                    print("✅ Filtro de imagem passou.")
 
             skip = False
 
@@ -2411,9 +2537,7 @@ def list_raw_itens(
                     min_val = request.args.get(f"min_{field_id}")
                     max_val = request.args.get(f"max_{field_id}")
 
-                    raw_val = item.get("key_values", {}).get(field_id) or item.get(
-                        field_id
-                    )
+                    raw_val = item.get("key_values", {}).get(field_id) or item.get(field_id)
 
                     try:
                         item_val = Decimal(str(raw_val))
@@ -2423,9 +2547,6 @@ def list_raw_itens(
                     if min_val:
                         try:
                             if item_val is None or item_val < Decimal(min_val):
-                                print(
-                                    f"❌ Campo numérico '{field_id}' rejeitou: {item_val} < min {min_val}"
-                                )
                                 skip = True
                                 break
                         except InvalidOperation:
@@ -2434,9 +2555,6 @@ def list_raw_itens(
                     if max_val:
                         try:
                             if item_val is None or item_val > Decimal(max_val):
-                                print(
-                                    f"❌ Campo numérico '{field_id}' rejeitou: {item_val} > max {max_val}"
-                                )
                                 skip = True
                                 break
                         except InvalidOperation:
@@ -2444,57 +2562,37 @@ def list_raw_itens(
 
                 elif field_type == "string":
                     if field_id == "image_url":
-                        # já foi tratado como filtro especial antes
                         continue
 
                     filtro = request.args.get(field_id)
-                    valor_item = item.get("key_values", {}).get(
-                        field_id, ""
-                    ) or item.get(field_id, "")
+                    valor_item = item.get("key_values", {}).get(field_id, "") or item.get(field_id, "")
                     if filtro and filtro.lower() not in valor_item.lower():
-                        print(
-                            f"❌ Campo '{field_id}' rejeitou o item. Filtro: '{filtro}', Valor no item: '{valor_item}'"
-                        )
                         skip = True
                         break
 
                 elif field_type == "dropdown":
                     selected = request.args.get(field_id)
-                    valor_item = item.get("key_values", {}).get(
-                        field_id, ""
-                    ) or item.get(field_id, "")
+                    valor_item = item.get("key_values", {}).get(field_id, "") or item.get(field_id, "")
                     if selected and selected != valor_item:
-                        print(
-                            f"❌ Dropdown '{field_id}' rejeitou o item. Selecionado: '{selected}', Valor no item: '{valor_item}'"
-                        )
                         skip = True
                         break
 
                 elif field_type == "date":
                     start_date = request.args.get(f"start_{field_id}")
                     end_date = request.args.get(f"end_{field_id}")
-                    valor_item = item.get("key_values", {}).get(
-                        field_id, ""
-                    ) or item.get(field_id, "")
+                    valor_item = item.get("key_values", {}).get(field_id, "") or item.get(field_id, "")
 
                     if valor_item:
                         try:
-                            item_date = datetime.datetime.strptime(
-                                valor_item, "%Y-%m-%d"
-                            ).date()
+                            item_date = datetime.datetime.strptime(valor_item, "%Y-%m-%d").date()
                         except (ValueError, TypeError):
                             item_date = None
 
                         if item_date:
                             if start_date:
                                 try:
-                                    start_date_parsed = datetime.datetime.strptime(
-                                        start_date, "%Y-%m-%d"
-                                    ).date()
+                                    start_date_parsed = datetime.datetime.strptime(start_date, "%Y-%m-%d").date()
                                     if item_date < start_date_parsed:
-                                        print(
-                                            f"❌ Data '{field_id}' rejeitada (antes de início)."
-                                        )
                                         skip = True
                                         break
                                 except ValueError:
@@ -2502,30 +2600,19 @@ def list_raw_itens(
 
                             if end_date:
                                 try:
-                                    end_date_parsed = datetime.datetime.strptime(
-                                        end_date, "%Y-%m-%d"
-                                    ).date()
+                                    end_date_parsed = datetime.datetime.strptime(end_date, "%Y-%m-%d").date()
                                     if item_date > end_date_parsed:
-                                        print(
-                                            f"❌ Data '{field_id}' rejeitada (após fim)."
-                                        )
                                         skip = True
                                         break
                                 except ValueError:
                                     pass
                     else:
                         if start_date or end_date:
-                            print(
-                                f"❌ Item rejeitado: campo de data '{field_id}' está vazio mas filtro foi aplicado."
-                            )
                             skip = True
                             break
 
             if skip:
-                print("❌ Item rejeitado após filtros de campos personalizados.")
-
                 continue
-            print("✅ Item incluído:", item.get("item_id"))
 
             valid_itens.append(item)
             last_valid_item = item
@@ -2539,93 +2626,27 @@ def list_raw_itens(
             else:
                 break
 
-    # 🔥 Atualiza next_cursor
     next_cursor_token = None
     if last_valid_item:
-        next_cursor_token = encode_dynamo_key(
-            {
-                "account_id": last_valid_item["account_id"],
-                "created_at": last_valid_item["created_at"],
-                "item_id": last_valid_item["item_id"],
-            }
-        )
+        next_cursor_token = encode_dynamo_key({
+            "account_id": last_valid_item["account_id"],
+            "created_at": last_valid_item["created_at"],
+            "item_id": last_valid_item["item_id"],
+        })
 
     if next_cursor_token:
         session["cursor_pages_itens"][str(page + 1)] = next_cursor_token
     else:
         session["cursor_pages_itens"].pop(str(page + 1), None)
 
-    # 🔥 Total de transações alugadas/reservadas
-
-    # conta total de transaçoes pra retornar ao template:
-    total_relevant_transactions = 0
-    exclusive_start_key = None
-
-    try:
-        while True:
-            query_params = {
-                "IndexName": "account_id-index",
-                "KeyConditionExpression": "account_id = :account_id",
-                "FilterExpression": Attr("transaction_status").is_in(
-                    ["rented", "reserved"]
-                ),
-                "ExpressionAttributeValues": {":account_id": account_id},
-                "Select": "COUNT",
-            }
-
-            if exclusive_start_key:
-                query_params["ExclusiveStartKey"] = exclusive_start_key
-
-            response = transactions_table.query(**query_params)
-            total_relevant_transactions += response.get("Count", 0)
-
-            exclusive_start_key = response.get("LastEvaluatedKey")
-            if not exclusive_start_key:
-                break
-    except Exception as e:
-        print(f"Erro ao consultar transações: {e}")
-
-    # conta total de itens para retornar ao template
-    total_itens = 0
-    exclusive_start_key = None
-
-    try:
-        while True:
-            query_kwargs = {
-                "IndexName": "account_id-created_at-index",
-                "KeyConditionExpression": Key("account_id").eq(account_id),
-                "FilterExpression": Attr("status").is_in(["available", "archive"]),
-                "Select": "COUNT",
-            }
-
-            if exclusive_start_key:
-                query_kwargs["ExclusiveStartKey"] = exclusive_start_key
-
-            response = itens_table.query(**query_kwargs)
-            total_itens += response.get("Count", 0)
-
-            exclusive_start_key = response.get("LastEvaluatedKey")
-            if not exclusive_start_key:
-                break
-
-    except Exception as e:
-        print(f"Erro ao contar itens: {e}")
-
-    # 🔥 Controle de botão next
     last_page_itens = session.get("last_page_itens")
     current_page = session.get("current_page_itens", 1)
 
     if force_no_next:
         has_next = False
     else:
-        if len(valid_itens) < limit or (
-            last_page_itens is not None and current_page >= last_page_itens
-        ):
-            has_next = False
-        else:
-            has_next = True
+        has_next = not (len(valid_itens) < limit or (last_page_itens is not None and current_page >= last_page_itens))
 
-    # ⚡ Caso tenha tentado avançar sem sucesso
     if not valid_itens and page > 1:
         flash("Não há mais itens para exibir.", "info")
         last_valid_page = page - 1
@@ -2633,15 +2654,14 @@ def list_raw_itens(
         session["last_page_itens"] = last_valid_page
         return redirect(url_for("inventory", page=last_valid_page, force_no_next=1))
 
-    # ordenar fields_config para o filtro mostrar na mesma ordem.
     fields_config = sorted(fields_config, key=lambda x: x["order_sequence"])
 
-    # ⚡ Extrair apenas os campos com preview=True
     custom_fields_preview = [
         {"field_id": field["id"], "title": field["label"]}
         for field in fields_config
         if field.get("preview") == True
     ]
+
 
     return render_template(
         template,
@@ -2652,13 +2672,10 @@ def list_raw_itens(
         add_route=url_for("add_item"),
         next_url=request.url,
         current_page=current_page,
-        total_relevant_transactions=total_relevant_transactions,
-        total_itens=total_itens,
-        has_next=has_next,
-        has_prev=current_page > 1,
-        current_transaction=current_transaction,
         fields_config=fields_config,
         custom_fields_preview=custom_fields_preview,
+        has_next=has_next,
+        has_prev=current_page > 1,
     )
 
 

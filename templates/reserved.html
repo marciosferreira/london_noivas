@@ -24,27 +24,7 @@
   {% endif %}
 
 
-{% if itens == [] and not request.args%}
-<div
-  style="
-    background-color: rgba(255, 193, 7, 0.3);
-    border: 1px solid #ffc107;
-    padding: 1rem;
-    border-radius: 0.5rem;
-    display: inline-flex;
-    justify-content: flex-start;
-    align-items: center;
-    gap: 1rem;
-    margin-bottom: 1rem;
-    margin-top: 20px;
-  "
->
-  <span style="color: #664d03; font-weight: 500">Que tal criar sua primeira transação?</span>
-  <a href="{{ url_for('inventory') }}" class="btn btn-primary btn-sm">Criar transação</a>
-</div>
 
-
-{% endif %}
 
   {% if last_page == False and not itens%}
   <p style="color: #308be3; font-weight: bold; font-size: 1.2rem; margin-top: -1rem; margin-left: 0.25rem">Nada por aqui!</p>
@@ -123,7 +103,6 @@
             {% endif %}
           </td>
 
-{{item}}
 
           <!-- prettier-ignore -->
           <td  data-item='{{ item | tojson | safe }}' data-label="Preço (R$)">

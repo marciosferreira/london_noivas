@@ -281,3 +281,22 @@ h1.h3 {
     padding: 0;
   }
 }
+
+.special-button {
+  font-size: 0.85rem;
+  border-radius: 50px;
+  background: linear-gradient(135deg, #28a745, #218838);
+  border: none;
+  transition: all 0.3s ease;
+}
+
+.special-button:hover {
+  background: linear-gradient(135deg, #218838, #1e7e34);
+  transform: scale(1.05);
+  color: white;
+}
+
+.special-button-wrapper {
+  margin-top: -30px; /* ou menos */
+  margin-bottom: 20px;
+}

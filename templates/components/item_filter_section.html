@@ -5,31 +5,18 @@
     {% if show_item_filter %}
     <!-- Botão de Filtros -->
     <a href="#" class="btn btn-outline-secondary" id="filter-toggle" onclick="toggleFilters(event)">Filtros</a>
-    {% endif %} {% if show_add_item %} {% if itens == [] and not request.args and request.path == '/inventory'%}
+    {% endif %} {% if show_add_item %}
 
-    <div
-      style="
-        background-color: rgba(255, 193, 7, 0.3);
-        border: 1px solid #ffc107;
-        padding: 1rem;
-        border-radius: 0.5rem;
-        display: inline-flex;
-        align-items: center;
-        gap: 1rem;
-        margin-bottom: 1rem;
-        position: relative;
-      "
-    >
-      <span style="color: #664d03; font-weight: 500">Adicione um item antes de iniciar uma transação.</span>
 
-      <!-- Botão de adicionar item -->
-      <a href="#" class="btn btn-primary btn-sm" id="add-item-btn" data-add-url="{{ add_route }}?next={{ request.url }}">Adicionar item</a>
-    </div>
 
-    {% else %}
     <!-- Botão sem tooltip -->
-    <a href="#" class="btn btn-primary" id="add-item-btn" data-add-url="{{ add_route }}?next={{ request.url }}">Adicionar item</a>
-    {% endif %} {% endif %}
+<a href="{{ add_route }}?next={{ request.url }}" class="btn btn-primary">
+  <i class="fas fa-plus me-1"></i> Adicionar item
+</a>
+
+
+
+    {% endif %}
   </div>
 </div>
 

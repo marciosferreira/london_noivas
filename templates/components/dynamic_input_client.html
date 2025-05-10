@@ -1,7 +1,5 @@
-{{ client_editavel }}
 
 {% set readonly = not client_editavel %}
-{{all_fields}}
 <div class="row row-cols-1 row-cols-md-3 g-4">
   {% for field in all_fields if field.id.startswith("client_") and field.visible %}
   <div class="col d-flex">
@@ -12,7 +10,6 @@
 
       {% set value = client.get(field.id, '') %}
 
-{{client}}
       {% if field.type == 'client_phone' %}
         <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
           value="{{ value }}" {% if field.required %}required{% endif %} {% if readonly %}readonly{% endif %} />
