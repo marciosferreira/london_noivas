@@ -873,36 +873,39 @@ def init_static_routes(
     def autocomplete_items():
         account_id = session.get("account_id")
         term = request.args.get("term", "").strip().lower()
-        field = request.args.get("field")  # item_custom_id ou item_description
-        print(term)
-        print(field)
 
-        if not term or field not in ["item_custom_id", "item_description"]:
+        if not term:
             return jsonify([])
 
-        index_name = f"account_id-{field}-index"  # Certifique-se que este GSI existe
         try:
+            # Limita a quantidade de itens para evitar exceder 1MB
             response = itens_table.query(
-                IndexName=index_name,
-                KeyConditionExpression=Key("account_id").eq(account_id)
-                & Key(field).begins_with(term),
-                Limit=5,
+                IndexName="account_id-index",
+                KeyConditionExpression=Key("account_id").eq(account_id),
+                Limit=1000  # ajustável conforme o tamanho médio dos itens
             )
-            items = response.get("Items", [])
+            all_items = response.get("Items", [])
         except Exception as e:
-            print("Erro no autocomplete de item:", e)
-            items = []
+            print("Erro ao buscar itens:", e)
+            return jsonify([])
 
-        return jsonify(
-            [
-                {
-                    "item_id": item["item_id"],
-                    "item_custom_id": item.get("item_custom_id", ""),
-                    "item_description": item.get("item_description", ""),
-                    "item_value": item.get("item_value", ""),
-                    "item_obs": item.get("item_obs", ""),
-                    "item_image_url": item.get("item_image_url", ""),
-                }
-                for item in items
-            ]
-        )
+        # Filtrar localmente por `item_custom_id` ou `item_description`
+        suggestions = []
+        for item in all_items:
+            custom_id = (item.get("item_custom_id") or "").lower()
+            description = (item.get("item_description") or "").lower()
+            if term in custom_id or term in description:
+                suggestions.append(item)
+
+        # Retornar os primeiros 10 resultados
+        return jsonify([
+            {
+                "item_id": item["item_id"],
+                "item_custom_id": item.get("item_custom_id", ""),
+                "item_description": item.get("item_description", ""),
+                "item_value": item.get("item_value", ""),
+                "item_obs": item.get("item_obs", ""),
+                "item_image_url": item.get("item_image_url", ""),
+            }
+            for item in suggestions[:10]
+        ])

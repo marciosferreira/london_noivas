@@ -54,7 +54,7 @@ def init_client_routes(
                     "client_name": item.get("client_name", ""),
                     "client_cpf": item.get("client_cpf", ""),
                     "client_cnpj": item.get("client_cnpj", ""),
-                    "client_tel": item.get("client_phone", ""),
+                    "client_phone": item.get("client_phone", ""),
                     "client_id": item.get("client_id", ""),
                     "client_email": item.get("client_email", ""),  # 👈 adiciona aqui
                     "client_address": item.get("client_address", ""),  # 👈 e aqui
@@ -204,7 +204,9 @@ def init_client_routes(
         if not session.get("logged_in"):
             return redirect(url_for("login"))
 
-        next_page = request.args.get("next", url_for("listar_clientes"))
+        raw_next = request.args.get("next", url_for("listar_clientes"))
+        next_page = f"{raw_next}?client_id={client_id}" if "?" not in raw_next else f"{raw_next}&client_id={client_id}"
+
         account_id = session.get("account_id")
         user_id = session.get("user_id")
         user_utc = get_user_timezone(users_table, user_id)

@@ -678,6 +678,13 @@ def init_item_routes(
     @app.route("/rent", methods=["GET", "POST"])
     def rent():
 
+        if not session.get("logged_in"):
+            return redirect(url_for("login"))
+
+        account_id = session.get("account_id")
+        user_id = session.get("user_id")
+        user_utc = get_user_timezone(users_table, user_id)
+
 
         def processar_transacao(account_id, user_id, user_utc):
             import re
@@ -858,24 +865,48 @@ def init_item_routes(
 
                 ################################################################################################################
 
-        if not session.get("logged_in"):
-            return redirect(url_for("login"))
-
-        account_id = session.get("account_id")
-        user_id = session.get("user_id")
-        user_utc = get_user_timezone(users_table, user_id)
-
         if request.method == "POST":
             return processar_transacao(account_id, user_id, user_utc)
 
+        # --- GET: renderiza a tela de nova transação ---
+        item_id = request.args.get("item_id")
+        client_id = request.args.get("client_id")
 
-        # Conta para bloquear trail
-        user_id = session.get("user_id")
-        current_transaction = get_latest_transaction(user_id, users_table, payment_transactions_table)
+        client = {}
+        item = {}
+        reserved_ranges = []
 
+        if item_id:
+            response = itens_table.get_item(Key={"item_id": item_id})
+            item = response.get("Item") or {}
+
+            # Buscar períodos reservados
+            response = transactions_table.query(
+                IndexName="item_id-index",
+                KeyConditionExpression=Key("item_id").eq(item_id),
+            )
+            transaction = response.get("Items", [])
+            reserved_ranges = [
+                [tx["rental_date"], tx["return_date"]]
+                for tx in transaction
+                if tx.get("transaction_status") in ["reserved", "rented"]
+                and tx.get("rental_date") and tx.get("return_date")
+            ]
+
+        if client_id:
+            response = clients_table.get_item(Key={"client_id": client_id})
+            client = response.get("Item") or {}
+
+        # Campos configuráveis
+        all_fields = (
+            get_all_fields(account_id, field_config_table, entity="transaction") +
+            get_all_fields(account_id, field_config_table, entity="client") +
+            get_all_fields(account_id, field_config_table, entity="item")
+        )
+
+        # Totais para controle de plano
         total_relevant_transactions = 0
         exclusive_start_key = None
-
         while True:
             query_params = {
                 "IndexName": "account_id-index",
@@ -883,20 +914,16 @@ def init_item_routes(
                 "FilterExpression": Attr("transaction_status").is_in(["rented", "reserved"]),
                 "Select": "COUNT",
             }
-
             if exclusive_start_key:
                 query_params["ExclusiveStartKey"] = exclusive_start_key
-
             response = transactions_table.query(**query_params)
             total_relevant_transactions += response.get("Count", 0)
-
             exclusive_start_key = response.get("LastEvaluatedKey")
             if not exclusive_start_key:
                 break
 
         total_itens = 0
         exclusive_start_key = None
-
         while True:
             query_kwargs = {
                 "IndexName": "account_id-created_at-index",
@@ -904,56 +931,19 @@ def init_item_routes(
                 "FilterExpression": Attr("status").is_in(["available", "archive"]),
                 "Select": "COUNT",
             }
-
             if exclusive_start_key:
                 query_kwargs["ExclusiveStartKey"] = exclusive_start_key
-
             response = itens_table.query(**query_kwargs)
             total_itens += response.get("Count", 0)
-
             exclusive_start_key = response.get("LastEvaluatedKey")
             if not exclusive_start_key:
                 break
 
-        # acaba aqui
+        current_transaction = get_latest_transaction(user_id, users_table, payment_transactions_table)
 
+        cliente_vindo_da_query = bool(request.args.get("client_id"))
+        item_vindo_da_query = bool(request.args.get("item_id"))
 
-        # --- GET: renderiza tela de nova transação ---
-        item_id = request.args.get("item_id")
-        client_id = request.args.get("client_id")
-
-        item = {}
-        client = {}
-        reserved_ranges = []
-
-        if item_id:
-            response = itens_table.get_item(Key={"item_id": item_id})
-            item = response.get("Item") or {}
-
-            # 🔍 Buscar reservas existentes
-            response = transactions_table.query(
-                IndexName="item_id-index",
-                KeyConditionExpression="item_id = :item_id_val",
-                ExpressionAttributeValues={":item_id_val": item_id},
-            )
-            transaction = response.get("Items", [])
-            reserved_ranges = [
-                [tx["rental_date"], tx["return_date"]]
-                for tx in transaction
-                if tx.get("transaction_status") in ["reserved", "rented"]
-                and tx.get("rental_date")
-                and tx.get("return_date")
-            ]
-
-        if client_id:
-            response = clients_table.get_item(Key={"client_id": client_id})
-            client = response.get("Item") or {}
-
-        all_fields = (
-            get_all_fields(account_id, field_config_table, entity="transaction")
-            + get_all_fields(account_id, field_config_table, entity="client")
-            + get_all_fields(account_id, field_config_table, entity="item")
-        )
 
         return render_template(
             "rent.html",
@@ -963,10 +953,11 @@ def init_item_routes(
             all_fields=all_fields,
             item_editavel=not bool(item_id),
             client_editavel=not bool(client_id),
-            current_stripe_transaction = current_transaction,
+            current_stripe_transaction=current_transaction,
             total_relevant_transactions=total_relevant_transactions,
-            total_itens=total_itens
-
+            total_itens=total_itens,
+            cliente_vindo_da_query=cliente_vindo_da_query,
+            item_vindo_da_query=item_vindo_da_query,
         )
 
     ###########################################################################################################

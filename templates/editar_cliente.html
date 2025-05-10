@@ -4,10 +4,12 @@
 <div class="container py-4">
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h1 class="mb-0">Editar Cliente</h1>
-    <a href="{{ url_for('listar_clientes') }}" class="exit-link">
-      <i class="fas fa-sign-out-alt me-2"></i>
-      Sair sem Finalizar
-    </a>  </div>
+<a href="{{ request.args.get('next') }}?client_id={{ request.args.get('client_id') }}" class="exit-link">
+  <i class="fas fa-sign-out-alt me-2"></i>
+  Sair sem Finalizar
+</a>
+
+ </div>
   <div class="alert alert-primary d-flex justify-content-between align-items-center" role="alert">
     <div>
       Dica: Acesse <a href="/custom_fields/item" class="alert-link">Customizar Campos</a> para criar novos ou ajustar os existentes.

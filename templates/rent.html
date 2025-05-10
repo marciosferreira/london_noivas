@@ -33,18 +33,7 @@
   <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
     <h1 class="mb-0">Adicionar Transação</h1>
 
-    <div class="d-flex align-items-center gap-3 flex-wrap">
-      {% if client_client_id %}
-      <a href="{{ url_for('editar_cliente', client_id=client_client_id) }}" class="exit-link text-success">
-        <i class="fas fa-user-edit me-1"></i>
-        Editar Cliente
-      </a>
-      {% endif %} {% if item and item.item_id %}
-      <a href="{{ url_for('edit_item', item_id=item.item_id) }}" class="exit-link text-primary">
-        <i class="fas fa-box-open me-1"></i>
-        Editar Item
-      </a>
-      {% endif %}
+
 
       <a href="{{ url_for('inventory') }}" class="exit-link">
         <i class="fas fa-sign-out-alt me-2"></i>
@@ -53,11 +42,17 @@
     </div>
   </div>
 
+  {% if item_vindo_da_query and not cliente_vindo_da_query %} {% set ordem = ["bloco-item", "bloco-cliente", "bloco-transacao"] %} {% elif
+  cliente_vindo_da_query and not item_vindo_da_query %} {% set ordem = ["bloco-cliente", "bloco-item", "bloco-transacao"] %} {% else %} {% set ordem =
+  ["bloco-cliente", "bloco-item", "bloco-transacao"] %} {% endif %}
+
   <!-- Stepper visual -->
   <div class="stepper mb-4 d-flex justify-content-between">
-    <div class="step active" data-step="1">Cliente</div>
-    <div class="step" data-step="2">Item</div>
-    <div class="step" data-step="3">Transação</div>
+    {% for bloco in ordem %}
+    <div class="step {% if loop.first %}active{% endif %}" data-step="{{ loop.index }}">
+      {% if "cliente" in bloco %} Cliente {% elif "item" in bloco %} Item {% else %} Transação {% endif %}
+    </div>
+    {% endfor %}
   </div>
 
   <form action="{{ url_for('rent') }}" method="POST" enctype="multipart/form-data" id="form-rent" novalidate>
@@ -66,7 +61,7 @@
       <h4 class="mb-3">Informações do Cliente</h4>
       <div class="mb-4">{% include 'components/dynamic_input_client.html' with context %}</div>
       <div class="d-flex justify-content-end">
-        <button type="button" class="btn btn-primary w-auto" onclick="validarEAvancar('bloco-cliente', 'bloco-item')">Avançar</button>
+        <button type="button" class="btn btn-primary w-auto" onclick="mostrarAba('bloco-item')">Avançar</button>
       </div>
     </div>
 
@@ -76,7 +71,7 @@
       <div class="mb-4">{% include 'components/dynamic_input_item.html' with context %}</div>
       <div class="d-flex justify-content-between">
         <button type="button" class="btn btn-outline-secondary" onclick="mostrarAba('bloco-cliente')">Voltar</button>
-        <button type="button" class="btn btn-primary w-auto" onclick="validarEAvancar('bloco-item', 'bloco-transacao')">Avançar</button>
+        <button type="button" class="btn btn-primary w-auto" onclick="mostrarAba('bloco-item')">Avançar</button>
       </div>
     </div>
 
@@ -120,8 +115,7 @@
     </div>
   </div>
 </div>
-
-{% endblock %} {% block scripts %} {{ super() }}
+{{item_id}}{{user_id}} {% endblock %} {% block scripts %} {{ super() }}
 <script src="https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.umd.min.js"></script>
 
 <script>
@@ -138,32 +132,6 @@
 </script>
 
 <script>
-  function validarEAvancar(abaAtualId, proximaAbaId) {
-    const abaAtual = document.getElementById(abaAtualId);
-    const campos = abaAtual.querySelectorAll('input, select, textarea');
-
-    let formValido = true;
-
-    campos.forEach((campo) => {
-      if (!campo.checkValidity()) {
-        campo.classList.add('is-invalid');
-        formValido = false;
-      } else {
-        campo.classList.remove('is-invalid');
-      }
-    });
-
-    if (formValido) {
-      mostrarAba(proximaAbaId);
-    } else {
-      alert('Preencha todos os campos obrigatórios antes de avançar.');
-    }
-  }
-</script>
-
-<script>
-
-
   // 🧼 Máscaras
   function maskPhone(value) {
     let input = value.replace(/\D/g, '');
@@ -191,23 +159,65 @@
     cnpj = cnpj.replace(/(\d{4})(\d)/, '$1-$2');
     return cnpj;
   }
+</script>
+
+<script>
+  // 🧠 Bloqueia todos os campos do bloco de cliente
+  function bloquearCamposCliente() {
+    const blocoCliente = document.getElementById('bloco-cliente');
+    if (!blocoCliente) return;
+
+    const campos = blocoCliente.querySelectorAll('input, select, textarea');
+
+    campos.forEach((el) => {
+      if (el.id !== 'client_name' && el.type !== 'hidden') {
+        el.setAttribute('readonly', true);
+        el.setAttribute('disabled', true);
+      } else if (el.id === 'client_name') {
+        // Garante que client_name fique ativo
+        el.removeAttribute('readonly');
+        el.removeAttribute('disabled');
+      }
+    });
+  }
+
+  function desbloquearCamposCliente() {
+    const blocoCliente = document.getElementById('bloco-cliente');
+    if (!blocoCliente) return;
+
+    const campos = blocoCliente.querySelectorAll('input, select, textarea');
+    campos.forEach((el) => {
+      if (el.type !== 'hidden') {
+        el.removeAttribute('readonly');
+        el.removeAttribute('disabled');
+      }
+    });
+  }
+
+  // 🧠 Aplica máscaras específicas para CPF, CNPJ e telefone
+  function aplicarMascaraCliente(id, valor) {
+    if (!valor) return '';
+    if (id === 'client_phone') return maskPhone(valor);
+    if (id === 'client_cpf') return maskCPF(valor);
+    if (id === 'client_cnpj') return maskCNPJ(valor);
+    return valor;
+  }
 
   // 🧠 Autocomplete de cliente
   function autocompleteCliente() {
-    const clientInput = document.getElementById("client_name");
-    const statusMessage = document.getElementById("client-status-message");
-    const suggestionsBox = document.getElementById("client_suggestions");
+    const clientInput = document.getElementById('client_name');
+    const statusMessage = document.getElementById('client-status-message');
+    const suggestionsBox = document.getElementById('client_suggestions');
 
-    let suggestionSelected = false; // Flag para verificar se uma sugestão foi selecionada
+    let suggestionSelected = false;
 
     if (!clientInput || !statusMessage || !suggestionsBox) return;
 
-    // Exibe sugestões enquanto o usuário digita
-    clientInput.addEventListener("input", async () => {
+    clientInput.addEventListener('input', async () => {
       const term = clientInput.value.trim();
       if (term.length < 1) {
-        suggestionsBox.innerHTML = ""; // Limpa as sugestões se o termo for muito curto
-        statusMessage.style.display = 'none';  // Esconde a faixa de status
+        suggestionsBox.innerHTML = '';
+        statusMessage.style.display = 'none';
         return;
       }
 
@@ -215,87 +225,79 @@
         const res = await fetch(`/autocomplete_clients?term=${encodeURIComponent(term)}`);
         const clients = await res.json();
 
-        // Exibe as sugestões
-        suggestionsBox.innerHTML = "";
-        clients.forEach(cli => {
-          const div = document.createElement("div");
-          div.className = "autocomplete-item";
-          div.innerHTML = `<strong>${cli.client_name}</strong>
-            ${cli.client_tel ? `<div><small>📞 ${cli.client_tel}</small></div>` : ""}
-            ${cli.client_email ? `<div><small>📧 ${cli.client_email}</small></div>` : ""}
-            ${cli.client_cpf ? `<div><small>🆔 CPF: ${cli.client_cpf}</small></div>` : ""}
-            ${cli.client_cnpj ? `<div><small>🏢 CNPJ: ${cli.client_cnpj}</small></div>` : ""}`;
+        suggestionsBox.innerHTML = '';
 
-          div.addEventListener("click", () => {
-            document.getElementById('client_name').value = cli.client_name || "";
-            document.getElementById('client_id').value = cli.client_id || "";
-
-            const phoneEl = document.getElementById('client_phone');
-            if (phoneEl) phoneEl.value = cli.client_tel ? maskPhone(cli.client_tel) : "";
-
-            const emailEl = document.getElementById('client_email');
-            if (emailEl) emailEl.value = cli.client_email || "";
-
-            const cpfEl = document.getElementById('client_cpf');
-            if (cpfEl) cpfEl.value = cli.client_cpf ? maskCPF(cli.client_cpf) : "";
-
-            const cnpjEl = document.getElementById('client_cnpj');
-            if (cnpjEl) cnpjEl.value = cli.client_cnpj ? maskCNPJ(cli.client_cnpj) : "";
-
-            const addrEl = document.getElementById('client_address');
-            if (addrEl) addrEl.value = cli.client_address || "";
-
-            const notesEl = document.getElementById('client_notes');
-            if (notesEl) notesEl.value = cli.client_notes || "";
-
+        clients.forEach((cli) => {
+          const div = document.createElement('div');
+          div.className = 'autocomplete-item';
+          div.innerHTML = `
+  <strong>${cli.client_name}</strong>
+  ${cli.client_phone ? `<div><small>📞 ${maskPhone(cli.client_phone)}</small></div>` : ''}
+  ${cli.client_email ? `<div><small>📧 ${cli.client_email}</small></div>` : ''}
+  ${cli.client_cpf ? `<div><small>🆔 CPF: ${maskCPF(cli.client_cpf)}</small></div>` : ''}
+  ${cli.client_cnpj ? `<div><small>🏢 CNPJ: ${maskCNPJ(cli.client_cnpj)}</small></div>` : ''}
+`;
+          div.addEventListener('click', () => {
+            // Preenche qualquer campo que existir com base nas chaves do JSON
+            for (const key in cli) {
+              const el = document.getElementById(key);
+              if (el) {
+                el.value = aplicarMascaraCliente(key, cli[key]);
+              }
+            }
 
             suggestionSelected = true;
-            suggestionsBox.innerHTML = "";
+            suggestionsBox.innerHTML = '';
             statusMessage.className = 'status-message user-found';
-            statusMessage.innerHTML = 'Cliente encontrado';
+            const editarLink = `
+  <a href="/editar_cliente/${cli.client_id}?client_id=${cli.client_id}&next=${encodeURIComponent(window.location.pathname)}"
+     class="ms-2 text-decoration-underline text-warning">
+    Editar
+  </a>
+`;
+
+            statusMessage.innerHTML = 'Cliente encontrado ' + editarLink;
             statusMessage.style.display = 'block';
+
+            bloquearCamposCliente();
           });
 
           suggestionsBox.appendChild(div);
         });
 
-        // Verificação do "Usuário encontrado" ou "Usuário novo"
-        const exactMatch = clients.find(client => client.client_name.trim().toLowerCase() === term.toLowerCase());
+        const exactMatch = clients.find((client) => client.client_name.trim().toLowerCase() === term.toLowerCase());
 
-        // Atualiza a faixa de status conforme o valor inserido
         if (exactMatch) {
           statusMessage.className = 'status-message user-found';
           statusMessage.innerHTML = 'Cliente encontrado';
-          statusMessage.style.display = 'block';
         } else {
           statusMessage.className = 'status-message user-new';
-          statusMessage.innerHTML = 'Cliente novo';
-          statusMessage.style.display = 'block';
+          statusMessage.innerHTML = 'Cliente novo será criado';
+          desbloquearCamposCliente();
         }
 
+        statusMessage.style.display = 'block';
       } catch (error) {
-        console.error("Erro ao buscar clientes:", error);
+        console.error('Erro ao buscar clientes:', error);
       }
     });
 
-    // Ao clicar fora do campo, as sugestões desaparecem
-    document.addEventListener("click", (e) => {
+    document.addEventListener('click', (e) => {
       if (!clientInput.contains(e.target) && !suggestionsBox.contains(e.target)) {
-        suggestionsBox.innerHTML = ""; // Limpa as sugestões se clicar fora do campo
+        suggestionsBox.innerHTML = '';
       }
     });
 
-    // Se o usuário começar a editar o nome após selecionar uma sugestão, restabelece a flag
-    clientInput.addEventListener("focus", () => {
-      suggestionSelected = false; // Resetando a flag quando o usuário começa a digitar
+    clientInput.addEventListener('focus', () => {
+      suggestionSelected = false;
     });
   }
 
-  // Inicializar a função de auto-completar ao carregar a página
+  // 🔁 Inicializar ao carregar
   autocompleteCliente();
+</script>
 
-
-
+<script>
 
   // 📆 Datepicker com datas bloqueadas
   function iniciarDatePicker() {
@@ -460,54 +462,6 @@
 </script>
 
 {{ super() }}
-<script>
-  window.addEventListener('DOMContentLoaded', () => {
-    const form = document.getElementById('form-rent');
-
-    form.addEventListener('submit', function (e) {
-      const nomeCliente = document.getElementById('client_name');
-      const telCliente = document.getElementById('client_phone');
-      const dataPicker = document.getElementById('transaction_period');
-      const statusTransacao = document.getElementById('transaction_status');
-      const valorItem = document.getElementById('transaction_price');
-
-      if (!nomeCliente.value.trim()) {
-        e.preventDefault();
-        alert('Por favor, preencha o nome do cliente.');
-        nomeCliente.focus();
-        return;
-      }
-
-      if (!telCliente.value.trim()) {
-        e.preventDefault();
-        alert('Preencha o telefone do cliente na aba "Cliente".');
-        telCliente.focus();
-        return;
-      }
-
-      if (!dataPicker.value.trim()) {
-        e.preventDefault();
-        alert('Selecione o intervalo de datas na aba "Transação".');
-        dataPicker.focus();
-        return;
-      }
-
-      if (!statusTransacao.value) {
-        e.preventDefault();
-        alert('Selecione o status na aba Transação.');
-        statusTransacao.focus();
-        return;
-      }
-
-      if (!valorItem.value) {
-        e.preventDefault();
-        alert('Selecione o valor na aba Transação.');
-        valor.focus();
-        return;
-      }
-    });
-  });
-</script>
 
 <script>
   function formatarCampoMonetario(input) {
@@ -557,15 +511,15 @@
   function inicializarAutocompleteItem(campoId) {
     const input = document.getElementById(campoId);
     const suggestionsBox = document.getElementById(`${campoId}_suggestions`);
-    const statusMsg = document.getElementById(`${campoId}_status`);
+    const statusIds = ['item_custom_id_status', 'item_description_status'];
 
-    if (!input || !suggestionsBox || !statusMsg) return;
+    if (!input || !suggestionsBox) return;
 
     let itensSugeridos = [];
     let camposBloqueados = false;
 
     async function buscarSugestoes(term) {
-      const res = await fetch(`/autocomplete_items?field=${campoId}&term=${encodeURIComponent(term)}`);
+      const res = await fetch(`/autocomplete_items?term=${encodeURIComponent(term)}`);
       const data = await res.json();
       itensSugeridos = data;
       return data;
@@ -574,7 +528,7 @@
     function aplicarPreenchimento(item) {
       for (const key in item) {
         const field = document.getElementById(key);
-        if (field && key !== 'item_custom_id') {
+        if (field) {
           field.value = item[key];
         }
       }
@@ -594,13 +548,17 @@
     }
 
     function bloquearCamposItem() {
-      if (camposBloqueados) return; // já bloqueado, não repetir
+      if (camposBloqueados) return;
       camposBloqueados = true;
 
-      const ids = ['item_description', 'item_obs', 'item_value'];
-      ids.forEach((id) => {
-        const el = document.getElementById(id);
-        if (el) el.setAttribute('readonly', true);
+      const form = document.getElementById('form-rent');
+      const campos = form.querySelectorAll('input, select, textarea');
+
+      campos.forEach((el) => {
+        if (!['item_custom_id', 'item_description'].includes(el.id) && el.type !== 'hidden') {
+          el.setAttribute('readonly', true);
+          el.setAttribute('disabled', true);
+        }
       });
 
       const imgInput = document.getElementById('image_file');
@@ -608,33 +566,48 @@
     }
 
     function desbloquearCamposItem() {
-      if (!camposBloqueados) return; // já desbloqueado, não repetir
+      if (!camposBloqueados) return;
       camposBloqueados = false;
 
-      const ids = ['item_description', 'item_obs', 'item_value'];
-      ids.forEach((id) => {
-        const el = document.getElementById(id);
-        if (el) el.removeAttribute('readonly');
+      const form = document.getElementById('form-rent');
+      const campos = form.querySelectorAll('input, select, textarea');
+
+      campos.forEach((el) => {
+        if (el.type !== 'hidden') {
+          el.removeAttribute('readonly');
+          el.removeAttribute('disabled');
+        }
       });
 
       const imgInput = document.getElementById('image_file');
       if (imgInput) imgInput.style.display = '';
     }
 
+    function exibirStatusEncontrado(texto, classe) {
+      statusIds.forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.textContent = texto;
+          el.className = `status-message ${classe} mt-1`;
+          el.style.display = 'block';
+        }
+      });
+    }
+
     function checarMatchExato() {
       const term = input.value.trim().toLowerCase();
-      const match = itensSugeridos.find((it) => (it[campoId] || '').toLowerCase() === term);
+      const match = itensSugeridos.find((it) => {
+        const custom = (it.item_custom_id || '').toLowerCase();
+        const desc = (it.item_description || '').toLowerCase();
+        return custom === term || desc === term;
+      });
 
       if (match) {
-        statusMsg.textContent = 'Item encontrado';
-        statusMsg.className = 'status-message user-found mt-1';
-        statusMsg.style.display = 'block';
+        exibirStatusEncontrado('Item encontrado', 'user-found');
         aplicarPreenchimento(match);
         bloquearCamposItem();
       } else {
-        statusMsg.textContent = 'Novo item será criado';
-        statusMsg.className = 'status-message user-new mt-1';
-        statusMsg.style.display = 'block';
+        exibirStatusEncontrado('Novo item será criado', 'user-new');
         desbloquearCamposItem();
       }
     }
@@ -643,7 +616,7 @@
       const term = input.value.trim();
       if (term.length < 1) {
         suggestionsBox.innerHTML = '';
-        statusMsg.style.display = 'none';
+        exibirStatusEncontrado('', '');
         desbloquearCamposItem();
         return;
       }
@@ -656,20 +629,17 @@
           const div = document.createElement('div');
           div.className = 'autocomplete-item px-2 py-1';
           div.innerHTML = `<strong>${item.item_custom_id || '(sem código)'}</strong><br>
-                           <small>${item.item_description || 'Sem descrição'}</small>`;
+                         <small>${item.item_description || 'Sem descrição'}</small>`;
           div.addEventListener('click', () => {
             input.value = item[campoId] || '';
             aplicarPreenchimento(item);
             suggestionsBox.innerHTML = '';
-            statusMsg.textContent = 'Item encontrado';
-            statusMsg.className = 'status-message user-found mt-1';
-            statusMsg.style.display = 'block';
+            exibirStatusEncontrado('Item encontrado', 'user-found');
             bloquearCamposItem();
           });
           suggestionsBox.appendChild(div);
         });
 
-        // 🔁 Só tenta checar match se ainda não estiver bloqueado
         if (!camposBloqueados) checarMatchExato();
       } catch (err) {
         console.error('Erro ao buscar itens:', err);
@@ -689,13 +659,11 @@
       }
     });
   }
-
-  window.addEventListener('DOMContentLoaded', () => {
-    inicializarAutocompleteItem('item_custom_id');
-  });
 </script>
 
 <script>
+    // 🔁 Bloqueia novas transaçoes de acordo com o plano
+
   document.addEventListener("DOMContentLoaded", function () {
     const totalTransactions = {{ total_relevant_transactions | default(0) | tojson }};
     const subscriptionStatus = {{ current_stripe_transaction.subscription_status | default('none') | tojson }};
@@ -709,6 +677,66 @@
       const modal = new bootstrap.Modal(document.getElementById("limitModal"));
       modal.show();
     }
+  });
+</script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const tentarExibirClienteEncontrado = () => {
+      const clientId = document.getElementById('client_id')?.value;
+      const clientName = document.getElementById('client_name')?.value;
+      const statusMsg = document.getElementById('client-status-message');
+
+      if (clientId && clientName && statusMsg) {
+        const editarLink = `
+          <a href="/editar_cliente/${clientId}?client_id=${clientId}&next=${encodeURIComponent(window.location.pathname)}"
+             class="ms-2 text-decoration-underline text-warning">
+            Editar
+          </a>
+        `;
+        statusMsg.innerHTML = 'Cliente encontrado ' + editarLink;
+        statusMsg.className = 'status-message user-found mt-1';
+        statusMsg.style.display = 'block';
+      }
+    };
+
+    // Espera até o elemento existir no DOM
+    const interval = setInterval(() => {
+      const statusMsg = document.getElementById('client-status-message');
+      if (statusMsg) {
+        clearInterval(interval);
+        tentarExibirClienteEncontrado();
+      }
+    }, 100);
+  });
+</script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const urlParams = new URLSearchParams(window.location.search);
+    const clientId = urlParams.get('client_id');
+
+    const clientNameInput = document.getElementById('client_name');
+    const statusMsg = document.getElementById('client-status-message');
+
+    if (clientId && clientNameInput && statusMsg) {
+      const clientName = clientNameInput.value || 'Cliente';
+      const editarLink = `
+        <a href="/editar_cliente/${clientId}?client_id=${clientId}&next=${encodeURIComponent(window.location.pathname)}"
+           class="ms-2 text-decoration-underline text-warning">
+          Editar
+        </a>
+      `;
+
+      statusMsg.innerHTML = `Cliente encontrado: ${clientName} ${editarLink}`;
+      statusMsg.className = 'status-message user-found mt-1';
+      statusMsg.style.display = 'block';
+    }
+  });
+
+  document.addEventListener('DOMContentLoaded', () => {
+    inicializarAutocompleteItem('item_custom_id');
+    inicializarAutocompleteItem('item_description');
   });
 </script>
 
