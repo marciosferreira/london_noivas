@@ -4,7 +4,7 @@
 <div class="container py-4">
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h1 class="mb-0">Editar Cliente</h1>
-<a href="{{ request.args.get('next') }}?client_id={{ request.args.get('client_id') }}" class="exit-link">
+<a href="{{ request.args.get('next') }}" class="exit-link">
   <i class="fas fa-sign-out-alt me-2"></i>
   Sair sem Finalizar
 </a>
@@ -19,76 +19,49 @@
 
   <form method="POST" id="clientForm">
     <input type="hidden" name="next" value="{{ next or url_for('listar_clientes') }}" />
+    <input type="hidden" name="client_id" value="{{ client.client_id }}" />
+
 
     <div class="row row-cols-1 row-cols-md-3 g-4">
-      {% for field in all_fields if field.visible %}
-      <div class="col d-flex">
-        <div class="bg-light shadow-sm rounded p-3 border w-100 h-100 d-flex flex-column justify-content-center">
-          <label for="{{ field.id }}" class="form-label fw-semibold">
-            {{ field.label }}{% if field.required %} *{% endif %}
-          </label>
+{% for field in all_fields if field.visible %}
+  {% set value = client.get(field.id) if field.fixed else client.key_values.get(field.id, '') %}
 
-          {% if field.type == 'client_phone' %}
-            <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
-              value="{{ client.get(field.id, '') }}" {% if field.required %}required{% endif %} />
+  <div class="col d-flex">
+    <div class="bg-light shadow-sm rounded p-3 border w-100 h-100 d-flex flex-column justify-content-center">
+      <label for="{{ field.id }}" class="form-label fw-semibold">
+        {{ field.label }}{% if field.required %} *{% endif %}
+      </label>
 
-              {% elif field.type == 'client_name' %}
-              <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
-                value="{{ client.get(field.id, '') }}" {% if field.required %}required{% endif %} />
-                <div id="client-suggestions-title" style="display: none;">Clientes encontrados:</div>
-<div id="client_suggestions" class="autocomplete-box"></div>
-<div id="client-status-message" class="status-message" style="display: none;"></div>
+      {% if field.type in ['client_phone', 'client_name', 'client_email', 'client_address', 'client_cpf', 'client_cnpj', 'client_notes', 'text', 'value'] %}
+        <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+               value="{{ value }}" {% if field.required %}required{% endif %} />
 
+        {% if field.type == 'client_name' %}
+          <div id="client-suggestions-title" style="display: none;">Clientes encontrados:</div>
+          <div id="client_suggestions" class="autocomplete-box"></div>
+          <div id="client-status-message" class="status-message" style="display: none;"></div>
+        {% endif %}
 
-          {% elif field.type == 'client_email' %}
-            <input type="email" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
-              value="{{ client.get(field.id, '') }}" {% if field.required %}required{% endif %} />
+      {% elif field.type == 'number' %}
+        <input type="number" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+               value="{{ value }}" {% if field.required %}required{% endif %} />
 
-              {% elif field.type == 'client_address' %}
-            <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
-              value="{{ client.get(field.id, '') }}" {% if field.required %}required{% endif %} />
+      {% elif field.type == 'date' %}
+        <input type="date" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+               value="{{ value }}" {% if field.required %}required{% endif %} />
 
-          {% elif field.type == 'client_cpf' %}
-            <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
-              value="{{ client.get(field.id, '') }}" {% if field.required %}required{% endif %} />
+      {% elif field.type in ['dropdown', 'transaction_status'] %}
+        <select class="form-select" id="{{ field.id }}" name="{{ field.id }}" {% if field.required %}required{% endif %}>
+          <option value="">Selecione</option>
+          {% for option in field.options %}
+            <option value="{{ option }}" {% if option == value %}selected{% endif %}>{{ option }}</option>
+          {% endfor %}
+        </select>
+      {% endif %}
+    </div>
+  </div>
+{% endfor %}
 
-              {% elif field.type == 'client_cnpj' %}
-            <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
-              value="{{ client.get(field.id, '') }}" {% if field.required %}required{% endif %} />
-
-              {% elif field.type == 'client_notes' %}
-              <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
-                value="{{ client.get(field.id, '') }}" {% if field.required %}required{% endif %} />
-
-                {% elif field.type == "text" %}
-                <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
-                  value="{{ client.get(field.id, '') }}" {% if field.required %}required{% endif %} />
-
-                  {% elif field.type == 'value' %}
-                  <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
-                    value="{{ client.get(field.id, '') }}" {% if field.required %}required{% endif %} />
-
-
-              {% elif field.type == 'number' %}
-                <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
-                  value="{{ client.get(field.id, '') }}" {% if field.required %}required{% endif %} />
-
-              {% elif field.type == 'date' %}
-                <input type="date" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
-                  value="{{ client.get(field.id, '') }}" {% if field.required %}required{% endif %} />
-
-
-          {% elif field.type == 'dropdown' %}
-            <select class="form-select" id="{{ field.id }}" name="{{ field.id }}" {% if field.required %}required{% endif %}>
-              <option value="">Selecione</option>
-              {% for option in field.options %}
-                <option value="{{ option }}" {% if client.get(field.id) == option %}selected{% endif %}>{{ option }}</option>
-              {% endfor %}
-            </select>
-          {% endif %}
-        </div>
-      </div>
-      {% endfor %}
     </div>
 
     <div class="d-flex justify-content-center mt-4">

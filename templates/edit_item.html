@@ -7,91 +7,73 @@
 <div class="container py-4">
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h1 class="mb-0">{{title}}</h1>
-    <a href="{{ url_for('inventory') }}" class="exit-link">
-      <i class="fas fa-sign-out-alt me-2"></i>
-      Sair sem Finalizar
-    </a>  </div>
+
+  <a href="{{ request.args.get('next') }}" class="exit-link">
+  <i class="fas fa-sign-out-alt me-2"></i>
+  Sair sem Finalizar
+</a>
 
 
 
+
+  </div>
 
 
   <form method="POST" enctype="multipart/form-data">
     <input type="hidden" name="next" value="{{ request.args.get('next', url_for('index')) }}" />
-{{all_fields}}
     <div class="row row-cols-1 row-cols-md-3 g-4">
-      {% for field in all_fields if field.visible %}
-      <div class="col d-flex">
-        <div class="bg-light shadow-sm rounded p-3 border w-100 h-100 d-flex flex-column justify-content-center">
-          <label for="{{ field.id }}" class="form-label fw-semibold">
-            {{ field.label }}{% if field.required %} *{% endif %}
-          </label>
-
-          {% if field.type == "text" %}
-            <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
-              value="{{ item.get(field.id, '') }}" {% if field.required %}required{% endif %} />
-
-              {% elif field.type == 'value' %}
-              <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
-                value="{{ item.get(field.id, '') }}" {% if field.required %}required{% endif %} />
+     {% for field in all_fields if field.visible %}
+{% set key_values = item.key_values if item.get('key_values') else {} %}
+{% set value = item.get(field.id) if field.fixed else key_values.get(field.id, '') %}
 
 
-          {% elif field.type == 'number' %}
-            <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
-              value="{{ item.get(field.id, '') }}" {% if field.required %}required{% endif %} />
+  <div class="col d-flex">
+    <div class="bg-light shadow-sm rounded p-3 border w-100 h-100 d-flex flex-column justify-content-center">
+      <label for="{{ field.id }}" class="form-label fw-semibold">
+        {{ field.label }}{% if field.required %} *{% endif %}
+      </label>
 
-          {% elif field.type == 'date' %}
-            <input type="date" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
-              value="{{ item.get(field.id, '') }}" {% if field.required %}required{% endif %} />
+      {% if field.type in ['text', 'value', 'item_custom_id', 'item_description', 'item_obs', 'item_value'] %}
+        <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+               value="{{ value }}" {% if field.required %}required{% endif %} />
 
-          {% elif field.type == 'dropdown' %}
-            <select class="form-select" id="{{ field.id }}" name="{{ field.id }}" {% if field.required %}required{% endif %}>
-              <option value="">Selecione</option>
-              {% for option in field.options %}
-                <option value="{{ option }}" {% if item.get(field.id) == option %}selected{% endif %}>{{ option }}</option>
-              {% endfor %}
-            </select>
+      {% elif field.type == 'number' %}
+        <input type="number" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+               value="{{ value }}" {% if field.required %}required{% endif %} />
 
-          {% elif field.type == 'item_image_url' %}
-            <div class="text-center mb-2">
-              <img id="item-image"
-                   src="{{ item.item_image_url if item.item_image_url and item.item_image_url != 'N/A' else url_for('static', filename='item-placeholder.png') }}"
-                   style="max-width: 150px;" />
-              <input type="text" name="item_image_url" id="image-url-input"
-                     value="{{ item.item_image_url if item.item_image_url != 'N/A' else '' }}"
-                     style="opacity: 0; position: absolute; left: -9999px" />
-              <button type="button" onclick="removeImage()" id="remove-btn"
-                      class="btn btn-outline-danger btn-sm mt-2"
-                      style="{{ 'display: block;' if item.item_image_url and item.item_image_url != 'N/A' else 'display: none;' }}">
-                Excluir imagem
-              </button>
-            </div>
-            <input type="file" class="form-control" id="image_file" name="image_file"
-              {% if field.required %}data-required="true"{% endif %} />
+      {% elif field.type == 'date' %}
+        <input type="date" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+               value="{{ value }}" {% if field.required %}required{% endif %} />
 
+      {% elif field.type in ['dropdown', 'transaction_status'] %}
+        <select class="form-select" id="{{ field.id }}" name="{{ field.id }}" {% if field.required %}required{% endif %}>
+          <option value="">Selecione</option>
+          {% for option in field.options %}
+            <option value="{{ option }}" {% if option == value %}selected{% endif %}>{{ option }}</option>
+          {% endfor %}
+        </select>
 
-              {% elif field.type == "item_custom_id" %}
-              <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
-                value="{{ item.get(field.id, '') }}" {% if field.required %}required{% endif %} />
-
-                {% elif field.type == "item_description" %}
-              <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
-                value="{{ item.get(field.id, '') }}" {% if field.required %}required{% endif %} />
-
-                {% elif field.type == "item_obs" %}
-                <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
-                  value="{{ item.get(field.id, '') }}" {% if field.required %}required{% endif %} />
-
-                  {% elif field.type == "item_value" %}
-                  <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
-                    value="{{ item.get(field.id, '') }}" {% if field.required %}required{% endif %} />
-
-
-
-          {% endif %}
+      {% elif field.type == 'item_image_url' %}
+        <div class="text-center mb-2">
+          <img id="item-image"
+               src="{{ item.item_image_url if item.item_image_url and item.item_image_url != 'N/A' else url_for('static', filename='item-placeholder.png') }}"
+               style="max-width: 150px;" />
+          <input type="text" name="item_image_url" id="image-url-input"
+                 value="{{ item.item_image_url if item.item_image_url != 'N/A' else '' }}"
+                 style="opacity: 0; position: absolute; left: -9999px" />
+          <button type="button" onclick="removeImage()" id="remove-btn"
+                  class="btn btn-outline-danger btn-sm mt-2"
+                  style="{{ 'display: block;' if item.item_image_url and item.item_image_url != 'N/A' else 'display: none;' }}">
+            Excluir imagem
+          </button>
         </div>
-      </div>
-      {% endfor %}
+        <input type="file" class="form-control" id="image_file" name="image_file"
+               {% if field.required %}data-required="true"{% endif %} />
+      {% endif %}
+    </div>
+  </div>
+{% endfor %}
+
     </div>
 <br>
     <div class="row">

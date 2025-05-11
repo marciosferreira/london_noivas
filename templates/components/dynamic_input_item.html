@@ -17,7 +17,11 @@
             {{ field.label if field.fixed else field.title }}{% if field.required %} *{% endif %}
           </label>
 
-          {% set value = item.get(field.id, '') %}
+{% if transaction is defined %}
+  {% set value = request.form.get(field.id, transaction.get(field.id, transaction.get("key_values", {}).get(field.id, ''))) %}
+{% else %}
+  {% set value = request.form.get(field.id, '') %}
+{% endif %}
 
           {% if field.type in ["text", "item_obs"] %}
             <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
@@ -69,7 +73,8 @@
                      value="{{ value }}"
                      autocomplete="off"
                      {% if field.required %}required{% endif %} {% if readonly %}readonly{% endif %} />
-              <div id="{{ field.id }}_status" class="status-message mt-1" style="display: none;"></div>
+
+<div id="{{ field.id }}_status" class="status-message" style="display: none;"></div>
               <div id="{{ field.id }}_suggestions" class="autocomplete-box position-absolute w-100 bg-white border rounded shadow-sm z-3"></div>
             </div>
 

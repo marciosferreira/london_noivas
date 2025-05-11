@@ -8,7 +8,13 @@
             {{ field.label if field.fixed else field.title }}{% if field.required %} *{% endif %}
           </label>
 
-          {% set value = request.form.get(field.id, '') %}
+{% if transaction is defined %}
+  {% set value = request.form.get(field.id, transaction.get(field.id, transaction.get("key_values", {}).get(field.id, ''))) %}
+{% else %}
+  {% set value = request.form.get(field.id, '') %}
+{% endif %}
+
+
 
           <input type="hidden" id="client_id" name="client_id" />
 
@@ -48,9 +54,6 @@
                     {% if field.required %}required{% endif %}
                   />
 
-              {% elif field.type == 'date' %}
-            <input type="date" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
-              value="{{ value }}" {% if field.required %}required{% endif %} />
 
               {% elif field.type == 'transaction_status' %}
               <select class="form-select" id="{{ field.id }}" name="{{ field.id }}" {% if field.required %}required{% endif %}>
@@ -59,6 +62,11 @@
                   <option value="{{ option }}" {% if value == option %}selected{% endif %}>{{ option }}</option>
                 {% endfor %}
               </select>
+
+              {% elif field.type == 'date' %}
+            <input type="date" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+              value="{{ value }}" {% if field.required %}required{% endif %} />
+
 
 
           {% elif field.type == 'dropdown' %}

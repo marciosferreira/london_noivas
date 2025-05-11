@@ -315,7 +315,6 @@ def init_item_routes(
 
         next_page = request.args.get("next", url_for("index"))
 
-        # Buscar a transação atual
         response = transactions_table.get_item(Key={"transaction_id": transaction_id})
         transaction = response.get("Item")
 
@@ -330,18 +329,14 @@ def init_item_routes(
         item_id = transaction.get("item_id")
         client_id = transaction.get("client_id")
 
-        # Obter item e cliente
         item = itens_table.get_item(Key={"item_id": item_id}).get("Item", {})
         client = clients_table.get_item(Key={"client_id": client_id}).get("Item", {})
 
-        # Carregar campos customizados
-        all_fields = (
-            get_all_fields(account_id, field_config_table, entity="transaction")
-            + get_all_fields(account_id, field_config_table, entity="client")
-            + get_all_fields(account_id, field_config_table, entity="item")
-        )
+        fields_transaction = get_all_fields(account_id, field_config_table, entity="transaction")
+        fields_client = get_all_fields(account_id, field_config_table, entity="client")
+        fields_item = get_all_fields(account_id, field_config_table, entity="item")
+        all_fields = fields_transaction + fields_client + fields_item
 
-        # Obter todas as transações relacionadas ao item, exceto esta
         response = transactions_table.query(
             IndexName="item_id-index",
             KeyConditionExpression="item_id = :item_id_val",
@@ -358,45 +353,46 @@ def init_item_routes(
         ]
 
         if request.method == "POST":
-            valor_str = request.form.get("valor", "").replace(".", "").replace(",", ".")
-            pagamento_str = (
-                request.form.get("pagamento", "").replace(".", "").replace(",", ".")
-            )
-            ret_date = request.form.get("ret_date")
-            range_date = request.form.get("range_date")
-            rental_str, return_str = range_date.split(" - ")
+            import re
+            from decimal import Decimal, InvalidOperation
 
-            rental_date = datetime.datetime.strptime(
-                rental_str.strip(), "%d/%m/%Y"
-            ).strftime("%Y-%m-%d")
-            return_date = datetime.datetime.strptime(
-                return_str.strip(), "%d/%m/%Y"
-            ).strftime("%Y-%m-%d")
+            key_values = transaction.get("key_values", {})
+            fixed_updates = {}
+            custom_updates = {}
 
-            new_data = {
-                "rental_date": rental_date,
-                "return_date": return_date,
-                "dev_date": request.form.get("dev_date") or None,
-                "transaction_status": request.form.get("transaction_status") or "None",
-                "valor": Decimal(valor_str) if valor_str else Decimal("0.0"),
-                "transaction_obs": request.form.get("transaction_obs", "").strip(),
-                "pagamento": (
-                    Decimal(pagamento_str) if pagamento_str else Decimal("0.0")
-                ),
-            }
+            for field in all_fields:
+                field_id = field["id"]
+                raw_value = request.form.get(field_id, "").strip()
 
-            if new_data["transaction_status"] in ["reserved", "rented"]:
-                new_data["dev_date"] = None
+                if not raw_value:
+                    continue
 
-            if ret_date:
-                new_data["ret_date"] = ret_date
+                if field["type"] in ["value"]:
+                    try:
+                        value = Decimal(raw_value.replace(".", "").replace(",", "."))
+                    except InvalidOperation:
+                        flash(f"O campo {field['label']} possui valor inválido.", "danger")
+                        return redirect(request.url)
+                elif field["type"] in ["cpf", "cnpj", "phone"]:
+                    value = re.sub(r"\D", "", raw_value)
+                else:
+                    value = raw_value
 
-            changes = {
-                k: v
-                for k, v in new_data.items()
-                if transaction.get(k) != v
-                and not (transaction.get(k) == "" and v is None)
-            }
+                if field["fixed"]:
+                    fixed_updates[field_id] = value
+                else:
+                    custom_updates[field_id] = value
+
+            # Comparar e aplicar somente as mudanças
+            changes = {}
+
+            for k, v in fixed_updates.items():
+                if transaction.get(k) != v:
+                    changes[k] = v
+
+            for k, v in custom_updates.items():
+                if key_values.get(k) != v:
+                    changes[f"key_values.{k}"] = v
 
             if not changes:
                 flash("Nenhuma alteração foi feita.", "warning")
@@ -406,8 +402,8 @@ def init_item_routes(
             expr_values = {}
 
             for k, v in changes.items():
-                update_expr.append(f"{k} = :{k}")
-                expr_values[f":{k}"] = v
+                update_expr.append(f"{k} = :{k.replace('.', '_')}")
+                expr_values[f":{k.replace('.', '_')}"] = v
 
             transactions_table.update_item(
                 Key={"transaction_id": transaction_id},
@@ -427,11 +423,13 @@ def init_item_routes(
             "edit_transaction.html",
             item=item,
             client=client,
+            transaction=transaction,
             reserved_ranges=reserved_ranges,
             all_fields=all_fields,
             item_editavel=False,
             client_editavel=False,
         )
+
 
     ############################################################################################################
 
@@ -619,25 +617,6 @@ def init_item_routes(
                 flash("Nenhuma alteração foi feita.", "warning")
                 return redirect(next_page)
 
-            # Backup do item anterior
-            new_item_id = str(uuid.uuid4().hex[:12])
-            user_utc = get_user_timezone(users_table, session.get("user_id"))
-            edited_date = datetime.datetime.now(user_utc).strftime("%d/%m/%Y %H:%M:%S")
-            copied_item = {
-                k: v for k, v in item.items() if k != "item_id" and v not in [None, ""]
-            }
-            copied_item.update(
-                {
-                    "item_id": new_item_id,
-                    "previous_status": item.get("status"),
-                    "parent_item_id": item_id,
-                    "status": "version",
-                    "edited_date": edited_date,
-                    "deleted_by": session.get("username"),
-                }
-            )
-            itens_table.put_item(Item=copied_item)
-
             # Atualiza item principal
             update_expression = []
             expression_values = {}
@@ -665,6 +644,8 @@ def init_item_routes(
                 prepared[field_id] = key_values.get(field_id, "")
 
         prepared["item_id"] = item["item_id"]
+        prepared["key_values"] = key_values  # ← isso garante que o template poderá usar item.key_values
+
 
         origin = next_page.rstrip("/").split("/")[-1]
         origin_status = "available" if origin == "inventory" else "archive"
@@ -685,8 +666,22 @@ def init_item_routes(
         user_id = session.get("user_id")
         user_utc = get_user_timezone(users_table, user_id)
 
+        cliente_vindo_da_query = bool(request.args.get("client_id"))
+        item_vindo_da_query = bool(request.args.get("item_id"))
 
-        def processar_transacao(account_id, user_id, user_utc):
+        # Exemplo simplificado
+        ordem = []
+        if item_vindo_da_query and not cliente_vindo_da_query:
+            ordem = ["bloco-item", "bloco-cliente", "bloco-transacao"]
+        elif cliente_vindo_da_query and not item_vindo_da_query:
+            ordem = ["bloco-cliente", "bloco-item", "bloco-transacao"]
+        else:
+            ordem = ["bloco-cliente", "bloco-item", "bloco-transacao"]
+
+        current_transaction = get_latest_transaction(user_id, users_table, payment_transactions_table)
+
+
+        def processar_transacao(account_id, user_id, user_utc, ordem, current_transaction):
             import re
 
 
@@ -727,6 +722,7 @@ def init_item_routes(
                             reserved_ranges=[],
                             all_fields=all_fields,
                             cliente_editavel=True,
+                            ordem=ordem,
 
 
                         )
@@ -752,6 +748,9 @@ def init_item_routes(
                     reserved_ranges=[],
                     all_fields=all_fields,
                     cliente_editavel=True,
+                    ordem=ordem,
+                    client = {},
+                    current_stripe_transaction = current_transaction
                 )
 
             # 👤 Cliente: criar novo ou usar existente
@@ -861,12 +860,12 @@ def init_item_routes(
                     total_relevant_transactions=total_relevant_transactions,
                     total_itens=total_itens,
                     current_stripe_transaction=current_transaction,
-                )
+                    ordem=ordem,                )
 
                 ################################################################################################################
 
         if request.method == "POST":
-            return processar_transacao(account_id, user_id, user_utc)
+            return processar_transacao(account_id, user_id, user_utc, ordem, current_transaction)
 
         # --- GET: renderiza a tela de nova transação ---
         item_id = request.args.get("item_id")
@@ -939,12 +938,6 @@ def init_item_routes(
             if not exclusive_start_key:
                 break
 
-        current_transaction = get_latest_transaction(user_id, users_table, payment_transactions_table)
-
-        cliente_vindo_da_query = bool(request.args.get("client_id"))
-        item_vindo_da_query = bool(request.args.get("item_id"))
-
-
         return render_template(
             "rent.html",
             item=item,
@@ -958,6 +951,7 @@ def init_item_routes(
             total_itens=total_itens,
             cliente_vindo_da_query=cliente_vindo_da_query,
             item_vindo_da_query=item_vindo_da_query,
+            ordem=ordem,
         )
 
     ###########################################################################################################

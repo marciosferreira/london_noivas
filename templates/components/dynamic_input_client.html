@@ -1,7 +1,8 @@
 
 <div class="row row-cols-1 row-cols-md-3 g-4">
   {% for field in all_fields if field.id.startswith("client_") and field.visible %}
-  {% set is_readonly = not client_editavel and field.id != 'client_name' %}
+
+  {% set is_readonly = not client_editavel %}
 
   <div class="col d-flex">
     <div class="bg-light shadow-sm rounded p-3 border w-100 h-100 d-flex flex-column justify-content-center">
@@ -9,7 +10,11 @@
         {{ field.label if field.fixed else field.title }}{% if field.required %} *{% endif %}
       </label>
 
-      {% set value = client.get(field.id, '') %}
+{% if transaction is defined %}
+  {% set value = request.form.get(field.id, transaction.get(field.id, transaction.get("key_values", {}).get(field.id, ''))) %}
+{% else %}
+  {% set value = request.form.get(field.id, '') %}
+{% endif %}
 
       {% if field.type == 'client_phone' %}
   <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"

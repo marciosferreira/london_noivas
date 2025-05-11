@@ -39,7 +39,7 @@
       </tr>
     </thead>
     <tbody>
-      {% for item in itens %}
+      {% for item in itens %} {{item}}
       <tr>
         {% for field in fields_config if field.preview and field.visible %}
         <td data-label="{{ field.label }}">

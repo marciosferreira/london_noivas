@@ -5,11 +5,7 @@
 
 <div class="container mt-3">
 
-<div class="text-center special-button-wrapper">
-  <a href="{{ url_for('rent') }}" class="btn btn-lg btn-success shadow-lg px-5 py-3 special-button">
-    <i class="fas fa-bolt me-2"></i> Iniciar uma Transação
-  </a>
-</div>
+
 
 
 
@@ -120,7 +116,7 @@
           <!-- prettier-ignore -->
           <td  data-item='{{ item | tojson | safe }}' data-label="Preço (R$)">
             {% if item.item_value is defined and item.item_value is not none %}
-  {{ item.item_value | round(2) | string | replace('.', ',') }}
+{{ item.item_value | float | round(2) | string | replace('.', ',') }}
 {% else %}
   sem valor
 {% endif %}
@@ -129,7 +125,7 @@
           <!-- prettier-ignore -->
           <td data-item='{{ item | tojson | safe }}' data-label="Pagamento">
             {% if item.transaction_value_paid is defined and item.transaction_value_paid is not none %}
-            {{ item.transaction_value_paid | round(2) | string | replace('.', ',') }}
+{{ item.item_value | float | round(2) | string | replace('.', ',') }}
           {% else %}
             sem valor
           {% endif %}
@@ -236,11 +232,19 @@
                     </div>
                     <div class="col-12 col-md-6">
                       <strong>Valor (R$):</strong><br>
-                      {{ item.item_value | round(2) | string | replace('.', ',') if item.item_value is defined else 'sem valor' }}
+{% if item.item_value is defined and item.item_value is not none %}
+  {{ item.item_value | float | round(2) | string | replace('.', ',') }}
+{% else %}
+  sem valor
+{% endif %}
                     </div>
                     <div class="col-12 col-md-6">
                       <strong>Valor Pago (R$):</strong><br>
-                      {{ item.transaction_value_paid | round(2) | string | replace('.', ',') if item.transaction_value_paid is defined else 'sem valor' }}
+{% if item.item_value is defined and item.item_value is not none %}
+  {{ item.item_value | float | round(2) | string | replace('.', ',') }}
+{% else %}
+  sem valor
+{% endif %}
                     </div>
                     <div class="col-12">
                       <strong>Observações:</strong><br>

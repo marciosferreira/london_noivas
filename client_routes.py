@@ -222,6 +222,9 @@ def init_client_routes(
 
         if request.method == "POST":
             import re
+            new_name = request.form.get("client_name", "").strip()
+            new_cpf = re.sub(r"\D", "", request.form.get("client_cpf", ""))
+            new_cnpj = re.sub(r"\D", "", request.form.get("client_cnpj", ""))
 
             updated_values = {}
             updated_key_values = cliente.get("key_values", {})
@@ -271,15 +274,20 @@ def init_client_routes(
             cliente["key_values"] = updated_key_values
 
             # Verificação de unicidade (desconsidera o próprio cliente)
+            # Verificação de unicidade (permite duplicidade apenas para o próprio cliente)
             existing_clients = clients_table.scan().get("Items", [])
-            for c in existing_clients:
-                if c.get("account_id") != account_id or c.get("client_id") == client_id:
-                    continue
+            new_name = request.form.get("client_name", "").strip()
+            new_cpf = re.sub(r"\D", "", request.form.get("client_cpf", ""))
+            new_cnpj = re.sub(r"\D", "", request.form.get("client_cnpj", ""))
 
-                if (
-                    cliente.get("client_name")
-                    and c.get("client_name") == cliente["client_name"]
-                ):
+            for c in existing_clients:
+                if c.get("account_id") != account_id:
+                    continue  # ignora clientes de outra conta
+
+                if c.get("client_id") == client_id:
+                    continue  # ignora o próprio cliente (em edição)
+
+                if new_name and c.get("client_name") == new_name:
                     flash("Já existe um cliente com esse nome.", "error")
                     return render_template(
                         "editar_cliente.html",
@@ -288,10 +296,7 @@ def init_client_routes(
                         next=next_page,
                     )
 
-                if (
-                    cliente.get("client_cpf")
-                    and c.get("client_cpf") == cliente["client_cpf"]
-                ):
+                if new_cpf and c.get("client_cpf") == new_cpf:
                     flash("Já existe um cliente com esse CPF.", "error")
                     return render_template(
                         "editar_cliente.html",
@@ -300,10 +305,7 @@ def init_client_routes(
                         next=next_page,
                     )
 
-                if (
-                    cliente.get("client_cnpj")
-                    and c.get("client_cnpj") == cliente["client_cnpj"]
-                ):
+                if new_cnpj and c.get("client_cnpj") == new_cnpj:
                     flash("Já existe um cliente com esse CNPJ.", "error")
                     return render_template(
                         "editar_cliente.html",
@@ -312,9 +314,10 @@ def init_client_routes(
                         next=next_page,
                     )
 
-            cliente["updated_at"] = datetime.datetime.now(user_utc).strftime(
-                "%Y-%m-%d %H:%M:%S"
-            )
+
+                cliente["updated_at"] = datetime.datetime.now(user_utc).strftime(
+                    "%Y-%m-%d %H:%M:%S"
+                )
 
             try:
                 clients_table.put_item(Item=cliente)
@@ -349,12 +352,25 @@ def init_client_routes(
                 flash("Erro ao atualizar cliente. Tente novamente.", "danger")
                 return redirect(next_page)
 
+        # ---------- GET ----------
+        key_values = cliente.get("key_values", {})
+        prepared = {}
+        for f in all_fields:
+            fid = f["id"]
+            if f["fixed"]:
+                prepared[fid] = cliente.get(fid, "")
+            else:
+                prepared[fid] = key_values.get(fid, "")
+        prepared["client_id"] = cliente["client_id"]
+        prepared["key_values"] = key_values
+
         return render_template(
             "editar_cliente.html",
-            client=cliente,
+            client=prepared,
             all_fields=all_fields,
             next=next_page,
         )
+
 
     @app.route("/clientes/adicionar", methods=["GET", "POST"])
     def adicionar_cliente():

@@ -29,11 +29,18 @@
       <!-- Menu principal -->
       <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
         <ul class="navbar-nav">
+          <li class="nav-item">
+            <a class="nav-link fw-bold text-success {% if request.endpoint == 'rent' %}active{% endif %}" href="{{ url_for('rent') }}">
+              <i class="fas fa-bolt me-1"></i>
+              Iniciar transação
+            </a>
+          </li>
+
           <!-- Dropdown Menu Transações -->
           <li class="nav-item dropdown">
             <a class="nav-link dropdown-toggle" href="#" id="menuDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
               <i class="fas fa-random me-1"></i>
-              Transações
+              Ver Transações
             </a>
             <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end">
               <li>
