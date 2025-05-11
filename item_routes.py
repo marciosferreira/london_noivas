@@ -367,7 +367,7 @@ def init_item_routes(
                 if not raw_value:
                     continue
 
-                if field["type"] in ["value"]:
+                if field["type"] in ["value", "transaction_value_paid"]:
                     try:
                         value = Decimal(raw_value.replace(".", "").replace(",", "."))
                     except InvalidOperation:

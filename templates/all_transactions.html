@@ -30,8 +30,7 @@
   </div>
   {% endif %}
 
-
-
+{{itens}}
 
 
 
@@ -116,33 +115,33 @@
           <!-- prettier-ignore -->
           <td  data-item='{{ item | tojson | safe }}' data-label="Preço (R$)">
             {% if item.item_value is defined and item.item_value is not none %}
-{{ item.item_value | float | round(2) | string | replace('.', ',') }}
+{{ item.item_value | format_currency}}
 {% else %}
   sem valor
 {% endif %}
           </td>
+{{item}}
+         <td data-item='{{ item | tojson | safe }}' data-label="Pagamento">
+  {% if item.transaction_value_paid %}
+    {{ item.transaction_value_paid | format_currency }}
+    {% if item.item_value %}
+      {% set pago = item.transaction_value_paid | float %}
+      {% set total = item.item_value | float %}
+      {% if pago == total %}
+        <br>(Pagamento Total)
+      {% elif 0 < pago < total %}
+        <br>(Pagamento Parcial)
+      {% else %}
+        <br>(Não Pago)
+      {% endif %}
+    {% else %}
+      <br>(Não Pago)
+    {% endif %}
+  {% else %}
+    sem valor<br>(Não Pago)
+  {% endif %}
+</td>
 
-          <!-- prettier-ignore -->
-          <td data-item='{{ item | tojson | safe }}' data-label="Pagamento">
-            {% if item.transaction_value_paid is defined and item.transaction_value_paid is not none %}
-{{ item.item_value | float | round(2) | string | replace('.', ',') }}
-          {% else %}
-            sem valor
-          {% endif %}
-            {% if item.transaction_value_paid and item.item_value %}
-              {% set pagamento_float = item.transaction_value_paid | float %}
-              {% set valor_float = item.item_value | float %}
-              {% if pagamento_float == valor_float %}
-                <br>(Pagamento Total)
-              {% elif pagamento_float > 0 and pagamento_float < valor_float %}
-                <br>(Pagamento Parcial)
-              {% else %}
-                (Não Pago)
-              {% endif %}
-            {% else %}
-              <br>(Não Pago)
-            {% endif %}
-          </td>
 
           <!-- prettier-ignore -->
           <td data-item='{{ item | tojson | safe }}' data-label="Observações">

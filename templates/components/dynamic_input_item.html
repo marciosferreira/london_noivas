@@ -17,11 +17,7 @@
             {{ field.label if field.fixed else field.title }}{% if field.required %} *{% endif %}
           </label>
 
-{% if transaction is defined %}
-  {% set value = request.form.get(field.id, transaction.get(field.id, transaction.get("key_values", {}).get(field.id, ''))) %}
-{% else %}
-  {% set value = request.form.get(field.id, '') %}
-{% endif %}
+          {% set value = item.get(field.id, '') %}
 
           {% if field.type in ["text", "item_obs"] %}
             <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
@@ -33,9 +29,9 @@
 
 
 
-              {% elif field.type in ["value", "number", "item_value"] %}
+              {% elif field.type in ["value", "item_value" ,"number"] %}
               <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
-                value="{{ value }}" {% if field.required %}required{% endif %} {% if readonly %}readonly{% endif %} />
+                value="{{ value | format_currency}}" {% if field.required %}required{% endif %} {% if readonly %}readonly{% endif %} />
 
           {% elif field.type == "dropdown" %}
             <select class="form-select" id="{{ field.id }}" name="{{ field.id }}" {% if field.required %}required{% endif %} {% if readonly %}disabled{% endif %}>

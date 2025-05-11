@@ -10,11 +10,7 @@
         {{ field.label if field.fixed else field.title }}{% if field.required %} *{% endif %}
       </label>
 
-{% if transaction is defined %}
-  {% set value = request.form.get(field.id, transaction.get(field.id, transaction.get("key_values", {}).get(field.id, ''))) %}
-{% else %}
-  {% set value = request.form.get(field.id, '') %}
-{% endif %}
+      {% set value = client.get(field.id, '') %}
 
       {% if field.type == 'client_phone' %}
   <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"

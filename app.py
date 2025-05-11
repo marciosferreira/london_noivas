@@ -217,11 +217,25 @@ def format_phone(value):
         return f"({digits[:2]}) {digits[2:7]}-{digits[7:]}"
     return value
 
+from decimal import Decimal
+
+def format_currency(value):
+    if not value:
+        return ""
+    try:
+        # Converte para float, aplica formatação brasileira com vírgula
+        return "{:,.2f}".format(float(value)).replace(",", "X").replace(".", ",").replace("X", ".")
+    except (ValueError, TypeError):
+        return str(value)
+
+
 
 # Registrar filtros no Jinja
 app.jinja_env.filters["format_cpf"] = format_cpf
 app.jinja_env.filters["format_cnpj"] = format_cnpj
 app.jinja_env.filters["format_phone"] = format_phone
+app.jinja_env.filters["format_currency"] = format_currency
+
 
 
 if __name__ == "__main__":

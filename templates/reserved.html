@@ -107,7 +107,7 @@
           <!-- prettier-ignore -->
           <td  data-item='{{ item | tojson | safe }}' data-label="Preço (R$)">
             {% if item.item_value is defined and item.item_value is not none %}
-  {{ item.item_value | round(2) | string | replace('.', ',') }}
+  {{ item.item_value | string | replace('.', ',') }}
 {% else %}
   sem valor
 {% endif %}
@@ -116,7 +116,7 @@
           <!-- prettier-ignore -->
           <td data-item='{{ item | tojson | safe }}' data-label="Pagamento">
             {% if item.transaction_value_paid is defined and item.transaction_value_paid is not none %}
-            {{ item.transaction_value_paid | round(2) | string | replace('.', ',') }}
+            {{ item.transaction_value_paid | string | replace('.', ',') }}
           {% else %}
             sem valor
           {% endif %}
@@ -223,11 +223,11 @@
                     </div>
                     <div class="col-12 col-md-6">
                       <strong>Valor (R$):</strong><br>
-                      {{ item.item_value | round(2) | string | replace('.', ',') if item.item_value is defined else 'sem valor' }}
+                      {{ item.item_value | string | replace('.', ',') if item.item_value is defined else 'sem valor' }}
                     </div>
                     <div class="col-12 col-md-6">
                       <strong>Valor Pago (R$):</strong><br>
-                      {{ item.transaction_value_paid | round(2) | string | replace('.', ',') if item.transaction_value_paid is defined else 'sem valor' }}
+                      {{ item.transaction_value_paid | string | replace('.', ',') if item.transaction_value_paid is defined else 'sem valor' }}
                     </div>
                     <div class="col-12">
                       <strong>Observações:</strong><br>

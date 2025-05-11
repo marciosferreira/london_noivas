@@ -710,12 +710,21 @@
     });
   }
 
-  // Aplica nos campos que precisam
-  const campos = [document.getElementById('item_value'), document.getElementById('transaction_value_paid')];
-  campos.forEach((campo) => {
-    if (campo) {
+  document.addEventListener('DOMContentLoaded', function () {
+    const campos = document.querySelectorAll('.campo-monetario');
+    console.log('Campos monetários:', campos);
+    campos.forEach((campo) => {
+      if (campo.value && !campo.value.includes(',')) {
+        const float = parseFloat(campo.value.replace(',', '.'));
+        if (!isNaN(float)) {
+          campo.value = float.toLocaleString('pt-BR', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          });
+        }
+      }
       formatarCampoMonetario(campo);
-    }
+    });
   });
 </script>
 
