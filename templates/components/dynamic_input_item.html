@@ -30,7 +30,7 @@
 
 
               {% elif field.type in ["value", "item_value" ,"number"] %}
-              <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+              <input type="text" class="form-control campo-monetario" id="{{ field.id }}" name="{{ field.id }}"
                 value="{{ value | format_currency}}" {% if field.required %}required{% endif %} {% if readonly %}readonly{% endif %} />
 
           {% elif field.type == "dropdown" %}

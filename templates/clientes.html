@@ -95,42 +95,8 @@
 
 
 
-        <div class="modal fade" id="modalItem{{ loop.index }}" tabindex="-1" aria-labelledby="modalItemLabel{{ loop.index }}" aria-hidden="true">
-          <div class="modal-dialog modal-dialog-scrollable modal-lg">
-            <div class="modal-content">
-              <div class="modal-header">
-                <h5 class="modal-title" id="modalItemLabel{{ loop.index }}">Detalhes do Cliente</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
-              </div>
-              <div class="modal-body">
-                <div class="container-fluid">
-                  <div class="row g-3">
-                    {% for field in fields_config if field.type != 'image_url' %}
-                    <div class="col-12 col-md-6">
-                      <strong>{{ field.label }}:</strong>
-                      <br />
-                      {% set value = item.key_values[field.id] if item.key_values is defined and field.id in item.key_values else item[field.id] if field.id in item else '' %}
-                      {% if value == 'None' or value is none %}
-                      <span class="text-muted">-</span>
-                      {% else %}
-                      <span>
-                        {% if field.type == "date" %}
-                          {{ value | format_date }}
-                        {% elif field.type == "value" %}
-                          {{ value | format_brl }}
-                        {% else %}
-                          {{ value }}
-                        {% endif %}
-                      </span>
-                      {% endif %}
-                    </div>
-                    {% endfor %}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+      {% include 'components/info_modal_client.html' with context %}
+
 
 
 
@@ -160,7 +126,6 @@
   <ul class="pagination justify-content-center"></ul>
   {% endif %}
 
-  {% include 'components/info_modal_client.html' %}
 </div>
 {% endblock %} {% block scripts %}
     <!-- scripts extras -->

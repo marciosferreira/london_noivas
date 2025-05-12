@@ -1,8 +1,8 @@
 
 <div id="tab-cliente" class="tab-content active">
     <div class="row row-cols-1 row-cols-md-3 g-4">
-      {% for field in all_fields if field.id.startswith("transaction_") and field.visible and field.type != "transaction_price" %}
 
+      {% for field in all_fields if field.id.startswith("transaction_") and field.visible %}
 
       <div class="col d-flex">
         <div class="bg-light shadow-sm rounded p-3 border w-100 h-100 d-flex flex-column justify-content-center">
@@ -10,12 +10,15 @@
             {{ field.label if field.fixed else field.title }}{% if field.required %} *{% endif %}
           </label>
 
-{% if transaction is defined %}
-  {% set value = request.form.get(field.id, transaction.get(field.id, transaction.get("key_values", {}).get(field.id, ''))) %}
+{% if field.id == "transaction_price" %}
+  {% if item is defined %}
+    {% set value = request.form.get(field.id, item.get("item_value", '')) %}
+  {% else %}
+    {% set value = request.form.get(field.id, '') %}
+  {% endif %}
 {% else %}
   {% set value = request.form.get(field.id, '') %}
 {% endif %}
-
 
 
           <input type="hidden" id="client_id" name="client_id" />
@@ -37,7 +40,7 @@
               value="{{ value }}" {% if field.required %}required{% endif %} />
 
 
-                {% elif field.type in ['transaction_value_paid', 'value'] %}
+                {% elif field.type in ['transaction_value_paid', 'value', 'transaction_price'] %}
   <input type="text" class="form-control campo-monetario" id="{{ field.id }}" name="{{ field.id }}"
          value="{{ value|format_currency }}" {% if field.required %}required{% endif %} />
 

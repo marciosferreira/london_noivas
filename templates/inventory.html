@@ -39,7 +39,7 @@
       </tr>
     </thead>
     <tbody>
-      {% for item in itens %} {{item}}
+      {% for item in itens %}
       <tr>
         {% for field in fields_config if field.preview and field.visible %}
         <td data-label="{{ field.label }}">
@@ -106,66 +106,7 @@
         </td>
       </tr>
 
-      <div class="modal fade" id="modalItem{{ loop.index }}" tabindex="-1" aria-labelledby="modalItemLabel{{ loop.index }}" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-scrollable modal-lg">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title" id="modalItemLabel{{ loop.index }}">Detalhes do Item</h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
-            </div>
-            <div class="modal-body">
-              {% set show_image = (fields_config | selectattr("id", "equalto", "item_image_url") | selectattr("visible") | list | length) > 0 %} {% if
-              show_image %}
-              <!-- Imagem do item -->
-              <div class="text-center mb-3">
-                {% set image = item.key_values['item_image_url'] if item.key_values is defined and 'item_image_url' in item.key_values else
-                item['item_image_url'] if 'item_image_url' in item else '' %} {% if image and image != "N/A" %}
-                <img
-                  src="{{ image }}"
-                  alt="Imagem do item"
-                  class="img-fluid"
-                  style="max-width: 200px; cursor: pointer"
-                  onclick="mostrarImagemModal('{{ image }}')"
-                />
-                {% else %}
-                <img
-                  src="{{ url_for('static', filename='item-placeholder.png') }}"
-                  alt="Sem imagem"
-                  class="img-fluid"
-                  style="max-width: 200px; cursor: pointer"
-                  onclick="mostrarImagemModal('{{ url_for('static', filename='item-placeholder.png') }}')"
-                />
-                {% endif %}
-              </div>
-              {% endif %}
-
-              <div class="container-fluid">
-                <div class="row g-3">
-                  {{fields_config}} {% for field in fields_config if field.type != 'image_url' %}
-                  <div class="col-12 col-md-6">
-                    <strong>{{ field.label }}:</strong>
-                    <br />
-                    {% set value = item.key_values[field.id] if item.key_values is defined and field.id in item.key_values else item[field.id] if
-                    field.id in item else '' %} {% if value == 'None' or value is none %}
-                    <span class="text-muted">-</span>
-                    {% else %}
-                    <span>
-                      <span>
-                        {% if field.type == "date" %} {{ value | format_date }} {% elif field.type == "value" %} {{ value | format_brl }} {% else %}
-                        {{ value }} {% endif %}
-                      </span>
-                    </span>
-                    {% endif %}
-                  </div>
-                  {% endfor %}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {% endfor %}
+      {% include 'components/info_modal_item.html' with context %} {% endfor %}
     </tbody>
   </table>
 </div>

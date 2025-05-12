@@ -1,65 +1,49 @@
-{% extends "base.html" %} {% block title %} Transações iniciadas (itens alugados) {% endblock %} {% block styles %}
+{% extends "base.html" %}
+{% block title %}Transações Iniciadas (Itens Alugados){% endblock %}
+{% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='style_all_transactions.css') }}" />
-{% endblock %} {% block content %}
-
-
-<div class="container mt-3">
-
-
-
-
-
-
-
+{% endblock %}
+{% block content %}
+<div class="container my-3">
   <h2 class="mb-4">{{ title }}</h2>
 
+  {% set show_add_button = True %}
+  {% set add_route = url_for('trash_transactions') %}
+  {% include "components/filter_section.html" with context %}
   {% if not itens %}
-  <div
-    style="
-      display: flex;
-      align-items: center;
-      background-color: #cce5ff;
-      border-left: 6px solid #007bff; /* Tarja azul à esquerda */
-      color: #004085;
-      padding: 1rem;
-      border-radius: 0.25rem;
-      margin-top: 1rem;
-    "
-  >
-    <span>Não há itens que satisfazem os cirtérios selecionados.</span>
-  </div>
+    <div class="alert alert-info mt-3">
+      Não há itens que satisfazem os critérios selecionados.
+    </div>
   {% endif %}
 
-{{itens}}
-
-
-
-  {% if last_page == False and not itens%}
-  <p style="color: #308be3; font-weight: bold; font-size: 1.2rem; margin-top: -1rem; margin-left: 0.25rem">Nada por aqui!</p>
-  {% endif %} {% if request.args or itens %} {% include "components/filter_section.html" with context %}{% endif %} {% if itens %}
-  <!-- Tabela -->
+  {% if itens %}
   <div class="table-container mt-4">
     <table class="table table-hover responsive-table align-middle rounded-table">
       <thead>
         <tr>
           <th class="status-col">Status</th>
           <th>Imagem</th>
-          <th>Cliente</th>
-          <th>Retirada P.</th>
-          <th>Devolução P.</th>
-          <th>Preço (R$)</th>
-          <th>Pago (R$)</th>
-          <th>Observações</th>
-          <th>Ações</th>
+          {% for field in fields_config if field.preview and field.visible %}
+            <th>{{ field.label }}</th>
+          {% endfor %}
+          <th class="text-center">Ações</th>
         </tr>
       </thead>
       <tbody>
-        {% set status_map = { 'reserved': 'Reservado', 'rented': 'Retirado', 'returned': 'Retornado', 'overdue': 'Atrasado'} %} {% for item in itens %}
+        {% set status_map = {
+          'reserved': 'Reservado',
+          'rented': 'Retirado',
+          'returned': 'Retornado',
+          'overdue': 'Atrasado'
+        } %}
+        {% for item in itens %}
         <tr>
+          <!-- Faixa vertical do status -->
           <td data-label="Status" class="status-cell {{ item.transaction_status }}">
             <div class="status-text">{{ status_map[item.transaction_status] }}</div>
           </td>
 
+          <!-- Imagem do item -->
           <td data-label="Imagem">
             {% if item.image_url and item.image_url != "N/A" %}
               <img
@@ -79,84 +63,35 @@
               />
             {% endif %}
           </td>
+          <!-- Dados dinâmicos -->
+          {% for field in fields_config if field.preview and field.visible %}
+          <td data-label="{{ field.label }}">
+            {% set value = item.key_values[field.id] if item.key_values is defined and field.id in item.key_values else item[field.id] if field.id in item else '' %}
 
-          <!-- prettier-ignore -->
-          <td data-item='{{ item | tojson | safe }}' data-label="Cliente">
-            {{ item.client_name | default('', true) | truncate(10, True) }}
-          </td>
-
-          <!-- prettier-ignore -->
-
-          <td data-item='{{ item | tojson | safe }}' data-label="Retirada P.">
-            <div class="rental-date">{{ item.rental_date_formatted }}</div>
-            {% if item.rental_message %}
-              <div class="rental-message mt-1 {{ item.rental_message_color }}">
-                {{ item.rental_message }}
-              </div>
+            {% if value == 'None' or value is none %}
+              <span class="text-muted">-</span>
+            {% else %}
+              {% if field.type == "phone" %}
+                {{ value | format_phone }}
+              {% elif field.type == "date" %}
+                {{ value | format_date }}
+              {% elif field.type in ["value", "transaction_value_paid", "item_value", "transaction_price"] %}
+                {{ value | format_currency }}
+              {% elif field.type == "cpf" %}
+                {{ value | format_cpf }}
+              {% elif field.type == "cnpj" %}
+                {{ value | format_cnpj }}
+              {% else %}
+                {{ value | truncate(30, True) }}
+              {% endif %}
             {% endif %}
           </td>
-          <!-- prettier-ignore -->
+          {% endfor %}
 
-          <!-- prettier-ignore -->
-          <td data-item='{{ item | tojson | safe }}' data-label="Devolução P.">
-            <div class="return-date">{{ item.return_date_formatted }}</div>
-
-            {% if item.overdue == True %}
-              <div class="overdue-message mt-1">
-                {{ status_map['overdue'] }}
-                {% if item.overdue_days %}
-                  ({{ item.overdue_days }} {{ "dia" if item.overdue_days == 1 else "dias" }})
-                {% endif %}
-              </div>
-            {% endif %}
-          </td>
-
-
-          <!-- prettier-ignore -->
-          <td  data-item='{{ item | tojson | safe }}' data-label="Preço (R$)">
-            {% if item.item_value is defined and item.item_value is not none %}
-{{ item.item_value | format_currency}}
-{% else %}
-  sem valor
-{% endif %}
-          </td>
-{{item}}
-         <td data-item='{{ item | tojson | safe }}' data-label="Pagamento">
-  {% if item.transaction_value_paid %}
-    {{ item.transaction_value_paid | format_currency }}
-    {% if item.item_value %}
-      {% set pago = item.transaction_value_paid | float %}
-      {% set total = item.item_value | float %}
-      {% if pago == total %}
-        <br>(Pagamento Total)
-      {% elif 0 < pago < total %}
-        <br>(Pagamento Parcial)
-      {% else %}
-        <br>(Não Pago)
-      {% endif %}
-    {% else %}
-      <br>(Não Pago)
-    {% endif %}
-  {% else %}
-    sem valor<br>(Não Pago)
-  {% endif %}
-</td>
-
-
-          <!-- prettier-ignore -->
-          <td data-item='{{ item | tojson | safe }}' data-label="Observações">
-            {{ item.item_obs | default('', true) | truncate(10, True) }}
-          </td>
-
-
-
-
+          <!-- Ações -->
           <td data-label="Ações">
             <div class="d-flex align-items-center gap-2">
-              <!-- Botão de ações com dropdown -->
-
               <div class="position-relative d-flex gap-2 justify-content-center align-items-center">
-                <!-- Botão de ações -->
                 <button
                   class="btn btn-outline-secondary btn-sm dropdown-toggle"
                   type="button"
@@ -168,119 +103,46 @@
                   <i class="fas fa-ellipsis-v"></i>
                 </button>
 
-                {% set show_delete_transaction = True %} {% set show_edit_transaction = True %} {% set show_ver_reservas = True %} {% if
-                  item.transaction_status == 'reserved' %} {% set show_mark_rented = True %} {% set show_mark_returned = False %} {% elif
-                  item.transaction_status == 'rented' %} {% set show_mark_rented = False %} {% set show_mark_returned = True %} {% else %} {% set
-                  show_mark_rented = False %} {% set show_mark_returned = False %} {% endif %} {% set show_print = True %} {% set show_item = True %} {%
-                  set show_client = True %} {% set show_item_transactions = True %} {% set show_client_transactions = True %}{% include
-                  'components/action_buttons.html' with context %}
+                {% set show_delete_transaction = True %}
+                {% set show_edit_transaction = True %}
+                {% set show_ver_reservas = True %}
+                {% set show_mark_rented = item.transaction_status == 'reserved' %}
+                {% set show_mark_returned = item.transaction_status == 'rented' %}
+                {% set show_print = True %}
+                {% set show_item = True %}
+                {% set show_client = True %}
+                {% set show_item_transactions = True %}
+                {% set show_client_transactions = True %}
+                {% include 'components/action_buttons.html' with context %}
 
-                <!-- Dropdown fora do botão -->
-                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton{{ loop.index }}">
-                  <!-- ... os demais itens permanecem iguais ... -->
-                </ul>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton{{ loop.index }}"></ul>
 
-                <!-- Botão olho -->
                 <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalItem{{ loop.index }}" title="Ver detalhes">
                   <i class="fas fa-eye"></i>
                 </button>
               </div>
             </div>
           </td>
-
-
-
-
-
-
         </tr>
 
-        <div class="modal fade" id="modalItem{{ loop.index }}" tabindex="-1" aria-labelledby="modalItemLabel{{ loop.index }}" aria-hidden="true">
-          <div class="modal-dialog modal-dialog-scrollable modal-lg">
-            <div class="modal-content">
-              <div class="modal-header">
-                <h5 class="modal-title" id="modalItemLabel{{ loop.index }}">Detalhes da Transação</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
-              </div>
-              <div class="modal-body">
-                <div class="container-fluid">
-                  <div class="row g-3">
-                    <div class="col-12 col-md-6">
-                      <strong>Cliente:</strong><br>
-                      {{ item.client_name or 'N/A' }}
-                    </div>
-                    <div class="col-12 col-md-6">
-                      <strong>Telefone:</strong><br>
-                      {{ item.client_tel or 'N/A' }}
-                    </div>
-                    <div class="col-12 col-md-6">
-                      <strong>Email:</strong><br>
-                      {{ item.client_email or 'N/A' }}
-                    </div>
-                    <div class="col-12 col-md-6">
-                      <strong>Item:</strong><br>
-                      {{ item.description or 'N/A' }}
-                    </div>
-                    <div class="col-12 col-md-6">
-                      <strong>Retirada Prevista:</strong><br>
-                      {{ item.rental_date_formatted or 'N/A' }}
-                    </div>
-                    <div class="col-12 col-md-6">
-                      <strong>Devolução Prevista:</strong><br>
-                      {{ item.return_date_formatted or 'N/A' }}
-                    </div>
-                    <div class="col-12 col-md-6">
-                      <strong>Valor (R$):</strong><br>
-{% if item.item_value is defined and item.item_value is not none %}
-  {{ item.item_value | float | round(2) | string | replace('.', ',') }}
-{% else %}
-  sem valor
-{% endif %}
-                    </div>
-                    <div class="col-12 col-md-6">
-                      <strong>Valor Pago (R$):</strong><br>
-{% if item.item_value is defined and item.item_value is not none %}
-  {{ item.item_value | float | round(2) | string | replace('.', ',') }}
-{% else %}
-  sem valor
-{% endif %}
-                    </div>
-                    <div class="col-12">
-                      <strong>Observações:</strong><br>
-                      {{ item.transaction_obs or 'N/A' }}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-
-
-
-
+        {% include 'components/info_modal_transaction.html' with context %}
         {% endfor %}
       </tbody>
     </table>
   </div>
-
- {% endif %}
-
-
-  {% if itens|count > 0 %}
-  <!-- Pagination -->
-  <ul class="pagination justify-content-center">
-  </ul>
-  <ul class="pagination justify-content-center mt-3">
-    <!-- Aqui vão os botões via JS -->
-  </ul>
   {% endif %}
-  <!-- Modals -->
-  {% include 'components/info_modal_transaction.html' %} {% include 'components/image_modal.html' %}
 
+  {% if itens %}
+  <ul class="pagination justify-content-center"></ul>
+  {% endif %}
 </div>
-{% endblock %} {% block scripts %}
+
+{% include 'components/image_modal.html' %}
+{% endblock %}
+
+
+
+{% block scripts %}
 <script>
   document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.action-button.danger').forEach((btn) => {

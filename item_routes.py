@@ -98,6 +98,7 @@ def init_item_routes(
             itens_table,
             users_table,
             text_models_table,
+            field_config_table,
             page="rented",
         )
 
@@ -111,6 +112,7 @@ def init_item_routes(
             users_table,
             itens_table,
             text_models_table,
+            field_config_table,
             page="reserved",
         )
 
@@ -124,6 +126,7 @@ def init_item_routes(
             users_table,
             itens_table,
             text_models_table,
+            field_config_table,
             page="all_transactions",
         )
 
@@ -137,6 +140,7 @@ def init_item_routes(
             users_table,
             itens_table,
             text_models_table,
+            field_config_table,
             page="returned",
         )
 
@@ -176,6 +180,7 @@ def init_item_routes(
             users_table,
             itens_table,
             text_models_table,
+            field_config_table,
             page="trash_transactions",
         )
 
@@ -691,9 +696,13 @@ def init_item_routes(
                 + get_all_fields(account_id, field_config_table, entity="item")
             )
 
+
+
             form_data = {}
             item_id = request.form.get("item_id")
             client_id = request.form.get("client_id")
+
+
 
             # 🔄 Extrai e normaliza os dados enviados via formulário
             for field in all_fields:
@@ -795,6 +804,7 @@ def init_item_routes(
                 item = {
                     "item_id": item_id,
                     "account_id": account_id,
+                    "status": "available",
                     "created_at": datetime.datetime.now(user_utc).strftime(
                         "%Y-%m-%d %H:%M:%S"
                     ),
@@ -867,6 +877,8 @@ def init_item_routes(
         if request.method == "POST":
             return processar_transacao(account_id, user_id, user_utc, ordem, current_transaction)
 
+
+
         # --- GET: renderiza a tela de nova transação ---
         item_id = request.args.get("item_id")
         client_id = request.args.get("client_id")
@@ -902,6 +914,7 @@ def init_item_routes(
             get_all_fields(account_id, field_config_table, entity="client") +
             get_all_fields(account_id, field_config_table, entity="item")
         )
+
 
         # Totais para controle de plano
         total_relevant_transactions = 0
@@ -2156,6 +2169,7 @@ def list_transactions(
     users_table,
     itens_table,
     text_models_table,
+    field_config_table,
     client_id=None,
     page=None,
     limit=5,
@@ -2171,7 +2185,6 @@ def list_transactions(
 
     force_no_next = request.args.get("force_no_next")
 
-    # 🕐 Pega o fuso horário do usuário
     user_utc = get_user_timezone(users_table, user_id)
     today = datetime.datetime.now(user_utc).date()
 
@@ -2181,15 +2194,11 @@ def list_transactions(
                 date_str = item[key]
                 if date_str and isinstance(date_str, str):
                     try:
-                        date_obj = datetime.datetime.strptime(
-                            date_str, "%Y-%m-%d"
-                        ).date()
+                        date_obj = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
                         item[f"{key}_formatted"] = date_obj.strftime("%d-%m-%Y")
                         item[f"{key}_obj"] = date_obj
                     except ValueError:
-                        # Se a string existe mas não é válida, ignora: não adiciona nada
                         pass
-                # Se date_str for vazio ou não string válida, também ignora
 
         if item.get("dev_date_obj") and item["dev_date_obj"] != "N/A":
             item["overdue"] = False
@@ -2207,9 +2216,7 @@ def list_transactions(
                 item["rental_message_color"] = "orange"
             elif rental_date > today:
                 dias = (rental_date - today).days
-                item["rental_message"] = (
-                    "Falta 1 dia" if dias == 1 else f"Faltam {dias} dias"
-                )
+                item["rental_message"] = "Falta 1 dia" if dias == 1 else f"Faltam {dias} dias"
                 item["rental_message_color"] = "blue" if dias > 1 else "yellow"
             else:
                 item["rental_message"] = "Não retirado"
@@ -2218,14 +2225,12 @@ def list_transactions(
             item["rental_message"] = ""
             item["rental_message_color"] = ""
 
-        # -- Parte 2: Calcular dias de atraso (NOVO) --
         if item.get("overdue") and return_date:
             overdue_days = (today - return_date).days
             item["overdue_days"] = overdue_days if overdue_days > 0 else 0
 
         return item
 
-    # --- Pegando parâmetros ---
     filtros = request.args.to_dict()
     page = int(filtros.pop("page", 1))
 
@@ -2248,7 +2253,6 @@ def list_transactions(
     if str(page) in cursor_pages and cursor_pages[str(page)]:
         exclusive_start_key = decode_dynamo_key(cursor_pages[str(page)])
 
-    # --- Query no banco ---
     valid_itens = []
     batch_size = 10
     last_valid_item = None
@@ -2288,23 +2292,19 @@ def list_transactions(
             else:
                 break
 
-    # 🔥 Atualiza next_cursor
     next_cursor_token = None
     if last_valid_item:
-        next_cursor_token = encode_dynamo_key(
-            {
-                "account_id": last_valid_item["account_id"],
-                "created_at": last_valid_item["created_at"],
-                "transaction_id": last_valid_item["transaction_id"],
-            }
-        )
+        next_cursor_token = encode_dynamo_key({
+            "account_id": last_valid_item["account_id"],
+            "created_at": last_valid_item["created_at"],
+            "transaction_id": last_valid_item["transaction_id"],
+        })
 
     if next_cursor_token:
         session["cursor_pages_transactions"][str(page + 1)] = next_cursor_token
     else:
         session["cursor_pages_transactions"].pop(str(page + 1), None)
 
-    # 🔥 Consulta os modelos salvos
     response = text_models_table.query(
         IndexName="account_id-index",
         KeyConditionExpression="account_id = :account_id",
@@ -2312,35 +2312,48 @@ def list_transactions(
     )
     saved_models = response.get("Items", [])
 
-    # 🔥 Controle de botão next
     last_page_transactions = session.get("last_page_transactions")
     current_page = session.get("current_page_transactions", 1)
 
     if force_no_next:
         has_next = False
     else:
-        if len(valid_itens) < limit or (
-            last_page_transactions is not None
-            and current_page >= last_page_transactions
-        ):
+        if len(valid_itens) < limit or (last_page_transactions is not None and current_page >= last_page_transactions):
             has_next = False
         else:
             has_next = True
 
-    # ⚡ Caso tente avançar sem sucesso
     if not valid_itens and page > 1:
         flash("Não há mais transações para exibir.", "info")
         last_valid_page = page - 1
         session["current_page_transactions"] = last_valid_page
         session["last_page_transactions"] = last_valid_page
-        return redirect(
-            url_for(
-                "all_transactions",
-                page=last_valid_page,
-                has_next=has_next,
-                force_no_next=1,
-            )
-        )
+        return redirect(url_for("all_transactions", page=last_valid_page, has_next=has_next, force_no_next=1))
+
+    # 🔥 Carrega configuração de campos
+    response = field_config_table.get_item(
+        Key={"account_id": account_id, "entity": "transaction"}
+    )
+    fields_config_map = response.get("Item", {}).get("fields_config", {})
+
+    fields_config = []
+    for field_id, cfg in fields_config_map.items():
+        fields_config.append({
+            "id": field_id,
+            "label": cfg.get("label", field_id.replace("_", " ").capitalize()),
+            "type": cfg.get("type"),
+            "preview": cfg.get("preview", False),
+            "visible": cfg.get("visible", True),
+            "required": cfg.get("required", False),
+            "order_sequence": cfg.get("order_sequence", 0),
+            "filterable": cfg.get("filterable", False),
+            "options": cfg.get("options", []),
+        })
+
+    # Ordena
+    fields_config = sorted(fields_config, key=lambda x: x["order_sequence"])
+
+
     return render_template(
         template,
         itens=valid_itens,
@@ -2354,7 +2367,9 @@ def list_transactions(
         itens_count=len(valid_itens),
         has_next=has_next,
         has_prev=current_page > 1,
+        fields_config=fields_config,
     )
+
 
 
 def get_latest_transaction(user_id, users_table, payment_transactions_table):

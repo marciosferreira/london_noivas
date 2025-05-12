@@ -192,10 +192,16 @@
         const field = document.getElementById(key);
         if (field) {
           field.value = item[key];
+
+          // 👉 Formata campo monetário se for item_value ou outros com classe monetária
+          if (['item_value', 'value', 'transaction_price', 'transaction_value_paid'].includes(key)) {
+            formatarCampoMonetario(field);
+            field.dispatchEvent(new Event('input'));
+          }
         }
       }
 
-      // 👉 Garante que item_id será incluído no form
+      // Resto do código permanece igual...
       if (item.item_id) {
         let idHidden = document.getElementById('item_id');
         if (!idHidden) {
@@ -209,6 +215,7 @@
       }
 
       descricaoOficialDoItemSelecionado = item.item_description || '';
+      document.dispatchEvent(new Event('item-preenchido'));
     }
 
     function bloquearCamposItem() {
@@ -815,6 +822,79 @@
     inicializarAutocompleteItem('item_custom_id');
     inicializarAutocompleteItem('item_description');
   });
+</script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    document.addEventListener('item-preenchido', function () {
+      const itemValueInput = document.getElementById('item_value');
+      const priceInput = document.getElementById('transaction_price');
+
+      console.log('Evento item-preenchido detectado!');
+      console.log('item_value:', itemValueInput?.value);
+      console.log('transaction_price (antes):', priceInput?.value);
+
+      if (itemValueInput && priceInput && !priceInput.value.trim()) {
+        priceInput.value = itemValueInput.value;
+        priceInput.dispatchEvent(new Event('input'));
+        console.log('transaction_price preenchido com:', priceInput.value);
+      } else {
+        console.log('transaction_price não foi preenchido automaticamente.');
+      }
+    });
+  });
+</script>
+
+<script>
+  function removeImage() {
+    document.getElementById('item-image').src = "{{ url_for('static', filename='item-placeholder.png') }}";
+    document.getElementById('image-url-input').value = '';
+    document.getElementById('remove-btn').style.display = 'none';
+  }
+</script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const fileInput = document.getElementById('image_file');
+    const imagePreview = document.getElementById('item-image');
+    const imageUrlInput = document.getElementById('image-url-input');
+    const removeBtn = document.getElementById('remove-btn');
+
+    if (fileInput) {
+      fileInput.addEventListener('change', function () {
+        const file = fileInput.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = function (e) {
+            if (imagePreview) imagePreview.src = e.target.result;
+            if (removeBtn) removeBtn.style.display = 'block';
+            if (imageUrlInput) imageUrlInput.value = ''; // limpa campo de URL antiga
+          };
+          reader.readAsDataURL(file);
+        }
+      });
+    }
+  });
+
+  function removeImage() {
+    const imagePreview = document.getElementById('item-image');
+    const imageUrlInput = document.getElementById('image-url-input');
+    const fileInput = document.getElementById('image_file');
+    const removeBtn = document.getElementById('remove-btn');
+
+    if (imagePreview) {
+      imagePreview.src = "{{ url_for('static', filename='item-placeholder.png') }}";
+    }
+    if (imageUrlInput) {
+      imageUrlInput.value = '';
+    }
+    if (fileInput) {
+      fileInput.value = '';
+    }
+    if (removeBtn) {
+      removeBtn.style.display = 'none';
+    }
+  }
 </script>
 
 {% endblock %}

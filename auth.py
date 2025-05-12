@@ -1361,8 +1361,8 @@ def get_default_fields_and_slugs(entity):
                 "options": ["reserved", "rented"],
             },
             "transaction_price": {
-                "label": "Preço do aluguel (R$)",
-                "label_original": "Preço do aluguel (R$)",
+                "label": "Preço final (R$)",
+                "label_original": "Preço final (R$)",
                 "type": "transaction_price",
                 "order_sequence": 2,
                 "filterable": True,
@@ -1388,8 +1388,8 @@ def get_default_fields_and_slugs(entity):
                 "f_type": "fixed",
             },
             "transaction_period": {
-                "label": "Defina as datas",
-                "label_original": "Defina as datas",
+                "label": "Período do aluguel",
+                "label_original": "Período do aluguel",
                 "type": "transaction_period",
                 "order_sequence": 5,
                 "filterable": True,
