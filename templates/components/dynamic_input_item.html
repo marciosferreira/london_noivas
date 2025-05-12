@@ -69,9 +69,10 @@
                      value="{{ value }}"
                      autocomplete="off"
                      {% if field.required %}required{% endif %} {% if readonly %}readonly{% endif %} />
+<small class="text-muted ms-1" style="margin-top: -10px; margin-bottom: 6px; display: block;">campo de busca</small>
 
 <div id="{{ field.id }}_status" class="status-message" style="display: none;"></div>
-              <div id="{{ field.id }}_suggestions" class="autocomplete-box position-absolute w-100 bg-white border rounded shadow-sm z-3"></div>
+<div id="{{ field.id }}_suggestions" class="autocomplete-box position-absolute w-100 bg-white shadow-sm z-3"></div>
             </div>
 
           {% endif %}

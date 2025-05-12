@@ -559,13 +559,9 @@ def init_item_routes(
         if request.method == "POST":
             image_file = request.files.get("image_file")
             image_url_field = request.form.get("item_image_url", "").strip()
-            old_image_url = item.get("item_image_url") or key_values.get(
-                "item_image_url", "N/A"
-            )
+            old_image_url = item.get("item_image_url") or key_values.get("item_image_url", "N/A")
             new_image_url = (
-                "N/A"
-                if image_url_field == "DELETE_IMAGE"
-                else handle_image_upload(image_file, old_image_url)
+                "N/A" if image_url_field == "DELETE_IMAGE" else handle_image_upload(image_file, old_image_url)
             )
 
             import re
@@ -583,26 +579,21 @@ def init_item_routes(
 
                 raw_value = request.form.get(field_id, "").strip()
                 if not raw_value and field_type != "item_image_url":
-                    continue  # Ignora campos vazios, exceto imagem
+                    continue
 
                 value = raw_value
 
                 if field_id == "item_image_url":
                     value = new_image_url
-
                 elif field_type in ["value", "item_value"]:
                     try:
                         value = Decimal(value.replace(".", "").replace(",", "."))
                     except InvalidOperation:
-                        flash(
-                            f"O campo {field['label']} possui valor inválido.", "danger"
-                        )
+                        flash(f"O campo {field['label']} possui valor inválido.", "danger")
                         return redirect(request.url)
-
                 elif field_type in ["cpf", "cnpj", "phone"]:
                     value = re.sub(r"\D", "", value)
 
-                # Separar entre fixo e customizado
                 if field["fixed"]:
                     fixed_updates[field_id] = value
                 else:
@@ -613,7 +604,6 @@ def init_item_routes(
             for k, v in new_values.items():
                 if key_values.get(k) != v:
                     changes[f"key_values.{k}"] = v
-
             for k, v in fixed_updates.items():
                 if item.get(k) != v:
                     changes[k] = v
@@ -635,8 +625,51 @@ def init_item_routes(
                 ExpressionAttributeValues=expression_values,
             )
 
+            # Atualizar transações relacionadas, se marcado
+            if request.form.get("update_all_transactions"):
+                response = transactions_table.query(
+                    IndexName="item_id-index",
+                    KeyConditionExpression=Key("item_id").eq(item_id),
+                )
+                transacoes = response.get("Items", [])
+
+                for tx in transacoes:
+                    # Atualiza item principal
+                    # Atualiza item principal
+                    update_expression = []
+                    expression_values = {}
+                    expression_names = {}
+
+                    for key, value in changes.items():
+                        if "." in key:
+                            # Ex: key = "key_values.cor"
+                            parts = key.split(".")
+                            prefix = parts[0]
+                            subkey = parts[1]
+
+                            expression_names[f"#{prefix}"] = prefix
+                            attr_path = f"#{prefix}.{subkey}"
+
+                            update_expression.append(f"{attr_path} = :{prefix}_{subkey}")
+                            expression_values[f":{prefix}_{subkey}"] = value
+                        else:
+                            update_expression.append(f"{key} = :{key}")
+                            expression_values[f":{key}"] = value
+
+                    # Executa update
+                    itens_table.update_item(
+                        Key={"item_id": item_id},
+                        UpdateExpression="SET " + ", ".join(update_expression),
+                        ExpressionAttributeValues=expression_values,
+                        ExpressionAttributeNames=expression_names if expression_names else None,
+                    )
+
+
+
+
             flash("Item atualizado com sucesso.", "success")
             return redirect(next_page)
+
 
         # ---------------- GET ----------------
         # Prepara dados para o formulário

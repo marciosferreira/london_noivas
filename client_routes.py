@@ -198,6 +198,7 @@ def init_client_routes(
             fields_config=fields_config,
             custom_fields_preview=custom_fields_preview,
         )
+    import traceback
 
     @app.route("/editar_cliente/<client_id>", methods=["GET", "POST"])
     def editar_cliente(client_id):
@@ -222,6 +223,8 @@ def init_client_routes(
 
         if request.method == "POST":
             import re
+            from boto3.dynamodb.conditions import Key
+
             new_name = request.form.get("client_name", "").strip()
             new_cpf = re.sub(r"\D", "", request.form.get("client_cpf", ""))
             new_cnpj = re.sub(r"\D", "", request.form.get("client_cnpj", ""))
@@ -238,86 +241,56 @@ def init_client_routes(
                 if not value:
                     continue
 
-                if field_type in [
-                    "cpf",
-                    "cnpj",
-                    "phone",
-                    "client_cpf",
-                    "client_cnpj",
-                    "client_phone",
-                ]:
+                if field_type in ["cpf", "cnpj", "phone", "client_cpf", "client_cnpj", "client_phone"]:
                     value = re.sub(r"\D", "", value)
                 elif field_type == "value":
                     value = value.replace(".", "").replace(",", ".")
                     try:
                         value = float(value)
                     except ValueError:
-                        flash(
-                            f"Valor inválido no campo {field.get('label', field_id)}.",
-                            "error",
-                        )
-                        return render_template(
-                            "editar_cliente.html",
-                            client=cliente,
-                            all_fields=all_fields,
-                            next=next_page,
-                        )
+                        flash(f"Valor inválido no campo {field.get('label', field_id)}.", "error")
+                        return render_template("editar_cliente.html", client=cliente, all_fields=all_fields, next=next_page)
 
                 if is_fixed:
                     updated_values[field_id] = value
                 else:
                     updated_key_values[field_id] = value
 
-            # Atualizar cliente com valores editados
+            # Atualiza cliente
             for k, v in updated_values.items():
                 cliente[k] = v
             cliente["key_values"] = updated_key_values
 
-            # Verificação de unicidade (desconsidera o próprio cliente)
-            # Verificação de unicidade (permite duplicidade apenas para o próprio cliente)
-            existing_clients = clients_table.scan().get("Items", [])
-            new_name = request.form.get("client_name", "").strip()
-            new_cpf = re.sub(r"\D", "", request.form.get("client_cpf", ""))
-            new_cnpj = re.sub(r"\D", "", request.form.get("client_cnpj", ""))
+            # Verificações de unicidade com nomes de índices corretos
+            index_map = {
+                "client_name": "account_id-client_name-index",
+                "client_cnpj": "account_id-client_cnpj-index",
+                "client_cpf": "account_id-client_cpf-index",
+            }
 
-            for c in existing_clients:
-                if c.get("account_id") != account_id:
-                    continue  # ignora clientes de outra conta
+            for field, index in index_map.items():
+                field_value = request.form.get(field, "").strip()
+                if not field_value:
+                    continue
 
-                if c.get("client_id") == client_id:
-                    continue  # ignora o próprio cliente (em edição)
-
-                if new_name and c.get("client_name") == new_name:
-                    flash("Já existe um cliente com esse nome.", "error")
-                    return render_template(
-                        "editar_cliente.html",
-                        client=cliente,
-                        all_fields=all_fields,
-                        next=next_page,
-                    )
-
-                if new_cpf and c.get("client_cpf") == new_cpf:
-                    flash("Já existe um cliente com esse CPF.", "error")
-                    return render_template(
-                        "editar_cliente.html",
-                        client=cliente,
-                        all_fields=all_fields,
-                        next=next_page,
-                    )
-
-                if new_cnpj and c.get("client_cnpj") == new_cnpj:
-                    flash("Já existe um cliente com esse CNPJ.", "error")
-                    return render_template(
-                        "editar_cliente.html",
-                        client=cliente,
-                        all_fields=all_fields,
-                        next=next_page,
-                    )
-
-
-                cliente["updated_at"] = datetime.datetime.now(user_utc).strftime(
-                    "%Y-%m-%d %H:%M:%S"
+                response = clients_table.query(
+                    IndexName=index,
+                    KeyConditionExpression=Key("account_id").eq(account_id) & Key(field).eq(field_value),
                 )
+                for c in response.get("Items", []):
+                    if c.get("client_id") != client_id:
+                        field_labels = {
+                            "client_name": "nome",
+                            "client_cnpj": "CNPJ",
+                            "client_cpf": "CPF",
+                        }
+
+                        label = field_labels.get(field, field)
+                        flash(f"Já existe um cliente com esse {label}.", "error")
+
+                        return render_template("editar_cliente.html", client=cliente, all_fields=all_fields, next=next_page)
+
+            cliente["updated_at"] = datetime.datetime.now(user_utc).strftime("%Y-%m-%d %H:%M:%S")
 
             try:
                 clients_table.put_item(Item=cliente)
@@ -329,27 +302,44 @@ def init_client_routes(
                     )
                     transacoes = response.get("Items", [])
 
-                    for transacao in transacoes:
-                        update_expr = [
-                            f"{k} = :{k}" for k in cliente if k.startswith("client_")
-                        ]
-                        expr_values = {
-                            f":{k}": cliente[k]
-                            for k in cliente
-                            if k.startswith("client_")
-                        }
+                    for tx in transacoes:
+                        update_expr = []
+                        expr_values = {}
+                        expr_names = {}
 
-                        transactions_table.update_item(
-                            Key={"transaction_id": transacao["transaction_id"]},
-                            UpdateExpression="SET " + ", ".join(update_expr),
-                            ExpressionAttributeValues=expr_values,
-                        )
+                        # Campos fixos (ex: client_name, client_cpf, etc.)
+                        for k, v in updated_values.items():
+                            update_expr.append(f"#{k} = :{k}")
+                            expr_values[f":{k}"] = v
+                            expr_names[f"#{k}"] = k
+
+                        # Campos customizados dentro de key_values, se existirem na transação
+                        if "key_values" in tx and isinstance(tx["key_values"], dict):
+                            expr_names["#kv"] = "key_values"
+                            for k, v in updated_key_values.items():
+                                update_expr.append(f"#kv.{k} = :kv_{k}")
+                                expr_values[f":kv_{k}"] = v
+
+                        # Executa apenas se houver algo para atualizar
+                        if update_expr:
+                            transactions_table.update_item(
+                                Key={"transaction_id": tx["transaction_id"]},
+                                UpdateExpression="SET " + ", ".join(update_expr),
+                                ExpressionAttributeValues=expr_values,
+                                ExpressionAttributeNames=expr_names if expr_names else None,
+                            )
+
+
+
 
                 flash("Cliente atualizado com sucesso!", "success")
                 return redirect(next_page)
+
+
             except Exception as e:
-                print("Erro ao atualizar cliente:", e)
-                flash("Erro ao atualizar cliente. Tente novamente.", "danger")
+                print("❌ Erro ao atualizar cliente:")
+                traceback.print_exc()  # Agora funcionará
+                flash(f"Erro ao atualizar cliente: {str(e)}", "danger")
                 return redirect(next_page)
 
         # ---------- GET ----------
