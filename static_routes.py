@@ -910,3 +910,24 @@ def init_static_routes(
             for item in suggestions[:10]
         ])
 
+
+    @app.route("/item_reserved_ranges/<item_id>")
+    def item_reserved_ranges(item_id):
+        try:
+            response = transactions_table.query(
+                IndexName="item_id-index",
+                KeyConditionExpression=Key("item_id").eq(item_id),
+            )
+            items = response.get("Items", [])
+            reserved_ranges = [
+                [tx["rental_date"], tx["return_date"]]
+                for tx in items
+                if tx.get("transaction_status") in ["reserved", "rented"]
+                and tx.get("rental_date")
+                and tx.get("return_date")
+            ]
+
+            return jsonify(reserved_ranges)
+        except Exception as e:
+            print("Erro ao buscar reservas:", e)
+            return jsonify([]), 500

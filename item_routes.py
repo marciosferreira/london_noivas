@@ -375,87 +375,78 @@ def init_item_routes(
             for tx in response.get("Items", [])
             if tx.get("transaction_status") in ["rented", "reserved"]
             and tx.get("transaction_id") != transaction_id
-            and tx.get("rental_date")
-            and tx.get("return_date")
+            and tx.get("rental_date") and tx.get("return_date")
         ]
 
         if request.method == "POST":
             import re
             from decimal import Decimal, InvalidOperation
+            import json
 
-            key_values = transaction.get("key_values", {})
-            fixed_updates = {}
-            custom_updates = {}
+            fixed_fields = {}
+            key_values = {}
 
             for field in all_fields:
                 field_id = field["id"]
                 raw_value = request.form.get(field_id, "").strip()
-
                 if not raw_value:
                     continue
 
-                if field["type"] in ["value", "transaction_value_paid"]:
+                if field.get("type") in ["value", "item_value", "transaction_value_paid", "transaction_price"]:
+                    raw_value = raw_value.replace(".", "").replace(",", ".")
                     try:
-                        value = Decimal(raw_value.replace(".", "").replace(",", "."))
+                        value = Decimal(raw_value)
                     except InvalidOperation:
-                        flash(f"O campo {field['label']} possui valor inválido.", "danger")
+                        flash(f"Valor inválido no campo {field.get('label', field_id)}.", "danger")
                         return redirect(request.url)
-                elif field["type"] in ["cpf", "cnpj", "phone"]:
-                    value = re.sub(r"\D", "", raw_value)
                 else:
                     value = raw_value
 
-                if field["fixed"]:
-                    fixed_updates[field_id] = value
+                if field.get("fixed"):
+                    fixed_fields[field_id] = value
                 else:
-                    custom_updates[field_id] = value
+                    key_values[field_id] = value
 
-            # Comparar e aplicar somente mudanças
-            has_changes = False
-            update_expr = []
-            expr_values = {}
-            expr_names = {}
+            # Monta a expressão de atualização
+            update_expr_parts = []
+            expr_attr_values = {}
+            expr_attr_names = {}
 
-            for k, v in fixed_updates.items():
-                if transaction.get(k) != v:
-                    update_expr.append(f"{k} = :{k}")
-                    expr_values[f":{k}"] = v
-                    has_changes = True
+            for key, val in fixed_fields.items():
+                update_expr_parts.append(f"{key} = :{key}")
+                expr_attr_values[f":{key}"] = val
 
-            for k, v in custom_updates.items():
-                if key_values.get(k) != v:
-                    update_expr.append(f"#kv.#k_{k} = :kv_{k}")
-                    expr_values[f":kv_{k}"] = v
-                    expr_names[f"#kv"] = "key_values"
-                    expr_names[f"#k_{k}"] = k
-                    has_changes = True
-
-            if not has_changes:
-                flash("Nenhuma alteração foi feita.", "warning")
-                return redirect(next_page)
+            # Atualiza o key_values como um todo
+            update_expr_parts.append("key_values = :kv")
+            expr_attr_values[":kv"] = key_values
 
             update_args = {
                 "Key": {"transaction_id": transaction_id},
-                "UpdateExpression": "SET " + ", ".join(update_expr),
-                "ExpressionAttributeValues": expr_values,
+                "UpdateExpression": "SET " + ", ".join(update_expr_parts),
+                "ExpressionAttributeValues": expr_attr_values,
             }
 
-            # Só inclui ExpressionAttributeNames se houver aliases
-            if expr_names:
-                update_args["ExpressionAttributeNames"] = expr_names
+            # Corrigido aqui: expr_attr_names em vez de expr_names
+            if expr_attr_names:
+                update_args["ExpressionAttributeNames"] = expr_attr_names
 
-            transactions_table.update_item(**update_args)
+            print("DEBUG update_args:", json.dumps(update_args, indent=2, default=str))
 
-            flash("Transação atualizada com sucesso.", "success")
-            return redirect(next_page)
+            try:
+                transactions_table.update_item(**update_args)
+                flash("Transação atualizada com sucesso.", "success")
+                return redirect(next_page)
+            except Exception as e:
+                flash("Erro ao atualizar transação.", "danger")
+                print("Erro DynamoDB:", e)
+                return redirect(request.url)
 
-
+        # Se GET, renderiza com dados existentes
         transaction["range_date"] = (
             f"{datetime.datetime.strptime(transaction['rental_date'], '%Y-%m-%d').strftime('%d/%m/%Y')} - "
             f"{datetime.datetime.strptime(transaction['return_date'], '%Y-%m-%d').strftime('%d/%m/%Y')}"
         )
 
-        print(item)
         return render_template(
             "edit_transaction.html",
             item=item,
@@ -466,6 +457,7 @@ def init_item_routes(
             item_editavel=False,
             client_editavel=False,
         )
+
 
 
     ############################################################################################################
@@ -772,6 +764,9 @@ def init_item_routes(
         def processar_transacao(account_id, user_id, user_utc, ordem, current_transaction):
             import re
 
+            print("📥 request.form dict:", dict(request.form))
+
+
 
             all_fields = (
                 get_all_fields(account_id, field_config_table, entity="transaction")
@@ -792,9 +787,7 @@ def init_item_routes(
                 field_id = field["id"]
                 field_type = field.get("type")
                 value = request.form.get(field_id, "").strip()
-                print("ccccxxx")
-                print(field)
-                print(value)
+
 
                 if not value:
                     continue
@@ -805,8 +798,7 @@ def init_item_routes(
                     value = value.replace(".", "").replace(",", ".")
                     try:
                         value = Decimal(value)
-                        print("formated")
-                        print(value)
+
                     except InvalidOperation:
                         flash(
                             f"Valor inválido no campo {field.get('label', field_id)}.",
