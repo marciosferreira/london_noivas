@@ -1005,4 +1005,23 @@
   });
 </script>
 
+<script>
+  document.addEventListener('DOMContentLoaded', async function () {
+    const itemId = document.getElementById('item_id')?.value;
+    const displayInput = document.getElementById('transaction_period_display');
+
+    // ⚠️ Evita erro se já tiver outro inicializador
+    if (itemId && displayInput && !window._reservedRangesCarregado) {
+      window._reservedRangesCarregado = true;
+      try {
+        const res = await fetch(`/item_reserved_ranges/${itemId}`);
+        const ranges = await res.json();
+        iniciarDatePickerComDatas(ranges);
+      } catch (err) {
+        console.error('Erro ao carregar datas reservadas iniciais:', err);
+      }
+    }
+  });
+</script>
+
 {% endblock %}

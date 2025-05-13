@@ -530,6 +530,7 @@ def init_client_routes(
             itens_table,
             text_models_table,
             users_table,
+            field_config_table,
             client_id=client_id,
         )
 

@@ -698,13 +698,15 @@ def init_item_routes(
                             update_expression.append(f"{key} = :{key}")
                             expression_values[f":{key}"] = value
 
-                    # Executa update
-                    itens_table.update_item(
-                        Key={"item_id": item_id},
-                        UpdateExpression="SET " + ", ".join(update_expression),
-                        ExpressionAttributeValues=expression_values,
-                        ExpressionAttributeNames=expression_names if expression_names else None,
-                    )
+                    update_kwargs = {
+                        "Key": {"item_id": item_id},
+                        "UpdateExpression": "SET " + ", ".join(update_expression),
+                        "ExpressionAttributeValues": expression_values,
+                    }
+                    if expression_names:
+                        update_kwargs["ExpressionAttributeNames"] = expression_names
+
+                    itens_table.update_item(**update_kwargs)
 
 
 
