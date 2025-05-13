@@ -871,6 +871,8 @@ def init_static_routes(
 
     @app.route("/autocomplete_items")
     def autocomplete_items():
+        from boto3.dynamodb.conditions import Key, Attr
+
         account_id = session.get("account_id")
         term = request.args.get("term", "").strip().lower()
 
@@ -878,18 +880,17 @@ def init_static_routes(
             return jsonify([])
 
         try:
-            # Limita a quantidade de itens para evitar exceder 1MB
             response = itens_table.query(
                 IndexName="account_id-index",
                 KeyConditionExpression=Key("account_id").eq(account_id),
-                Limit=1000  # ajustável conforme o tamanho médio dos itens
+                FilterExpression=Attr("status").is_in(["available", "archive"]),
+                Limit=1000
             )
             all_items = response.get("Items", [])
         except Exception as e:
             print("Erro ao buscar itens:", e)
             return jsonify([])
 
-        # Filtrar localmente por `item_custom_id` ou `item_description`
         suggestions = []
         for item in all_items:
             custom_id = (item.get("item_custom_id") or "").lower()
@@ -897,7 +898,6 @@ def init_static_routes(
             if term in custom_id or term in description:
                 suggestions.append(item)
 
-        # Retornar os primeiros 10 resultados
         return jsonify([
             {
                 "item_id": item["item_id"],
@@ -909,3 +909,4 @@ def init_static_routes(
             }
             for item in suggestions[:10]
         ])
+

@@ -108,3 +108,33 @@ label.form-label {
   color: #dc3545; /* vermelho suave ao passar o mouse */
   text-decoration: underline;
 }
+
+.status-message {
+  font-size: 14px;
+  padding: 5px;
+  margin-top: 5px;
+  border-radius: 3px;
+  color: white;
+  display: none;
+  width: 100%;
+}
+.status-message.user-new {
+  background-color: #28a745;
+}
+.status-message.user-found {
+  background-color: #dc3545;
+}
+.autocomplete-box {
+  max-height: 220px;
+  overflow-y: auto;
+  z-index: 1050;
+}
+.autocomplete-item {
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  border-bottom: 1px solid #eee;
+  background-color: rgba(255, 255, 0, 0.15);
+}
+.autocomplete-item:hover {
+  background-color: #f8f9fa;
+}

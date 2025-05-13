@@ -220,14 +220,12 @@ def format_phone(value):
 from decimal import Decimal
 
 def format_currency(value):
-    if not value:
+    if value is None:
         return ""
     try:
-        # Converte para float, aplica formatação brasileira com vírgula
         return "{:,.2f}".format(float(value)).replace(",", "X").replace(".", ",").replace("X", ".")
     except (ValueError, TypeError):
         return str(value)
-
 
 
 # Registrar filtros no Jinja

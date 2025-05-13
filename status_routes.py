@@ -63,6 +63,10 @@ def init_status_routes(app, itens_table, transactions_table, users_table):
         response = transactions_table.get_item(Key={"transaction_id": transaction_id})
         transaction = response.get("Item")
 
+
+        print("value paid")
+        print(transaction)
+
         if not transaction:
             flash("Transação não encontrada.", "danger")
             return redirect(next_page)
@@ -78,8 +82,10 @@ def init_status_routes(app, itens_table, transactions_table, users_table):
 
         # Se foi marcado como Pago Total
         if pago_total == "1":
-            valor = transaction.get("valor", Decimal("0.0"))
-            update_expression += ", pagamento = :p"
+            valor = transaction.get("transaction_price", Decimal("0.0"))
+            print("the value")
+            print(valor)
+            update_expression += ", transaction_value_paid = :p"
             expression_values[":p"] = valor
 
         # Atualiza no DynamoDB

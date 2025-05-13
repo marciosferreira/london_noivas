@@ -1,14 +1,16 @@
 {% extends "base.html" %}
-{% block title %}Transações Iniciadas (Itens Alugados){% endblock %}
+{% block title %}Todas as transações{% endblock %}
 {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='style_all_transactions.css') }}" />
 {% endblock %}
 {% block content %}
+
+
 <div class="container my-3">
   <h2 class="mb-4">{{ title }}</h2>
 
   {% set show_add_button = True %}
-  {% set add_route = url_for('trash_transactions') %}
+  {% set add_route = url_for('rent') %}
   {% include "components/filter_section.html" with context %}
   {% if not itens %}
     <div class="alert alert-info mt-3">
@@ -64,29 +66,71 @@
             {% endif %}
           </td>
           <!-- Dados dinâmicos -->
-          {% for field in fields_config if field.preview and field.visible %}
-          <td data-label="{{ field.label }}">
-            {% set value = item.key_values[field.id] if item.key_values is defined and field.id in item.key_values else item[field.id] if field.id in item else '' %}
+{% set status_mapping = {
+  'reserved': 'Reservado',
+  'rented': 'Retirado',
+  'returned': 'Devolvido'
+} %}
 
-            {% if value == 'None' or value is none %}
-              <span class="text-muted">-</span>
-            {% else %}
-              {% if field.type == "phone" %}
-                {{ value | format_phone }}
-              {% elif field.type == "date" %}
-                {{ value | format_date }}
-              {% elif field.type in ["value", "transaction_value_paid", "item_value", "transaction_price"] %}
-                {{ value | format_currency }}
-              {% elif field.type == "cpf" %}
-                {{ value | format_cpf }}
-              {% elif field.type == "cnpj" %}
-                {{ value | format_cnpj }}
-              {% else %}
-                {{ value | truncate(30, True) }}
-              {% endif %}
-            {% endif %}
-          </td>
-          {% endfor %}
+{% for field in fields_config if field.preview and field.visible %}
+<td data-label="{{ field.label }}">
+  {% set value = item.key_values[field.id] if item.key_values is defined and field.id in item.key_values else item[field.id] if field.id in item else '' %}
+
+  {% if value == 'None' or value is none %}
+    <span class="text-muted">-</span>
+  {% else %}
+    {% if field.type == "phone" %}
+      {{ value | format_phone }}
+    {% elif field.type == "date" %}
+      {{ value | format_date }}
+    {% elif field.type in ["value", "item_value", "transaction_price"] %}
+      {{ value | format_currency }}
+        {% elif field.type in ["transaction_value_paid"] %}
+{{ (value if value is not none else 0.0) | format_currency }}
+
+<p class="mt-1 small">
+  {% if item.transaction_value_paid and item.transaction_price %}
+    {% set pagamento_float = item.transaction_value_paid | float %}
+    {% set valor_float = item.transaction_price | float %}
+
+    {% if pagamento_float == valor_float %}
+      <span class="badge bg-success text-dark">Pagamento Total</span>
+    {% elif pagamento_float > 0 and pagamento_float < valor_float %}
+      <span class="badge bg-warning text-dark">Pagamento Parcial</span>
+    {% else %}
+      <span class="badge bg-danger text-dark">Não Pago</span>
+    {% endif %}
+  {% else %}
+    <span class="badge bg-danger text-dark">Não Pago</span>
+  {% endif %}
+</p>
+
+
+
+    {% elif field.type == "cpf" %}
+      {{ value | format_cpf }}
+    {% elif field.type == "cnpj" %}
+      {{ value | format_cnpj }}
+    {% elif field.id == "transaction_status" %}
+      {{ status_mapping.get(value, value) }}
+    {% else %}
+      {{ value | truncate(30, True) }}
+    {% endif %}
+  {% endif %}
+</td>
+{% endfor %}
+
+
+
+
+
+
+
+
+
+
+
+
 
           <!-- Ações -->
           <td data-label="Ações">
@@ -158,24 +202,30 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
-  function confirmarAcao(urlBase) {
-    Swal.fire({
-      text: 'Cliente está pagando integralmente o item?',
-      showCancelButton: true,
-      showDenyButton: true,
-      confirmButtonText: 'Pago 100%',
-      denyButtonText: 'Apenas retirando',
-      cancelButtonText: 'Cancelar',
-    }).then((result) => {
-      if (result.isConfirmed) {
-        const urlFinal = urlBase.includes('?') ? urlBase + '&pago_total=1' : urlBase + '?pago_total=1';
-        window.location.href = urlFinal;
-      } else if (result.isDenied) {
-        window.location.href = urlBase;
-      }
-      // Se cancelar não faz nada
-    });
-  }
+function confirmarAcao(urlBase) {
+  Swal.fire({
+  text: 'Cliente está pagando integralmente o item?',
+  showCancelButton: true,
+  showDenyButton: true,
+  confirmButtonText: 'Pago 100%',
+  denyButtonText: 'Apenas retirando',
+  cancelButtonText: 'Cancelar',
+  customClass: {
+    confirmButton: 'btn btn-success me-2',
+    denyButton: 'btn btn-warning me-2',
+    cancelButton: 'btn btn-secondary'
+  },
+  buttonsStyling: false
+  }).then((result) => {
+    if (result.isConfirmed) {
+      const urlFinal = urlBase.includes('?') ? urlBase + '&pago_total=1' : urlBase + '?pago_total=1';
+      window.location.href = urlFinal;
+    } else if (result.isDenied) {
+      window.location.href = urlBase;
+    }
+  });
+}
+
 </script>
 
 <script>

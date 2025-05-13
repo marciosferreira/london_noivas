@@ -40,7 +40,7 @@
   <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
     <h1 class="mb-0">Adicionar Transação</h1>
 
-    <a href="{{ url_for('inventory') }}" class="exit-link">
+    <a href="{{ next }}" class="exit-link">
       <i class="fas fa-sign-out-alt me-2"></i>
       Sair sem Finalizar
     </a>
@@ -112,7 +112,7 @@
     </div>
   </div>
 </div>
-{{item_id}}{{user_id}} {% endblock %} {% block scripts %} {{ super() }}
+{% endblock %} {% block scripts %} {{ super() }}
 <script src="https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.umd.min.js"></script>
 
 <script>
@@ -168,196 +168,146 @@
 </script>
 
 <script>
-  let descricaoOficialDoItemSelecionado = ''; // usado para restaurar o valor original da descrição
+  function buscarSugestoes(term) {
+    return fetch(`/autocomplete_items?term=${encodeURIComponent(term)}`).then((res) => res.json());
+  }
 
-  function inicializarAutocompleteItem(campoId) {
-    const input = document.getElementById(campoId);
-    const suggestionsBox = document.getElementById(`${campoId}_suggestions`);
-    const statusIds = ['item_custom_id_status'];
+  function preencherCampos(item) {
+    for (const key in item) {
+      const el = document.getElementById(key);
+      if (el && el.type !== 'hidden') {
+        const novoValor = item[key] || '';
+        if (el.value !== novoValor) {
+          el.value = novoValor;
+          // Aplica formatação monetária se for campo de valor
+          if (key === 'item_value') {
+            formatarCampoMonetario(el, true); // força a formatação imediatamente
+          }
 
-    if (!input || !suggestionsBox) return;
+          // Só dispara se for o campo item_custom_id e valor realmente mudou
+          if (key === 'item_custom_id') {
+            el.dataset.lastChecked = novoValor;
+            el.dispatchEvent(new Event('input'));
+          }
+        }
+      }
+    }
+    // ⏱️ Dispara evento após todos os campos preenchidos
+    document.dispatchEvent(new CustomEvent('item-preenchido'));
+  }
+
+  function exibirStatus(inputId, texto, classe) {
+    const statusEl = document.getElementById(`${inputId}_status`);
+    if (!statusEl) return;
+    statusEl.innerHTML = texto;
+    statusEl.className = `status-message ${classe}`;
+    statusEl.style.display = 'block';
+  }
+
+  function limparStatus(inputId) {
+    const statusEl = document.getElementById(`${inputId}_status`);
+    if (statusEl) statusEl.style.display = 'none';
+  }
+
+  function inicializarAutocomplete(inputId, isDescricao = false) {
+    const input = document.getElementById(inputId);
+    const boxId = `${inputId}_suggestions`;
+    const statusId = `${inputId}_status`;
+
+    if (!input) return;
+
+    let box = document.getElementById(boxId);
+    if (!box) {
+      box = document.createElement('div');
+      box.id = boxId;
+      box.className = 'autocomplete-box position-absolute w-100 bg-white shadow-sm z-3';
+      input.closest('.position-relative')?.appendChild(box);
+    }
+
+    const statusEl = document.getElementById(statusId);
 
     let itensSugeridos = [];
-    let camposBloqueados = false;
-
-    async function buscarSugestoes(term) {
-      const res = await fetch(`/autocomplete_items?term=${encodeURIComponent(term)}`);
-      const data = await res.json();
-      itensSugeridos = data;
-      return data;
-    }
-
-    function aplicarPreenchimento(item) {
-      for (const key in item) {
-        const field = document.getElementById(key);
-        if (field) {
-          field.value = item[key];
-
-          // 👉 Formata campo monetário se for item_value ou outros com classe monetária
-          if (['item_value', 'value', 'transaction_price', 'transaction_value_paid'].includes(key)) {
-            formatarCampoMonetario(field);
-            field.dispatchEvent(new Event('input'));
-          }
-        }
-      }
-
-      // Resto do código permanece igual...
-      if (item.item_id) {
-        let idHidden = document.getElementById('item_id');
-        if (!idHidden) {
-          idHidden = document.createElement('input');
-          idHidden.type = 'hidden';
-          idHidden.name = 'item_id';
-          idHidden.id = 'item_id';
-          document.getElementById('form-rent').appendChild(idHidden);
-        }
-        idHidden.value = item.item_id;
-      }
-
-      descricaoOficialDoItemSelecionado = item.item_description || '';
-      document.dispatchEvent(new Event('item-preenchido'));
-    }
-
-    function bloquearCamposItem() {
-      console.log('⚠️ bloquearCamposItem foi chamado!');
-      if (camposBloqueados) return;
-      camposBloqueados = true;
-
-      const blocoItem = document.getElementById('bloco-item');
-      if (!blocoItem) return;
-
-      const campos = blocoItem.querySelectorAll('input, select, textarea');
-
-      campos.forEach((el) => {
-        if (!['item_custom_id', 'item_description'].includes(el.id) && el.type !== 'hidden') {
-          el.setAttribute('readonly', true);
-          el.setAttribute('disabled', true);
-        }
-      });
-
-      const imgInput = document.getElementById('image_file');
-      if (imgInput) imgInput.style.display = 'none';
-    }
-
-    function desbloquearCamposItem() {
-      if (!camposBloqueados) return;
-      camposBloqueados = false;
-
-      const form = document.getElementById('form-rent');
-      const campos = form.querySelectorAll('input, select, textarea');
-
-      campos.forEach((el) => {
-        if (el.type !== 'hidden') {
-          el.removeAttribute('readonly');
-          el.removeAttribute('disabled');
-        }
-      });
-
-      const imgInput = document.getElementById('image_file');
-      if (imgInput) imgInput.style.display = '';
-    }
-
-    function exibirStatusEncontrado(texto, classe) {
-      statusIds
-        .filter((id) => campoId !== 'item_description' || id !== 'item_description_status')
-        .forEach((id) => {
-          const el = document.getElementById(id);
-          if (el) {
-            el.textContent = texto;
-            el.classList.remove('user-found', 'user-new');
-            el.classList.add('status-message', classe);
-            el.style.display = 'block';
-            el.style.display = 'block';
-          }
-        });
-    }
-
-    function checarMatchExato() {
-      const term = input.value.trim().toLowerCase();
-      const match = itensSugeridos.find((it) => {
-        const custom = (it.item_custom_id || '').toLowerCase();
-        const desc = (it.item_description || '').toLowerCase();
-        return custom === term || desc === term;
-      });
-
-      if (match) {
-        exibirStatusEncontrado('Item encontrado', 'user-found');
-        aplicarPreenchimento(match);
-        bloquearCamposItem();
-      } else {
-        exibirStatusEncontrado('Novo item será criado', 'user-new');
-        desbloquearCamposItem();
-      }
-    }
 
     input.addEventListener('input', async () => {
-      const term = input.value.trim();
-      if (term.length < 1) {
-        suggestionsBox.innerHTML = '';
-        if (campoId !== 'item_description') {
-          exibirStatusEncontrado('', '');
-        }
-        desbloquearCamposItem();
+      const termo = input.value.trim();
+      if (!termo) {
+        box.innerHTML = '';
+        if (!isDescricao) limparStatus(inputId);
         return;
       }
 
       try {
-        const items = await buscarSugestoes(term);
-        suggestionsBox.innerHTML = '';
+        itensSugeridos = await buscarSugestoes(termo);
+        box.innerHTML = '';
 
-        items.forEach((item) => {
+        itensSugeridos.forEach((item) => {
           const div = document.createElement('div');
           div.className = 'autocomplete-item px-2 py-1';
-          div.innerHTML = `<strong>${item.item_custom_id || '(sem código)'}</strong><br>
-                           <small>${item.item_description || 'Sem descrição'}</small>`;
+          div.innerHTML = `
+            <strong>${item.item_custom_id || '(sem código)'}</strong><br>
+            <small>${item.item_description || ''}</small>
+          `;
           div.addEventListener('click', () => {
-            input.value = item[campoId] || '';
-            aplicarPreenchimento(item);
-            suggestionsBox.innerHTML = '';
-            exibirStatusEncontrado('Item encontrado', 'user-found');
-            bloquearCamposItem();
+            input.value = item[inputId];
+            box.innerHTML = '';
+
+            if (isDescricao) {
+              preencherCampos(item);
+            } else {
+              checarDuplicidade(inputId, item[inputId], itensSugeridos);
+            }
           });
-          suggestionsBox.appendChild(div);
+          box.appendChild(div);
         });
 
-        if (!camposBloqueados && campoId !== 'item_description') {
-          checarMatchExato();
-        }
+        if (!isDescricao) checarDuplicidade(inputId, termo, itensSugeridos);
       } catch (err) {
         console.error('Erro ao buscar itens:', err);
       }
     });
 
     input.addEventListener('blur', () => {
-      setTimeout(() => {
-        suggestionsBox.innerHTML = '';
-
-        if (campoId === 'item_description') {
-          const itemIdValido = document.getElementById('item_id')?.value;
-          const status = document.getElementById('item_custom_id_status');
-          const faixaVerdeAtiva = status && status.classList.contains('user-found');
-
-          if (itemIdValido && faixaVerdeAtiva && descricaoOficialDoItemSelecionado) {
-            input.value = descricaoOficialDoItemSelecionado;
-          }
-        } else if (campoId === 'item_custom_id') {
-          checarMatchExato();
-        }
-      }, 200);
-    });
-
-    document.addEventListener('click', (e) => {
-      if (!input.contains(e.target) && !suggestionsBox.contains(e.target)) {
-        suggestionsBox.innerHTML = '';
-      }
+      setTimeout(() => (box.innerHTML = ''), 200);
     });
   }
+  function checarDuplicidade(inputId, termo, sugestoes) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
 
-  // Inicialização dos dois campos
+    // Impede checagem repetida do mesmo valor
+    if (input.dataset.lastChecked === termo) return;
+    input.dataset.lastChecked = termo;
+
+    const match = sugestoes.find((item) => (item.item_custom_id || '').toLowerCase() === termo.toLowerCase());
+    const box = document.getElementById(`${inputId}_suggestions`);
+
+    if (match) {
+      preencherCampos(match); // só dispara se valor for diferente
+      const editarLink = `
+      <a href="/edit_item/${match.item_id}?item_id=${match.item_id}&next=${encodeURIComponent(window.location.pathname)}"
+         class="ms-2 text-decoration-underline text-warning">
+        Editar
+      </a>`;
+      exibirStatus(inputId, 'Item Id encontrado ' + editarLink, 'user-found');
+      if (box) box.innerHTML = '';
+    } else {
+      exibirStatus(inputId, 'Novo item será criado', 'user-new');
+    }
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
-    inicializarAutocompleteItem('item_custom_id');
-    inicializarAutocompleteItem('item_description');
+    inicializarAutocomplete('item_custom_id', false);
+    inicializarAutocomplete('item_description', true);
   });
+
+  function gerarCodigoItem() {
+    const campo = document.getElementById('item_custom_id');
+    if (campo) {
+      const uuid = crypto.randomUUID().replace(/-/g, '').substring(0, 12);
+      campo.value = uuid;
+      campo.dispatchEvent(new Event('input'));
+    }
+  }
 </script>
 
 <script>
@@ -528,21 +478,21 @@
 
 <script>
 
-  // 📆 Datepicker com datas bloqueadas
-  function iniciarDatePicker() {
-    const DateTime = easepick.DateTime;
-    const rawDates = {{ reserved_ranges | tojson(indent=2) }};
-    const bookedDates = rawDates.map(d => {
-      if (d instanceof Array) {
-        const start = new DateTime(d[0], 'YYYY-MM-DD');
-        const end = new DateTime(d[1], 'YYYY-MM-DD');
-        return [start, end];
-      }
-      return new DateTime(d, 'YYYY-MM-DD');
-    });
+      // 📆 Datepicker com datas bloqueadas
+      function iniciarDatePicker() {
+        const DateTime = easepick.DateTime;
+        const rawDates = {{ reserved_ranges | tojson(indent=2) }};
+        const bookedDates = rawDates.map(d => {
+          if (d instanceof Array) {
+            const start = new DateTime(d[0], 'YYYY-MM-DD');
+            const end = new DateTime(d[1], 'YYYY-MM-DD');
+            return [start, end];
+          }
+          return new DateTime(d, 'YYYY-MM-DD');
+        });
 
-    new easepick.create({
-      element: document.getElementById('transaction_period'),
+        new easepick.create({
+      element: document.getElementById('transaction_period_display'),
       css: [
         'https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.css',
         'https://easepick.com/css/demo_hotelcal.css',
@@ -581,140 +531,176 @@
         other: 'dias',
       },
       format: 'DD/MM/YYYY',
-    });
-  }
+      setup(picker) {
+        picker.on('select', () => {
+          const start = picker.getStartDate()?.format('DD/MM/YYYY');
+          const end = picker.getEndDate()?.format('DD/MM/YYYY');
+          const displayInput = document.getElementById('transaction_period_display');
+          const hiddenInput = document.getElementById('transaction_period');
 
-  // ✅ Validação do formulário + preenchimento dos campos ocultos
-  function configurarValidacao() {
-    document.getElementById('form-rent').addEventListener('submit', function (e) {
-      const dp = document.getElementById('datepicker');
-
-
-      const telFormatted = document.getElementById('client_phone').value;
-      const cpfFormatted = document.getElementById('client_cpf').value;
-      const cnpjFormatted = document.getElementById('client_cnpj').value;
-
-      const telDigits = telFormatted.replace(/\D/g, '');
-      const cpfDigits = cpfFormatted.replace(/\D/g, '');
-      const cnpjDigits = cnpjFormatted.replace(/\D/g, '');
-
-      document.getElementById('client_phone').value = telDigits;
-      document.getElementById('client_cpf').value = cpfDigits;
-      document.getElementById('client_cnpj').value = cnpjDigits;
-
-      if (cpfDigits && !validaCPF(cpfDigits)) {
-        e.preventDefault();
-        alert('CPF inválido!');
-        return;
-      }
-
-      if (cnpjDigits && !validaCNPJ(cnpjDigits)) {
-        e.preventDefault();
-        alert('CNPJ inválido!');
-        return;
+          if (start && end) {
+            const periodo = `${start} - ${end}`;
+            displayInput.value = periodo;
+            hiddenInput.value = periodo;
+          } else {
+            displayInput.value = '';
+            hiddenInput.value = '';
+          }
+        });
       }
     });
+
+      }
+
+      // ✅ Validação do formulário + preenchimento dos campos ocultos
+      function configurarValidacao() {
+        document.getElementById('form-rent').addEventListener('submit', function (e) {
+          const dp = document.getElementById('datepicker');
+
+
+          const telFormatted = document.getElementById('client_phone').value;
+          const cpfFormatted = document.getElementById('client_cpf').value;
+          const cnpjFormatted = document.getElementById('client_cnpj').value;
+
+          const telDigits = telFormatted.replace(/\D/g, '');
+          const cpfDigits = cpfFormatted.replace(/\D/g, '');
+          const cnpjDigits = cnpjFormatted.replace(/\D/g, '');
+
+          document.getElementById('client_phone').value = telDigits;
+          document.getElementById('client_cpf').value = cpfDigits;
+          document.getElementById('client_cnpj').value = cnpjDigits;
+
+          if (cpfDigits && !validaCPF(cpfDigits)) {
+            e.preventDefault();
+            alert('CPF inválido!');
+            return;
+          }
+
+          if (cnpjDigits && !validaCNPJ(cnpjDigits)) {
+            e.preventDefault();
+            alert('CNPJ inválido!');
+            return;
+          }
+
+          const periodo = document.getElementById('transaction_period');
+  if (!periodo || !periodo.value.trim()) {
+    e.preventDefault();
+    alert('Por favor, selecione um período de locação.');
+    document.getElementById('transaction_period_display')?.focus();
+    return;
   }
 
-  function validaCPF(cpf) {
-    if (cpf.length !== 11 || /^(\d)\1+$/.test(cpf)) return false;
-    let soma = 0, resto;
-    for (let i = 1; i <= 9; i++) soma += parseInt(cpf[i - 1]) * (11 - i);
-    resto = (soma * 10) % 11;
-    if (resto === 10 || resto === 11) resto = 0;
-    if (resto !== parseInt(cpf[9])) return false;
-    soma = 0;
-    for (let i = 1; i <= 10; i++) soma += parseInt(cpf[i - 1]) * (12 - i);
-    resto = (soma * 10) % 11;
-    if (resto === 10 || resto === 11) resto = 0;
-    return resto === parseInt(cpf[10]);
-  }
 
-  function validaCNPJ(cnpj) {
-    if (cnpj.length !== 14 || /^(\d)\1+$/.test(cnpj)) return false;
-    let tamanho = cnpj.length - 2;
-    let numeros = cnpj.substring(0, tamanho);
-    let digitos = cnpj.substring(tamanho);
-    let soma = 0;
-    let pos = tamanho - 7;
 
-    for (let i = tamanho; i >= 1; i--) {
-      soma += parseInt(numeros.charAt(tamanho - i)) * pos--;
-      if (pos < 2) pos = 9;
-    }
 
-    let resultado = soma % 11 < 2 ? 0 : 11 - (soma % 11);
-    if (resultado != parseInt(digitos.charAt(0))) return false;
+        });
+      }
 
-    tamanho += 1;
-    numeros = cnpj.substring(0, tamanho);
-    soma = 0;
-    pos = tamanho - 7;
-    for (let i = tamanho; i >= 1; i--) {
-      soma += parseInt(numeros.charAt(tamanho - i)) * pos--;
-      if (pos < 2) pos = 9;
-    }
+      function validaCPF(cpf) {
+        if (cpf.length !== 11 || /^(\d)\1+$/.test(cpf)) return false;
+        let soma = 0, resto;
+        for (let i = 1; i <= 9; i++) soma += parseInt(cpf[i - 1]) * (11 - i);
+        resto = (soma * 10) % 11;
+        if (resto === 10 || resto === 11) resto = 0;
+        if (resto !== parseInt(cpf[9])) return false;
+        soma = 0;
+        for (let i = 1; i <= 10; i++) soma += parseInt(cpf[i - 1]) * (12 - i);
+        resto = (soma * 10) % 11;
+        if (resto === 10 || resto === 11) resto = 0;
+        return resto === parseInt(cpf[10]);
+      }
 
-    resultado = soma % 11 < 2 ? 0 : 11 - (soma % 11);
-    return resultado == parseInt(digitos.charAt(1));
-  }
+      function validaCNPJ(cnpj) {
+        if (cnpj.length !== 14 || /^(\d)\1+$/.test(cnpj)) return false;
+        let tamanho = cnpj.length - 2;
+        let numeros = cnpj.substring(0, tamanho);
+        let digitos = cnpj.substring(tamanho);
+        let soma = 0;
+        let pos = tamanho - 7;
 
-  // 🚀 Inicializar tudo quando a página carregar
-  window.addEventListener('DOMContentLoaded', () => {
-    iniciarDatePicker();
-    configurarValidacao();
+        for (let i = tamanho; i >= 1; i--) {
+          soma += parseInt(numeros.charAt(tamanho - i)) * pos--;
+          if (pos < 2) pos = 9;
+        }
 
-    // 🧼 Aplicar máscara de telefone ao digitar
-    const telInput = document.getElementById('client_phone');
-    if (telInput) {
-    telInput.addEventListener('input', (e) => {
-      e.target.value = maskPhone(e.target.value);
-    });
-  }
+        let resultado = soma % 11 < 2 ? 0 : 11 - (soma % 11);
+        if (resultado != parseInt(digitos.charAt(0))) return false;
 
-  // 🧼 Aplicar máscara de CPF ao digitar
-  const cpfInput = document.getElementById('client_cpf');
-  if (cpfInput) {
-    cpfInput.addEventListener('input', (e) => {
-      e.target.value = maskCPF(e.target.value);
-    });
-  }
+        tamanho += 1;
+        numeros = cnpj.substring(0, tamanho);
+        soma = 0;
+        pos = tamanho - 7;
+        for (let i = tamanho; i >= 1; i--) {
+          soma += parseInt(numeros.charAt(tamanho - i)) * pos--;
+          if (pos < 2) pos = 9;
+        }
 
-  // 🧼 Aplicar máscara de CNPJ ao digitar
-  const cnpjInput = document.getElementById('client_cnpj');
-  if (cnpjInput) {
-    cnpjInput.addEventListener('input', (e) => {
-      e.target.value = maskCNPJ(e.target.value);
-    });
-  }
-  });
+        resultado = soma % 11 < 2 ? 0 : 11 - (soma % 11);
+        return resultado == parseInt(digitos.charAt(1));
+      }
+
+      // 🚀 Inicializar tudo quando a página carregar
+      window.addEventListener('DOMContentLoaded', () => {
+        iniciarDatePicker();
+        configurarValidacao();
+
+        // 🧼 Aplicar máscara de telefone ao digitar
+        const telInput = document.getElementById('client_phone');
+        if (telInput) {
+        telInput.addEventListener('input', (e) => {
+          e.target.value = maskPhone(e.target.value);
+        });
+      }
+
+      // 🧼 Aplicar máscara de CPF ao digitar
+      const cpfInput = document.getElementById('client_cpf');
+      if (cpfInput) {
+        cpfInput.addEventListener('input', (e) => {
+          e.target.value = maskCPF(e.target.value);
+        });
+      }
+
+      // 🧼 Aplicar máscara de CNPJ ao digitar
+      const cnpjInput = document.getElementById('client_cnpj');
+      if (cnpjInput) {
+        cnpjInput.addEventListener('input', (e) => {
+          e.target.value = maskCNPJ(e.target.value);
+        });
+      }
+      });
 </script>
 
 {{ super() }}
 
 <script>
-  function formatarCampoMonetario(input) {
+  function formatarCampoMonetario(input, forcarFormatacao = false) {
     input.addEventListener('input', function (e) {
       let value = e.target.value.replace(/\D/g, '');
-
       if (!value) {
         e.target.value = '';
         return;
       }
 
-      let intValue = parseInt(value, 10);
-      let floatValue = intValue / 100;
-
-      // 🔒 Limite de 1.000.000,00
-      if (floatValue > 1000000) {
-        floatValue = 1000000;
-      }
+      let floatValue = parseFloat(value) / 100;
+      if (floatValue > 1000000) floatValue = 1000000;
 
       e.target.value = floatValue.toLocaleString('pt-BR', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       });
     });
+
+    // ⚠️ Executa imediatamente se chamado manualmente
+    if (forcarFormatacao && input.value) {
+      const raw = input.value.replace(/\D/g, '');
+      if (raw) {
+        const floatValue = parseFloat(raw) / 100;
+        input.value = floatValue.toLocaleString('pt-BR', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        });
+      }
+    }
   }
 
   document.addEventListener('DOMContentLoaded', function () {
@@ -895,6 +881,33 @@
       removeBtn.style.display = 'none';
     }
   }
+</script>
+
+<script>
+  function gerarCodigoItem() {
+    const campo = document.getElementById('item_custom_id');
+    if (campo) {
+      const uuid = crypto.randomUUID().replace(/-/g, '').substring(0, 12);
+      campo.value = uuid;
+
+      // Dispara input e blur para simular digitação e validação
+      campo.dispatchEvent(new Event('input'));
+      campo.dispatchEvent(new Event('blur'));
+    }
+  }
+</script>
+
+<script>
+  document.addEventListener('item-preenchido', function () {
+    const itemValueInput = document.getElementById('item_value');
+    const priceInput = document.getElementById('transaction_price');
+
+    // Só preenche se estiver criando (campo price vazio)
+    if (itemValueInput && priceInput && !priceInput.value.trim()) {
+      priceInput.value = itemValueInput.value;
+      priceInput.dispatchEvent(new Event('input')); // dispara formatação se houver
+    }
+  });
 </script>
 
 {% endblock %}

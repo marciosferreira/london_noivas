@@ -60,20 +60,28 @@
               {% endif %}
             </div>
 
-          {% elif field.type in ["item_custom_id", "item_description"] %}
-            <div class="autocomplete-wrapper position-relative w-100">
-              <input type="text"
-                     class="form-control"
-                     id="{{ field.id }}"
-                     name="{{ field.id }}"
-                     value="{{ value }}"
-                     autocomplete="off"
-                     {% if field.required %}required{% endif %} {% if readonly %}readonly{% endif %} />
-<small class="text-muted ms-1" style="margin-top: -10px; margin-bottom: 6px; display: block;">campo de busca</small>
+  {% elif field.type in ["item_custom_id", "item_description"] %}
+  <div class="autocomplete-wrapper position-relative w-100">
+    {% if field.id == "item_custom_id" and not readonly %}
+  <div class="d-flex justify-content-end mb-1">
+<a href="#" onclick="event.preventDefault(); gerarCodigoItem();" class="text-success small ms-2" style="text-decoration: underline;">
+  gerar aleatório
+</a>
+  </div>
+{% endif %}
 
-<div id="{{ field.id }}_status" class="status-message" style="display: none;"></div>
-<div id="{{ field.id }}_suggestions" class="autocomplete-box position-absolute w-100 bg-white shadow-sm z-3"></div>
-            </div>
+    <input type="text"
+           class="form-control"
+           id="{{ field.id }}"
+           name="{{ field.id }}"
+           value="{{ value }}"
+           autocomplete="off"
+           {% if field.required %}required{% endif %} {% if readonly %}readonly{% endif %} />
+    <small class="text-muted ms-1" style="margin-top: -10px; margin-bottom: 6px; display: block;">campo de busca</small>
+    <div id="{{ field.id }}_status" class="status-message" style="display: none;"></div>
+    <div id="{{ field.id }}_suggestions" class="autocomplete-box position-absolute w-100 bg-white shadow-sm z-3"></div>
+  </div>
+
 
           {% endif %}
         </div>

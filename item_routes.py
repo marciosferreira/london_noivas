@@ -300,7 +300,29 @@ def init_item_routes(
                     key_values[field_id] = value
 
             item_data["key_values"] = key_values
+
+            # 🔒 Verifica se item_custom_id já existe **ANTES** de salvar
+            item_custom_id = item_data.get("item_custom_id")
+            if item_custom_id:
+                existing = itens_table.query(
+                    IndexName="account_id-item_custom_id-index",
+                    KeyConditionExpression=Key("account_id").eq(account_id) & Key("item_custom_id").eq(item_custom_id)
+                ).get("Items", [])
+
+                if existing:
+                    flash("Já existe um item com esse ID. Por favor, use um ID diferente.", "danger")
+                    return render_template(
+                        "add_item.html",
+                        next=next_page,
+                        all_fields=all_fields,
+                        current_stripe_transaction=get_latest_transaction(user_id, users_table, payment_transactions_table),
+                        title=title,
+                        item={**item_data, "key_values": key_values}
+                    )
+
+
             itens_table.put_item(Item=item_data)
+
 
             flash("Item adicionado com sucesso!", "success")
             if "image_not_allowed" in locals() and image_not_allowed:
@@ -388,42 +410,52 @@ def init_item_routes(
                 else:
                     custom_updates[field_id] = value
 
-            # Comparar e aplicar somente as mudanças
-            changes = {}
+            # Comparar e aplicar somente mudanças
+            has_changes = False
+            update_expr = []
+            expr_values = {}
+            expr_names = {}
 
             for k, v in fixed_updates.items():
                 if transaction.get(k) != v:
-                    changes[k] = v
+                    update_expr.append(f"{k} = :{k}")
+                    expr_values[f":{k}"] = v
+                    has_changes = True
 
             for k, v in custom_updates.items():
                 if key_values.get(k) != v:
-                    changes[f"key_values.{k}"] = v
+                    update_expr.append(f"#kv.#k_{k} = :kv_{k}")
+                    expr_values[f":kv_{k}"] = v
+                    expr_names[f"#kv"] = "key_values"
+                    expr_names[f"#k_{k}"] = k
+                    has_changes = True
 
-            if not changes:
+            if not has_changes:
                 flash("Nenhuma alteração foi feita.", "warning")
                 return redirect(next_page)
 
-            update_expr = []
-            expr_values = {}
+            update_args = {
+                "Key": {"transaction_id": transaction_id},
+                "UpdateExpression": "SET " + ", ".join(update_expr),
+                "ExpressionAttributeValues": expr_values,
+            }
 
-            for k, v in changes.items():
-                update_expr.append(f"{k} = :{k.replace('.', '_')}")
-                expr_values[f":{k.replace('.', '_')}"] = v
+            # Só inclui ExpressionAttributeNames se houver aliases
+            if expr_names:
+                update_args["ExpressionAttributeNames"] = expr_names
 
-            transactions_table.update_item(
-                Key={"transaction_id": transaction_id},
-                UpdateExpression="SET " + ", ".join(update_expr),
-                ExpressionAttributeValues=expr_values,
-            )
+            transactions_table.update_item(**update_args)
 
             flash("Transação atualizada com sucesso.", "success")
             return redirect(next_page)
+
 
         transaction["range_date"] = (
             f"{datetime.datetime.strptime(transaction['rental_date'], '%Y-%m-%d').strftime('%d/%m/%Y')} - "
             f"{datetime.datetime.strptime(transaction['return_date'], '%Y-%m-%d').strftime('%d/%m/%Y')}"
         )
 
+        print(item)
         return render_template(
             "edit_transaction.html",
             item=item,
@@ -599,6 +631,24 @@ def init_item_routes(
                 else:
                     new_values[field_id] = value
 
+                # ✅ Agora sim, checagem de duplicidade com dados já preenchidos
+                custom_id = fixed_updates.get("item_custom_id")
+                if custom_id and custom_id != item.get("item_custom_id"):
+                    duplicate_check = itens_table.query(
+                        IndexName="account_id-item_custom_id-index",
+                        KeyConditionExpression=Key("account_id").eq(account_id) & Key("item_custom_id").eq(custom_id),
+                    )
+                    duplicates = duplicate_check.get("Items", [])
+                    if any(i["item_id"] != item_id for i in duplicates):
+                        flash("Já existe um item com este ID personalizado.", "danger")
+                        return render_template(
+                            "edit_item.html",
+                            item={**item, **fixed_updates, "key_values": {**key_values, **new_values}},
+                            all_fields=all_fields,
+                            next=next_page,
+                            title="Editar item",
+                        )
+
             # Verifica alterações
             changes = {}
             for k, v in new_values.items():
@@ -742,16 +792,21 @@ def init_item_routes(
                 field_id = field["id"]
                 field_type = field.get("type")
                 value = request.form.get(field_id, "").strip()
+                print("ccccxxx")
+                print(field)
+                print(value)
 
                 if not value:
                     continue
 
                 if field_type in ["cpf", "cnpj", "phone"]:
                     value = re.sub(r"\D", "", value)
-                elif field_type in ["item_value", "value", "transaction_value_paid"]:
+                elif field_type in ["item_value", "value", "transaction_value_paid", "transaction_price"]:
                     value = value.replace(".", "").replace(",", ".")
                     try:
                         value = Decimal(value)
+                        print("formated")
+                        print(value)
                     except InvalidOperation:
                         flash(
                             f"Valor inválido no campo {field.get('label', field_id)}.",
@@ -792,7 +847,9 @@ def init_item_routes(
                     cliente_editavel=True,
                     ordem=ordem,
                     client = {},
-                    current_stripe_transaction = current_transaction
+                    current_stripe_transaction = current_transaction,
+                    next = request.args.get("next", "rent"),
+
                 )
 
             # 👤 Cliente: criar novo ou usar existente
@@ -845,6 +902,7 @@ def init_item_routes(
                 }
                 itens_table.put_item(Item=item)
             else:
+
                 # Atualiza item existente
                 update_data = {
                     k: v for k, v in form_data.items() if k.startswith("item_")
@@ -871,6 +929,8 @@ def init_item_routes(
                 "client_id": client_id,
                 "rental_date": rental_date,
                 "return_date": return_date,
+                "transaction_value": form_data['transaction_price'],
+                "transaction_value_paid": form_data['transaction_value_paid'],
                 "created_at": datetime.datetime.now(user_utc).strftime(
                     "%Y-%m-%d %H:%M:%S"
                 ),
@@ -903,7 +963,8 @@ def init_item_routes(
                     total_relevant_transactions=total_relevant_transactions,
                     total_itens=total_itens,
                     current_stripe_transaction=current_transaction,
-                    ordem=ordem,                )
+                    next = request.args.get("next", "rent"),
+                    ordem=ordem)
 
                 ################################################################################################################
 
@@ -997,6 +1058,7 @@ def init_item_routes(
             total_itens=total_itens,
             cliente_vindo_da_query=cliente_vindo_da_query,
             item_vindo_da_query=item_vindo_da_query,
+            next = request.args.get("next", "rent"),
             ordem=ordem,
         )
 
@@ -1078,7 +1140,7 @@ def init_item_routes(
                 )
 
                 flash(
-                    "Item marcado deletado!",
+                    "Item marcado como deletado!",
                     "success",
                 )
 
@@ -1713,10 +1775,11 @@ def init_item_routes(
         status_counter = {"rented": 0, "returned": 0, "reserved": 0}
 
         event_counts = defaultdict(
-            lambda: {"created": 0, "devolvido": 0, "retirado": 0, "pagamento": 0}
+            lambda: {"created": 0, "devolvido": 0, "retirado": 0, "transaction_value_paid": 0}
         )
 
         for transaction in transactions:
+
             try:
                 transaction_date = datetime.datetime.strptime(
                     transaction.get("created_at"), "%Y-%m-%d %H:%M:%S"
@@ -1724,8 +1787,9 @@ def init_item_routes(
 
                 if start_date <= transaction_date <= end_date:
                     num_transactions += 1
-                    valor = float(transaction.get("valor", 0))
-                    pagamento = float(transaction.get("pagamento", 0))
+                    valor = float(transaction.get("transaction_price", 0))
+
+                    pagamento = float(transaction.get("transaction_value_paid", 0))
 
                     total_paid += pagamento
                     total_due += max(0, valor - pagamento)
@@ -1740,7 +1804,7 @@ def init_item_routes(
 
                     event_counts[transaction_date]["created"] += 1
                     if pagamento > 0:
-                        event_counts[transaction_date]["pagamento"] += pagamento
+                        event_counts[transaction_date]["transaction_value_paid"] += pagamento
 
                     if transaction.get("dev_date"):
                         dev_date = datetime.datetime.strptime(
@@ -1757,6 +1821,9 @@ def init_item_routes(
                         if start_date <= ret_date <= end_date:
                             status_counter["rented"] += 1  # ✅ Retirado
                             event_counts[ret_date]["retirado"] += 1
+
+                else:
+                    print("no itens betwen dates")
             except (ValueError, TypeError):
                 continue
 
@@ -1776,7 +1843,7 @@ def init_item_routes(
             created_list.append(daily["created"])
             dev_list.append(daily["devolvido"])
             ret_list.append(daily["retirado"])
-            pagamento_list.append(daily["pagamento"])
+            pagamento_list.append(daily["transaction_value_paid"])
             current_date += datetime.timedelta(days=1)
 
         if request.method == "POST":

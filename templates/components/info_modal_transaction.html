@@ -5,10 +5,12 @@
         <h5 class="modal-title" id="modalItemLabel{{ loop.index }}">Detalhes da Transação</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
       </div>
+
       <div class="modal-body">
         <div class="container-fluid">
           <div class="row g-3">
-            {% for field in fields_config if field.type != 'image_url' %}
+            {% set status_mapping = { 'reserved': 'Reservado', 'rented': 'Retirado', 'returned': 'Devolvido' } %} {% for field in fields_config if
+            field.type != 'image_url' %}
             <div class="col-12 col-md-6">
               <strong>{{ field.label }}:</strong>
               <br />
@@ -17,9 +19,11 @@
               <span class="text-muted">-</span>
               {% else %}
               <span>
-                {% if field.type == "date" %} {{ value | format_date }} {% elif field.type == "value" %} {{ value | format_brl }} {% else %} {{ value
-                }} {% endif %}
+                {% if field.type == "date" %} {{ value | format_date }} {% elif field.type in ["value", "transaction_value_paid", "transaction_price"]
+                %} {{ value | format_brl }} {% elif field.id == "transaction_status" %} {{ status_mapping.get(value, value) }} {% else %} {{ value }}
+                {% endif %}
               </span>
+
               {% endif %}
             </div>
             {% endfor %}
