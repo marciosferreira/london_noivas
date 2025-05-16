@@ -1,205 +1,112 @@
-{% extends "base.html" %}
-{% block title %}Clientes{% endblock %}
-{% block styles %}
+{% extends "base.html" %} {% block title %}Clientes{% endblock %} {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='style_clientes.css') }}" />
-{% endblock %}
-{% block content %}
+{% endblock %} {% block content %}
 <div class="container my-3">
   <h2 class="mb-4">Clientes cadastrados</h2>
 
-  {% set show_add_button = True %}
-  {% set add_route = url_for('adicionar_cliente') %}
-  {% include "components/client_filter_section.html" with context %}
+  {% set show_add_button = True %} {% set add_route = url_for('adicionar_cliente') %} {% include "components/client_filter_section.html" with context
+  %} {% if not itens %}
+  <div class="alert alert-info mt-3">Não há itens que satisfazem os critérios selecionados.</div>
+  {% endif %} {% if itens %}
+  <div class="row g-3">
+    {% for item in itens %}
+    <div class="col-12 col-md-6 col-lg-4">
+      <div class="card shadow-sm h-100 position-relative">
+        <div class="card-body pt-3 px-3">
+          <!-- Botões de ação -->
+          <div class="d-flex justify-content-end mb-2 gap-1">
+            <!-- Botão de dropdown -->
+            <button
+              class="btn btn-sm btn-outline-secondary dropdown-toggle"
+              type="button"
+              id="dropdownMenuButton{{ loop.index }}"
+              data-bs-toggle="dropdown"
+              aria-expanded="false"
+            >
+              <i class="fas fa-ellipsis-v"></i>
+            </button>
 
-{% if not itens %}
-<div
-  style="
-    display: flex;
-    align-items: center;
-    background-color: #cce5ff;
-    border-left: 6px solid #007bff;
-    color: #004085;
-    padding: 1rem;
-    border-radius: 0.25rem;
-    margin-top: 1rem;
-  "
->
-  <span>Não há itens que satisfazem os critérios selecionados.</span>
-</div>
-<br />
-
-{{fields_config}}
-{% endif %}
-  {% if itens %}
-  <div class="table-container mt-4">
-    <table class="table table-hover responsive-table align-middle rounded-table">
-      <thead>
-        <tr>
-          {% for field in fields_config if field.preview and field.visible %}
-            <th>{{ field.label }}</th>
-          {% endfor %}
-          <th class="text-center">Ações</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for item in itens %}
-        <tr>
-          {% for field in fields_config if field.preview and field.visible %}
-          <td data-label="{{ field.label }}">
-            {% set value = item.key_values[field.id] if item.key_values is defined and field.id in item.key_values else item[field.id] if field.id in item else '' %}
-
-            {% if value == 'None' or value is none %}
-              <span class="text-muted">-</span>
-            {% else %}
-              {% if field.type == "phone" %}
-                {{ value | format_telefone }}
-              {% elif field.type == "date" %}
-                {{ value | format_date }}
-              {% elif field.type == "cpf" %}
-                {{ value }}
-                {% elif field.type == "cnpj" %}
-                {{ value }}
-              {% else %}
-                {{ value | truncate(30, True) }}
-              {% endif %}
-            {% endif %}
-          </td>
-          {% endfor %}
-
-          <td data-label="Ações">
-            <div class="d-flex align-items-center gap-2">
-              <!-- Botão de ações com dropdown -->
-
-              <div class="position-relative d-flex gap-2 justify-content-center align-items-center">
-                <!-- Botão de ações -->
-                <button
-                  class="btn btn-outline-secondary btn-sm dropdown-toggle"
-                  type="button"
-                  id="dropdownMenuButton{{ loop.index }}"
-                  data-bs-toggle="dropdown"
-                  aria-expanded="false"
-                  title="Mais ações"
-                >
-                  <i class="fas fa-ellipsis-v"></i>
-                </button>
-
-                {% set show_delete_client = True %}
-              {% set show_edit_client = True %}
-              {% set show_client_transactions = True %}
-              {% set start_transaction_client = True %}
-
-
-
-              {% include 'components/action_buttons.html' with context %}
-
-                <!-- Dropdown fora do botão -->
-                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton{{ loop.index }}">
-                  <!-- ... os demais itens permanecem iguais ... -->
-                </ul>
-
-                <!-- Botão olho -->
-                <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalItem{{ loop.index }}" title="Ver detalhes">
-                  <i class="fas fa-eye"></i>
-                </button>
-              </div>
+            <div class="d-flex flex-wrap gap-2 justify-content-center align-items-center">
+              {% set show_delete_client = True %} {% set show_edit_client = True %} {% set show_client_transactions = True %} {% include
+              'components/action_buttons.html' with context %}
             </div>
-          </td>
-        </tr>
+            <!-- Botão olho -->
+            <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalItem{{ loop.index }}">
+              <i class="fas fa-eye"></i>
+            </button>
+          </div>
 
+          <!-- Campos do cliente -->
+          <div class="d-flex flex-column gap-2">
+            {% for field in fields_config if field.preview and field.visible %}
+            <div class="d-flex justify-content-between small border-bottom pb-1">
+              <span class="text-muted">{{ field.label }}</span>
+              <span class="text-end">
+                {% set value = item.key_values[field.id] if item.key_values is defined and field.id in item.key_values else item[field.id] if field.id
+                in item else '' %} {% if value == 'None' or value is none %}
+                <span class="text-muted">-</span>
+                {% else %} {% if field.type == "phone" %} {{ value | format_telefone }} {% elif field.type == "date" %} {{ value | format_date }} {%
+                elif field.type == "cpf" or field.type == "cnpj" %} {{ value }} {% else %} {{ value | truncate(30, True) }} {% endif %} {% endif %}
+              </span>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
 
-
-      {% include 'components/info_modal_client.html' with context %}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        {% endfor %}
-      </tbody>
-    </table>
+    {% include 'components/info_modal_client.html' with context %} {% endfor %}
   </div>
+  {% endif %} {% if itens %}
+  <ul class="pagination justify-content-center mt-4"></ul>
   {% endif %}
-
-  {% if itens %}
-  <ul class="pagination justify-content-center"></ul>
-  {% endif %}
-
 </div>
 {% endblock %} {% block scripts %}
-    <!-- scripts extras -->
-    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
-    <!-- Bootstrap Bundle com Popper -->
-    <script
-      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
-      integrity="sha384-A3xORN3yEh9NTBI69AsVZqg0vszNvB4LaU6gq3p0eNmKUy5OWyE4hzJxKr5oUqvN"
-      crossorigin="anonymous"
-    ></script>
+<!-- FontAwesome -->
+<script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
 
+<!-- Bootstrap Bundle -->
+<script
+  src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
+  integrity="sha384-A3xORN3yEh9NTBI69AsVZqg0vszNvB4LaU6gq3p0eNmKUy5OWyE4hzJxKr5oUqvN"
+  crossorigin="anonymous"
+></script>
 
+<script>
+  const urlParams = new URLSearchParams(window.location.search);
+  let currentPage = parseInt(urlParams.get('page') || '1');
 
+  const paginacao = document.querySelector('.pagination');
 
-    <script>
-      const urlParams = new URLSearchParams(window.location.search);
-      let currentPage = parseInt(urlParams.get('page') || '1');
+  if (currentPage > 1) {
+    const liPrev = document.createElement('li');
+    liPrev.className = 'page-item';
+    const aPrev = document.createElement('a');
+    aPrev.className = 'page-link';
+    aPrev.innerText = '← Anterior';
+    aPrev.href = `?page=${currentPage - 1}`;
+    liPrev.appendChild(aPrev);
+    paginacao.appendChild(liPrev);
+  }
 
-      const paginacao = document.querySelector('.pagination');
+  const liCurrent = document.createElement('li');
+  liCurrent.className = 'page-item active';
+  const aCurrent = document.createElement('a');
+  aCurrent.className = 'page-link';
+  aCurrent.innerText = `Página ${currentPage}`;
+  aCurrent.href = "#";
+  liCurrent.appendChild(aCurrent);
+  paginacao.appendChild(liCurrent);
 
-      // Botão ← Anterior
-      if (currentPage > 1) {
-        const liPrev = document.createElement('li');
-        liPrev.className = 'page-item';
-        const aPrev = document.createElement('a');
-        aPrev.className = 'page-link';
-        aPrev.innerText = '← Anterior';
-        aPrev.href = `?page=${currentPage - 1}`;
-        liPrev.appendChild(aPrev);
-        paginacao.appendChild(liPrev);
-      }
-
-      // Página Atual
-      const liCurrent = document.createElement('li');
-      liCurrent.className = 'page-item active';
-      const aCurrent = document.createElement('a');
-      aCurrent.className = 'page-link';
-      aCurrent.innerText = `Página ${currentPage}`;
-      aCurrent.href = "#";
-      liCurrent.appendChild(aCurrent);
-      paginacao.appendChild(liCurrent);
-
-      // Botão Próxima →
-      {% if has_next %}
-        const liNext = document.createElement('li');
-        liNext.className = 'page-item';
-        const aNext = document.createElement('a');
-        aNext.className = 'page-link';
-        aNext.innerText = 'Próxima →';
-        aNext.href = `?page=${currentPage + 1}`;
-        liNext.appendChild(aNext);
-        paginacao.appendChild(liNext);
-      {% endif %}
-    </script>
-
-
-
-  </div>
-
-  {% endblock %}
-</div>
-
-
-
+  {% if has_next %}
+    const liNext = document.createElement('li');
+    liNext.className = 'page-item';
+    const aNext = document.createElement('a');
+    aNext.className = 'page-link';
+    aNext.innerText = 'Próxima →';
+    aNext.href = `?page=${currentPage + 1}`;
+    liNext.appendChild(aNext);
+    paginacao.appendChild(liNext);
+  {% endif %}
+</script>
+{% endblock %}

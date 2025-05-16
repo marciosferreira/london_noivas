@@ -365,6 +365,7 @@ def init_item_routes(
         fields_client = get_all_fields(account_id, field_config_table, entity="client")
         fields_item = get_all_fields(account_id, field_config_table, entity="item")
         all_fields = fields_transaction + fields_client + fields_item
+        all_fields = list({item['id']: item for item in all_fields}.values())
 
         response = transactions_table.query(
             IndexName="item_id-index",
@@ -777,6 +778,11 @@ def init_item_routes(
             fields_item = get_all_fields(account_id, field_config_table, entity="item")
             all_fields = fields_transaction + fields_client + fields_item
 
+            #filtra os campos repetidos
+            all_fields = list({item['id']: item for item in all_fields}.values())
+
+
+
             form_data = {}
             transaction_fixed_fields = {}
             key_values = {}
@@ -962,6 +968,9 @@ def init_item_routes(
             get_all_fields(account_id, field_config_table, entity="client") +
             get_all_fields(account_id, field_config_table, entity="item")
         )
+
+        #filtra os campos repetidos
+        all_fields = list({item['id']: item for item in all_fields}.values())
 
 
         # Totais para controle de plano
@@ -1990,7 +1999,7 @@ def init_item_routes(
                 fields.append(
                     {
                         "field_id": request.form.get(f"fields[{i}][id]"),
-                        "f_type": request.form.get(f"fields[{i}][kind]", "custom"),
+"f_type": request.form[f"fields[{i}][kind]"] if f"fields[{i}][kind]" in request.form else "custom",
                         "label": request.form.get(f"fields[{i}][label]"),
                         "label_original": request.form.get(
                             f"fields[{i}][label_original]"
@@ -2102,6 +2111,8 @@ def init_item_routes(
             combined_filterable = request.form.getlist("combined_filterable[]")
             combined_preview = request.form.getlist("combined_preview[]")
             combined_options = request.form.getlist("combined_options[]")
+            combined_kinds = request.form.getlist("combined_kind[]")
+
 
             # checa se o usuario esta tentando deletar um campo que ja foi preecnido
             # Lista de IDs de campos que vieram do form
@@ -2148,7 +2159,7 @@ def init_item_routes(
                     and combined_filterable[idx] == "true",
                     "preview": idx < len(combined_preview)
                     and combined_preview[idx] == "true",
-                    "f_type": "custom",
+                    "f_type": combined_kinds[idx] if idx < len(combined_kinds) else "custom",
                     "options": options if type_ == "dropdown" else [],
                     "order_sequence": order,
                 }
@@ -2430,6 +2441,9 @@ def list_transactions(
         session["last_page_transactions"] = last_valid_page
         return redirect(url_for("all_transactions", page=last_valid_page, has_next=has_next, force_no_next=1))
 
+    #filtrar os valores repetidos
+    fields_config = list({item['id']: item for item in fields_config}.values())
+
     return render_template(
         template,
         itens=valid_itens,
@@ -2443,9 +2457,8 @@ def list_transactions(
         itens_count=len(valid_itens),
         has_next=has_next,
         has_prev=current_page > 1,
-        fields_config=fields_config,  # todas as e entidades em listas separadas
-        fields_all_entities=fields_all_entities, # todas as 3 entidades na mesma  lista
-
+        fields_config=fields_config,  # todas as 3 entidades na mesma  lista
+        fields_all_entities=fields_all_entities, # todas as e entidades em listas separadas
     )
 
 

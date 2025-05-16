@@ -1,85 +1,42 @@
 {% extends "base.html" %} {% block title %}Itens Disponíveis{% endblock %} {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='style_inventory.css') }}" />
 {% endblock %} {% block content %}
-<div class="container mt-3">
+<div class="container my-3">
   <h2 class="mb-4">Inventário de itens</h2>
-</div>
-{% if request.args or itens %} {% set show_item_filter = True %} {% endif %} {% set show_add_item = True %} {% include
-"components/item_filter_section.html" with context %} {% if not itens %}
-<div
-  style="
-    display: flex;
-    align-items: center;
-    background-color: #cce5ff;
-    border-left: 6px solid #007bff;
-    color: #004085;
-    padding: 1rem;
-    border-radius: 0.25rem;
-    margin-top: 1rem;
-  "
->
-  <span>Não há itens que satisfazem os critérios selecionados.</span>
-</div>
-<br />
-{% endif %} {% if itens %}
 
-<div class="table-container mt-4">
-  <table class="table table-hover responsive-table align-middle rounded-table">
-    <thead>
-      <tr>
-        {% for field in fields_config if field.preview and field.visible %}
-        <th>{{ field.label }}</th>
-        {% endfor %}
-
-        <th>Ações</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for item in itens %}
-      <tr>
-        {% for field in fields_config if field.preview and field.visible %}
-        <td data-label="{{ field.label }}">
-          {% if field.type == 'item_image_url' %} {% set value = ( item.key_values[field.id] if item.key_values is defined and field.id in
-          item.key_values else item[field.id] if field.id in item else '' ) %} {% if value and value != "N/A" %}
+  {% set show_add_item = True %} {% include "components/item_filter_section.html" with context %} {% if not itens %}
+  <div class="alert alert-info mt-3">Não há itens que satisfazem os critérios selecionados.</div>
+  {% endif %} {% if itens %}
+  <div class="row g-3">
+    {% for item in itens %}
+    <div class="col-12 col-md-6 col-lg-4">
+      <div class="card shadow-sm h-100 position-relative">
+        {% for field in fields_config if field.type == 'item_image_url' and field.preview and field.visible %} {% set image_value =
+        item.key_values[field.id] if item.key_values is defined and field.id in item.key_values else item[field.id] if field.id in item else '' %}
+        <div class="text-center mt-2">
           <img
-            src="{{ value }}"
+            src="{{ image_value if image_value and image_value != 'N/A' else url_for('static', filename='item-placeholder.png') }}"
             alt="Imagem"
-            class="img-fluid item-thumbnail"
-            style="max-width: 100px; cursor: pointer"
-            onclick="mostrarImagemModal('{{ value }}')"
+            class="card-img-top mx-auto d-block"
+            style="height: 240px; width: auto; max-width: 100%; object-fit: cover; cursor: pointer"
+            onclick="mostrarImagemModal('{{ image_value if image_value and image_value != 'N/A' else url_for('static', filename='item-placeholder.png') }}')"
           />
-          {% else %}
-          <img
-            src="{{ url_for('static', filename='item-placeholder.png') }}"
-            alt="Sem Imagem"
-            class="img-fluid item-thumbnail"
-            style="max-width: 100px; cursor: pointer"
-            onclick="mostrarImagemModal('{{ url_for('static', filename='item-placeholder.png') }}')"
-          />
-          {% endif %} {% else %} {% set value = ( item.key_values[field.id] if item.key_values is defined and field.id in item.key_values else
-          item[field.id] if field.id in item else '' ) %} {% if value == 'None' or value is none %}
-          <span class="text-muted">-</span>
-          {% else %}
-          <span>
-            {% if field.type in ["value", "item_value"] %} {{ value | format_brl }} {% elif field.type == "date" %} {{ value | format_date }} {% else
-            %} {{ value }} {% endif %}
-          </span>
-          {% endif %} {% endif %}
-        </td>
+        </div>
         {% endfor %}
-        <td data-label="Ações">
-          <div class="d-flex align-items-center gap-2">
-            <!-- Botão de ações com dropdown -->
 
-            <div class="position-relative d-flex gap-2 justify-content-center align-items-center">
-              <!-- Botão de ações -->
+        <div class="card-body pt-3 px-3">
+          <!-- Botões de ação -->
+          <!-- Botões de ação -->
+          <!-- Botões de ação -->
+          <div class="d-flex justify-content-end mb-2 gap-1">
+            <!-- Bloco do dropdown -->
+            <div class="dropdown">
               <button
-                class="btn btn-outline-secondary btn-sm dropdown-toggle"
+                class="btn btn-sm btn-outline-secondary dropdown-toggle"
                 type="button"
                 id="dropdownMenuButton{{ loop.index }}"
                 data-bs-toggle="dropdown"
                 aria-expanded="false"
-                title="Mais ações"
               >
                 <i class="fas fa-ellipsis-v"></i>
               </button>
@@ -88,100 +45,63 @@
               show_consult = True %} {% set show_qrcode = True %} {% set show_share = True %} {% set show_item_transactions = True %} {% include
               'components/action_buttons.html' with context %}
 
-              <!-- Dropdown fora do botão -->
               <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton{{ loop.index }}">
-                <!-- ... os demais itens permanecem iguais ... -->
+                <li class="px-2 py-1">
+                  <div class="d-flex flex-column gap-1"></div>
+                </li>
               </ul>
-
-              <!-- Botão olho -->
-              <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalItem{{ loop.index }}" title="Ver detalhes">
-                <i class="fas fa-eye"></i>
-              </button>
             </div>
+
+            <!-- Botão olho -->
+            <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalItem{{ loop.index }}">
+              <i class="fas fa-eye"></i>
+            </button>
           </div>
-        </td>
-      </tr>
 
-      {% include 'components/info_modal_item.html' with context %} {% endfor %}
-    </tbody>
-  </table>
-</div>
-{% endif %} {% if itens %}
-
-<!-- Pagination -->
-<ul class="pagination justify-content-center"></ul>
-{% endif %}
-
-<!-- Modal do calendário -->
-<div class="modal fade" id="calendarModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered" style="max-width: 400px">
-    <div class="modal-content p-3">
-      <div class="modal-header">
-        <h5 class="modal-title">Calendário do Item</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+          <!-- Campos do item -->
+          <div class="d-flex flex-column gap-2">
+            {% for field in fields_config if field.preview and field.visible and field.type != 'item_image_url' %}
+            <div class="d-flex justify-content-between small border-bottom pb-1">
+              <span class="text-muted">{{ field.label }}</span>
+              <span class="text-end">
+                {% set value = item.key_values[field.id] if item.key_values is defined and field.id in item.key_values else item[field.id] if field.id
+                in item else '' %} {% if value == 'None' or value is none %}
+                <span class="text-muted">-</span>
+                {% else %} {% if field.type == "date" %} {{ value | format_date }} {% elif field.type in ["value", "item_value"] %} {{ value |
+                format_brl }} {% else %} {{ value | truncate(30, True) }} {% endif %} {% endif %}
+              </span>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
       </div>
-      <div class="modal-body" id="calendarModalBody">Carregando...</div>
     </div>
+    {% include 'components/info_modal_item.html' with context %} {% endfor %}
   </div>
+  {% endif %} {% if itens %}
+  <ul class="pagination justify-content-center mt-4"></ul>
+  {% endif %}
 </div>
-<!-- MODAL para imagem -->
+
 {% include 'components/image_modal.html' %} {% endblock %} {% block scripts %}
+<script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
 
 <script>
-  function confirmarDelete(url) {
-    if (confirm('Deletar este item?')) {
-      const form = document.createElement('form');
-      form.method = 'POST';
-      form.action = url;
-      document.body.appendChild(form);
-      form.submit();
-    }
+  function mostrarImagemModal(imageUrl) {
+    const modalImg = document.getElementById('modalImg');
+    const imageModal = new bootstrap.Modal(document.getElementById('imageModal'));
+    modalImg.src = imageUrl;
+    imageModal.show();
   }
-</script>
 
-<script>
-  function abrirCalendario(url) {
-    fetch(url)
-      .then((response) => response.text())
-      .then((html) => {
-        document.getElementById('calendarModalBody').innerHTML = html;
-        const modal = new bootstrap.Modal(document.getElementById('calendarModal'));
-        modal.show();
-      })
-      .catch((error) => {
-        console.error('Erro ao carregar calendário:', error);
-        alert('Erro ao carregar calendário.');
-      });
-  }
-</script>
-
-<script src="https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.umd.min.js"></script>
-<script>
-  function iniciarDatePicker() {
-    const picker = new easepick.create({
-      element: document.getElementById('datepicker'),
-      css: ['https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.css'],
-      inline: true,
-      container: document.getElementById('calendar-container'),
-    });
-
-    picker.show();
-  }
-</script>
-
-<script>
   const urlParams = new URLSearchParams(window.location.search);
   let currentPage = parseInt(urlParams.get('page') || '1');
-
   const paginacao = document.querySelector('.pagination');
 
-  // Remove o parâmetro de página antes de recriar a URL
   urlParams.delete('page');
-
   const baseParams = urlParams.toString();
   const prefix = baseParams ? `?${baseParams}&` : '?';
 
-  // ← Anterior
   if (currentPage > 1) {
     const liPrev = document.createElement('li');
     liPrev.className = 'page-item';
@@ -193,7 +113,6 @@
     paginacao.appendChild(liPrev);
   }
 
-  // Página atual
   const liCurrent = document.createElement('li');
   liCurrent.className = 'page-item active';
   const aCurrent = document.createElement('a');
@@ -203,47 +122,15 @@
   liCurrent.appendChild(aCurrent);
   paginacao.appendChild(liCurrent);
 
-  // → Próxima
   {% if has_next %}
     const liNext = document.createElement('li');
     liNext.className = 'page-item';
     const aNext = document.createElement('a');
     aNext.className = 'page-link';
     aNext.innerText = 'Próxima →';
-    aNext.href = `${prefix}page=${currentPage + 1}`;
+    aNext.href = `${prefix}page={{ currentPage + 1 }}`;
     liNext.appendChild(aNext);
     paginacao.appendChild(liNext);
   {% endif %}
 </script>
-
-<script>
-  function mostrarImagemModal(imageUrl) {
-    const modalImg = document.getElementById('modalImg');
-    const imageModal = new bootstrap.Modal(document.getElementById('imageModal'));
-
-    // Encontra o modal pai que está aberto atualmente
-    const modalAberto = document.querySelector('.modal.show');
-
-    if (modalAberto) {
-      // Aguarda o fechamento do modal pai
-      modalAberto.addEventListener(
-        'hidden.bs.modal',
-        () => {
-          modalImg.src = imageUrl;
-          imageModal.show();
-        },
-        { once: true }
-      );
-
-      // Fecha o modal atual
-      const instanciaModal = bootstrap.Modal.getInstance(modalAberto);
-      if (instanciaModal) instanciaModal.hide();
-    } else {
-      // Se nenhum modal estiver aberto, mostra direto
-      modalImg.src = imageUrl;
-      imageModal.show();
-    }
-  }
-</script>
-
 {% endblock %}

@@ -30,16 +30,24 @@
       <input type="hidden" name="fields[{{ loop.index0 }}][label_original]" value="{{ field.label_original or field.label }}">
       <input type="hidden" name="fields[{{ loop.index0 }}][label]" value="{{ field.label }}">
       <input type="hidden" name="fields[{{ loop.index0 }}][options]" value="{{ field.options | join(',') if field.options else '' }}" />
+<div class="text-muted small">f_type: {{ field.f_type }}</div>
 
       <!-- Cabeçalho e info -->
       <div class="d-flex justify-content-between align-items-center mb-2">
         <div>
           <strong class="display-title">{{ field.label }}</strong>
-          <span class="badge {{ 'bg-secondary' if field.fixed else 'bg-info' }}">{{ 'fixo' if field.fixed else 'custom' }}</span>
+{% set tipo = field.get('f_type', '') %}
+{% if field.f_type == 'visual' %}
+  <span class="badge bg-warning text-dark">apenas leitura</span>
+{% elif field.fixed %}
+  <span class="badge bg-secondary">fixo</span>
+{% else %}
+  <span class="badge bg-info">custom</span>
+{% endif %}
 
-          {% if field.fixed %}
-          <div class="text-muted small">Label original: {{ field.label_original }}</div>
-          {% endif %}
+
+
+
 
           <div class="text-muted small">
             Tipo: {{ 'Texto' if field.type == 'text' else
@@ -150,29 +158,36 @@
   } %}
 
   {% for prop in ['visible', 'required', 'filterable', 'preview'] %}
-    {% set is_forced = prop in force_checked.get(field.id, []) %}
-    <div class="col-auto">
-      <div class="form-check d-flex align-items-center gap-1">
-        {% if is_forced %}
-          <input type="hidden" name="fields[{{ idx }}][{{ prop }}]" value="true">
-          <input class="form-check-input" type="checkbox" id="{{ prop }}_{{ idx }}" checked disabled>
-          <label class="form-check-label text-muted" for="{{ prop }}_{{ idx }}"
-                 title="Campo fixo e sempre ativado.">
-            {{ labels_map[prop] }} <i class="fas fa-lock ms-1 text-secondary"></i>
-          </label>
-        {% else %}
-          <input class="form-check-input"
-                 type="checkbox"
-                 id="{{ prop }}_{{ idx }}"
-                 name="fields[{{ idx }}][{{ prop }}]"
-                 {% if field[prop] %}checked{% endif %}>
-          <label class="form-check-label" for="{{ prop }}_{{ idx }}">
-            {{ labels_map[prop] }}
-          </label>
-        {% endif %}
-      </div>
+  {% set is_forced = prop in force_checked.get(field.id, []) %}
+  {% set is_visual_readonly = field.f_type == 'visual' and prop == 'required' %}
+  <div class="col-auto">
+    <div class="form-check d-flex align-items-center gap-1">
+      {% if is_forced %}
+        <input type="hidden" name="fields[{{ idx }}][{{ prop }}]" value="true">
+        <input class="form-check-input" type="checkbox" id="{{ prop }}_{{ idx }}" checked disabled>
+        <label class="form-check-label text-muted" for="{{ prop }}_{{ idx }}">
+          {{ labels_map[prop] }} <i class="fas fa-lock ms-1 text-secondary"></i>
+        </label>
+      {% elif is_visual_readonly %}
+        <input type="hidden" name="fields[{{ idx }}][{{ prop }}]" value="false">
+        <input class="form-check-input" type="checkbox" id="{{ prop }}_{{ idx }}" disabled>
+        <label class="form-check-label text-muted" for="{{ prop }}_{{ idx }}">
+          {{ labels_map[prop] }} <span class="text-muted">(só leitura)</span>
+        </label>
+      {% else %}
+        <input class="form-check-input"
+               type="checkbox"
+               id="{{ prop }}_{{ idx }}"
+               name="fields[{{ idx }}][{{ prop }}]"
+               {% if field[prop] %}checked{% endif %}>
+        <label class="form-check-label" for="{{ prop }}_{{ idx }}">
+          {{ labels_map[prop] }}
+        </label>
+      {% endif %}
     </div>
-  {% endfor %}
+  </div>
+{% endfor %}
+
 </div>
 
 
