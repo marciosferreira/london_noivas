@@ -5,6 +5,7 @@
   <h2 class="mb-4">Inventário de itens</h2>
 
   {% set show_add_item = True %} {% include "components/item_filter_section.html" with context %} {% if not itens %}
+
   <div class="alert alert-info mt-3">Não há itens que satisfazem os critérios selecionados.</div>
   {% endif %} {% if itens %}
   <div class="row g-3">
@@ -26,8 +27,7 @@
 
         <div class="card-body pt-3 px-3">
           <!-- Botões de ação -->
-          <!-- Botões de ação -->
-          <!-- Botões de ação -->
+
           <div class="d-flex justify-content-end mb-2 gap-1">
             <!-- Bloco do dropdown -->
             <div class="dropdown">

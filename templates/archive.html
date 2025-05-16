@@ -6,21 +6,8 @@
 
   {% if request.args or itens %} {% set show_item_filter = True %} {% endif %} {% set show_add_item = True %} {% include
   "components/item_filter_section.html" with context %} {% if not itens %}
-  <div
-    style="
-      display: flex;
-      align-items: center;
-      background-color: #cce5ff;
-      border-left: 6px solid #007bff; /* Tarja azul à esquerda */
-      color: #004085;
-      padding: 1rem;
-      border-radius: 0.25rem;
-      margin-top: 1rem;
-    "
-  >
-    <span>Não há itens que satisfazem os cirtérios selecionados.</span>
-  </div>
-  <br />
+  <div class="alert alert-info mt-3">Não há itens que satisfazem os critérios selecionados.</div>
+
   {% endif %} {% if itens %}
   <!-- Tabela (que vira "cards" no mobile) -->
   <div class="table-container mt-4">

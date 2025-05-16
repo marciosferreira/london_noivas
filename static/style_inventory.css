@@ -38,11 +38,6 @@
   margin-top: 1rem;
 }
 
-.alert {
-  max-width: 600px;
-  margin: 0 auto;
-  font-weight: bold;
-}
 .usage-banner {
   background: linear-gradient(to bottom, #f8f9fa, #e0e0e0); /* Cinza prateado suave */
   border: 2px solid #ccc;

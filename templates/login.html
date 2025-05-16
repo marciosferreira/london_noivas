@@ -27,7 +27,10 @@
       <label class="form-check-label" for="remember_me">Manter-me conectado</label>
     </div>
 
-    <button type="submit" class="btn btn-green-custom">Entrar</button>
+    <button type="submit" id="login-btn" class="btn btn-green-custom d-flex align-items-center justify-content-center gap-2">
+      <span id="login-text">Entrar</span>
+      <div id="login-spinner" class="spinner-border spinner-border-sm text-light" role="status" style="display: none"></div>
+    </button>
   </form>
 
   {% if request.args.get('email_not_confirmed') == 'true' %}

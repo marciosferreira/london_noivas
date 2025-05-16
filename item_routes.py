@@ -362,10 +362,11 @@ def init_item_routes(
         client = clients_table.get_item(Key={"client_id": client_id}).get("Item", {})
 
         fields_transaction = get_all_fields(account_id, field_config_table, entity="transaction")
-        fields_client = get_all_fields(account_id, field_config_table, entity="client")
-        fields_item = get_all_fields(account_id, field_config_table, entity="item")
-        all_fields = fields_transaction + fields_client + fields_item
-        all_fields = list({item['id']: item for item in all_fields}.values())
+
+
+        print(fields_transaction)
+
+
 
         response = transactions_table.query(
             IndexName="item_id-index",
@@ -389,7 +390,7 @@ def init_item_routes(
             fixed_fields = {}
             key_values = {}
 
-            for field in all_fields:
+            for field in fields_transaction:
                 field_id = field["id"]
                 raw_value = request.form.get(field_id, "").strip()
                 if not raw_value:
@@ -456,7 +457,7 @@ def init_item_routes(
             client=client,
             transaction=transaction,
             reserved_ranges=reserved_ranges,
-            all_fields=all_fields,
+            all_fields=fields_transaction,
             item_editavel=False,
             client_editavel=False,
         )
@@ -779,7 +780,16 @@ def init_item_routes(
             all_fields = fields_transaction + fields_client + fields_item
 
             #filtra os campos repetidos
-            all_fields = list({item['id']: item for item in all_fields}.values())
+            #all_fields = list({item['id']: item for item in all_fields}.values())
+            seen_ids = set()
+            all_fields_init = []
+
+            for item in all_fields:
+                if item['id'] not in seen_ids:
+                    all_fields_init.append(item)
+                    seen_ids.add(item['id'])
+            all_fields = all_fields_init
+
 
 
 
@@ -970,7 +980,18 @@ def init_item_routes(
         )
 
         #filtra os campos repetidos
-        all_fields = list({item['id']: item for item in all_fields}.values())
+        #all_fields = list({item['id']: item for item in all_fields}.values())
+
+        seen_ids = set()
+        all_fields_init = []
+
+        for item in all_fields:
+            if item['id'] not in seen_ids:
+                all_fields_init.append(item)
+                seen_ids.add(item['id'])
+
+        all_fields = all_fields_init
+
 
 
         # Totais para controle de plano
@@ -1996,6 +2017,10 @@ def init_item_routes(
             fields = []
             i = 0
             while f"fields[{i}][id]" in request.form:
+                f_type = request.form.get(f"fields[{i}][kind]", "custom")
+                if f_type not in ["fixed", "custom", "visual"]:
+                    f_type = "custom"
+
                 fields.append(
                     {
                         "field_id": request.form.get(f"fields[{i}][id]"),
@@ -2013,14 +2038,19 @@ def init_item_routes(
                         "options": request.form.get(f"fields[{i}][options]", "").split(
                             ","
                         ),
+                        # Adiciona os metadados se forem enviados no form
+                        "source_entity": request.form.get(f"fields[{i}][source_entity]", None),
+                        "source_field_id": request.form.get(f"fields[{i}][source_field_id]", None),
+
                     }
                 )
 
                 i += 1
-            print("RRRRRRRRFFFFFFFFFFFFF")
-            print(request.form)
-            print("AFTER")
+
+            print("#########################")
             print(fields)
+            print("#########################")
+
             # IDs ordenados
             ordered_ids = request.form.get("ordered_ids", "[]")
             try:
@@ -2074,7 +2104,18 @@ def init_item_routes(
             # ➕ Processa os campos fixos e custom existentes
             for idx, field in enumerate(fields):
                 field_id = field["field_id"]
-                f_type = field["f_type"]
+
+                # Corrige f_type apenas se não for um campo visual
+                if field.get("f_type") != "visual" and field_id in [
+                    "client_name", "client_phone", "client_cpf", "client_email", "client_address", "client_notes",
+                    "item_custom_id", "item_description", "item_value",
+                    "transaction_status", "transaction_period", "transaction_price", "transaction_value_paid"
+                ]:
+                    f_type = "fixed"
+                else:
+                    f_type = field["f_type"]  # mantém original se for visual
+
+
                 label = field.get("label", "").strip() or field.get(
                     "label_original", field.get("title", "")
                 )
@@ -2100,7 +2141,15 @@ def init_item_routes(
                         options if type_ in ["dropdown", "transaction_status"] else []
                     ),
                     "order_sequence": order,
+                    "source_entity": field.get("source_entity"),
+                    "source_field_id": field.get("source_field_id"),
                 }
+
+
+            # ⬇️ Aqui está o lugar ideal para inserir a checagem
+            if f_type == "visual":
+                if not field.get("source_entity") or not field.get("source_field_id"):
+                    print(f"[Aviso] Campo visual '{field_id}' está sem origem definida.")
 
             # ➕ Processa os novos campos criados dinamicamente
             combined_ids = request.form.getlist("combined_id[]")
@@ -2112,6 +2161,9 @@ def init_item_routes(
             combined_preview = request.form.getlist("combined_preview[]")
             combined_options = request.form.getlist("combined_options[]")
             combined_kinds = request.form.getlist("combined_kind[]")
+            combined_sources_entity = request.form.getlist("combined_source_entity[]")
+            combined_sources_field_id = request.form.getlist("combined_source_field_id[]")
+
 
 
             # checa se o usuario esta tentando deletar um campo que ja foi preecnido
@@ -2162,7 +2214,14 @@ def init_item_routes(
                     "f_type": combined_kinds[idx] if idx < len(combined_kinds) else "custom",
                     "options": options if type_ == "dropdown" else [],
                     "order_sequence": order,
+                    "source_entity": combined_sources_entity[idx] if idx < len(combined_sources_entity) else None,
+                    "source_field_id": combined_sources_field_id[idx] if idx < len(combined_sources_field_id) else None,
+
                 }
+
+                if fields_config_map[field_id]["f_type"] == "visual":
+                    if not fields_config_map[field_id]["source_entity"] or not fields_config_map[field_id]["source_field_id"]:
+                        print(f"[Aviso] Campo visual '{field_id}' criado dinamicamente está sem origem definida.")
 
             # 🔄 Atualiza o item completo na tabela
             field_config_table.put_item(
@@ -2202,6 +2261,8 @@ def init_item_routes(
                     "preview": cfg.get("preview", False),
                     "f_type": cfg.get("f_type", "custom"),
                     "fixed": cfg.get("f_type") == "fixed",
+                    "source_entity": cfg.get("source_entity"),
+                    "source_field_id": cfg.get("source_field_id"),
                     "options": (
                         cfg.get("options", [])
                         if cfg.get("type") in ["dropdown", "transaction_status"]
@@ -2360,6 +2421,16 @@ def list_transactions(
         fields_all_entities.get("item", [])
     )
 
+    seen_ids = set()
+    fields_config_init = []
+
+    for item in fields_config:
+        if item['id'] not in seen_ids:
+            fields_config_init.append(item)
+            seen_ids.add(item['id'])
+    fields_config = fields_config_init
+
+
 
 
     while len(valid_itens) < limit:
@@ -2441,8 +2512,7 @@ def list_transactions(
         session["last_page_transactions"] = last_valid_page
         return redirect(url_for("all_transactions", page=last_valid_page, has_next=has_next, force_no_next=1))
 
-    #filtrar os valores repetidos
-    fields_config = list({item['id']: item for item in fields_config}.values())
+
 
     return render_template(
         template,

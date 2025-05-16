@@ -1,4 +1,10 @@
 {% extends "base.html" %} {% block title %}Cadastrar-se - Alugue QQC{% endblock %} {% block styles %}
+<style>
+  .btn-green-custom .spinner-border {
+    vertical-align: middle;
+  }
+</style>
+
 <link rel="stylesheet" href="{{ url_for('static', filename='style_login.css') }}" />
 {% endblock %} {% block content %}
 <!-- Importa o estilo do header -->
@@ -75,7 +81,10 @@
       <div class="g-recaptcha" data-sitekey="6LdriyYrAAAAAEyfAFjmOpZmGr9XGNOqsCuOPsNG"></div>
     </div>
 
-    <button type="submit" class="btn btn-green-custom" id="register-btn" disabled>Cadastrar</button>
+    <button type="submit" class="btn btn-green-custom d-flex align-items-center justify-content-center gap-2" id="register-btn" disabled>
+      <span id="register-text">Cadastrar</span>
+      <div id="register-spinner" class="spinner-border spinner-border-sm text-light" role="status" style="display: none"></div>
+    </button>
   </form>
 </div>
 {% endblock %} {% block scripts %}
@@ -98,6 +107,18 @@
     passwordInput.addEventListener('input', validateForm);
     confirmPasswordInput.addEventListener('input', validateForm);
     termsCheckbox.addEventListener('change', validateForm);
+  });
+</script>
+
+<script>
+  document.querySelector('form').addEventListener('submit', function () {
+    const btn = document.getElementById('register-btn');
+    const spinner = document.getElementById('register-spinner');
+    const text = document.getElementById('register-text');
+
+    btn.disabled = true;
+    spinner.style.display = 'inline-block';
+    text.textContent = 'Enviando...';
   });
 </script>
 {% endblock %}

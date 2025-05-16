@@ -75,6 +75,217 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <!-- Page specific JavaScript -->
-    {% block scripts %}{% endblock %}
+    {% block scripts %}
+
+    <script>
+      function updateHidden(input, name) {
+        const container = input.closest('.border'); // ← isso é usado pela tela de customizar campos
+
+        const inputs = container.querySelectorAll(`input[name='${name}']`);
+        inputs.forEach((el) => {
+          if (el !== input) {
+            el.value = input.value;
+          }
+        });
+
+        console.log('updateHidden:', name, '=>', input.value); // ← ADICIONE ISSO
+
+        if (name.includes('[label]') || name === 'combined_title[]') {
+          const titleSpan = container.querySelector('.display-title');
+          if (titleSpan) titleSpan.textContent = input.value;
+        }
+      }
+    </script>
+
+    <script>
+      function moveUp(btn) {
+        const card = btn.closest('.border');
+        const prev = card?.previousElementSibling;
+        if (prev) card.parentNode.insertBefore(card, prev);
+      }
+
+      function moveDown(btn) {
+        const card = btn.closest('.border');
+        const next = card?.nextElementSibling;
+        if (next) card.parentNode.insertBefore(next, card);
+      }
+
+      function toggleEdit(btn) {
+        const container = btn.closest('.border');
+        container.querySelector('.edit-area')?.classList.toggle('d-none');
+      }
+
+      function updateFieldType(select, timestamp) {
+        const container = select.closest('.border');
+        const hiddenType = container.querySelector("input[name='combined_type[]']");
+        const optionsField = container.querySelector('.options-field');
+        const newType = select.value;
+
+        if (hiddenType) hiddenType.value = newType;
+
+        if (optionsField) {
+          optionsField.classList.toggle('d-none', newType !== 'dropdown');
+          if (newType !== 'dropdown') {
+            const hiddenOptions = container.querySelector("input[name='combined_options[]']");
+            if (hiddenOptions) hiddenOptions.value = '';
+          }
+        }
+      }
+
+      function addCustomField() {
+        const timestamp = Date.now();
+        const defaultType = 'text';
+        const newId = `{{ entity | e }}_${timestamp}`;
+
+        const wrapper = document.createElement('div');
+        wrapper.classList.add('border', 'rounded', 'p-3', 'mb-3');
+        wrapper.dataset.id = newId;
+
+        wrapper.innerHTML = `
+        <input type="hidden" name="combined_id[]" value="${newId}">
+        <input type="hidden" name="combined_kind[]" value="custom">
+        <input type="hidden" name="combined_title[]" value="Novo Campo">
+        <input type="hidden" name="combined_type[]" value="${defaultType}">
+        <input type="hidden" name="combined_options[]" value="">
+
+        <strong class="display-title">Novo Campo</strong>
+        <span class="badge bg-info">custom</span>
+        <div class="text-muted small">Tipo: Texto</div>
+
+        <div class="row g-2 mt-2">
+          <div class="col-md-6">
+            <label>Nome:</label>
+            <input type="text" class="form-control" oninput="updateHidden(this, 'combined_title[]')" value="Novo Campo">
+          </div>
+          <div class="col-md-6">
+            <label>Tipo:</label>
+            <select class="form-select" onchange="updateFieldType(this, '${timestamp}')">
+              <option value="text" selected>Texto</option>
+              <option value="number">Número</option>
+              <option value="date">Data</option>
+              <option value="dropdown">Lista</option>
+              <option value="dropdown">Valor</option>
+
+            </select>
+          </div>
+        </div>
+
+        <div class="row mt-2 options-field d-none">
+          <div class="col-md-12">
+            <label>Opções (separadas por vírgula):</label>
+            <input type="text" class="form-control" oninput="updateHidden(this, 'combined_options[]')">
+          </div>
+        </div>
+
+        <div class="col-md-12 mt-3">
+          <label class="form-label">Propriedades:</label>
+          <div class="d-flex flex-wrap gap-3">
+            <div class="form-check">
+              <input type="hidden" name="combined_visible[]" value="true">
+              <input class="form-check-input" type="checkbox" name="combined_visible_check[]" checked onchange="this.previousElementSibling.value = this.checked ? 'true' : 'false'">
+              <label class="form-check-label">Habilitado</label>
+            </div>
+
+            <div class="form-check">
+              <input type="hidden" name="combined_required[]" value="false">
+              <input class="form-check-input" type="checkbox" name="combined_required_check[]" onchange="this.previousElementSibling.value = this.checked ? 'true' : 'false'">
+              <label class="form-check-label">Obrigatório</label>
+            </div>
+
+            <div class="form-check">
+              <input type="hidden" name="combined_filterable[]" value="false">
+              <input class="form-check-input" type="checkbox" name="combined_filterable_check[]" onchange="this.previousElementSibling.value = this.checked ? 'true' : 'false'">
+              <label class="form-check-label">Filtrável</label>
+            </div>
+
+            <div class="form-check">
+              <input type="hidden" name="combined_preview[]" value="false">
+              <input class="form-check-input" type="checkbox" name="combined_preview_check[]" onchange="this.previousElementSibling.value = this.checked ? 'true' : 'false'">
+              <label class="form-check-label">Pré-visualizar</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="d-flex gap-2 mt-3">
+          <button type="button" class="btn btn-sm btn-outline-secondary" onclick="moveUp(this)">⬆️</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary" onclick="moveDown(this)">⬇️</button>
+          <button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('.border').remove()">🗑️</button>
+        </div>
+      `;
+
+        document.getElementById('combined-fields-area').appendChild(wrapper);
+      }
+
+      document.getElementById('orderForm').addEventListener('submit', function (e) {
+        const ordered = [...document.querySelectorAll('#combined-fields-area > .border')].map((el) => el.dataset.id);
+        document.getElementById('ordered_ids').value = JSON.stringify(ordered);
+
+        // Validação
+        let isValid = true;
+        const messages = [];
+        const cards = document.querySelectorAll('#combined-fields-area > .border');
+
+        cards.forEach((card) => {
+          const titleInput = card.querySelector("input[name$='[title]']") || card.querySelector("input[name='combined_title[]']");
+          const title = titleInput?.value.trim();
+          const type = card.querySelector("input[name$='[type]']")?.value;
+          const options = card.querySelector("input[name$='[options]']")?.value.trim();
+
+          if (!title) {
+            isValid = false;
+            messages.push('Todos os campos devem ter um nome.');
+          }
+          if (type === 'dropdown' && !options) {
+            isValid = false;
+            messages.push(`O campo "${title || 'sem nome'}" é do tipo lista e precisa de pelo menos uma opção.`);
+          }
+        });
+
+        if (!isValid) {
+          e.preventDefault();
+          alert(messages.join('\n'));
+        }
+      });
+
+      function handleExistingFieldTypeChange(select) {
+        const container = select.closest('.edit-area');
+        const optionsField = container?.querySelector('.options-field');
+
+        if (!optionsField) return;
+
+        if (select.value === 'dropdown') {
+          optionsField.classList.remove('d-none');
+        } else {
+          optionsField.classList.add('d-none');
+          const input = optionsField.querySelector('input');
+          if (input) input.value = '';
+        }
+      }
+
+      document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.edit-area select.form-select').forEach((select) => {
+          handleExistingFieldTypeChange(select);
+        });
+      });
+    </script>
+
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('form').forEach((form) => {
+          const btn = form.querySelector('button[type="submit"]');
+          const spinner = btn?.querySelector('.spinner-border');
+          const text = btn?.querySelector('span');
+
+          if (btn && spinner && text) {
+            form.addEventListener('submit', function () {
+              btn.disabled = true;
+              spinner.style.display = 'inline-block';
+              text.textContent = 'Enviando...';
+            });
+          }
+        });
+      });
+    </script>
+    {% endblock %}
   </body>
 </html>
