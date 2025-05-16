@@ -19,8 +19,6 @@
     {% endif %}
   </div>
 </div>
-
-<!-- Bloco: Seção de filtros -->
 <!-- Bloco: Seção de filtros -->
 <div id="filter-section" class="d-none">
   <form method="get" class="mb-4 p-3 bg-light rounded shadow-sm">
@@ -44,7 +42,7 @@
 
 
 
-      {% elif field.type == "string" %}
+      {% elif field.type in ["text", "item_custom_id", "item_description", "item_obs"] %}
         <input type="text" name="{{ field['id'] }}" class="form-control"
                value="{{ request.args.get(field['id'], '') }}" placeholder="Buscar {{ field.label }}">
 

@@ -240,6 +240,8 @@ def init_item_routes(
             current_stripe_transaction = get_latest_transaction(user_id, users_table, payment_transactions_table)
 
 
+
+
             all_fields = get_all_fields(account_id, field_config_table, "item")
 
             return render_template(
@@ -765,31 +767,28 @@ def init_item_routes(
 
         def processar_transacao(account_id, user_id, user_utc, ordem, current_transaction):
             import re
+            from decimal import Decimal, InvalidOperation
+            import datetime
+            import uuid
 
-            print("📥 request.form dict:", dict(request.form))
-
-
-
-            all_fields = (
-                get_all_fields(account_id, field_config_table, entity="transaction")
-                + get_all_fields(account_id, field_config_table, entity="client")
-                + get_all_fields(account_id, field_config_table, entity="item")
-            )
-
-
+            # Campos configuráveis de todas as entidades
+            fields_transaction = get_all_fields(account_id, field_config_table, entity="transaction")
+            fields_client = get_all_fields(account_id, field_config_table, entity="client")
+            fields_item = get_all_fields(account_id, field_config_table, entity="item")
+            all_fields = fields_transaction + fields_client + fields_item
 
             form_data = {}
+            transaction_fixed_fields = {}
+            key_values = {}
+
             item_id = request.form.get("item_id")
             client_id = request.form.get("client_id")
 
-
-
-            # 🔄 Extrai e normaliza os dados enviados via formulário
+            # 🔄 Extrai os dados do formulário
             for field in all_fields:
                 field_id = field["id"]
                 field_type = field.get("type")
                 value = request.form.get(field_id, "").strip()
-
 
                 if not value:
                     continue
@@ -800,121 +799,95 @@ def init_item_routes(
                     value = value.replace(".", "").replace(",", ".")
                     try:
                         value = Decimal(value)
-
                     except InvalidOperation:
-                        flash(
-                            f"Valor inválido no campo {field.get('label', field_id)}.",
-                            "error",
-                        )
-
+                        flash(f"Valor inválido no campo {field.get('label', field_id)}.", "error")
+                        print("KKKKKKKKKKKKKKKK")
+                        print(current_transaction)
                         return render_template(
                             "rent.html",
                             item={},
+                            client={},
                             reserved_ranges=[],
                             all_fields=all_fields,
                             cliente_editavel=True,
+                            item_editavel=True,
                             ordem=ordem,
-
-
+                            current_stripe_transaction=current_transaction,
+                            total_relevant_transactions=0,
+                            total_itens=0,
+                            next=request.args.get("next", "rent"),
                         )
 
                 form_data[field_id] = value
 
-            # 📅 Validação e formatação das datas
+                # 👇 Lógica para diferenciar campos de transação
+                if field_id.startswith("transaction_"):
+                    if field.get("fixed"):
+                        transaction_fixed_fields[field_id] = value
+                    else:
+                        # novo padrão: usar key_values diretamente
+                        form_data.setdefault("key_values", {})[field_id] = value
+
+
+            # 📅 Validação do período
             try:
-                rental_str, return_str = request.form.get(
-                    "transaction_period", ""
-                ).split(" - ")
-                rental_date = datetime.datetime.strptime(
-                    rental_str.strip(), "%d/%m/%Y"
-                ).strftime("%Y-%m-%d")
-                return_date = datetime.datetime.strptime(
-                    return_str.strip(), "%d/%m/%Y"
-                ).strftime("%Y-%m-%d")
+                rental_str, return_str = request.form.get("transaction_period", "").split(" - ")
+                rental_date = datetime.datetime.strptime(rental_str.strip(), "%d/%m/%Y").strftime("%Y-%m-%d")
+                return_date = datetime.datetime.strptime(return_str.strip(), "%d/%m/%Y").strftime("%Y-%m-%d")
             except ValueError:
                 flash("Formato de data inválido. Use DD/MM/AAAA.", "danger")
-                return render_template(
-                    "rent.html",
-                    item={},
-                    reserved_ranges=[],
-                    all_fields=all_fields,
-                    cliente_editavel=True,
-                    ordem=ordem,
-                    client = {},
-                    current_stripe_transaction = current_transaction,
-                    next = request.args.get("next", "rent"),
+                return render_template("rent.html", item={}, client={}, reserved_ranges=[], all_fields=all_fields, cliente_editavel=True, item_editavel=True, ordem=ordem)
 
-                )
-
-            # 👤 Cliente: criar novo ou usar existente
-            client_name = request.form.get("client_name", "").strip()
+            # 👤 Criar ou atualizar cliente
             if not client_id:
                 client_id = str(uuid.uuid4().hex[:12])
                 clients_table.put_item(
                     Item={
                         "client_id": client_id,
                         "account_id": account_id,
-                        "client_name": client_name,
-                        "created_at": datetime.datetime.now(user_utc).strftime(
-                            "%Y-%m-%d %H:%M:%S"
-                        ),
-                        **{
-                            k: v
-                            for k, v in form_data.items()
-                            if k.startswith("client_")
-                        },
+                        "client_name": request.form.get("client_name", "").strip(),
+                        "created_at": datetime.datetime.now(user_utc).strftime("%Y-%m-%d %H:%M:%S"),
+                        **{k: v for k, v in form_data.items() if k.startswith("client_")},
                     }
                 )
-
             else:
-                # Atualiza cliente existente
-                update_data = {
-                    k: v for k, v in form_data.items() if k.startswith("client_")
-                }
+                update_data = {k: v for k, v in form_data.items() if k.startswith("client_")}
                 if update_data:
                     clients_table.update_item(
                         Key={"client_id": client_id},
-                        UpdateExpression="SET "
-                        + ", ".join(f"#{k}=:{k}" for k in update_data),
+                        UpdateExpression="SET " + ", ".join(f"#{k}=:{k}" for k in update_data),
                         ExpressionAttributeNames={f"#{k}": k for k in update_data},
-                        ExpressionAttributeValues={
-                            f":{k}": v for k, v in update_data.items()
-                        },
+                        ExpressionAttributeValues={f":{k}": v for k, v in update_data.items()},
                     )
 
-            # 📦 Item: criar novo ou usar existente
+            # 📦 Criar ou atualizar item
             if not item_id or item_id == "new":
                 item_id = str(uuid.uuid4().hex[:12])
                 item = {
                     "item_id": item_id,
                     "account_id": account_id,
                     "status": "available",
-                    "created_at": datetime.datetime.now(user_utc).strftime(
-                        "%Y-%m-%d %H:%M:%S"
-                    ),
+                    "created_at": datetime.datetime.now(user_utc).strftime("%Y-%m-%d %H:%M:%S"),
                     **{k: v for k, v in form_data.items() if k.startswith("item_")},
                 }
                 itens_table.put_item(Item=item)
             else:
-
-                # Atualiza item existente
-                update_data = {
-                    k: v for k, v in form_data.items() if k.startswith("item_")
-                }
+                update_data = {k: v for k, v in form_data.items() if k.startswith("item_")}
                 if update_data:
                     itens_table.update_item(
                         Key={"item_id": item_id},
-                        UpdateExpression="SET "
-                        + ", ".join(f"#{k}=:{k}" for k in update_data),
+                        UpdateExpression="SET " + ", ".join(f"#{k}=:{k}" for k in update_data),
                         ExpressionAttributeNames={f"#{k}": k for k in update_data},
-                        ExpressionAttributeValues={
-                            f":{k}": v for k, v in update_data.items()
-                        },
+                        ExpressionAttributeValues={f":{k}": v for k, v in update_data.items()},
                     )
                 response = itens_table.get_item(Key={"item_id": item_id})
                 item = response.get("Item") or {}
 
-            # 💾 Cria transação
+            # 📥 Carregar cliente para snapshot
+            response = clients_table.get_item(Key={"client_id": client_id})
+            client = response.get("Item") or {}
+
+            # 🧾 Montar transação
             transaction_id = str(uuid.uuid4().hex[:12])
             transaction_item = {
                 "transaction_id": transaction_id,
@@ -923,42 +896,29 @@ def init_item_routes(
                 "client_id": client_id,
                 "rental_date": rental_date,
                 "return_date": return_date,
-                "transaction_value": form_data['transaction_price'],
-                "transaction_value_paid": form_data['transaction_value_paid'],
-                "created_at": datetime.datetime.now(user_utc).strftime(
-                    "%Y-%m-%d %H:%M:%S"
-                ),
+                "created_at": datetime.datetime.now(user_utc).strftime("%Y-%m-%d %H:%M:%S"),
+                **transaction_fixed_fields,
+                "key_values": key_values,
+                "client_key_values": client.get("key_values", {}),
+                "item_key_values": item.get("key_values", {}),
             }
 
-            for key in ["item_custom_id", "item_obs", "description", "image_url"]:
-                if item and key in item:
-                    transaction_item[key] = item[key]
+            # Snapshot dos campos fixos de cliente/item
+            transaction_item.update({k: v for k, v in client.items() if k != "key_values"})
+            transaction_item.update({k: v for k, v in item.items() if k != "key_values"})
 
-            transaction_item.update(form_data)
-
+            # 🔐 Salvar
             try:
                 transactions_table.put_item(Item=transaction_item)
                 if transaction_item.get("transaction_status") == "reserved":
-                    flash(
-                        "Item <a href='/reserved'>reservado</a> com sucesso!", "success"
-                    )
+                    flash("Item <a href='/reserved'>reservado</a> com sucesso!", "success")
                 else:
                     flash("Item <a href='/rented'>retirado</a> com sucesso!", "success")
                 return redirect(url_for("all_transactions"))
             except Exception as e:
                 flash("Erro ao salvar transação. Tente novamente.", "danger")
                 print("Erro ao salvar transação:", e)
-                return render_template(
-                    "rent.html",
-                    item=item,
-                    reserved_ranges=[],
-                    all_fields=all_fields,
-                    cliente_editavel=True,
-                    total_relevant_transactions=total_relevant_transactions,
-                    total_itens=total_itens,
-                    current_stripe_transaction=current_transaction,
-                    next = request.args.get("next", "rent"),
-                    ordem=ordem)
+                return render_template("rent.html", item=item, client=client, reserved_ranges=[], all_fields=all_fields, cliente_editavel=True, item_editavel=True, ordem=ordem)
 
                 ################################################################################################################
 
@@ -1038,6 +998,9 @@ def init_item_routes(
             exclusive_start_key = response.get("LastEvaluatedKey")
             if not exclusive_start_key:
                 break
+
+        print("KKKKKKKKKKKKKKKK")
+        print(current_transaction)
 
         return render_template(
             "rent.html",
@@ -2352,6 +2315,42 @@ def list_transactions(
     last_valid_item = None
     raw_last_evaluated_key = None
 
+    # 🔥 Carrega configuração de campos
+    fields_all_entities = {}
+    for ent in ["item", "client", "transaction"]:
+        response = field_config_table.get_item(Key={"account_id": account_id, "entity": ent})
+        config_map = response.get("Item", {}).get("fields_config", {})
+
+        fields = []
+        for field_id, cfg in config_map.items():
+            fields.append({
+                "id": field_id,
+                "label": cfg.get("label", field_id.replace("_", " ").capitalize()),
+                "type": cfg.get("type"),
+                "preview": cfg.get("preview", False),
+                "visible": cfg.get("visible", True),
+                "required": cfg.get("required", False),
+                "order_sequence": cfg.get("order_sequence", 0),
+                "filterable": cfg.get("filterable", False),
+                "options": cfg.get("options", []),
+                "fixed": cfg.get("f_type", "") == "fixed",  # útil para lógica de filtros
+            })
+
+        # Ordena a lista da entidade atual
+        fields = sorted(fields, key=lambda x: x["order_sequence"])
+
+        # Associa a lista ao nome da entidade (ESSA LINHA PRECISA FICAR AQUI)
+        fields_all_entities[ent] = fields
+
+    #cria um lista unica para filtros
+    fields_config = (
+        fields_all_entities.get("transaction", []) +
+        fields_all_entities.get("client", []) +
+        fields_all_entities.get("item", [])
+    )
+
+
+
     while len(valid_itens) < limit:
         query_kwargs = {
             "IndexName": "account_id-created_at-index",
@@ -2371,8 +2370,15 @@ def list_transactions(
             break
 
         for txn in transacoes:
-            if not filtra_transacao(txn, filtros, client_id, status_list):
+            # filtro por client_id e status direto
+            if client_id and txn.get("client_id") != client_id:
                 continue
+            if status_list and txn.get("transaction_status") not in status_list:
+                continue
+            # filtro dinâmico geral
+            if not entidade_atende_filtros_dinamico(txn, filtros, fields_config):
+                continue
+
 
             valid_itens.append(process_dates(txn))
             last_valid_item = txn
@@ -2424,30 +2430,6 @@ def list_transactions(
         session["last_page_transactions"] = last_valid_page
         return redirect(url_for("all_transactions", page=last_valid_page, has_next=has_next, force_no_next=1))
 
-    # 🔥 Carrega configuração de campos
-    response = field_config_table.get_item(
-        Key={"account_id": account_id, "entity": "transaction"}
-    )
-    fields_config_map = response.get("Item", {}).get("fields_config", {})
-
-    fields_config = []
-    for field_id, cfg in fields_config_map.items():
-        fields_config.append({
-            "id": field_id,
-            "label": cfg.get("label", field_id.replace("_", " ").capitalize()),
-            "type": cfg.get("type"),
-            "preview": cfg.get("preview", False),
-            "visible": cfg.get("visible", True),
-            "required": cfg.get("required", False),
-            "order_sequence": cfg.get("order_sequence", 0),
-            "filterable": cfg.get("filterable", False),
-            "options": cfg.get("options", []),
-        })
-
-    # Ordena
-    fields_config = sorted(fields_config, key=lambda x: x["order_sequence"])
-
-
     return render_template(
         template,
         itens=valid_itens,
@@ -2461,7 +2443,9 @@ def list_transactions(
         itens_count=len(valid_itens),
         has_next=has_next,
         has_prev=current_page > 1,
-        fields_config=fields_config,
+        fields_config=fields_config,  # todas as e entidades em listas separadas
+        fields_all_entities=fields_all_entities, # todas as 3 entidades na mesma  lista
+
     )
 
 
@@ -2500,6 +2484,15 @@ def get_latest_transaction(user_id, users_table, payment_transactions_table):
 
     return None
 
+def get_valor_item(item, field):
+
+    field_id = field["id"]
+    if field.get("fixed") == True:
+        return item.get(field_id, "")
+    else:
+        return (item.get("key_values") or {}).get(field_id, "")
+
+from utils import entidade_atende_filtros_dinamico  # certifique-se de importar isso corretamente
 
 def list_raw_itens(
     status_list,
@@ -2524,7 +2517,6 @@ def list_raw_itens(
     fields_config = get_all_fields(account_id, field_config_table, entity)
 
     force_no_next = request.args.get("force_no_next")
-
     current_path = request.path
     session["previous_path_itens"] = current_path
 
@@ -2532,7 +2524,7 @@ def list_raw_itens(
     item_id = filtros.pop("item_id", None)
     page = int(filtros.pop("page", 1))
 
-    image_url_filter = request.args.get("image_url")
+    image_url_filter = request.args.get("item_image_url")
     image_url_required = image_url_filter.lower() == "true" if image_url_filter is not None else None
 
     if page == 1:
@@ -2606,113 +2598,16 @@ def list_raw_itens(
         if not itens_batch:
             break
 
-        from decimal import Decimal, InvalidOperation
-
         for item in itens_batch:
             if item.get("status") not in status_list:
                 continue
 
-            if image_url_required is not None:
-                item_image = (item.get("key_values", {}) or {}).get("image_url", "") or ""
-                item_image = item_image.strip().lower()
+            if entidade_atende_filtros_dinamico(item, filtros, fields_config, image_url_required):
+                valid_itens.append(item)
+                last_valid_item = item
 
-                has_image = bool(item_image) and item_image != "n/a"
-
-                if image_url_required != has_image:
-                    continue
-
-            skip = False
-
-            for field in fields_config:
-                field_id = field["id"]
-                field_type = field.get("type")
-
-                if field_type == "number":
-                    min_val = request.args.get(f"min_{field_id}")
-                    max_val = request.args.get(f"max_{field_id}")
-
-                    raw_val = item.get("key_values", {}).get(field_id) or item.get(field_id)
-
-                    try:
-                        item_val = Decimal(str(raw_val))
-                    except (InvalidOperation, TypeError, ValueError):
-                        item_val = None
-
-                    if min_val:
-                        try:
-                            if item_val is None or item_val < Decimal(min_val):
-                                skip = True
-                                break
-                        except InvalidOperation:
-                            pass
-
-                    if max_val:
-                        try:
-                            if item_val is None or item_val > Decimal(max_val):
-                                skip = True
-                                break
-                        except InvalidOperation:
-                            pass
-
-                elif field_type == "string":
-                    if field_id == "image_url":
-                        continue
-
-                    filtro = request.args.get(field_id)
-                    valor_item = item.get("key_values", {}).get(field_id, "") or item.get(field_id, "")
-                    if filtro and filtro.lower() not in valor_item.lower():
-                        skip = True
-                        break
-
-                elif field_type == "dropdown":
-                    selected = request.args.get(field_id)
-                    valor_item = item.get("key_values", {}).get(field_id, "") or item.get(field_id, "")
-                    if selected and selected != valor_item:
-                        skip = True
-                        break
-
-                elif field_type == "date":
-                    start_date = request.args.get(f"start_{field_id}")
-                    end_date = request.args.get(f"end_{field_id}")
-                    valor_item = item.get("key_values", {}).get(field_id, "") or item.get(field_id, "")
-
-                    if valor_item:
-                        try:
-                            item_date = datetime.datetime.strptime(valor_item, "%Y-%m-%d").date()
-                        except (ValueError, TypeError):
-                            item_date = None
-
-                        if item_date:
-                            if start_date:
-                                try:
-                                    start_date_parsed = datetime.datetime.strptime(start_date, "%Y-%m-%d").date()
-                                    if item_date < start_date_parsed:
-                                        skip = True
-                                        break
-                                except ValueError:
-                                    pass
-
-                            if end_date:
-                                try:
-                                    end_date_parsed = datetime.datetime.strptime(end_date, "%Y-%m-%d").date()
-                                    if item_date > end_date_parsed:
-                                        skip = True
-                                        break
-                                except ValueError:
-                                    pass
-                    else:
-                        if start_date or end_date:
-                            skip = True
-                            break
-
-            if skip:
-                continue
-
-            valid_itens.append(item)
-            last_valid_item = item
-
-            if len(valid_itens) == limit:
-                break
+                if len(valid_itens) == limit:
+                    break
 
         if len(valid_itens) < limit:
             if raw_last_evaluated_key:
@@ -2736,10 +2631,9 @@ def list_raw_itens(
     last_page_itens = session.get("last_page_itens")
     current_page = session.get("current_page_itens", 1)
 
+    has_next = not (len(valid_itens) < limit or (last_page_itens is not None and current_page >= last_page_itens))
     if force_no_next:
         has_next = False
-    else:
-        has_next = not (len(valid_itens) < limit or (last_page_itens is not None and current_page >= last_page_itens))
 
     if not valid_itens and page > 1:
         flash("Não há mais itens para exibir.", "info")
@@ -2756,7 +2650,6 @@ def list_raw_itens(
         if field.get("preview") == True
     ]
 
-
     return render_template(
         template,
         itens=valid_itens,
@@ -2771,6 +2664,9 @@ def list_raw_itens(
         has_next=has_next,
         has_prev=current_page > 1,
     )
+
+
+
 
 
 def filtra_transacao(txn, filtros, client_id, status_list):

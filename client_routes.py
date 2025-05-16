@@ -135,8 +135,10 @@ def init_client_routes(
             if not clientes:
                 break
 
+            from utils import entidade_atende_filtros_dinamico  # certifique-se de importar isso corretamente
+
             for cliente in clientes:
-                if not cliente_atende_filtros_dinamico(cliente, filtros, fields_config):
+                if not entidade_atende_filtros_dinamico(cliente, filtros, fields_config):
                     continue
 
                 valid_clientes.append(cliente)
@@ -575,61 +577,6 @@ def decode_dynamo_key(encoded_key):
         print(f"Erro ao decodificar cursor: {e}")
         return None
 
-
-def cliente_atende_filtros_dinamico(cliente, filtros, fields_config):
-    from decimal import Decimal, InvalidOperation
-
-    for field in fields_config:
-        field_id = field["id"]
-        field_type = field.get("type")
-        value = (
-            cliente.get("key_values", {}).get(field_id) or cliente.get(field_id) or ""
-        )
-
-        if field_type == "string":
-            filtro = filtros.get(field_id)
-            if filtro and filtro.lower() not in str(value).lower():
-                return False
-
-        elif field_type == "number":
-            min_val = filtros.get(f"min_" + field_id)
-            max_val = filtros.get(f"max_" + field_id)
-            try:
-                value = Decimal(str(value))
-                if min_val and value < Decimal(min_val):
-                    return False
-                if max_val and value > Decimal(max_val):
-                    return False
-            except (InvalidOperation, ValueError):
-                return False
-
-        elif field_type == "dropdown":
-            selected = filtros.get(field_id)
-            if selected and selected != value:
-                return False
-
-        elif field_type == "date":
-            start_date = filtros.get(f"start_{field_id}")
-            end_date = filtros.get(f"end_{field_id}")
-            try:
-                date_val = datetime.datetime.strptime(value, "%Y-%m-%d").date()
-                if (
-                    start_date
-                    and date_val
-                    < datetime.datetime.strptime(start_date, "%Y-%m-%d").date()
-                ):
-                    return False
-                if (
-                    end_date
-                    and date_val
-                    > datetime.datetime.strptime(end_date, "%Y-%m-%d").date()
-                ):
-                    return False
-            except:
-                if start_date or end_date:
-                    return False
-
-    return True
 
 
 def get_all_fields(account_id, field_config_table, entity):

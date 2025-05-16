@@ -3,30 +3,26 @@
 {% endblock %} {% block content %}
 <div class="container mt-3">
   <h2 class="mb-4">Inventário de itens</h2>
-
-  {% if not itens %}
-  <div
-    style="
-      display: flex;
-      align-items: center;
-      background-color: #cce5ff;
-      border-left: 6px solid #007bff;
-      color: #004085;
-      padding: 1rem;
-      border-radius: 0.25rem;
-      margin-top: 1rem;
-    "
-  >
-    <span>Não há itens que satisfazem os critérios selecionados.</span>
-  </div>
-  <br />
-  {% endif %}
 </div>
+{% if request.args or itens %} {% set show_item_filter = True %} {% endif %} {% set show_add_item = True %} {% include
+"components/item_filter_section.html" with context %} {% if not itens %}
+<div
+  style="
+    display: flex;
+    align-items: center;
+    background-color: #cce5ff;
+    border-left: 6px solid #007bff;
+    color: #004085;
+    padding: 1rem;
+    border-radius: 0.25rem;
+    margin-top: 1rem;
+  "
+>
+  <span>Não há itens que satisfazem os critérios selecionados.</span>
+</div>
+<br />
+{% endif %} {% if itens %}
 
-{% if last_page == False and not itens %}
-<p style="color: #308be3; font-weight: bold; font-size: 1.2rem; margin-top: -1rem; margin-left: 0.25rem">Nada por aqui!</p>
-{% endif %} {% if request.args or itens %} {% set show_item_filter = True %} {% endif %} {% set show_add_item = True %} {% include
-"components/item_filter_section.html" with context %} {% if itens %}
 <div class="table-container mt-4">
   <table class="table table-hover responsive-table align-middle rounded-table">
     <thead>

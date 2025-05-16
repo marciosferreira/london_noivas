@@ -1291,6 +1291,7 @@ def get_default_fields_and_slugs(entity):
                 "filterable": True,
                 "preview": True,
                 "f_type": "fixed",
+                "required": True,
             },
             "client_phone": {
                 "label": "Telefone",
@@ -1359,15 +1360,17 @@ def get_default_fields_and_slugs(entity):
                 "preview": True,
                 "f_type": "fixed",
                 "options": ["reserved", "rented"],
+                "required": True,
             },
             "transaction_price": {
                 "label": "Preço final (R$)",
-                "label_original": "Preço final (R$)",
+                "label_original": "Preço aplicado (R$)",
                 "type": "transaction_price",
                 "order_sequence": 2,
                 "filterable": True,
                 "preview": True,
                 "f_type": "fixed",
+                "required": True,
             },
             "transaction_obs": {
                 "label": "Observações da Transação",
@@ -1386,6 +1389,7 @@ def get_default_fields_and_slugs(entity):
                 "filterable": True,
                 "preview": True,
                 "f_type": "fixed",
+                "required": True,
             },
             "transaction_period": {
                 "label": "Período do aluguel",
@@ -1395,6 +1399,7 @@ def get_default_fields_and_slugs(entity):
                 "filterable": True,
                 "preview": True,
                 "f_type": "fixed",
+                "required": True,
             },
         }
 

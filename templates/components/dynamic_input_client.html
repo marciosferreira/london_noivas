@@ -4,6 +4,10 @@
 
   {% set is_readonly = not client_editavel %}
 
+
+    <input type="hidden" id="client_id" name="client_id" value="{{ client.get('client_id', '') }}">
+
+
   <div class="col d-flex">
     <div class="bg-light shadow-sm rounded p-3 border w-100 h-100 d-flex flex-column justify-content-center">
       <label for="{{ field.id }}" class="form-label fw-semibold">

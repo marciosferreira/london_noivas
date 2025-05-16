@@ -440,3 +440,71 @@ def get_account_plan(account_id):
         # Em caso de erro, assume como free por segurança
         print(f"Erro ao consultar plano: {str(e)}")
         return "free"
+
+
+def entidade_atende_filtros_dinamico(entidade, filtros, fields_config, image_url_required=None):
+    from decimal import Decimal, InvalidOperation
+    import datetime
+
+    def get_valor(entidade, field):
+        field_id = field["id"]
+        if field.get("fixed"):
+            return entidade.get(field_id, "")
+        return (entidade.get("key_values", {}) or {}).get(field_id, "")
+
+    # Lógica especial para imagem (usado apenas em itens, mas é seguro ignorar para outros)
+    if image_url_required is not None:
+        imagem = entidade.get("item_image_url", "")
+        imagem = str(imagem).strip().lower()
+        tem_imagem = bool(imagem) and imagem != "n/a"
+        if image_url_required != tem_imagem:
+            return False
+
+    for field in fields_config:
+        field_id = field["id"]
+        field_type = field.get("type")
+        valor = get_valor(entidade, field)
+
+        # TEXTOS
+        if field_type in ["text", "client_name", "client_phone", "client_email", "client_address",
+                          "client_cpf", "client_cnpj", "client_notes",
+                          "item_custom_id", "item_description", "item_obs"]:
+            filtro = filtros.get(field_id)
+            if filtro and filtro.lower() not in str(valor).lower():
+                return False
+
+        # NÚMEROS E VALORES
+        elif field_type in ["number", "value", "item_value", "transaction_price"]:
+            min_val = filtros.get(f"min_{field_id}")
+            max_val = filtros.get(f"max_{field_id}")
+            try:
+                valor = Decimal(str(valor))
+                if min_val and valor < Decimal(min_val):
+                    return False
+                if max_val and valor > Decimal(max_val):
+                    return False
+            except (InvalidOperation, ValueError, TypeError):
+                if min_val or max_val:
+                    return False
+
+        # OPÇÕES
+        elif field_type == "dropdown":
+            selected = filtros.get(field_id)
+            if selected and selected != valor:
+                return False
+
+        # DATAS
+        elif field_type == "date":
+            start_date = filtros.get(f"start_{field_id}")
+            end_date = filtros.get(f"end_{field_id}")
+            try:
+                date_val = datetime.datetime.strptime(str(valor), "%Y-%m-%d").date()
+                if start_date and date_val < datetime.datetime.strptime(start_date, "%Y-%m-%d").date():
+                    return False
+                if end_date and date_val > datetime.datetime.strptime(end_date, "%Y-%m-%d").date():
+                    return False
+            except:
+                if start_date or end_date:
+                    return False
+
+    return True

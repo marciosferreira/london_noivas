@@ -1,22 +1,20 @@
 
 
 
-
 <!-- Título e Botões Principais -->
 <div class="d-flex justify-content-between align-items-center mb-3">
   <div class="d-flex flex-wrap gap-2 align-items-center justify-content-end w-100 w-sm-auto">
     <!-- Botão de Filtros -->
     <button type="button" class="btn btn-outline-secondary" id="filter-toggle">Filtros</button>
-
     {% if show_add_button %}
     <a href="{{ add_route }}?next={{ request.url }}" class="btn btn-primary">Adicionar</a>
     {% endif %}
   </div>
 </div>
 
+
 <!-- Seção de Filtros -->
-<div id="filter-section" class="{% if not request.args.get('item_custom_id') and not request.args.get('description') and not request.args.get('comments') and not request.args.get('item_obs') and not request.args.get('client_name') and not request.args.get('payment') and not request.args.get('start_date') and not request.args.get('end_date') and not request.args.get('return_start_date') and not request.args.get('return_end_date') and not request.args.get('filter') and not request.args.get('client_email') and not request.args.get('client_cpf') and not request.args.get('client_cnpj') and not request.args.get('client_address') %}
-d-none{% endif %} mt-3">
+<div id="filter-section" class="mt-3 {% if not request.args %}d-none{% endif %}">
   <form method="GET" action="" id="form-filtros" onsubmit="removeCamposVazios()">
     <div class="card shadow-sm">
       <div class="card-header bg-light">
@@ -35,128 +33,101 @@ d-none{% endif %} mt-3">
             <button class="nav-link" id="transaction-tab" data-bs-toggle="tab" data-bs-target="#transaction" type="button" role="tab">Transação</button>
           </li>
         </ul>
-
         <div class="tab-content" id="filterTabsContent">
           <!-- Aba Item -->
           <div class="tab-pane fade show active" id="item" role="tabpanel">
             <div class="row mb-3">
-              <!-- CAMPOS DO ITEM -->
-              <div class="col-md-6">
-                <label for="item_custom_id" class="form-label">ID Personalizado do Item:</label>
-                <input type="text" class="form-control" id="item_custom_id" name="item_custom_id" value="{{ request.args.get('item_custom_id', '') }}" />
-              </div>
-              <div class="col-md-6">
-                <label for="description" class="form-label">Descrição do item:</label>
-                <input type="text" class="form-control" id="description" name="description" value="{{ request.args.get('description', '') }}" />
-              </div>
-              <div class="col-md-6">
-                <label for="item_obs" class="form-label">Observações do Item:</label>
-                <input type="text" class="form-control" id="item_obs" name="item_obs" value="{{ request.args.get('item_obs', '') }}" />
-              </div>
+              {% for field in fields_all_entities.item if field.filterable %}
+                <div class="col-md-6 mb-3">
+                  <label for="{{ field.id }}" class="form-label">{{ field.label }}:</label>
 
-              {% if request.path in ['/trash_itens', '/trash_transactions'] %}
-              <div class="col-md-6">
-                <label for="filter" class="form-label">Tipo de Item:</label>
-                <select class="form-select" id="filter" name="filter">
-                  <option value="todos" {% if request.args.get('filter') == 'todos' or not request.args.get('filter') %}selected{% endif %}>Todos</option>
-                  <option value="deleted" {% if request.args.get('filter') == 'deleted' %}selected{% endif %}>Apenas Deletados</option>
-                  <option value="version" {% if request.args.get('filter') == 'version' %}selected{% endif %}>Apenas Versões</option>
-                </select>
-              </div>
-              {% endif %}
+                  {% if field.type in ["text", "item_custom_id", "item_description", "item_obs"] %}
+                    <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+                           value="{{ request.args.get(field.id, '') }}" />
+
+                  {% elif field.type in ["value", "item_value", "number"] %}
+                    <div class="d-flex gap-2">
+                      <input type="number" step="any" class="form-control" placeholder="Mínimo"
+                             name="min_{{ field.id }}" value="{{ request.args.get('min_' ~ field.id, '') }}">
+                      <input type="number" step="any" class="form-control" placeholder="Máximo"
+                             name="max_{{ field.id }}" value="{{ request.args.get('max_' ~ field.id, '') }}">
+                    </div>
+
+                  {% elif field.type == "dropdown" %}
+                    <select class="form-select" id="{{ field.id }}" name="{{ field.id }}">
+                      <option value="">Todos</option>
+                      {% for opt in field.options %}
+                        <option value="{{ opt }}" {% if request.args.get(field.id) == opt %}selected{% endif %}>{{ opt }}</option>
+                      {% endfor %}
+                    </select>
+                  {% endif %}
+                </div>
+              {% endfor %}
             </div>
           </div>
 
           <!-- Aba Cliente -->
           <div class="tab-pane fade" id="client" role="tabpanel">
             <div class="row mb-3">
-              <!-- CAMPOS DO CLIENTE -->
-              <div class="col-md-4">
-                <label for="client_name" class="form-label">Nome do Cliente:</label>
-                <input type="text" class="form-control" id="client_name" name="client_name" value="{{ request.args.get('client_name', '') }}" />
-              </div>
-              <div class="col-md-4">
-                <label for="client_email" class="form-label">Email do Cliente:</label>
-                <input type="email" class="form-control" id="client_email" name="client_email" value="{{ request.args.get('client_email', '') }}" />
-              </div>
-              <div class="col-md-4">
-                <label for="client_address" class="form-label">Endereço do Cliente:</label>
-                <input type="text" class="form-control" id="client_address" name="client_address" value="{{ request.args.get('client_address', '') }}" />
-              </div>
-              <div class="col-md-4">
-                <label for="client_cpf" class="form-label">CPF:</label>
-                <input type="text" class="form-control" id="client_cpf" name="client_cpf" value="{{ request.args.get('client_cpf', '') }}" />
-              </div>
-              <div class="col-md-4">
-                <label for="client_cnpj" class="form-label">CNPJ:</label>
-                <input type="text" class="form-control" id="client_cnpj" name="client_cnpj" value="{{ request.args.get('client_cnpj', '') }}" />
-              </div>
-              <div class="col-md-6">
-                <label for="client_obs" class="form-label">Obs do cliente:</label>
-                <input type="text" class="form-control" id="client_obs" name="client_obs" value="{{ request.args.get('client_obs', '') }}" />
-              </div>
+              {% for field in fields_all_entities.client if field.filterable %}
+                <div class="col-md-6 mb-3">
+                  <label for="{{ field.id }}" class="form-label">{{ field.label }}:</label>
+
+                  {% if field.type in ["text", "client_name", "client_email", "client_phone", "client_address", "client_cpf", "client_cnpj", "client_notes"] %}
+                    <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+                           value="{{ request.args.get(field.id, '') }}" />
+
+                  {% elif field.type == "dropdown" %}
+                    <select class="form-select" id="{{ field.id }}" name="{{ field.id }}">
+                      <option value="">Todos</option>
+                      {% for opt in field.options %}
+                        <option value="{{ opt }}" {% if request.args.get(field.id) == opt %}selected{% endif %}>{{ opt }}</option>
+                      {% endfor %}
+                    </select>
+                  {% endif %}
+                </div>
+              {% endfor %}
             </div>
           </div>
 
           <!-- Aba Transação -->
+           {{fields_all_entities.transaction}}
           <div class="tab-pane fade" id="transaction" role="tabpanel">
-
-            {% if '/client_transactions/' in request.path %}
-
-            <div class="col-md-4">
-              <label for="transaction_status" class="form-label">Status da Transação:</label>
-              <select class="form-select" id="transaction_status" name="transaction_status">
-                <option value="">Todos</option>
-                <option value="reserved" {% if request.args.get('transaction_status') == 'reserved' %}selected{% endif %}>Reservado</option>
-                <option value="rented" {% if request.args.get('transaction_status') == 'rented' %}selected{% endif %}>Alugado</option>
-                <option value="returned" {% if request.args.get('transaction_status') == 'returned' %}selected{% endif %}>Devolvido</option>
-              </select>
-            </div>
-
-            {% endif %}
-
-
-
             <div class="row mb-3">
-              <!-- CAMPOS DA TRANSAÇÃO -->
-              <div class="col-md-4">
-                <label for="payment" class="form-label">Status de Pagamento:</label>
-                <select class="form-select" id="payment" name="payment">
-                  <option value="">Todos</option>
-                  <option value="pago total" {% if request.args.get('payment') == 'pago total' %}selected{% endif %}>pago total (PT)</option>
-                  <option value="pago parcial" {% if request.args.get('payment') == 'pago parcial' %}selected{% endif %}>pago parcial (PP)</option>
-                  <option value="não pago" {% if request.args.get('payment') == 'não pago' %}selected{% endif %}>Não Pago (NP)</option>
-                </select>
-              </div>
-              <div class="col-md-6">
-                <label for="transaction_obs" class="form-label">Observações da Transação:</label>
-                <input type="text" class="form-control" id="transaction_obs" name="transaction_obs" value="{{ request.args.get('transaction_obs', '') }}" />
-              </div>
+              {% for field in fields_all_entities.transaction if field.filterable %}
+                <div class="col-md-6 mb-3">
+                  <label for="{{ field.id }}" class="form-label">{{ field.label }}:</label>
 
-              {% if request.path in ['/rented', '/returned', '/trash_transactions'] %}
-              <div class="col-md-6">
-                <label class="form-label">Intervalo de Retirada Prevista:</label>
-                <div class="row">
-                  <div class="col">
-                    <input type="date" class="form-control" id="start_date" name="start_date" value="{{ request.args.get('start_date', '') }}" />
-                  </div>
-                  <div class="col">
-                    <input type="date" class="form-control" id="end_date" name="end_date" value="{{ request.args.get('end_date', '') }}" />
-                  </div>
+                  {% if field.type in ["text", "transaction_obs"] %}
+                    <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+                           value="{{ request.args.get(field.id, '') }}" />
+
+                  {% elif field.type in ["value", "transaction_price", "transaction_value_paid", "number"] %}
+                    <div class="d-flex gap-2">
+                      <input type="number" step="any" class="form-control" placeholder="Mínimo"
+                             name="min_{{ field.id }}" value="{{ request.args.get('min_' ~ field.id, '') }}">
+                      <input type="number" step="any" class="form-control" placeholder="Máximo"
+                             name="max_{{ field.id }}" value="{{ request.args.get('max_' ~ field.id, '') }}">
+                    </div>
+
+                  {% elif field.type == "dropdown" %}
+                    <select class="form-select" id="{{ field.id }}" name="{{ field.id }}">
+                      <option value="">Todos</option>
+                      {% for opt in field.options %}
+                        <option value="{{ opt }}" {% if request.args.get(field.id) == opt %}selected{% endif %}>{{ opt }}</option>
+                      {% endfor %}
+                    </select>
+
+                  {% elif field.type == "date" %}
+                    <div class="d-flex gap-2">
+                      <input type="date" class="form-control" name="start_{{ field.id }}"
+                             value="{{ request.args.get('start_' ~ field.id, '') }}">
+                      <input type="date" class="form-control" name="end_{{ field.id }}"
+                             value="{{ request.args.get('end_' ~ field.id, '') }}">
+                    </div>
+                  {% endif %}
                 </div>
-              </div>
-              <div class="col-md-6">
-                <label class="form-label">Intervalo de Devolução Prevista:</label>
-                <div class="row">
-                  <div class="col">
-                    <input type="date" class="form-control" id="return_start_date" name="return_start_date" value="{{ request.args.get('return_start_date', '') }}" />
-                  </div>
-                  <div class="col">
-                    <input type="date" class="form-control" id="return_end_date" name="return_end_date" value="{{ request.args.get('return_end_date', '') }}" />
-                  </div>
-                </div>
-              </div>
-              {% endif %}
+              {% endfor %}
             </div>
           </div>
         </div>
@@ -170,62 +141,25 @@ d-none{% endif %} mt-3">
   </form>
 </div>
 
-
-<!-- Script de Toggle -->
-<script>
-  function toggleFilters(event) {
-    event.preventDefault();
-    const filterSection = document.getElementById('filter-section');
-    if (filterSection) {
-      filterSection.classList.toggle('d-none');
-    } else {
-      console.warn('Elemento de filtros não encontrado.');
-    }
-  }
-
-  // Auto-abrir os filtros se algum filtro estiver ativo
-  document.addEventListener('DOMContentLoaded', function() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const hasFilters = Array.from([
-    'description', 'comments', 'client_name', 'client_email', 'client_address',
-    'client_cpf', 'client_cnpj', 'payment', 'start_date', 'end_date',
-    'return_start_date', 'return_end_date', 'transaction_obs'
-  ]).some(param => urlParams.has(param));
-
-    if (hasFilters) {
-      const filterSection = document.getElementById('filter-section');
-      if (filterSection) {
-        filterSection.classList.remove('d-none');
-      }
-    }
-  });
-</script>
-
-
-<script>
-  document.addEventListener('DOMContentLoaded', function () {
-    const filterToggleBtn = document.getElementById('filter-toggle');
-    const filterSection = document.getElementById('filter-section');
-
-    if (filterToggleBtn && filterSection) {
-      filterToggleBtn.addEventListener('click', function (e) {
-        e.preventDefault();
-        e.stopPropagation(); // 👈 isso impede que o clique afete outras coisas
-        filterSection.classList.toggle('d-none');
-      });
-    }
-  });
-</script>
 <script>
   function removeCamposVazios() {
     const form = document.getElementById('form-filtros');
     const inputs = form.querySelectorAll('input, select, textarea');
-
     inputs.forEach(input => {
-      // Se o valor está vazio ou só espaços, remove o 'name'
       if (!input.value.trim()) {
         input.removeAttribute('name');
       }
     });
   }
-  </script>
+
+  document.addEventListener('DOMContentLoaded', function () {
+    const btn = document.getElementById('filter-toggle');
+    const section = document.getElementById('filter-section');
+    if (btn && section) {
+      btn.addEventListener('click', function (e) {
+        e.preventDefault();
+        section.classList.toggle('d-none');
+      });
+    }
+  });
+</script>

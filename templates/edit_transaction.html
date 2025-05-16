@@ -84,6 +84,9 @@
   </form>
 </div>
 {% endblock %} {% block scripts %}{{ super() }}
+
+<script src="https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.umd.min.js"></script>
+
 <script>
   const ORDEM_BLOCOS = ['bloco-transacao', 'bloco-cliente', 'bloco-item'];
   function mostrarAba(id) {
@@ -151,6 +154,78 @@
   campos.forEach((campo) => {
     if (campo) {
       formatarCampoMonetario(campo);
+    }
+  });
+</script>
+<script>
+  function iniciarDatePickerComDatas(rawDates) {
+    const oldPicker = document.getElementById('transaction_period_display')._easepick;
+
+    const DateTime = easepick.DateTime;
+
+    const bookedDates = rawDates.map((d) => {
+      if (Array.isArray(d)) {
+        return [new DateTime(d[0], 'YYYY-MM-DD'), new DateTime(d[1], 'YYYY-MM-DD')];
+      }
+      return new DateTime(d, 'YYYY-MM-DD');
+    });
+
+    new easepick.create({
+      element: document.getElementById('transaction_period_display'),
+      css: ['https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.css', 'https://easepick.com/css/demo_hotelcal.css'],
+      lang: 'pt-BR',
+      autoApply: false,
+      plugins: ['RangePlugin', 'LockPlugin', 'AmpPlugin'],
+      AmpPlugin: {
+        resetButton: true,
+      },
+      RangePlugin: {
+        tooltipNumber(num) {
+          return num;
+        },
+        locale: {
+          one: 'dia',
+          other: 'dias',
+        },
+      },
+      LockPlugin: {
+        minDate: new Date(),
+        minDays: 1,
+        inseparable: true,
+        filter(date, picked) {
+          if (picked.length === 1) {
+            return !picked[0].isSame(date, 'day') && date.inArray(bookedDates, '[]');
+          }
+          return date.inArray(bookedDates, '[]');
+        },
+      },
+      format: 'DD/MM/YYYY',
+      setup(picker) {
+        picker.on('select', () => {
+          const start = picker.getStartDate()?.format('DD/MM/YYYY');
+          const end = picker.getEndDate()?.format('DD/MM/YYYY');
+          const displayInput = document.getElementById('transaction_period_display');
+          const hiddenInput = document.getElementById('transaction_period');
+          if (start && end) {
+            displayInput.value = `${start} - ${end}`;
+            hiddenInput.value = `${start} - ${end}`;
+          } else {
+            displayInput.value = '';
+            hiddenInput.value = '';
+          }
+        });
+      },
+    });
+  }
+</script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const displayInput = document.getElementById('transaction_period_display');
+    if (displayInput) {
+      iniciarDatePickerComDatas({{ reserved_ranges | tojson }});
+    } else {
+      console.warn('⚠️ Campo #transaction_period_display não encontrado no DOM.');
     }
   });
 </script>
