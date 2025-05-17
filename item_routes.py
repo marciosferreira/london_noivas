@@ -646,30 +646,39 @@ def init_item_routes(
                         )
 
             # Verifica alterações
+            # Verifica alterações
             changes = {}
             for k, v in new_values.items():
                 if key_values.get(k) != v:
-                    changes[f"key_values.{k}"] = v
+                    # Coletar tudo em um novo key_values completo
+                    pass  # nada aqui
+
             for k, v in fixed_updates.items():
                 if item.get(k) != v:
                     changes[k] = v
+
+            # Monta o novo key_values final (se tiver algum update)
+            if new_values:
+                key_values_updated = {**key_values, **new_values}
+                changes["key_values"] = key_values_updated
 
             if not changes:
                 flash("Nenhuma alteração foi feita.", "warning")
                 return redirect(next_page)
 
-            # Atualiza item principal
+            # Atualiza item no DynamoDB
             update_expression = []
             expression_values = {}
             for key, value in changes.items():
-                update_expression.append(f"{key} = :{key.replace('.', '_')}")
-                expression_values[f":{key.replace('.', '_')}"] = value
+                update_expression.append(f"{key} = :{key}")
+                expression_values[f":{key}"] = value
 
             itens_table.update_item(
                 Key={"item_id": item_id},
                 UpdateExpression="SET " + ", ".join(update_expression),
                 ExpressionAttributeValues=expression_values,
             )
+
 
             # Atualizar transações relacionadas, se marcado
             if request.form.get("update_all_transactions"):
@@ -2289,7 +2298,7 @@ def list_transactions(
     field_config_table,
     client_id=None,
     page=None,
-    limit=5,
+    limit=6,
 ):
     if not session.get("logged_in"):
         return redirect(url_for("login"))
@@ -2574,7 +2583,7 @@ def list_raw_itens(
     users_table,
     payment_transactions_table,
     field_config_table,
-    limit=5,
+    limit=6,
     entity="item",
 ):
     if not session.get("logged_in"):

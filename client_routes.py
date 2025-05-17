@@ -46,7 +46,7 @@ def init_client_routes(
                 IndexName="account_id-client_name-index",  # <-- nome do GSI
                 KeyConditionExpression="account_id = :account_id AND begins_with(client_name, :term)",
                 ExpressionAttributeValues={":account_id": account_id, ":term": term},
-                Limit=5,
+                Limit=6,
             )
 
             suggestions = [
@@ -113,7 +113,7 @@ def init_client_routes(
         )
 
         valid_clientes = []
-        limit = 5
+        limit = 6
         batch_size = 10
         last_valid_cliente = None
         raw_last_evaluated_key = None
@@ -544,17 +544,6 @@ def init_client_routes(
         except:
             return value
 
-    @app.template_filter("format_telefone")
-    def format_telefone(value):
-        if not value:
-            return
-        digits = "".join(filter(str.isdigit, value))
-        if len(digits) == 11:
-            return f"({digits[:2]}) {digits[2:7]}-{digits[7:]}"
-        elif len(digits) == 10:
-            return f"({digits[:2]}) {digits[2:6]}-{digits[6:]}"
-        else:
-            return value
 
 
 def encode_dynamo_key(key_dict):

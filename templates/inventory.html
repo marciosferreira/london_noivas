@@ -4,7 +4,7 @@
 <div class="container my-3">
   <h2 class="mb-4">Inventário de itens</h2>
 
-  {% set show_add_item = True %} {% include "components/item_filter_section.html" with context %} {% if not itens %}
+  {% set show_add_item = True %} {% set show_item_filter = True %} {% include "components/item_filter_section.html" with context %} {% if not itens %}
 
   <div class="alert alert-info mt-3">Não há itens que satisfazem os critérios selecionados.</div>
   {% endif %} {% if itens %}
@@ -128,7 +128,7 @@
     const aNext = document.createElement('a');
     aNext.className = 'page-link';
     aNext.innerText = 'Próxima →';
-    aNext.href = `${prefix}page={{ currentPage + 1 }}`;
+    aNext.href = `${prefix}page={{ current_page + 1 }}`;
     liNext.appendChild(aNext);
     paginacao.appendChild(liNext);
   {% endif %}

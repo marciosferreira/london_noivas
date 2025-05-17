@@ -17,8 +17,9 @@
               <span class="text-muted">-</span>
               {% else %}
               <span>
-                {% if field.type == "date" %} {{ value | format_date }} {% elif field.type == "value" %} {{ value | format_brl }} {% else %} {{ value
-                }} {% endif %}
+                {% if field.type == "date" %} {{ value | format_date }} {% elif field.type == "value" %} {{ value | format_brl }} {% elif field.type
+                == "client_cpf" %} {{ value | format_cpf }} {% elif field.type == "client_cnpj" %} {{ value | format_cnpj }} {% elif field.type ==
+                "client_phone" %} {{ value | format_phone }}{% else %} {{ value }} {% endif %}
               </span>
               {% endif %}
             </div>

@@ -19,9 +19,9 @@
               <span class="text-muted">-</span>
               {% else %}
               <span>
-                {% if field.type == "date" %} {{ value | format_date }} {% elif field.type in ["value", "transaction_value_paid", "transaction_price"]
-                %} {{ value | format_brl }} {% elif field.id == "transaction_status" %} {{ status_mapping.get(value, value) }} {% else %} {{ value }}
-                {% endif %}
+                {% if field.type == "date" %} {{ value | format_date }} {% elif field.type in ["value", "transaction_value_paid", "transaction_price",
+                "item_value"] %} {{ value | format_brl }} {% elif field.id == "transaction_status" %} {{ status_mapping.get(value, value) }} {% else
+                %} {{ value }} {% endif %}
               </span>
 
               {% endif %}

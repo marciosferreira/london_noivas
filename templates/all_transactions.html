@@ -9,7 +9,7 @@
   %}
   <div class="alert alert-info mt-3">Não há itens que satisfazem os critérios selecionados.</div>
   {% endif %} {% if itens %} {% set status_map = { 'reserved': 'Reservado', 'rented': 'Retirado', 'returned': 'Retornado', 'overdue': 'Atrasado' } %}
-
+  {{itens}}
   <div class="row g-3">
     {% for item in itens %}
     <div class="col-12 col-md-6 col-lg-4">
@@ -88,9 +88,10 @@
                 in item else '' %} {% if value == 'None' or value is none %}
                 <span class="text-muted">-</span>
                 {% else %} {% if field.type == "phone" %} {{ value | format_phone }} {% elif field.type == "date" %} {{ value | format_date }} {% elif
-                field.type in ["value", "item_value", "transaction_price"] %} {{ value | format_currency }} {% elif field.type == "cpf" %} {{ value |
-                format_cpf }} {% elif field.type == "cnpj" %} {{ value | format_cnpj }} {% elif field.id == "transaction_status" %} {{
-                status_map.get(value, value) }} {% else %} {{ value | string | truncate(30, True) }} {% endif %} {% endif %}
+                field.type in ["value", "item_value", "transaction_price", "transaction_value_paid"] %} {{ value | format_currency }} {% elif
+                field.type == "cpf" %} {{ value | format_cpf }} {% elif field.type == "cnpj" %} {{ value | format_cnpj }} {% elif field.type ==
+                "client_phone" %} {{ value | format_phone }} {% elif field.id == "transaction_status" %} {{ status_map.get(value, value) }} {% else %}
+                {{ value | string | truncate(30, True) }} {% endif %} {% endif %}
               </span>
             </div>
             {% endfor %}

@@ -1,37 +1,27 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='style_filters.css') }}">
 
+<!-- Botões superiores -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div class="d-flex flex-wrap gap-2 align-items-center justify-content-end w-100 w-sm-auto">
+    <a href="#" class="btn btn-outline-secondary" id="filter-toggle" onclick="toggleFilters(event)">Filtros</a>
 
-{{fields_config}}
-
-<!-- Cliente Filter Section Component -->
-<div class="d-flex justify-content-between align-items-center mb-0">
-
-<!-- Container dos botões -->
-<div class="d-flex flex-wrap gap-2 align-items-center justify-content-end w-100 w-sm-auto">
-
-  <!-- Botão de Filtros -->
-  <a href="#" class="btn btn-outline-secondary" id="filter-toggle" onclick="toggleFilters(event)">Filtros</a>
-
-  {% if show_add_button %}
-  <!-- Botão de Adicionar -->
-
-
-
-<a href="{{ url_for('adicionar_cliente') }}?next={{ request.url }}" class="btn btn-primary">
-  <i class="fas fa-plus me-1"></i> Adicionar cliente
-</a>
-
-
-
-
-  {% endif %}
-</div>
-</div>
-
+    {% if show_add_button %}
+      <a href="{{ url_for('adicionar_cliente') }}?next={{ request.url }}" class="btn btn-primary">
+        <i class="fas fa-plus me-1"></i> Adicionar cliente
+      </a>
+    {% endif %}
+  </div>
 </div>
 
 <!-- Seção de Filtros (inicialmente escondida) -->
-<div id="filter-section" class="d-none mt-3 mb-4">
+{% set ns = namespace(filtro_relevante=false) %}
+{% for key in request.args.keys() %}
+  {% if not key.startswith('page') and not key.startswith('sort') %}
+    {% set ns.filtro_relevante = true %}
+  {% endif %}
+{% endfor %}
+
+<div id="filter-section" class="{% if not ns.filtro_relevante %}d-none{% endif %} mb-4">
   <form method="GET" action="{{ url_for('listar_clientes') }}">
     <div class="card shadow-sm">
       <div class="card-header bg-light">
@@ -39,69 +29,42 @@
       </div>
       <div class="card-body">
         <div class="row g-3">
-          <!-- Filtro por Nome -->
-          <div class="col-md-6">
-            <label for="client_name" class="form-label">Nome:</label>
-            <input type="text" class="form-control" id="client_name" name="client_name"
-                   value="{{ request.args.get('client_name', '') }}" />
-          </div>
+          {% for field in fields_config if field.filterable %}
+            <div class="col-md-6">
+              <label for="{{ field.id }}" class="form-label">{{ field.label }}:</label>
 
-          <!-- Filtro por Telefone -->
-          <div class="col-md-6">
-            <label for="client_tel" class="form-label">Telefone:</label>
-            <input type="text" class="form-control" id="client_tel" name="client_tel"
-                   value="{{ request.args.get('client_tel', '') }}" placeholder="Apenas números" />
-          </div>
+              {% if field.type in ["text", "client_name", "client_email", "client_phone", "client_address", "client_cpf", "client_cnpj", "client_notes", "client_obs"] %}
+                <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+                       value="{{ request.args.get(field.id, '') }}" />
 
-          <!-- Filtro por Email -->
-          <div class="col-md-6">
-            <label for="client_email" class="form-label">E-mail:</label>
-            <input type="text" class="form-control" id="client_email" name="client_email"
-                   value="{{ request.args.get('client_email', '') }}" />
-          </div>
+              {% elif field.type == "date" %}
+                <div class="d-flex gap-2">
+                  <input type="date" class="form-control" name="start_{{ field.id }}"
+                         value="{{ request.args.get('start_' ~ field.id, '') }}">
+                  <input type="date" class="form-control" name="end_{{ field.id }}"
+                         value="{{ request.args.get('end_' ~ field.id, '') }}">
+                </div>
 
-          <!-- Filtro por Endereço -->
-          <div class="col-md-6">
-            <label for="client_address" class="form-label">Endereço:</label>
-            <input type="text" class="form-control" id="client_address" name="client_address"
-                   value="{{ request.args.get('client_address', '') }}" />
-          </div>
+              {% elif field.type in ["number", "value"] %}
+                <div class="input-group">
+                  <input type="number" step="any" class="form-control" placeholder="Mínimo"
+                         name="min_{{ field.id }}" value="{{ request.args.get('min_' ~ field.id, '') }}">
+                  <input type="number" step="any" class="form-control" placeholder="Máximo"
+                         name="max_{{ field.id }}" value="{{ request.args.get('max_' ~ field.id, '') }}">
+                </div>
 
-          <!-- Filtro por CPF -->
-          <div class="col-md-6">
-            <label for="client_cpf" class="form-label">CPF:</label>
-            <input type="text" class="form-control" id="client_cpf" name="client_cpf"
-                   value="{{ request.args.get('client_cpf', '') }}" placeholder="Apenas números" />
-          </div>
-
-          <!-- Filtro por CNPJ -->
-          <div class="col-md-6">
-            <label for="client_cnpj" class="form-label">CNPJ:</label>
-            <input type="text" class="form-control" id="client_cnpj" name="client_cnpj"
-                   value="{{ request.args.get('client_cnpj', '') }}" placeholder="Apenas números" />
-          </div>
-
-
-          <div class="col-md-4 mb-3">
-            <label for="client_obs" class="form-label">Obs do cliente:</label>
-            <input
-              type="text"
-              class="form-control"
-              id="client_obs"
-              name="client_obs"
-              value="{{ request.args.get('client_obs', '') }}"
-              placeholder="Digite observações..."
-            />
-          </div>
-
-
-
-
+              {% elif field.type == "dropdown" and field.options %}
+                <select name="{{ field.id }}" class="form-select">
+                  <option value="">Todos</option>
+                  {% for opt in field.options %}
+                    <option value="{{ opt }}" {% if request.args.get(field.id) == opt %}selected{% endif %}>{{ opt }}</option>
+                  {% endfor %}
+                </select>
+              {% endif %}
+            </div>
+          {% endfor %}
         </div>
       </div>
-
-
-
 
       <div class="card-footer d-flex justify-content-between">
         <button type="submit" class="btn btn-primary">
@@ -122,27 +85,15 @@
     section.classList.toggle('d-none');
   }
 
-  // Validação para campos numéricos
-  document.addEventListener('DOMContentLoaded', function() {
-    // Remover caracteres não numéricos ao enviar o formulário
-    document.querySelector('form').addEventListener('submit', function(e) {
-      // Limpar formato do telefone
-      const telInput = document.getElementById('client_tel');
-      if (telInput && telInput.value) {
-        telInput.value = telInput.value.replace(/\D/g, '');
-      }
+  document.addEventListener('DOMContentLoaded', function () {
+    const telInput = document.getElementById('client_tel');
+    const cpfInput = document.getElementById('client_cpf');
+    const cnpjInput = document.getElementById('client_cnpj');
 
-      // Limpar formato do CPF
-      const cpfInput = document.getElementById('client_cpf');
-      if (cpfInput && cpfInput.value) {
-        cpfInput.value = cpfInput.value.replace(/\D/g, '');
-      }
-
-      // Limpar formato do CNPJ
-      const cnpjInput = document.getElementById('client_cnpj');
-      if (cnpjInput && cnpjInput.value) {
-        cnpjInput.value = cnpjInput.value.replace(/\D/g, '');
-      }
+    document.querySelector('form')?.addEventListener('submit', function () {
+      if (telInput) telInput.value = telInput.value.replace(/\D/g, '');
+      if (cpfInput) cpfInput.value = cpfInput.value.replace(/\D/g, '');
+      if (cnpjInput) cnpjInput.value = cnpjInput.value.replace(/\D/g, '');
     });
   });
 </script>
