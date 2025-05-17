@@ -774,23 +774,16 @@ def init_item_routes(
             import uuid
 
             # Campos configuráveis de todas as entidades
-            fields_transaction = get_all_fields(account_id, field_config_table, entity="transaction")
-            fields_client = get_all_fields(account_id, field_config_table, entity="client")
-            fields_item = get_all_fields(account_id, field_config_table, entity="item")
-            all_fields = fields_transaction + fields_client + fields_item
+            # Carrega e filtra campos
+            transaction_fields = [
+                field for field in get_all_fields(account_id, field_config_table, entity="transaction")
+                if field.get("f_type") != "visual"
+            ]
+            client_fields = get_all_fields(account_id, field_config_table, entity="client")
+            item_fields = get_all_fields(account_id, field_config_table, entity="item")
 
-            #filtra os campos repetidos
-            #all_fields = list({item['id']: item for item in all_fields}.values())
-            seen_ids = set()
-            all_fields_init = []
-
-            for item in all_fields:
-                if item['id'] not in seen_ids:
-                    all_fields_init.append(item)
-                    seen_ids.add(item['id'])
-            all_fields = all_fields_init
-
-
+            # Junta tudo (sem deduplicação)
+            all_fields = transaction_fields + client_fields + item_fields
 
 
             form_data = {}
@@ -817,8 +810,7 @@ def init_item_routes(
                         value = Decimal(value)
                     except InvalidOperation:
                         flash(f"Valor inválido no campo {field.get('label', field_id)}.", "error")
-                        print("KKKKKKKKKKKKKKKK")
-                        print(current_transaction)
+
                         return render_template(
                             "rent.html",
                             item={},
@@ -972,26 +964,24 @@ def init_item_routes(
             response = clients_table.get_item(Key={"client_id": client_id})
             client = response.get("Item") or {}
 
-        # Campos configuráveis
-        all_fields = (
-            get_all_fields(account_id, field_config_table, entity="transaction") +
-            get_all_fields(account_id, field_config_table, entity="client") +
-            get_all_fields(account_id, field_config_table, entity="item")
-        )
+        test = get_all_fields(account_id, field_config_table, entity="transaction")
+        print("uuuuuuuu")
+        print(test)
+        print("xxxxxxxx")
 
-        #filtra os campos repetidos
-        #all_fields = list({item['id']: item for item in all_fields}.values())
 
-        seen_ids = set()
-        all_fields_init = []
+        # Carrega todos os campos das três entidades, exceto os campos de visualização de transaction
+        transaction_fields = [
+            field for field in get_all_fields(account_id, field_config_table, entity="transaction")
+            if field.get("f_type") != "visual"
+        ]
+        client_fields = get_all_fields(account_id, field_config_table, entity="client")
+        item_fields = get_all_fields(account_id, field_config_table, entity="item")
 
-        for item in all_fields:
-            if item['id'] not in seen_ids:
-                all_fields_init.append(item)
-                seen_ids.add(item['id'])
+        # Junta tudo (sem deduplicação)
+        all_fields = transaction_fields + client_fields + item_fields
 
-        all_fields = all_fields_init
-
+        print(all_fields)
 
 
         # Totais para controle de plano
@@ -1029,8 +1019,6 @@ def init_item_routes(
             if not exclusive_start_key:
                 break
 
-        print("KKKKKKKKKKKKKKKK")
-        print(current_transaction)
 
         return render_template(
             "rent.html",
@@ -2897,6 +2885,7 @@ def get_all_fields(account_id, field_config_table, entity):
                     else []
                 ),
                 "fixed": cfg.get("f_type", "custom") == "fixed",
+                "f_type": cfg.get("f_type", "custom"),
             }
         )
     return sorted(all_fields, key=lambda x: x["order_sequence"])
