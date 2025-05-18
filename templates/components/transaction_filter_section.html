@@ -14,8 +14,7 @@
 
 
 <!-- Seção de Filtros -->
-{% set filtro_relevante = request.args|dictsort if request.args and not request.args.get('page') %}
-<div id="filter-section" class="mt-3 mb-4 {% if not filtro_relevante %}d-none{% endif %}">
+<div id="filter-section" class="mt-3 mb-4 {% if not ns.filtro_relevante %}d-none{% endif %}">
   <form method="GET" action="" id="form-filtros" onsubmit="removeCamposVazios()">
     <div class="card shadow-sm">
       <div class="card-header bg-light">

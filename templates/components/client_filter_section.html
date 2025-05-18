@@ -13,13 +13,6 @@
   </div>
 </div>
 
-<!-- Seção de Filtros (inicialmente escondida) -->
-{% set ns = namespace(filtro_relevante=false) %}
-{% for key in request.args.keys() %}
-  {% if not key.startswith('page') and not key.startswith('sort') %}
-    {% set ns.filtro_relevante = true %}
-  {% endif %}
-{% endfor %}
 
 <div id="filter-section" class="{% if not ns.filtro_relevante %}d-none{% endif %} mb-4">
   <form method="GET" action="{{ url_for('listar_clientes') }}">

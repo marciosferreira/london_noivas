@@ -3,7 +3,6 @@
 {% endblock %} {% block content %}
 <div class="container my-3">
   <h2 class="mb-4">Clientes cadastrados</h2>
-
   {% set show_add_button = True %} {% set add_route = url_for('adicionar_cliente') %} {% include "components/client_filter_section.html" with context
   %} {% if not itens %}
   <div class="alert alert-info mt-3">Não há itens que satisfazem os critérios selecionados.</div>

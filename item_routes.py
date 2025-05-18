@@ -2322,98 +2322,6 @@ def list_transactions(
         flash("Erro: Usuário não autenticado corretamente.", "danger")
         return redirect(url_for("login"))
 
-    if not item_id:
-        item_id = request.args.get("item_id")
-
-    if not client_id:
-        client_id = request.args.get("client_id")
-
-    force_no_next = request.args.get("force_no_next")
-
-    user_utc = get_user_timezone(users_table, user_id)
-    today = datetime.datetime.now(user_utc).date()
-
-    image_url_filter = request.args.get("item_image_url") or None
-    image_url_required = image_url_filter.lower() == "true" if image_url_filter is not None else None
-
-
-    def process_dates(item):
-        for key in ["rental_date", "return_date", "dev_date"]:
-            if key in item:
-                date_str = item[key]
-                if date_str and isinstance(date_str, str):
-                    try:
-                        date_obj = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
-                        item[f"{key}_formatted"] = date_obj.strftime("%d-%m-%Y")
-                        item[f"{key}_obj"] = date_obj
-                    except ValueError:
-                        pass
-
-        if item.get("dev_date_obj") and item["dev_date_obj"] != "N/A":
-            item["overdue"] = False
-        elif item.get("return_date_obj") and item["return_date_obj"] != "N/A":
-            item["overdue"] = item["return_date_obj"] < today
-        else:
-            item["overdue"] = False
-
-        rental_date = item.get("rental_date_obj")
-        return_date = item.get("return_date_obj")
-
-        if rental_date and item.get("transaction_status") != "rented":
-            if rental_date == today:
-                item["rental_message"] = "Retirada é hoje"
-                item["rental_message_color"] = "orange"
-            elif rental_date > today:
-                dias = (rental_date - today).days
-                item["rental_message"] = "Falta 1 dia" if dias == 1 else f"Faltam {dias} dias"
-                item["rental_message_color"] = "blue" if dias > 1 else "yellow"
-            else:
-                item["rental_message"] = "Não retirado"
-                item["rental_message_color"] = "red"
-        else:
-            item["rental_message"] = ""
-            item["rental_message_color"] = ""
-
-        if item.get("overdue") and return_date:
-            overdue_days = (today - return_date).days
-            item["overdue_days"] = overdue_days if overdue_days > 0 else 0
-
-        return item
-
-    filtros = request.args.to_dict()
-
-    converter_intervalo_data_br_para_iso(filtros, "rental_period", "start_rental_date", "end_rental_date")
-    converter_intervalo_data_br_para_iso(filtros, "return_period", "start_return_date", "end_return_date")
-
-
-    print("filtros")
-    print(filtros)
-    page = int(filtros.pop("page", 1))
-
-    current_path = request.path
-    session["previous_path_transactions"] = current_path
-
-    if page == 1:
-        session.pop("current_page_transactions", None)
-        session.pop("cursor_pages_transactions", None)
-        session.pop("last_page_transactions", None)
-
-    cursor_pages = session.get("cursor_pages_transactions", {"1": None})
-    if page == 1:
-        session["cursor_pages_transactions"] = {"1": None}
-        cursor_pages = {"1": None}
-
-    session["current_page_transactions"] = page
-
-    exclusive_start_key = None
-    if str(page) in cursor_pages and cursor_pages[str(page)]:
-        exclusive_start_key = decode_dynamo_key(cursor_pages[str(page)])
-
-    valid_itens = []
-    batch_size = 10
-    last_valid_item = None
-    raw_last_evaluated_key = None
-
     # 🔥 Carrega configuração de campos
     fields_all_entities = {}
     for ent in ["item", "client", "transaction"]:
@@ -2458,7 +2366,133 @@ def list_transactions(
             seen_ids.add(item['id'])
     fields_config = fields_config_init
 
+    user_utc = get_user_timezone(users_table, user_id)
+    today = datetime.datetime.now(user_utc).date()
 
+    def process_dates(item):
+        for key in ["rental_date", "return_date", "dev_date"]:
+            if key in item:
+                date_str = item[key]
+                if date_str and isinstance(date_str, str):
+                    try:
+                        date_obj = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
+                        item[f"{key}_formatted"] = date_obj.strftime("%d-%m-%Y")
+                        item[f"{key}_obj"] = date_obj
+                    except ValueError:
+                        pass
+
+        if item.get("dev_date_obj") and item["dev_date_obj"] != "N/A":
+            item["overdue"] = False
+        elif item.get("return_date_obj") and item["return_date_obj"] != "N/A":
+            item["overdue"] = item["return_date_obj"] < today
+        else:
+            item["overdue"] = False
+
+        rental_date = item.get("rental_date_obj")
+        return_date = item.get("return_date_obj")
+
+        if rental_date and item.get("transaction_status") != "rented":
+            if rental_date == today:
+                item["rental_message"] = "Retirada é hoje"
+                item["rental_message_color"] = "orange"
+            elif rental_date > today:
+                dias = (rental_date - today).days
+                item["rental_message"] = "Falta 1 dia" if dias == 1 else f"Faltam {dias} dias"
+                item["rental_message_color"] = "blue" if dias > 1 else "yellow"
+            else:
+                item["rental_message"] = "Não retirado"
+                item["rental_message_color"] = "red"
+        else:
+            item["rental_message"] = ""
+            item["rental_message_color"] = ""
+
+        if item.get("overdue") and return_date:
+            overdue_days = (today - return_date).days
+            item["overdue_days"] = overdue_days if overdue_days > 0 else 0
+
+        return item
+
+    if not item_id:
+        item_id = request.args.get("item_id")
+
+    if not client_id:
+        client_id = request.args.get("client_id")
+
+    # 🔍 Exibe apenas transações específicas, se item_id ou client_id estiverem definidos
+    if item_id or client_id:
+        query_kwargs = {
+            "IndexName": "account_id-created_at-index",
+            "KeyConditionExpression": Key("account_id").eq(account_id),
+            "ScanIndexForward": False,
+        }
+
+        transacoes = transactions_table.query(**query_kwargs).get("Items", [])
+
+        transacoes_filtradas = []
+        for txn in transacoes:
+            if status_list and txn.get("transaction_status") not in status_list:
+                continue
+            if item_id and txn.get("item_id") != item_id:
+                continue
+            if client_id and txn.get("client_id") != client_id:
+                continue
+            transacoes_filtradas.append(process_dates(txn))
+
+        return render_template(
+            template,
+            itens=transacoes_filtradas,
+            title=title,
+            current_page=1,
+            has_next=False,
+            has_prev=False,
+            itens_count=len(transacoes_filtradas),
+            next_cursor=None,
+            last_page=True,
+            add_route=url_for("trash_transactions"),
+            next_url=request.url,
+            saved_models=[],
+            fields_config=fields_config,
+            fields_all_entities=fields_all_entities,
+            ns={"filtro_relevante": False},
+        )
+
+
+    force_no_next = request.args.get("force_no_next")
+
+    image_url_filter = request.args.get("item_image_url") or None
+    image_url_required = image_url_filter.lower() == "true" if image_url_filter is not None else None
+
+    filtros = request.args.to_dict()
+
+    converter_intervalo_data_br_para_iso(filtros, "rental_period", "start_rental_date", "end_rental_date")
+    converter_intervalo_data_br_para_iso(filtros, "return_period", "start_return_date", "end_return_date")
+
+
+    page = int(filtros.pop("page", 1))
+
+    current_path = request.path
+    session["previous_path_transactions"] = current_path
+
+    if page == 1:
+        session.pop("current_page_transactions", None)
+        session.pop("cursor_pages_transactions", None)
+        session.pop("last_page_transactions", None)
+
+    cursor_pages = session.get("cursor_pages_transactions", {"1": None})
+    if page == 1:
+        session["cursor_pages_transactions"] = {"1": None}
+        cursor_pages = {"1": None}
+
+    session["current_page_transactions"] = page
+
+    exclusive_start_key = None
+    if str(page) in cursor_pages and cursor_pages[str(page)]:
+        exclusive_start_key = decode_dynamo_key(cursor_pages[str(page)])
+
+    valid_itens = []
+    batch_size = 10
+    last_valid_item = None
+    raw_last_evaluated_key = None
 
 
     while len(valid_itens) < limit:
@@ -2480,11 +2514,6 @@ def list_transactions(
             break
 
         for txn in transacoes:
-            if item_id and txn.get("item_id") != item_id:
-                continue
-            # filtro por client_id e status direto
-            if client_id and txn.get("client_id") != client_id:
-                continue
             if status_list and txn.get("transaction_status") not in status_list:
                 continue
             # filtro dinâmico geral
@@ -2559,6 +2588,8 @@ def list_transactions(
         has_prev=current_page > 1,
         fields_config=fields_config,  # todas as 3 entidades na mesma  lista
         fields_all_entities=fields_all_entities, # todas as e entidades em listas separadas
+        ns={"filtro_relevante": False}  # para exibir filtros normalmente
+
     )
 
 
@@ -2678,6 +2709,7 @@ def list_raw_itens(
                     next_url=request.url,
                     itens_count=1,
                     current_page=1,
+                    fields_config=fields_config,
                 )
             else:
                 flash("Item não encontrado ou já deletado.", "warning")

@@ -89,11 +89,40 @@ def init_client_routes(
             if field.get("preview")
         ]
 
+
         force_no_next = request.args.get("force_no_next")
         session["previous_path_clients"] = request.path
 
         filtros = request.args.to_dict()
         page = int(filtros.pop("page", 1))
+
+        filtros = request.args.to_dict()
+        page = int(filtros.pop("page", 1))
+
+        # Adicionado: só considera filtros relevantes se houver algo útil além de page/client_id
+        filtro_relevante = bool(filtros) and "client_id" not in request.args
+
+        # se é um cliente especifico, ja mostra logo
+        client_id_param = request.args.get("client_id")
+        if client_id_param:
+            response = clients_table.get_item(Key={"client_id": client_id_param})
+            cliente = response.get("Item")
+
+            if not cliente or cliente.get("account_id") != account_id:
+                flash("Cliente não encontrado ou acesso negado.", "danger")
+                return redirect(url_for("listar_clientes"))
+
+            return render_template(
+                "clientes.html",
+                itens=[cliente],
+                current_page=1,
+                has_next=False,
+                has_prev=False,
+                fields_config=fields_config,
+                custom_fields_preview=custom_fields_preview,
+                ns={"filtro_relevante": False},
+            )
+
 
         if page == 1:
             session.pop("current_page_clients", None)
@@ -199,6 +228,7 @@ def init_client_routes(
             has_prev=current_page > 1,
             fields_config=fields_config,
             custom_fields_preview=custom_fields_preview,
+            ns={"filtro_relevante": filtro_relevante},
         )
     import traceback
 
@@ -279,17 +309,12 @@ def init_client_routes(
                     IndexName=index,
                     KeyConditionExpression=Key("account_id").eq(account_id) & Key(field).eq(field_value),
                 )
+
+                # Se houver mais de 1 item OU um item com client_id diferente, é duplicado
                 for c in response.get("Items", []):
                     if c.get("client_id") != client_id:
-                        field_labels = {
-                            "client_name": "nome",
-                            "client_cnpj": "CNPJ",
-                            "client_cpf": "CPF",
-                        }
-
-                        label = field_labels.get(field, field)
+                        label = {"client_name": "nome", "client_cnpj": "CNPJ", "client_cpf": "CPF"}.get(field, field)
                         flash(f"Já existe um cliente com esse {label}.", "error")
-
                         return render_template("editar_cliente.html", client=cliente, all_fields=all_fields, next=next_page)
 
             cliente["updated_at"] = datetime.datetime.now(user_utc).strftime("%Y-%m-%d %H:%M:%S")

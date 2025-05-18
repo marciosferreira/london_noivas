@@ -263,10 +263,19 @@ if (key === 'item_value') {
         itensSugeridos.forEach((item) => {
           const div = document.createElement('div');
           div.className = 'autocomplete-item px-2 py-1';
-          div.innerHTML = `
-            <strong>${item.item_custom_id || '(sem código)'}</strong><br>
-            <small>${item.item_description || ''}</small>
-          `;
+         div.innerHTML = `
+  <div class="d-flex flex-column">
+    <div class="d-flex align-items-center">
+      <i class="fas fa-barcode me-2 text-primary"></i>
+      <strong>${item.item_custom_id || '(sem código)'}</strong>
+    </div>
+    <div class="d-flex align-items-center mt-1">
+      <i class="fas fa-align-left me-2 text-secondary"></i>
+      <small class="text-muted">${item.item_description || 'Sem descrição'}</small>
+    </div>
+  </div>
+`;
+
           div.addEventListener('click', () => {
             input.value = item[inputId];
             box.innerHTML = '';

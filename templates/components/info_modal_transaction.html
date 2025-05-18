@@ -7,14 +7,38 @@
       </div>
 
       <div class="modal-body">
+        {% set show_image = (fields_config | selectattr("id", "equalto", "item_image_url") | selectattr("visible") | list | length) > 0 %} {% if
+        show_image %}
+        <div class="text-center mb-3">
+          {% set image = item.item_key_values['item_image_url'] if item.item_key_values is defined and 'item_image_url' in item.item_key_values else
+          item['item_image_url'] if 'item_image_url' in item else '' %} {% if image and image != "N/A" %}
+          <img
+            src="{{ image }}"
+            alt="Imagem do item"
+            class="img-fluid"
+            style="max-width: 200px; cursor: pointer"
+            onclick="mostrarImagemModal('{{ image }}')"
+          />
+          {% else %}
+          <img
+            src="{{ url_for('static', filename='item-placeholder.png') }}"
+            alt="Sem imagem"
+            class="img-fluid"
+            style="max-width: 200px; cursor: pointer"
+            onclick="mostrarImagemModal('{{ url_for('static', filename='item-placeholder.png') }}')"
+          />
+          {% endif %}
+        </div>
+        {% endif %}
+
         <div class="container-fluid">
           <div class="row g-3">
-            {% set status_mapping = { 'reserved': 'Reservado', 'rented': 'Retirado', 'returned': 'Devolvido' } %} {% for field in fields_config %} {%
-            if field.type != 'image_url' %} {% if not (item.transaction_status == 'reserved' and field.id == 'transaction_ret_date') %}
+            {% set status_mapping = { 'reserved': 'Reservado', 'rented': 'Retirado', 'returned': 'Devolvido' } %} {% for field in fields_config if
+            field.type != 'item_image_url' %} {% if field.type != 'image_url' %} {% if not (item.transaction_status == 'reserved' and field.id ==
+            'transaction_ret_date') %}
             <div class="col-12 col-md-6">
               <strong>{{ field.label }}:</strong>
               <br />
-
               {% set value = item.key_values[field.id] if item.key_values is defined and field.id in item.key_values else item[field.id] if field.id
               in item else '' %} {% if value == 'None' or value is none %}
               <span class="text-muted">-</span>

@@ -115,11 +115,10 @@
   </div>
 
 <div id="ret_date_wrapper" class="mb-3">
-  <label for="transaction_ret_date" class="form-label fw-semibold">
-  </label>
-  <input type="date" class="form-control" id="transaction_ret_date" name="transaction_ret_date" value="{{ value }}" />
+  {% set hoje = now().strftime("%Y-%m-%d") %}
+  {% set valor_final = value if value else hoje %}
+  <input type="date" class="form-control" id="transaction_ret_date" name="transaction_ret_date" value="{{ valor_final }}" />
 </div>
-
 
 
 

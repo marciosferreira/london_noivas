@@ -1,4 +1,6 @@
-{% extends "base.html" %} {% block title %}Editar Cliente{% endblock %} {% block styles %}
+{% extends "base.html" %}
+
+{% block title %}Editar Cliente{% endblock %} {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='style_edit_client.css') }}" />
 {% endblock %} {% block content %}
 <div class="container py-4">
@@ -36,11 +38,7 @@
         <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
                value="{{ value }}" {% if field.required %}required{% endif %} />
 
-        {% if field.type == 'client_name' %}
-          <div id="client-suggestions-title" style="display: none;">Clientes encontrados:</div>
-          <div id="client_suggestions" class="autocomplete-box"></div>
-          <div id="client-status-message" class="status-message" style="display: none;"></div>
-        {% endif %}
+
 
       {% elif field.type == 'number' %}
         <input type="number" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
@@ -290,97 +288,8 @@
   }
 
   // 🧠 Autocomplete de cliente
-  function autocompleteCliente() {
-    const clientInput = document.getElementById('client_name');
-    const statusMessage = document.getElementById('client-status-message');
-    const suggestionsBox = document.getElementById('client_suggestions');
 
-    let suggestionSelected = false;
 
-    if (!clientInput || !statusMessage || !suggestionsBox) return;
-
-    clientInput.addEventListener('input', async () => {
-      const term = clientInput.value.trim();
-      if (term.length < 1) {
-        suggestionsBox.innerHTML = '';
-        statusMessage.style.display = 'none';
-        return;
-      }
-
-      try {
-        const res = await fetch(`/autocomplete_clients?term=${encodeURIComponent(term)}`);
-        const clients = await res.json();
-
-        suggestionsBox.innerHTML = '';
-
-        clients.forEach((cli) => {
-          const div = document.createElement('div');
-          div.className = 'autocomplete-item';
-          div.innerHTML = `
-  <strong>${cli.client_name}</strong>
-  ${cli.client_phone ? `<div><small>📞 ${maskPhone(cli.client_phone)}</small></div>` : ''}
-  ${cli.client_email ? `<div><small>📧 ${cli.client_email}</small></div>` : ''}
-  ${cli.client_cpf ? `<div><small>🆔 CPF: ${maskCPF(cli.client_cpf)}</small></div>` : ''}
-  ${cli.client_cnpj ? `<div><small>🏢 CNPJ: ${maskCNPJ(cli.client_cnpj)}</small></div>` : ''}
-`;
-          div.addEventListener('click', () => {
-            // Preenche qualquer campo que existir com base nas chaves do JSON
-            for (const key in cli) {
-              const el = document.getElementById(key);
-              if (el) {
-                el.value = aplicarMascaraCliente(key, cli[key]);
-              }
-            }
-
-            suggestionSelected = true;
-            suggestionsBox.innerHTML = '';
-            statusMessage.className = 'status-message user-found';
-            const editarLink = `
-  <a href="/editar_cliente/${cli.client_id}?client_id=${cli.client_id}&next=${encodeURIComponent(window.location.pathname)}"
-     class="ms-2 text-decoration-underline text-warning">
-    Editar
-  </a>
-`;
-
-            statusMessage.innerHTML = 'Cliente encontrado ' + editarLink;
-            statusMessage.style.display = 'block';
-
-            bloquearCamposCliente();
-          });
-
-          suggestionsBox.appendChild(div);
-        });
-
-        const exactMatch = clients.find((client) => client.client_name.trim().toLowerCase() === term.toLowerCase());
-
-        if (exactMatch) {
-          statusMessage.className = 'status-message user-found';
-          statusMessage.innerHTML = 'Cliente encontrado';
-        } else {
-          statusMessage.className = 'status-message user-new';
-          statusMessage.innerHTML = 'Cliente novo será criado';
-          desbloquearCamposCliente();
-        }
-
-        statusMessage.style.display = 'block';
-      } catch (error) {
-        console.error('Erro ao buscar clientes:', error);
-      }
-    });
-
-    document.addEventListener('click', (e) => {
-      if (!clientInput.contains(e.target) && !suggestionsBox.contains(e.target)) {
-        suggestionsBox.innerHTML = '';
-      }
-    });
-
-    clientInput.addEventListener('focus', () => {
-      suggestionSelected = false;
-    });
-  }
-
-  // 🔁 Inicializar ao carregar
-  autocompleteCliente();
 </script>
 
 
