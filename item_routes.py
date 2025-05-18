@@ -390,6 +390,17 @@ def init_item_routes(
             fixed_fields = {}
             key_values = {}
 
+            try:
+                rental_str, return_str = request.form.get("transaction_period", "").split(" - ")
+                rental_date = datetime.datetime.strptime(rental_str.strip(), "%d/%m/%Y").strftime("%Y-%m-%d")
+                return_date = datetime.datetime.strptime(return_str.strip(), "%d/%m/%Y").strftime("%Y-%m-%d")
+            except ValueError:
+                flash("Formato de data inválido. Use DD/MM/AAAA.", "danger")
+                return redirect(request.url)
+
+            fixed_fields["rental_date"] = rental_date
+            fixed_fields["return_date"] = return_date
+
             for field in fields_transaction:
                 field_id = field["id"]
                 raw_value = request.form.get(field_id, "").strip()
@@ -2297,7 +2308,8 @@ def list_transactions(
     itens_table,
     text_models_table,
     field_config_table,
-    client_id=None,
+    client_id= None,
+    item_id = None,
     page=None,
     limit=6,
 ):
@@ -2309,6 +2321,12 @@ def list_transactions(
     if not account_id:
         flash("Erro: Usuário não autenticado corretamente.", "danger")
         return redirect(url_for("login"))
+
+    if not item_id:
+        item_id = request.args.get("item_id")
+
+    if not client_id:
+        client_id = request.args.get("client_id")
 
     force_no_next = request.args.get("force_no_next")
 
@@ -2462,6 +2480,8 @@ def list_transactions(
             break
 
         for txn in transacoes:
+            if item_id and txn.get("item_id") != item_id:
+                continue
             # filtro por client_id e status direto
             if client_id and txn.get("client_id") != client_id:
                 continue

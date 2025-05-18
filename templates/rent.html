@@ -177,6 +177,8 @@
     if (oldPicker) {
       oldPicker.destroy(); // remove anterior
     }
+
+    console.log('📆 Raw dates recebidos:', rawDates);
     const DateTime = easepick.DateTime;
     const bookedDates = rawDates.map((d) => {
       if (Array.isArray(d)) {
@@ -334,9 +336,14 @@
           const div = document.createElement('div');
           div.className = 'autocomplete-item px-2 py-1';
           div.innerHTML = `
-            <strong>${item.item_custom_id || '(sem código)'}</strong><br>
-            <small>${item.item_description || ''}</small>
-          `;
+  <div class="d-flex flex-column small">
+    <div class="mb-1"><i class="fas fa-barcode me-1 text-secondary"></i><span class="fw-semibold">Código:</span> ${
+      item.item_custom_id || '(sem código)'
+    }</div>
+    <div><i class="fas fa-box me-1 text-secondary"></i><span class="fw-semibold">Descrição:</span> ${item.item_description || '(sem descrição)'}</div>
+  </div>
+`;
+
           div.addEventListener('click', () => {
             input.value = item[inputId];
             box.innerHTML = '';
@@ -735,7 +742,6 @@
 
       // 🚀 Inicializar tudo quando a página carregar
       window.addEventListener('DOMContentLoaded', () => {
-        iniciarDatePicker();
         configurarValidacao();
 
         // 🧼 Aplicar máscara de telefone ao digitar
@@ -897,11 +903,6 @@
       statusMsg.style.display = 'block';
     }
   });
-
-  document.addEventListener('DOMContentLoaded', () => {
-    inicializarAutocompleteItem('item_custom_id');
-    inicializarAutocompleteItem('item_description');
-  });
 </script>
 
 <script>
@@ -1022,39 +1023,32 @@
     }
   });
 </script>
+
 <script>
   document.addEventListener('DOMContentLoaded', function () {
     const statusField = document.getElementById('transaction_status');
     const retDateWrapper = document.getElementById('ret_date_wrapper');
-    const retDateInput = document.getElementById('transaction_ret_date');
-    const hintMsg = document.getElementById('ret_date_hint');
+    const retDateInput = retDateWrapper?.querySelector('input');
 
-    function atualizarEstadoRetDate() {
+    function atualizarVisibilidadeRetDate() {
       const status = statusField?.value;
       const deveExibir = status === 'rented';
 
-      if (retDateWrapper) {
+      if (retDateWrapper && retDateInput) {
         retDateWrapper.style.display = deveExibir ? 'block' : 'none';
-      }
-
-      if (retDateInput) {
         if (deveExibir) {
-          retDateInput.removeAttribute('disabled');
           retDateInput.setAttribute('required', 'required');
         } else {
-          retDateInput.setAttribute('disabled', 'disabled');
           retDateInput.removeAttribute('required');
         }
       }
-
-      if (hintMsg) {
-        hintMsg.style.color = deveExibir ? '#198754' : '#6c757d';
-        hintMsg.innerHTML = deveExibir ? 'Obrigatório no status <strong>Retirado</strong>.' : 'Obrigatório no status <strong>Retirado</strong>.';
-      }
     }
 
-    atualizarEstadoRetDate();
-    statusField?.addEventListener('change', atualizarEstadoRetDate);
+    // Executa ao carregar a página
+    atualizarVisibilidadeRetDate();
+
+    // Executa ao mudar o status
+    statusField?.addEventListener('change', atualizarVisibilidadeRetDate);
   });
 </script>
 
