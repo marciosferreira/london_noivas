@@ -103,10 +103,23 @@
     {% endfor %}
   </select>
 
-
               {% elif field.type == 'date' %}
             <input type="date" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
               value="{{ value }}" {% if field.required %}required{% endif %} />
+
+
+{% elif field.type == 'transaction_ret_date' %}
+ <div id="ret_date_hint" class="form-text text-muted mt-1">
+        Obrigatório quando o status for <strong>Retirado</strong>.
+
+  </div>
+
+<div id="ret_date_wrapper" class="mb-3">
+  <label for="transaction_ret_date" class="form-label fw-semibold">
+  </label>
+  <input type="date" class="form-control" id="transaction_ret_date" name="transaction_ret_date" value="{{ value }}" />
+</div>
+
 
 
 

@@ -1022,5 +1022,40 @@
     }
   });
 </script>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const statusField = document.getElementById('transaction_status');
+    const retDateWrapper = document.getElementById('ret_date_wrapper');
+    const retDateInput = document.getElementById('transaction_ret_date');
+    const hintMsg = document.getElementById('ret_date_hint');
+
+    function atualizarEstadoRetDate() {
+      const status = statusField?.value;
+      const deveExibir = status === 'rented';
+
+      if (retDateWrapper) {
+        retDateWrapper.style.display = deveExibir ? 'block' : 'none';
+      }
+
+      if (retDateInput) {
+        if (deveExibir) {
+          retDateInput.removeAttribute('disabled');
+          retDateInput.setAttribute('required', 'required');
+        } else {
+          retDateInput.setAttribute('disabled', 'disabled');
+          retDateInput.removeAttribute('required');
+        }
+      }
+
+      if (hintMsg) {
+        hintMsg.style.color = deveExibir ? '#198754' : '#6c757d';
+        hintMsg.innerHTML = deveExibir ? 'Obrigatório no status <strong>Retirado</strong>.' : 'Obrigatório no status <strong>Retirado</strong>.';
+      }
+    }
+
+    atualizarEstadoRetDate();
+    statusField?.addEventListener('change', atualizarEstadoRetDate);
+  });
+</script>
 
 {% endblock %}

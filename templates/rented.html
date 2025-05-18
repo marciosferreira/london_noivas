@@ -5,51 +5,41 @@
   {% set status_color_map = { 'reserved': 'warning', 'rented': 'primary', 'returned': 'success', 'overdue': 'danger' } %}
 
   <h2 class="mb-4">{{ title }}</h2>
-  {% set show_add_button = True %} {% set add_route = url_for('rent') %} {% include "components/filter_section.html" with context %} {% if not itens
-  %}
+  {% set show_add_button = True %} {% set add_route = url_for('rent') %} {% include "components/transaction_filter_section.html" with context %} {% if
+  not itens %}
   <div class="alert alert-info mt-3">Não há itens que satisfazem os critérios selecionados.</div>
   {% endif %} {% if itens %} {% set status_map = { 'reserved': 'Reservado', 'rented': 'Retirado', 'returned': 'Retornado', 'overdue': 'Atrasado' } %}
-
+  {{itens}}
   <div class="row g-3">
     {% for item in itens %}
     <div class="col-12 col-md-6 col-lg-4">
       <div class="card shadow-sm h-100 position-relative">
-        <!-- Badge de status no canto superior esquerdo -->
-        <span class="badge position-absolute top-0 start-0 m-2 bg-{{ status_color_map[item.transaction_status] }}">
-          {{ item.transaction_status | capitalize }}
-        </span>
-
         <!-- Bloco da imagem com badges horizontais sobrepostos -->
         {% for field in fields_config if field.type == 'item_image_url' and field.preview and field.visible %} {% set image_value =
         item.key_values[field.id] if item.key_values is defined and field.id in item.key_values else item[field.id] if field.id in item else '' %}
 
-        <div class="position-relative">
-          <!-- Faixa de badges no topo da imagem -->
-          <div
-            class="position-absolute top-0 start-0 w-100 px-2 py-1 d-flex flex-wrap gap-1 justify-content-center align-items-center"
-            style="background-color: rgba(0, 0, 0, 0.6); z-index: 10"
-          >
-            {# STATUS #} {% set status_color_map = { 'reserved': 'warning', 'rented': 'primary', 'returned': 'success', 'overdue': 'danger' } %} {% if
-            item.transaction_status in status_color_map %}
-            <span class="badge bg-{{ status_color_map[item.transaction_status] }}">{{ status_map[item.transaction_status] }}</span>
-            {% endif %} {# PAGAMENTO #} {% set pagamento_float = item.transaction_value_paid | float if item.transaction_value_paid else 0 %} {% set
-            valor_float = item.transaction_price | float if item.transaction_price else 0 %} {% if pagamento_float == valor_float and valor_float > 0
-            %}
-            <span class="badge bg-success">Pagamento Total</span>
-            {% elif pagamento_float > 0 and pagamento_float < valor_float %}
-            <span class="badge bg-warning text-dark">Pagamento Parcial</span>
-            {% else %}
-            <span class="badge bg-danger">Não Pago</span>
-            {% endif %} {# ATRASO #} {% if item.overdue %}
-            <span class="badge bg-danger">
-              Atrasado{% if item.overdue_days %} ({{ item.overdue_days }} {{ "dia" if item.overdue_days == 1 else "dias" }}){% endif %}
-            </span>
-            {% endif %} {# MENSAGEM ESPECIAL #} {% if item.rental_message %}
-            <span class="badge {{ item.rental_message_color }}">{{ item.rental_message }}</span>
-            {% endif %}
-          </div>
+        <!-- Faixa de badges acima da imagem -->
+        <div class="w-100 px-2 py-2 d-flex flex-wrap gap-2 justify-content-center align-items-center" style="background-color: #858688">
+          {# STATUS #} {% if item.transaction_status in status_color_map %}
+          <span class="badge bg-{{ status_color_map[item.transaction_status] }}">{{ status_map[item.transaction_status] }}</span>
+          {% endif %} {# PAGAMENTO #} {% set pagamento_float = item.transaction_value_paid | float if item.transaction_value_paid else 0 %} {% set
+          valor_float = item.transaction_price | float if item.transaction_price else 0 %} {% if pagamento_float == valor_float and valor_float > 0 %}
+          <span class="badge bg-success">Pagamento Total</span>
+          {% elif pagamento_float > 0 and pagamento_float < valor_float %}
+          <span class="badge bg-warning text-dark">Pagamento Parcial</span>
+          {% else %}
+          <span class="badge bg-danger">Não Pago</span>
+          {% endif %} {# ATRASO #} {% if item.overdue %}
+          <span class="badge bg-danger">
+            Atrasado{% if item.overdue_days %} ({{ item.overdue_days }} {{ "dia" if item.overdue_days == 1 else "dias" }}){% endif %}
+          </span>
+          {% endif %} {# MENSAGEM ESPECIAL #} {% if item.rental_message %}
+          <span class="badge {{ item.rental_message_color }}">{{ item.rental_message }}</span>
+          {% endif %}
+        </div>
 
-          <!-- IMAGEM -->
+        <!-- Imagem centralizada -->
+        <div class="text-center">
           <img
             src="{{ image_value if image_value and image_value != 'N/A' else url_for('static', filename='item-placeholder.png') }}"
             alt="Imagem"
@@ -98,9 +88,10 @@
                 in item else '' %} {% if value == 'None' or value is none %}
                 <span class="text-muted">-</span>
                 {% else %} {% if field.type == "phone" %} {{ value | format_phone }} {% elif field.type == "date" %} {{ value | format_date }} {% elif
-                field.type in ["value", "item_value", "transaction_price"] %} {{ value | format_currency }} {% elif field.type == "cpf" %} {{ value |
-                format_cpf }} {% elif field.type == "cnpj" %} {{ value | format_cnpj }} {% elif field.id == "transaction_status" %} {{
-                status_map.get(value, value) }} {% else %} {{ value | string | truncate(30, True) }} {% endif %} {% endif %}
+                field.type in ["value", "item_value", "transaction_price", "transaction_value_paid"] %} {{ value | format_currency }} {% elif
+                field.type == "cpf" %} {{ value | format_cpf }} {% elif field.type == "cnpj" %} {{ value | format_cnpj }} {% elif field.type ==
+                "client_phone" %} {{ value | format_phone }} {% elif field.id == "transaction_status" %} {{ status_map.get(value, value) }} {% else %}
+                {{ value | string | truncate(30, True) }} {% endif %} {% endif %}
               </span>
             </div>
             {% endfor %}

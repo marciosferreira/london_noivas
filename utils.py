@@ -460,6 +460,34 @@ def entidade_atende_filtros_dinamico(entidade, filtros, fields_config, image_url
         if image_url_required != tem_imagem:
             return False
 
+    # Filtros manuais para datas fixas da transação (rental_date e return_date)
+    rental_start = filtros.get("start_rental_date")
+    rental_end = filtros.get("end_rental_date")
+    return_start = filtros.get("start_return_date")
+    return_end = filtros.get("end_return_date")
+
+    try:
+        if rental_start:
+            date_val = datetime.datetime.strptime(entidade.get("rental_date", ""), "%Y-%m-%d").date()
+            if date_val < datetime.datetime.strptime(rental_start, "%Y-%m-%d").date():
+                return False
+        if rental_end:
+            date_val = datetime.datetime.strptime(entidade.get("rental_date", ""), "%Y-%m-%d").date()
+            if date_val > datetime.datetime.strptime(rental_end, "%Y-%m-%d").date():
+                return False
+        if return_start:
+            date_val = datetime.datetime.strptime(entidade.get("return_date", ""), "%Y-%m-%d").date()
+            if date_val < datetime.datetime.strptime(return_start, "%Y-%m-%d").date():
+                return False
+        if return_end:
+            date_val = datetime.datetime.strptime(entidade.get("return_date", ""), "%Y-%m-%d").date()
+            if date_val > datetime.datetime.strptime(return_end, "%Y-%m-%d").date():
+                return False
+    except Exception:
+        if rental_start or rental_end or return_start or return_end:
+            return False
+
+    # Filtros dinâmicos baseados em fields_config
     for field in fields_config:
         field_id = field["id"]
         field_type = field.get("type")
@@ -488,7 +516,7 @@ def entidade_atende_filtros_dinamico(entidade, filtros, fields_config, image_url
                     return False
 
         # OPÇÕES
-        elif field_type == "dropdown":
+        elif field_type in ["dropdown", "transaction_status"]:
             selected = filtros.get(field_id)
             if selected and selected != valor:
                 return False
@@ -508,3 +536,18 @@ def entidade_atende_filtros_dinamico(entidade, filtros, fields_config, image_url
                     return False
 
     return True
+
+
+def converter_intervalo_data_br_para_iso(filtros, chave, destino_inicio, destino_fim):
+    """Converte filtros do tipo 'dd/mm/yyyy - dd/mm/yyyy' para 'yyyy-mm-dd'"""
+    intervalo = filtros.get(chave)
+    if intervalo:
+        try:
+            partes = intervalo.split(" - ")
+            if len(partes) == 2:
+                inicio = datetime.datetime.strptime(partes[0], "%d/%m/%Y").date().isoformat()
+                fim = datetime.datetime.strptime(partes[1], "%d/%m/%Y").date().isoformat()
+                filtros[destino_inicio] = inicio
+                filtros[destino_fim] = fim
+        except Exception as e:
+            print(f"[Erro ao converter intervalo de data {chave}]:", e)

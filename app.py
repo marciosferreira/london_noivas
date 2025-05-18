@@ -162,6 +162,18 @@ def datetimeformat(value):
     return dt.strftime("%d/%m/%Y %H:%M")
 
 
+
+@app.template_filter("formatar_data_br")
+def formatar_data_br(data_iso):
+    if not data_iso:
+        return "-"
+    try:
+        dt = datetime.strptime(data_iso, "%Y-%m-%d")
+        return dt.strftime("%d/%m/%Y")
+    except ValueError:
+        return data_iso  # retorna como está, se não seguir o formato esperado
+
+
 @app.template_filter("format_brl")
 def format_brl(value):
     print(value)
@@ -234,7 +246,11 @@ app.jinja_env.filters["format_cnpj"] = format_cnpj
 app.jinja_env.filters["format_phone"] = format_phone
 app.jinja_env.filters["format_currency"] = format_currency
 
+from datetime import datetime
 
+@app.context_processor
+def inject_now():
+    return {'now': datetime.now}
 
 if __name__ == "__main__":
     # Determina se está no localhost

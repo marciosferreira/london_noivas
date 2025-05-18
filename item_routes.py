@@ -1798,13 +1798,13 @@ def init_item_routes(
                             status_counter["returned"] += 1  # ✅ Devolvido
                             event_counts[dev_date]["devolvido"] += 1
 
-                    if transaction.get("ret_date"):
-                        ret_date = datetime.datetime.strptime(
-                            transaction.get("ret_date"), "%Y-%m-%d"
+                    if transaction.get("transaction_ret_date"):
+                        transaction_ret_date = datetime.datetime.strptime(
+                            transaction.get("transaction_ret_date"), "%Y-%m-%d"
                         ).date()
-                        if start_date <= ret_date <= end_date:
+                        if start_date <= transaction_ret_date <= end_date:
                             status_counter["rented"] += 1  # ✅ Retirado
-                            event_counts[ret_date]["retirado"] += 1
+                            event_counts[transaction_ret_date]["retirado"] += 1
 
                 else:
                     print("no itens betwen dates")
@@ -2287,6 +2287,7 @@ def decode_dynamo_key(encoded_str):
     return json.loads(json_str)
 
 
+
 def list_transactions(
     status_list,
     template,
@@ -2313,6 +2314,10 @@ def list_transactions(
 
     user_utc = get_user_timezone(users_table, user_id)
     today = datetime.datetime.now(user_utc).date()
+
+    image_url_filter = request.args.get("item_image_url") or None
+    image_url_required = image_url_filter.lower() == "true" if image_url_filter is not None else None
+
 
     def process_dates(item):
         for key in ["rental_date", "return_date", "dev_date"]:
@@ -2358,6 +2363,13 @@ def list_transactions(
         return item
 
     filtros = request.args.to_dict()
+
+    converter_intervalo_data_br_para_iso(filtros, "rental_period", "start_rental_date", "end_rental_date")
+    converter_intervalo_data_br_para_iso(filtros, "return_period", "start_return_date", "end_return_date")
+
+
+    print("filtros")
+    print(filtros)
     page = int(filtros.pop("page", 1))
 
     current_path = request.path
@@ -2396,6 +2408,7 @@ def list_transactions(
                 "id": field_id,
                 "label": cfg.get("label", field_id.replace("_", " ").capitalize()),
                 "type": cfg.get("type"),
+                "f_type": cfg.get("f_type"),
                 "preview": cfg.get("preview", False),
                 "visible": cfg.get("visible", True),
                 "required": cfg.get("required", False),
@@ -2455,7 +2468,7 @@ def list_transactions(
             if status_list and txn.get("transaction_status") not in status_list:
                 continue
             # filtro dinâmico geral
-            if not entidade_atende_filtros_dinamico(txn, filtros, fields_config):
+            if not entidade_atende_filtros_dinamico(txn, filtros, fields_config, image_url_required):
                 continue
 
 
@@ -2573,6 +2586,8 @@ def get_valor_item(item, field):
         return (item.get("key_values") or {}).get(field_id, "")
 
 from utils import entidade_atende_filtros_dinamico  # certifique-se de importar isso corretamente
+from utils import converter_intervalo_data_br_para_iso  # certifique-se de importar isso corretamente
+
 
 def list_raw_itens(
     status_list,
@@ -2604,8 +2619,9 @@ def list_raw_itens(
     item_id = filtros.pop("item_id", None)
     page = int(filtros.pop("page", 1))
 
-    image_url_filter = request.args.get("item_image_url")
+    image_url_filter = request.args.get("item_image_url") or None
     image_url_required = image_url_filter.lower() == "true" if image_url_filter is not None else None
+
 
     if page == 1:
         session.pop("current_page_itens", None)

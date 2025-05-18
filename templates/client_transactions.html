@@ -1,154 +1,242 @@
-{% extends "base.html" %} {% block styles %}
-<link rel="stylesheet" href="{{ url_for('static', filename='style_client_transactions.css') }}" />
-{% endblock %} {% block body_class %}client_transactions{% endblock %} {% block content %}
-<div class="container mt-3">
-  <h2 class="section-title mb-3">
-    {% if itens %} {% if client_name %} Transações de: {{ client_name }} {% else %} Transações por cliente {% endif %}
-  </h2>
+{% extends "base.html" %} {% block title %}Todas as transações{% endblock %} {% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='style_all_transactions.css') }}" />
+{% endblock %} {% block content %}
+<div class="container my-3">
+  {% set status_color_map = { 'reserved': 'warning', 'rented': 'primary', 'returned': 'success', 'overdue': 'danger' } %}
 
-  {% include "components/filter_section.html" with context %}
+  <h2 class="mb-4">{{ title }}</h2>
+  {% set show_add_button = True %} {% set add_route = url_for('rent') %} {% include "components/transaction_filter_section.html" with context %} {% if
+  not itens %}
+  <div class="alert alert-info mt-3">Não há itens que satisfazem os critérios selecionados.</div>
+  {% endif %} {% if itens %} {% set status_map = { 'reserved': 'Reservado', 'rented': 'Retirado', 'returned': 'Retornado', 'overdue': 'Atrasado' } %}
+  {{itens}}
+  <div class="row g-3">
+    {% for item in itens %}
+    <div class="col-12 col-md-6 col-lg-4">
+      <div class="card shadow-sm h-100 position-relative">
+        <!-- Bloco da imagem com badges horizontais sobrepostos -->
+        {% for field in fields_config if field.type == 'item_image_url' and field.preview and field.visible %} {% set image_value =
+        item.key_values[field.id] if item.key_values is defined and field.id in item.key_values else item[field.id] if field.id in item else '' %}
 
-  <!-- Tabela -->
-  <div class="table-container mt-4">
-    <table class="table table-hover responsive-table align-middle rounded-table">
-      <thead>
-        <tr>
-          <th class="status-col">Status</th>
-          <th>Imagem</th>
-          <th>Cliente</th>
-          <th>Retirada P.</th>
-          <th>Devolução P.</th>
-          <th>Pago (R$)</th>
-          <th>Obs. Trans.</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        {% set status_map = { 'reserved': 'Reservado', 'rented': 'Retirado', 'returned': 'Retornado' } %} {% for item in itens %}
-        <tr>
-          <td data-label="Status" class="status-cell {{ item.transaction_status }}">
-            <div class="status-text">{{ status_map[item.transaction_status] }}</div>
-          </td>
-          <td data-label="Imagem">
-            {% if item.image_url and item.image_url != "N/A" %}
-            <img
-              src="{{ item.image_url }}"
-              class="img-fluid item-thumbnail"
-              style="max-width: 100px; cursor: pointer"
-              onclick="event.stopPropagation(); showImageModal('{{ item.image_url }}')"
-            />
-            {% else %}
-            <img
-              src="{{ url_for('static', filename='item-placeholder.png') }}"
-              class="img-fluid item-thumbnail"
-              style="max-width: 100px; cursor: pointer"
-              onclick="event.stopPropagation(); showImageModal('{{ url_for('static', filename='item-placeholder.png') }}')"
-            />
-            {% endif %}
-          </td>
+        <!-- Faixa de badges acima da imagem -->
+        <div class="w-100 px-2 py-2 d-flex flex-wrap gap-2 justify-content-center align-items-center" style="background-color: #858688">
+          {# STATUS #} {% if item.transaction_status in status_color_map %}
+          <span class="badge bg-{{ status_color_map[item.transaction_status] }}">{{ status_map[item.transaction_status] }}</span>
+          {% endif %} {# PAGAMENTO #} {% set pagamento_float = item.transaction_value_paid | float if item.transaction_value_paid else 0 %} {% set
+          valor_float = item.transaction_price | float if item.transaction_price else 0 %} {% if pagamento_float == valor_float and valor_float > 0 %}
+          <span class="badge bg-success">Pagamento Total</span>
+          {% elif pagamento_float > 0 and pagamento_float < valor_float %}
+          <span class="badge bg-warning text-dark">Pagamento Parcial</span>
+          {% else %}
+          <span class="badge bg-danger">Não Pago</span>
+          {% endif %} {# ATRASO #} {% if item.overdue %}
+          <span class="badge bg-danger">
+            Atrasado{% if item.overdue_days %} ({{ item.overdue_days }} {{ "dia" if item.overdue_days == 1 else "dias" }}){% endif %}
+          </span>
+          {% endif %} {# MENSAGEM ESPECIAL #} {% if item.rental_message %}
+          <span class="badge {{ item.rental_message_color }}">{{ item.rental_message }}</span>
+          {% endif %}
+        </div>
 
-          <td class="open-modal" data-item="{{ item | tojson | safe }}" data-label="Cliente">
-            {{ item.client_name | default('', true) | truncate(10, True) }}
-          </td>
-
-          <td class="open-modal" data-item="{{ item | tojson | safe }}" data-label="Retirada Prevista">{{ item.rental_date_formatted }}</td>
-
-          <td class="open-modal" data-item="{{ item | tojson | safe }}" data-label="Devolução Prevista">{{ item.return_date_formatted }}</td>
-
-          <td class="open-modal" data-item="{{ item | tojson | safe }}" data-label="Pagamento">{{ item.pagamento }}</td>
-
-          <td class="open-modal" data-item="{{ item | tojson | safe }}" data-label="Obs. Transação">
-            {{ item.transaction_obs | default('', true) | truncate(10, True) }}
-          </td>
-
-          <td data-label="Ações">
-            <div class="d-flex flex-wrap gap-2 justify-content-center align-items-center">
-              {% set show_delete_transaction = True %} {% set show_edit_transaction = True %} {% set show_mark_returned = True %} {% include
-              'components/action_buttons.html' with context %}
-            </div>
-          </td>
-        </tr>
+        <!-- Imagem centralizada -->
+        <div class="text-center">
+          <img
+            src="{{ image_value if image_value and image_value != 'N/A' else url_for('static', filename='item-placeholder.png') }}"
+            alt="Imagem"
+            class="card-img-top mx-auto d-block"
+            style="height: 240px; width: auto; max-width: 100%; object-fit: cover; cursor: pointer"
+            onclick="mostrarImagemModal('{{ image_value if image_value and image_value != 'N/A' else url_for('static', filename='item-placeholder.png') }}')"
+          />
+        </div>
         {% endfor %}
-      </tbody>
-    </table>
+
+        <div class="card-body pt-3 px-3">
+          <!-- Botões no topo direito -->
+          <div class="d-flex justify-content-end mb-2 gap-1">
+            <button
+              class="btn btn-sm btn-outline-secondary dropdown-toggle"
+              type="button"
+              id="dropdownMenuButton{{ loop.index }}"
+              data-bs-toggle="dropdown"
+              aria-expanded="false"
+            >
+              <i class="fas fa-ellipsis-v"></i>
+            </button>
+
+            {% set show_delete_transaction = True %} {% set show_edit_transaction = True %} {% set show_ver_reservas = True %} {% set show_mark_rented
+            = item.transaction_status == 'reserved' %} {% set show_mark_returned = item.transaction_status == 'rented' %} {% set show_print = True %}
+            {% set show_item = True %} {% set show_client = True %} {% set show_item_transactions = True %} {% set show_client_transactions = True %}
+            {% include 'components/action_buttons.html' with context %}
+            <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalItem{{ loop.index }}">
+              <i class="fas fa-eye"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton{{ loop.index }}"></ul>
+
+            {% set show_delete_transaction = True %} {% set show_edit_transaction = True %} {% set show_ver_reservas = True %} {% set show_mark_rented
+            = item.transaction_status == 'reserved' %} {% set show_mark_returned = item.transaction_status == 'rented' %} {% set show_print = True %}
+            {% set show_item = True %} {% set show_client = True %} {% set show_item_transactions = True %} {% set show_client_transactions = True %}
+            {% include 'components/action_buttons.html' with context %}
+          </div>
+
+          <!-- Campos dinâmicos -->
+          <div class="d-flex flex-column gap-2">
+            {% for field in fields_config %} {% if field.preview and field.visible and field.type != 'item_image_url' %} {% if not
+            (item.transaction_status == 'reserved' and field.id == 'transaction_ret_date') %}
+
+            <div class="d-flex justify-content-between small border-bottom pb-1">
+              <span class="text-muted">{{ field.label }}</span>
+              <span class="text-end">
+                {% set value = item.key_values[field.id] if item.key_values is defined and field.id in item.key_values else item[field.id] if field.id
+                in item else '' %} {% if value == 'None' or value is none %}
+                <span class="text-muted">-</span>
+                {% else %} {% if field.type == "phone" %} {{ value | format_phone }} {% elif field.type in ["date"] %} {{ value | format_date }} {%
+                elif field.type in ["transaction_ret_date"] %} {{ value | formatar_data_br }} {% elif field.type in ["value", "item_value",
+                "transaction_price", "transaction_value_paid"] %} {{ value | format_currency }} {% elif field.type == "cpf" %} {{ value | format_cpf
+                }} {% elif field.type == "cnpj" %} {{ value | format_cnpj }} {% elif field.id == "transaction_status" %} {{ status_map.get(value,
+                value) }} {% else %} {{ value | string | truncate(30, True) }} {% endif %} {% endif %}
+              </span>
+            </div>
+
+            {% endif %} {% endif %} {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {% include 'components/info_modal_transaction.html' with context %} {% endfor %}
   </div>
 
-  {% else %}
-
-  <p style="color: #308be3; font-weight: bold; font-size: 1.2rem; margin-top: -1rem; margin-left: 0.25rem">Nenhuma transação deste cliente!</p>
-
+  {% endif %} {% if itens %}
+  <ul class="pagination justify-content-center mt-4"></ul>
   {% endif %}
 </div>
 
-<!-- MODAL para mais informações -->
-<div class="modal fade" id="infoModal" tabindex="-1" aria-labelledby="infoModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Mais detalhes</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-        <p>
-          <strong>Cliente:</strong>
-          <span id="modalName"></span>
-        </p>
-        <p>
-          <strong>Descrição:</strong>
-          <span id="modalDescription"></span>
-        </p>
-        <p>
-          <strong>Telefone:</strong>
-          <span id="modalPhone"></span>
-        </p>
-        <p>
-          <strong>Valor(R$):</strong>
-          <span id="modalValue"></span>
-        </p>
-        <p>
-          <strong>Obs. da Transação:</strong>
-          <span id="modalTransObs"></span>
-        </p>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL para imagem -->
-<div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Visualizar Imagem</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body text-center">
-        <img class="img-fluid" id="modalImg" alt="Imagem do Item" />
-      </div>
-    </div>
-  </div>
-</div>
-{% endblock %} {% block scripts %}
+{% include 'components/image_modal.html' %} {% endblock %} {% block scripts %}
 <script>
   document.addEventListener('DOMContentLoaded', function () {
-    document.querySelectorAll('.open-modal').forEach((cell) => {
-      cell.addEventListener('click', function () {
-        let item = JSON.parse(this.getAttribute('data-item'));
-        document.getElementById('modalName').textContent = item.client_name || 'N/A';
-        document.getElementById('modalDescription').textContent = item.description || 'N/A';
-        document.getElementById('modalPhone').textContent = item.client_tel || 'N/A';
-        document.getElementById('modalValue').textContent = item.valor || 'N/A';
-        document.getElementById('modalTransObs').textContent = item.transaction_obs || 'sem observações';
-        let infoModal = new bootstrap.Modal(document.getElementById('infoModal'), { backdrop: 'static' });
-        infoModal.show();
+    document.querySelectorAll('.action-button.danger').forEach((btn) => {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation(); // impede de subir para a tr/td com "open-modal"
+        // NÃO use preventDefault aqui, porque é um botão de submit
       });
     });
   });
+</script>
 
-  function showImageModal(imageSrc) {
-    document.getElementById('modalImg').src = imageSrc;
-    let imageModal = new bootstrap.Modal(document.getElementById('imageModal'), { backdrop: 'static' });
-    imageModal.show();
+<!-- lib para um alert box com opçoes -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+  function confirmarAcao(urlBase) {
+    Swal.fire({
+      text: 'Cliente está pagando integralmente o item?',
+      showCancelButton: true,
+      showDenyButton: true,
+      confirmButtonText: 'Pago 100%',
+      denyButtonText: 'Apenas retirando',
+      cancelButtonText: 'Cancelar',
+      customClass: {
+        confirmButton: 'btn btn-success',
+        denyButton: 'btn btn-warning',
+        cancelButton: 'btn btn-secondary',
+      },
+      buttonsStyling: false, // necessário para aplicar classes Bootstrap
+    }).then((result) => {
+      if (result.isConfirmed) {
+        const urlFinal = urlBase.includes('?') ? urlBase + '&pago_total=1' : urlBase + '?pago_total=1';
+        window.location.href = urlFinal;
+      } else if (result.isDenied) {
+        window.location.href = urlBase;
+      }
+    });
   }
 </script>
+
+<script>
+  function printConteudo() {
+    const conteudoHtml = document.getElementById('print-area').innerHTML;
+
+    const win = window.open('', '_blank', 'width=800,height=600');
+
+    if (!win) {
+      alert('Não foi possível abrir a janela de impressão. Verifique se o bloqueador de pop-up está ativado.');
+      return;
+    }
+
+    win.document.open();
+    win.document.write(`
+      <html>
+        <head>
+          <title>Imprimir</title>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              padding: 20px;
+            }
+            @media print {
+              .no-print {
+                display: none !important;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          ${conteudoHtml}
+        </body>
+      </html>
+    `);
+
+    win.document.close();
+
+    // Esperar carregamento do conteúdo
+    win.onload = function () {
+      setTimeout(() => {
+        win.print();
+        win.close();
+      }, 300);
+    };
+  }
+</script>
+
+<script>
+  const urlParams = new URLSearchParams(window.location.search);
+  let currentPage = parseInt(urlParams.get('page') || '1');
+
+  const paginacao = document.querySelector('.pagination');
+
+  // Botão ← Anterior
+  if (currentPage > 1) {
+    const liPrev = document.createElement('li');
+    liPrev.className = 'page-item';
+    const aPrev = document.createElement('a');
+    aPrev.className = 'page-link';
+    aPrev.innerText = '← Anterior';
+    aPrev.href = `?page=${currentPage - 1}`;
+    liPrev.appendChild(aPrev);
+    paginacao.appendChild(liPrev);
+  }
+
+  // Página Atual
+  const liCurrent = document.createElement('li');
+  liCurrent.className = 'page-item active';
+  const aCurrent = document.createElement('a');
+  aCurrent.className = 'page-link';
+  aCurrent.innerText = `Página ${currentPage}`;
+  aCurrent.href = "#";
+  liCurrent.appendChild(aCurrent);
+  paginacao.appendChild(liCurrent);
+
+  // Botão Próxima →
+  {% if has_next %}
+    const liNext = document.createElement('li');
+    liNext.className = 'page-item';
+    const aNext = document.createElement('a');
+    aNext.className = 'page-link';
+    aNext.innerText = 'Próxima →';
+    aNext.href = `?page=${currentPage + 1}`;
+    liNext.appendChild(aNext);
+    paginacao.appendChild(liNext);
+  {% endif %}
+</script>
+
 {% endblock %}

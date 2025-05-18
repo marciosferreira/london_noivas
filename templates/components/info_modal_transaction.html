@@ -9,24 +9,24 @@
       <div class="modal-body">
         <div class="container-fluid">
           <div class="row g-3">
-            {% set status_mapping = { 'reserved': 'Reservado', 'rented': 'Retirado', 'returned': 'Devolvido' } %} {% for field in fields_config if
-            field.type != 'image_url' %}
+            {% set status_mapping = { 'reserved': 'Reservado', 'rented': 'Retirado', 'returned': 'Devolvido' } %} {% for field in fields_config %} {%
+            if field.type != 'image_url' %} {% if not (item.transaction_status == 'reserved' and field.id == 'transaction_ret_date') %}
             <div class="col-12 col-md-6">
               <strong>{{ field.label }}:</strong>
               <br />
+
               {% set value = item.key_values[field.id] if item.key_values is defined and field.id in item.key_values else item[field.id] if field.id
               in item else '' %} {% if value == 'None' or value is none %}
               <span class="text-muted">-</span>
               {% else %}
               <span>
                 {% if field.type == "date" %} {{ value | format_date }} {% elif field.type in ["value", "transaction_value_paid", "transaction_price",
-                "item_value"] %} {{ value | format_brl }} {% elif field.id == "transaction_status" %} {{ status_mapping.get(value, value) }} {% else
-                %} {{ value }} {% endif %}
+                "item_value"] %} {{ value | format_brl }} {% elif field.type == "transaction_ret_date" %} {{ value | formatar_data_br }} {% elif
+                field.id == "transaction_status" %} {{ status_mapping.get(value, value) }} {% else %} {{ value }} {% endif %}
               </span>
-
               {% endif %}
             </div>
-            {% endfor %}
+            {% endif %} {% endif %} {% endfor %}
           </div>
         </div>
       </div>
