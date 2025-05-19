@@ -1308,7 +1308,7 @@ def get_default_fields_and_slugs(entity):
                 "type": "client_email",
                 "order_sequence": 3,
                 "filterable": True,
-                "preview": False,
+                "preview": True,
                 "f_type": "fixed",
             },
             "client_address": {
@@ -1317,7 +1317,7 @@ def get_default_fields_and_slugs(entity):
                 "type": "client_address",
                 "order_sequence": 4,
                 "filterable": True,
-                "preview": False,
+                "preview": True,
                 "f_type": "fixed",
             },
             "client_cpf": {
@@ -1326,7 +1326,7 @@ def get_default_fields_and_slugs(entity):
                 "type": "client_cpf",
                 "order_sequence": 5,
                 "filterable": True,
-                "preview": False,
+                "preview": True,
                 "f_type": "fixed",
             },
             "client_cnpj": {
@@ -1335,7 +1335,7 @@ def get_default_fields_and_slugs(entity):
                 "type": "client_cnpj",
                 "order_sequence": 6,
                 "filterable": True,
-                "preview": False,
+                "preview": True,
                 "f_type": "fixed",
             },
             "client_notes": {

@@ -46,7 +46,8 @@
               <span>
                 {% if field.type == "date" %} {{ value | format_date }} {% elif field.type in ["value", "transaction_value_paid", "transaction_price",
                 "item_value"] %} {{ value | format_brl }} {% elif field.type == "transaction_ret_date" %} {{ value | formatar_data_br }} {% elif
-                field.id == "transaction_status" %} {{ status_mapping.get(value, value) }} {% else %} {{ value }} {% endif %}
+                field.type in ["phone", "client_phone"] %} {{ value | format_phone }} {% elif field.id == "transaction_status" %} {{
+                status_mapping.get(value, value) }} {% else %} {{ value }} {% endif %}
               </span>
               {% endif %}
             </div>

@@ -50,3 +50,9 @@
   font-size: 0.95rem; /* Letras menores */
   font-weight: normal; /* Sem bold */
 }
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 0.75rem 1.25rem rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease-in-out;
+}

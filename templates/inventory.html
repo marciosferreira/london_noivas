@@ -11,7 +11,9 @@
   <div class="row g-3">
     {% for item in itens %}
     <div class="col-12 col-md-6 col-lg-4">
-      <div class="card shadow-sm h-100 position-relative">
+      <div class="card shadow-lg h-100 position-relative rounded-3 border-0 border-start border-4 border-primary">
+        <!-- Badge de status -->
+        <span class="badge bg-success position-absolute top-0 end-0 m-2">Disponível</span>
         {% for field in fields_config if field.type == 'item_image_url' and field.preview and field.visible %} {% set image_value =
         item.key_values[field.id] if item.key_values is defined and field.id in item.key_values else item[field.id] if field.id in item else '' %}
         <div class="text-center mt-2">
@@ -25,11 +27,8 @@
         </div>
         {% endfor %}
 
-        <div class="card-body pt-3 px-3">
-          <!-- Botões de ação -->
-
+        <div class="card-body py-3 px-4">
           <div class="d-flex justify-content-end mb-2 gap-1">
-            <!-- Bloco do dropdown -->
             <div class="dropdown">
               <button
                 class="btn btn-sm btn-outline-secondary dropdown-toggle"
@@ -40,11 +39,9 @@
               >
                 <i class="fas fa-ellipsis-v"></i>
               </button>
-
               {% set show_delete_item = True %} {% set show_edit_item = True %} {% set show_rent = True %} {% set show_archive = True %} {% set
               show_consult = True %} {% set show_qrcode = True %} {% set show_share = True %} {% set show_item_transactions = True %} {% include
               'components/action_buttons.html' with context %}
-
               <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton{{ loop.index }}">
                 <li class="px-2 py-1">
                   <div class="d-flex flex-column gap-1"></div>
@@ -52,13 +49,11 @@
               </ul>
             </div>
 
-            <!-- Botão olho -->
             <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalItem{{ loop.index }}">
               <i class="fas fa-eye"></i>
             </button>
           </div>
 
-          <!-- Campos do item -->
           <div class="d-flex flex-column gap-2">
             {% for field in fields_config if field.preview and field.visible and field.type != 'item_image_url' %}
             <div class="d-flex justify-content-between small border-bottom pb-1">
@@ -78,6 +73,7 @@
     </div>
     {% include 'components/info_modal_item.html' with context %} {% endfor %}
   </div>
+
   {% endif %} {% if itens %}
   <ul class="pagination justify-content-center mt-4"></ul>
   {% endif %}

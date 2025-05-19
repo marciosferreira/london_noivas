@@ -9,36 +9,34 @@
   not itens %}
   <div class="alert alert-info mt-3">Não há itens que satisfazem os critérios selecionados.</div>
   {% endif %} {% if itens %} {% set status_map = { 'reserved': 'Reservado', 'rented': 'Retirado', 'returned': 'Retornado', 'overdue': 'Atrasado' } %}
-  {{itens}}
-  <div class="row g-3">
-    {% for item in itens %}
+  <div class="row g-3 mt-2">
+    {% set status_color_map = { 'reserved': 'warning', 'rented': 'primary', 'returned': 'success', 'overdue': 'danger' } %} {% set status_map = {
+    'reserved': 'Reservado', 'rented': 'Retirado', 'returned': 'Retornado', 'overdue': 'Atrasado' } %} {% for item in itens %}
     <div class="col-12 col-md-6 col-lg-4">
-      <div class="card shadow-sm h-100 position-relative">
-        <!-- Bloco da imagem com badges horizontais sobrepostos -->
-        {% for field in fields_config if field.type == 'item_image_url' and field.preview and field.visible %} {% set image_value =
-        item.key_values[field.id] if item.key_values is defined and field.id in item.key_values else item[field.id] if field.id in item else '' %}
-
-        <!-- Faixa de badges acima da imagem -->
-        <div class="w-100 px-2 py-2 d-flex flex-wrap gap-2 justify-content-center align-items-center" style="background-color: #858688">
-          {# STATUS #} {% if item.transaction_status in status_color_map %}
+      <div class="card shadow-lg h-100 position-relative rounded-3 border-0 border-start border-4 border-primary">
+        <!-- Badges empilhados no canto superior direito -->
+        <div class="position-absolute top-0 end-0 m-2 d-flex flex-column align-items-end gap-1 z-1">
+          {% if item.transaction_status in status_color_map %}
           <span class="badge bg-{{ status_color_map[item.transaction_status] }}">{{ status_map[item.transaction_status] }}</span>
-          {% endif %} {# PAGAMENTO #} {% set pagamento_float = item.transaction_value_paid | float if item.transaction_value_paid else 0 %} {% set
-          valor_float = item.transaction_price | float if item.transaction_price else 0 %} {% if pagamento_float == valor_float and valor_float > 0 %}
+          {% endif %} {% set pagamento_float = item.transaction_value_paid | float if item.transaction_value_paid else 0 %} {% set valor_float =
+          item.transaction_price | float if item.transaction_price else 0 %} {% if pagamento_float == valor_float and valor_float > 0 %}
           <span class="badge bg-success">Pagamento Total</span>
           {% elif pagamento_float > 0 and pagamento_float < valor_float %}
           <span class="badge bg-warning text-dark">Pagamento Parcial</span>
           {% else %}
           <span class="badge bg-danger">Não Pago</span>
-          {% endif %} {# ATRASO #} {% if item.overdue %}
+          {% endif %} {% if item.overdue %}
           <span class="badge bg-danger">
             Atrasado{% if item.overdue_days %} ({{ item.overdue_days }} {{ "dia" if item.overdue_days == 1 else "dias" }}){% endif %}
           </span>
-          {% endif %} {# MENSAGEM ESPECIAL #} {% if item.rental_message %}
-          <span class="badge {{ item.rental_message_color }}">{{ item.rental_message }}</span>
+          {% endif %} {% if item.rental_message %}
+          <span class="badge bg-light text-dark border border-secondary">{{ item.rental_message }}</span>
           {% endif %}
         </div>
 
-        <!-- Imagem centralizada -->
+        <!-- Imagem -->
+        {% for field in fields_config if field.type == 'item_image_url' and field.preview and field.visible %} {% set image_value =
+        item.key_values[field.id] if item.key_values is defined and field.id in item.key_values else item[field.id] if field.id in item else '' %}
         <div class="text-center">
           <img
             src="{{ image_value if image_value and image_value != 'N/A' else url_for('static', filename='item-placeholder.png') }}"
@@ -50,59 +48,51 @@
         </div>
         {% endfor %}
 
-        <div class="card-body pt-3 px-3">
-          <!-- Botões no topo direito -->
+        <div class="card-body py-3 px-4">
           <div class="d-flex justify-content-end mb-2 gap-1">
-            <button
-              class="btn btn-sm btn-outline-secondary dropdown-toggle"
-              type="button"
-              id="dropdownMenuButton{{ loop.index }}"
-              data-bs-toggle="dropdown"
-              aria-expanded="false"
-            >
-              <i class="fas fa-ellipsis-v"></i>
-            </button>
+            <div class="dropdown">
+              <button
+                class="btn btn-sm btn-outline-secondary dropdown-toggle"
+                type="button"
+                id="dropdownMenuButton{{ loop.index }}"
+                data-bs-toggle="dropdown"
+                aria-expanded="false"
+              >
+                <i class="fas fa-ellipsis-v"></i>
+              </button>
 
-            {% set show_delete_transaction = True %} {% set show_edit_transaction = True %} {% set show_ver_reservas = True %} {% set show_mark_rented
-            = item.transaction_status == 'reserved' %} {% set show_mark_returned = item.transaction_status == 'rented' %} {% set show_print = True %}
-            {% set show_item = True %} {% set show_client = True %} {% set show_item_transactions = True %} {% set show_client_transactions = True %}
-            {% include 'components/action_buttons.html' with context %}
+              {% set show_delete_transaction = True %} {% set show_edit_transaction = True %} {% set show_ver_reservas = True %} {% set
+              show_mark_rented = item.transaction_status == 'reserved' %} {% set show_mark_returned = item.transaction_status == 'rented' %} {% set
+              show_print = True %} {% set show_item = True %} {% set show_client = True %} {% set show_item_transactions = True %} {% set
+              show_client_transactions = True %} {% include 'components/action_buttons.html' with context %}
+            </div>
+
             <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalItem{{ loop.index }}">
               <i class="fas fa-eye"></i>
             </button>
-            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton{{ loop.index }}"></ul>
-
-            {% set show_delete_transaction = True %} {% set show_edit_transaction = True %} {% set show_ver_reservas = True %} {% set show_mark_rented
-            = item.transaction_status == 'reserved' %} {% set show_mark_returned = item.transaction_status == 'rented' %} {% set show_print = True %}
-            {% set show_item = True %} {% set show_client = True %} {% set show_item_transactions = True %} {% set show_client_transactions = True %}
-            {% include 'components/action_buttons.html' with context %}
           </div>
 
-          <!-- Campos dinâmicos -->
           <div class="d-flex flex-column gap-2">
-            {% for field in fields_config %} {% if field.preview and field.visible and field.type != 'item_image_url' %} {% if not
-            (item.transaction_status == 'reserved' and field.id == 'transaction_ret_date') %}
-
+            {% for field in fields_config if field.preview and field.visible and field.type != 'item_image_url' %} {% if not (item.transaction_status
+            == 'reserved' and field.id == 'transaction_ret_date') %}
             <div class="d-flex justify-content-between small border-bottom pb-1">
               <span class="text-muted">{{ field.label }}</span>
               <span class="text-end">
                 {% set value = item.key_values[field.id] if item.key_values is defined and field.id in item.key_values else item[field.id] if field.id
                 in item else '' %} {% if value == 'None' or value is none %}
                 <span class="text-muted">-</span>
-                {% else %} {% if field.type == "phone" %} {{ value | format_phone }} {% elif field.type in ["date"] %} {{ value | format_date }} {%
-                elif field.type in ["transaction_ret_date"] %} {{ value | formatar_data_br }} {% elif field.type in ["value", "item_value",
-                "transaction_price", "transaction_value_paid"] %} {{ value | format_currency }} {% elif field.type == "cpf" %} {{ value | format_cpf
-                }} {% elif field.type == "cnpj" %} {{ value | format_cnpj }} {% elif field.id == "transaction_status" %} {{ status_map.get(value,
-                value) }} {% else %} {{ value | string | truncate(30, True) }} {% endif %} {% endif %}
+                {% else %} {% if field.type in ["phone", "client_phone"] %} {{ value | format_phone }} {% elif field.type == "date" %} {{ value |
+                format_date }} {% elif field.type == "transaction_ret_date" %} {{ value | formatar_data_br }} {% elif field.type in ["value",
+                "item_value", "transaction_price", "transaction_value_paid"] %} {{ value | format_currency }} {% elif field.type == "cpf" %} {{ value
+                | format_cpf }} {% elif field.type == "cnpj" %} {{ value | format_cnpj }} {% elif field.id == "transaction_status" %} {{
+                status_map.get(value, value) }} {% else %} {{ value | string | truncate(30, True) }} {% endif %} {% endif %}
               </span>
             </div>
-
-            {% endif %} {% endif %} {% endfor %}
+            {% endif %} {% endfor %}
           </div>
         </div>
       </div>
     </div>
-
     {% include 'components/info_modal_transaction.html' with context %} {% endfor %}
   </div>
 

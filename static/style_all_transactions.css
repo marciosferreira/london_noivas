@@ -16,3 +16,9 @@
   padding: 0.4em 0.6em;
   border-radius: 0.5rem;
 }
+
+.card .badge {
+  font-size: 0.75rem;
+  padding: 0.35em 0.6em;
+  border-radius: 0.5rem;
+}
