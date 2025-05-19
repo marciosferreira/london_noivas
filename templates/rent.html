@@ -44,7 +44,6 @@
     </div>
   </div>
 </div>
-{{next}}
 <div class="container py-4">
   <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
     <h1 class="mb-0">Adicionar Transação</h1>
@@ -230,6 +229,13 @@
           }
           return date.inArray(bookedDates, '[]');
         },
+      },
+      locale: {
+        cancel: 'Cancelar',
+        apply: 'Aplicar',
+        reset: 'Limpar',
+        one: 'dia',
+        other: 'dias',
       },
       format: 'DD/MM/YYYY',
       setup(picker) {

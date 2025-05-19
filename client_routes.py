@@ -238,7 +238,7 @@ def init_client_routes(
             return redirect(url_for("login"))
 
         raw_next = request.args.get("next", url_for("listar_clientes"))
-        next_page = f"{raw_next}?client_id={client_id}" if "?" not in raw_next else f"{raw_next}&client_id={client_id}"
+        next_page = raw_next if "?" not in raw_next else f"{raw_next}&client_id={client_id}"
 
         account_id = session.get("account_id")
         user_id = session.get("user_id")

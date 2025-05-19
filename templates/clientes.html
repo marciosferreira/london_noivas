@@ -25,8 +25,9 @@
               >
                 <i class="fas fa-ellipsis-v"></i>
               </button>
-              {% set show_delete_client = True %} {% set show_edit_client = True %} {% set show_client_transactions = True %} {% include
-              'components/action_buttons.html' with context %}
+
+              {% set show_delete_client = True %} {% set show_start_transaction_client = True %} {% set show_edit_client = True %} {% set
+              show_client_transactions = True %} {% include 'components/action_buttons.html' with context %}
               <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton{{ loop.index }}">
                 <li class="px-2 py-1"><div class="d-flex flex-column gap-1"></div></li>
               </ul>
