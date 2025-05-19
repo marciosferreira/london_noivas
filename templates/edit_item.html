@@ -39,7 +39,12 @@
             <div id="{{ field.id }}_suggestions" class="autocomplete-box position-absolute w-100 bg-white shadow-sm z-3"></div>
           </div>
 
-          {% elif field.type in ['text', 'value', 'item_obs', 'item_value'] %}
+          {% elif field.type in ['value', 'item_value'] %}
+            <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+              value="{{ value | format_currency }}" {% if field.required %}required{% endif %} />
+
+
+          {% elif field.type in ['text', 'item_obs'] %}
             <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
               value="{{ value }}" {% if field.required %}required{% endif %} />
 
@@ -49,7 +54,7 @@
 
           {% elif field.type == 'date' %}
             <input type="date" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
-              value="{{ value }}" {% if field.required %}required{% endif %} />
+              value="{{ value | formatar_data_br }}" {% if field.required %}required{% endif %} />
 
           {% elif field.type == 'dropdown' %}
             <select class="form-select" id="{{ field.id }}" name="{{ field.id }}" {% if field.required %}required{% endif %}>

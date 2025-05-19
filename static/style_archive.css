@@ -43,3 +43,9 @@
 #filter-section {
   margin-top: 1rem;
 }
+
+/* 🖼️ Espaçamento para imagem */
+.card-img-top {
+  margin-top: 1rem; /* ou 1.5rem se quiser mais espaço */
+  border-radius: 0.25rem;
+}

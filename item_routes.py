@@ -263,7 +263,7 @@ def init_item_routes(
                 "previous_status": request.form.get("status"),
                 "created_at": datetime.datetime.now(
                     get_user_timezone(users_table, user_id)
-                ).strftime("%d/%m/%Y %H:%M:%S"),
+                ).strftime("%Y-%m-%d %H:%M:%S"),
             }
 
             image_file = request.files.get("image_file")
@@ -700,39 +700,30 @@ def init_item_routes(
                 transacoes = response.get("Items", [])
 
                 for tx in transacoes:
-                    # Atualiza item principal
-                    # Atualiza item principal
                     update_expression = []
                     expression_values = {}
                     expression_names = {}
 
                     for key, value in changes.items():
-                        if "." in key:
-                            # Ex: key = "key_values.cor"
-                            parts = key.split(".")
-                            prefix = parts[0]
-                            subkey = parts[1]
-
-                            expression_names[f"#{prefix}"] = prefix
-                            attr_path = f"#{prefix}.{subkey}"
-
-                            update_expression.append(f"{attr_path} = :{prefix}_{subkey}")
-                            expression_values[f":{prefix}_{subkey}"] = value
-                        else:
+                        if key == "key_values" and isinstance(value, dict) and value:
+                            # Só adiciona se tiver dados
+                            update_expression.append("#ikv = :ikv")
+                            expression_values[":ikv"] = value
+                            expression_names["#ikv"] = "item_key_values"
+                        elif key != "key_values":
                             update_expression.append(f"{key} = :{key}")
                             expression_values[f":{key}"] = value
 
-                    update_kwargs = {
-                        "Key": {"item_id": item_id},
-                        "UpdateExpression": "SET " + ", ".join(update_expression),
-                        "ExpressionAttributeValues": expression_values,
-                    }
-                    if expression_names:
-                        update_kwargs["ExpressionAttributeNames"] = expression_names
+                    if update_expression:  # Só faz update se houver algo
+                        update_kwargs = {
+                            "Key": {"transaction_id": tx["transaction_id"]},
+                            "UpdateExpression": "SET " + ", ".join(update_expression),
+                            "ExpressionAttributeValues": expression_values,
+                        }
+                        if expression_names:
+                            update_kwargs["ExpressionAttributeNames"] = expression_names
 
-                    itens_table.update_item(**update_kwargs)
-
-
+                        transactions_table.update_item(**update_kwargs)
 
 
             flash("Item atualizado com sucesso.", "success")
@@ -843,7 +834,8 @@ def init_item_routes(
                             current_stripe_transaction=current_transaction,
                             total_relevant_transactions=0,
                             total_itens=0,
-                            next=request.args.get("next", "rent"),
+                            next = request.args.get("next") or request.referrer or url_for("rent"),
+
                         )
 
                 form_data[field_id] = value
@@ -932,8 +924,8 @@ def init_item_routes(
             }
 
             # Snapshot dos campos fixos de cliente/item
-            transaction_item.update({k: v for k, v in client.items() if k != "key_values"})
-            transaction_item.update({k: v for k, v in item.items() if k != "key_values"})
+            transaction_item.update({k: v for k, v in client.items() if k not in ["key_values", "created_at"]})
+            transaction_item.update({k: v for k, v in item.items() if k not in ["key_values", "created_at"]})
 
             # 🔐 Salvar
             try:
@@ -946,7 +938,7 @@ def init_item_routes(
             except Exception as e:
                 flash("Erro ao salvar transação. Tente novamente.", "danger")
                 print("Erro ao salvar transação:", e)
-                return render_template("rent.html", item=item, client=client, reserved_ranges=[], all_fields=all_fields, cliente_editavel=True, item_editavel=True, ordem=ordem)
+                return render_template("rent.html", item=item, client=client, reserved_ranges=[], all_fields=all_fields, cliente_editavel=True, item_editavel=True, ordem=ordem, next = request.args.get("next") or request.referrer or url_for("rent"))
 
                 ################################################################################################################
 
@@ -1053,7 +1045,7 @@ def init_item_routes(
             total_itens=total_itens,
             cliente_vindo_da_query=cliente_vindo_da_query,
             item_vindo_da_query=item_vindo_da_query,
-            next = request.args.get("next", "rent"),
+            next = request.args.get("next") or request.referrer or url_for("rent"),
             ordem=ordem,
         )
 
@@ -1117,7 +1109,7 @@ def init_item_routes(
             if item:
                 # Obter data e hora atuais no formato brasileiro
                 deleted_date = datetime.datetime.now(user_utc).strftime(
-                    "%d/%m/%Y %H:%M:%S"
+                    "%Y-%m-%d %H:%M:%S"
                 )
 
                 # Atualizar o status do item para "deleted"
@@ -1177,7 +1169,7 @@ def init_item_routes(
                     try:
                         # Converter string de data para objeto datetime
                         deleted_date = datetime.datetime.strptime(
-                            deleted_date_str, "%d/%m/%Y %H:%M:%S"
+                            deleted_date_str, "%Y-%m-%d %H:%M:%S"
                         )
 
                         # Verificar se passou dos 30 dias
@@ -1774,11 +1766,17 @@ def init_item_routes(
         )
 
         for transaction in transactions:
+            #print(transaction)
 
-            try:
+            if 1==1: #try:
+                print("stttt")
                 transaction_date = datetime.datetime.strptime(
                     transaction.get("created_at"), "%Y-%m-%d %H:%M:%S"
                 ).date()
+
+                print(start_date)
+                print(transaction_date)
+                print(end_date)
 
                 if start_date <= transaction_date <= end_date:
                     num_transactions += 1
@@ -1819,7 +1817,7 @@ def init_item_routes(
 
                 else:
                     print("no itens betwen dates")
-            except (ValueError, TypeError):
+            #except (ValueError, TypeError):
                 continue
 
         preco_medio = sum_valor / num_transactions if num_transactions else 0
@@ -2817,7 +2815,7 @@ def list_raw_itens(
 
 
 
-def filtra_transacao(txn, filtros, client_id, status_list):
+def XXXXXfiltra_transacao(txn, filtros, client_id, status_list):
     # 1. Filtro obrigatório: status da transação
     if txn.get("transaction_status") not in status_list:
         return False

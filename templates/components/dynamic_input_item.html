@@ -28,10 +28,14 @@
                 value="{{ value }}" {% if field.required %}required{% endif %} {% if readonly %}readonly{% endif %} />
 
 
-
-              {% elif field.type in ["value", "item_value" ,"number"] %}
+              {% elif field.type in ["value", "item_value"] %}
               <input type="text" class="form-control campo-monetario" id="{{ field.id }}" name="{{ field.id }}"
-                value="{{ value | format_currency}}" {% if field.required %}required{% endif %} {% if readonly %}readonly{% endif %} />
+                value="{{ value }}" {% if field.required %}required{% endif %} {% if readonly %}readonly{% endif %} />
+
+                {% elif field.type in ["number"] %}
+              <input type="text" class="form-control campo-monetario" id="{{ field.id }}" name="{{ field.id }}"
+                value="{{ value }}" {% if field.required %}required{% endif %} {% if readonly %}readonly{% endif %} />
+
 
           {% elif field.type == "dropdown" %}
             <select class="form-select" id="{{ field.id }}" name="{{ field.id }}" {% if field.required %}required{% endif %} {% if readonly %}disabled{% endif %}>

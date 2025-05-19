@@ -334,29 +334,28 @@ def init_client_routes(
                         expr_values = {}
                         expr_names = {}
 
-                        # Campos fixos (ex: client_name, client_cpf, etc.)
+                        # Atualiza campos fixos como client_name, client_cpf, etc.
                         for k, v in updated_values.items():
                             update_expr.append(f"#{k} = :{k}")
                             expr_values[f":{k}"] = v
                             expr_names[f"#{k}"] = k
 
-                        # Campos customizados dentro de key_values, se existirem na transação
-                        if "key_values" in tx and isinstance(tx["key_values"], dict):
-                            expr_names["#kv"] = "key_values"
-                            for k, v in updated_key_values.items():
-                                update_expr.append(f"#kv.{k} = :kv_{k}")
-                                expr_values[f":kv_{k}"] = v
+                        # Atualiza snapshot inteiro de client_key_values apenas se houver conteúdo
+                        if updated_key_values and isinstance(updated_key_values, dict) and len(updated_key_values) > 0:
+                            expr_names["#ckv"] = "client_key_values"
+                            update_expr.append("#ckv = :ckv")
+                            expr_values[":ckv"] = updated_key_values
 
-                        # Executa apenas se houver algo para atualizar
                         if update_expr:
-                            transactions_table.update_item(
-                                Key={"transaction_id": tx["transaction_id"]},
-                                UpdateExpression="SET " + ", ".join(update_expr),
-                                ExpressionAttributeValues=expr_values,
-                                ExpressionAttributeNames=expr_names if expr_names else None,
-                            )
+                            update_kwargs = {
+                                "Key": {"transaction_id": tx["transaction_id"]},
+                                "UpdateExpression": "SET " + ", ".join(update_expr),
+                                "ExpressionAttributeValues": expr_values,
+                            }
+                            if expr_names:
+                                update_kwargs["ExpressionAttributeNames"] = expr_names
 
-
+                            transactions_table.update_item(**update_kwargs)
 
 
                 flash("Cliente atualizado com sucesso!", "success")

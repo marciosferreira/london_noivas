@@ -253,6 +253,7 @@
       });
     </script>
 
+    <!--
     <script>
       document.addEventListener('DOMContentLoaded', function () {
         document.querySelectorAll('form').forEach((form) => {
@@ -262,14 +263,20 @@
           const spinner = btn.querySelector('.spinner-border');
           const text = btn.querySelector('span');
 
-          form.addEventListener('submit', function () {
-            btn.disabled = true;
-            if (spinner) spinner.style.display = 'inline-block';
-            if (text) text.textContent = 'Enviando...';
+          form.addEventListener('submit', function (e) {
+            // Aguarda final da execução para saber se foi cancelado
+            setTimeout(() => {
+              if (form.checkValidity()) {
+                btn.disabled = true;
+                if (spinner) spinner.style.display = 'inline-block';
+                if (text) text.textContent = 'Enviando...';
+              }
+            }, 0);
           });
         });
       });
     </script>
+    -->
 
     {% endblock %}
   </body>

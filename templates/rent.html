@@ -44,12 +44,12 @@
     </div>
   </div>
 </div>
-
+{{next}}
 <div class="container py-4">
   <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
     <h1 class="mb-0">Adicionar Transação</h1>
 
-    <a href="{{ next }}" class="exit-link">
+    <a href="{{ next | default(url_for('all_transactions')) }}" class="exit-link">
       <i class="fas fa-sign-out-alt me-2"></i>
       Sair sem Finalizar
     </a>
@@ -138,9 +138,15 @@
 
     const index = ORDEM_BLOCOS.indexOf(id);
     steps.forEach((step, i) => step.classList.toggle('active', i === index));
-    if (id === 'bloco-transacao' && window.itemIdSelecionadoParaDatas) {
-      carregarReservedRanges(window.itemIdSelecionadoParaDatas);
-      window.itemIdSelecionadoParaDatas = null;
+
+    if (id === 'bloco-transacao') {
+      const itemId = document.getElementById('item_id')?.value;
+      if (window.itemIdSelecionadoParaDatas) {
+        carregarReservedRanges(window.itemIdSelecionadoParaDatas);
+        window.itemIdSelecionadoParaDatas = null;
+      } else if (!itemId) {
+        iniciarDatePickerComDatas([]); // inicializa com nenhuma data bloqueada
+      }
     }
   }
 </script>
@@ -263,7 +269,7 @@
             el.dispatchEvent(new Event('input'));
           }
 
-          if (key === 'item_value') {
+          if (el.classList.contains('campo-monetario')) {
             formatarCampoMonetario(el, true);
           }
         }
@@ -588,205 +594,210 @@
 
 <script>
 
-          // 📆 Datepicker com datas bloqueadas
-          function iniciarDatePicker() {
-            const DateTime = easepick.DateTime;
-            const rawDates = {{ reserved_ranges | tojson(indent=2) }};
-            const bookedDates = rawDates.map(d => {
-              if (d instanceof Array) {
-                const start = new DateTime(d[0], 'YYYY-MM-DD');
-                const end = new DateTime(d[1], 'YYYY-MM-DD');
-                return [start, end];
-              }
-              return new DateTime(d, 'YYYY-MM-DD');
-            });
+    // 📆 Datepicker com datas bloqueadas
+    function iniciarDatePicker() {
+      const DateTime = easepick.DateTime;
+      const rawDates = {{ reserved_ranges | tojson(indent=2) }};
+      const bookedDates = rawDates.map(d => {
+        if (d instanceof Array) {
+          const start = new DateTime(d[0], 'YYYY-MM-DD');
+          const end = new DateTime(d[1], 'YYYY-MM-DD');
+          return [start, end];
+        }
+        return new DateTime(d, 'YYYY-MM-DD');
+      });
 
-            new easepick.create({
-
-
-          element: document.getElementById('transaction_period_display'),
-          css: [
-            'https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.css',
-            'https://easepick.com/css/demo_hotelcal.css',
-          ],
-          lang: 'pt-BR',
-          autoApply: false,
-          plugins: ['RangePlugin', 'LockPlugin', 'AmpPlugin'],
-          AmpPlugin: {
-            resetButton: true,
-          },
-          RangePlugin: {
-            tooltipNumber(num) {
-              return num;
-            },
-            locale: {
-              one: 'dia',
-              other: 'dias',
-            },
-          },
-          LockPlugin: {
-            minDate: new Date(),
-            minDays: 1,
-            inseparable: true,
-            filter(date, picked) {
-              if (picked.length === 1) {
-                return !picked[0].isSame(date, 'day') && date.inArray(bookedDates, '[]');
-              }
-              return date.inArray(bookedDates, '[]');
-            },
-          },
-          locale: {
-            cancel: 'Cancelar',
-            apply: 'Aplicar',
-            reset: 'Limpar',
-            one: 'dia',
-            other: 'dias',
-          },
-          format: 'DD/MM/YYYY',
-          setup(picker) {
-            picker.on('select', () => {
-              const start = picker.getStartDate()?.format('DD/MM/YYYY');
-              const end = picker.getEndDate()?.format('DD/MM/YYYY');
-              const displayInput = document.getElementById('transaction_period_display');
-              const hiddenInput = document.getElementById('transaction_period');
-
-              if (start && end) {
-                const periodo = `${start} - ${end}`;
-                displayInput.value = periodo;
-                hiddenInput.value = periodo;
-              } else {
-                displayInput.value = '';
-                hiddenInput.value = '';
-              }
-            });
-          }
-        });
-
-          }
+      new easepick.create({
 
 
+    element: document.getElementById('transaction_period_display'),
+    css: [
+      'https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.css',
+      'https://easepick.com/css/demo_hotelcal.css',
+    ],
+    lang: 'pt-BR',
+    autoApply: false,
+    plugins: ['RangePlugin', 'LockPlugin', 'AmpPlugin'],
+    AmpPlugin: {
+      resetButton: true,
+    },
+    RangePlugin: {
+      tooltipNumber(num) {
+        return num;
+      },
+      locale: {
+        one: 'dia',
+        other: 'dias',
+      },
+    },
+    LockPlugin: {
+      minDate: new Date(),
+      minDays: 1,
+      inseparable: true,
+      filter(date, picked) {
+        if (picked.length === 1) {
+          return !picked[0].isSame(date, 'day') && date.inArray(bookedDates, '[]');
+        }
+        return date.inArray(bookedDates, '[]');
+      },
+    },
+    locale: {
+      cancel: 'Cancelar',
+      apply: 'Aplicar',
+      reset: 'Limpar',
+      one: 'dia',
+      other: 'dias',
+    },
+    format: 'DD/MM/YYYY',
+    setup(picker) {
+      picker.on('select', () => {
+        const start = picker.getStartDate()?.format('DD/MM/YYYY');
+        const end = picker.getEndDate()?.format('DD/MM/YYYY');
+        const displayInput = document.getElementById('transaction_period_display');
+        const hiddenInput = document.getElementById('transaction_period');
 
-          // ✅ Validação do formulário + preenchimento dos campos ocultos
-          function configurarValidacao() {
-            document.getElementById('form-rent').addEventListener('submit', function (e) {
-              const dp = document.getElementById('datepicker');
+        if (start && end) {
+          const periodo = `${start} - ${end}`;
+          displayInput.value = periodo;
+          hiddenInput.value = periodo;
+        } else {
+          displayInput.value = '';
+          hiddenInput.value = '';
+        }
+      });
+    }
+  });
 
+    }
+</script>
 
-              const telFormatted = document.getElementById('client_phone').value;
-              const cpfFormatted = document.getElementById('client_cpf').value;
-              const cnpjFormatted = document.getElementById('client_cnpj').value;
+<script>
+  // ✅ Validação do formulário + preenchimento dos campos ocultos
+  function configurarValidacao() {
+    document.getElementById('form-rent').addEventListener('submit', function (e) {
+      let formValido = true;
 
-              const telDigits = telFormatted.replace(/\D/g, '');
-              const cpfDigits = cpfFormatted.replace(/\D/g, '');
-              const cnpjDigits = cnpjFormatted.replace(/\D/g, '');
+      const dp = document.getElementById('datepicker');
 
-              document.getElementById('client_phone').value = telDigits;
-              document.getElementById('client_cpf').value = cpfDigits;
-              document.getElementById('client_cnpj').value = cnpjDigits;
+      const telFormatted = document.getElementById('client_phone').value;
+      const cpfFormatted = document.getElementById('client_cpf').value;
+      const cnpjFormatted = document.getElementById('client_cnpj').value;
 
-              if (cpfDigits && !validaCPF(cpfDigits)) {
-                e.preventDefault();
-                alert('CPF inválido!');
-                return;
-              }
+      const telDigits = telFormatted.replace(/\D/g, '');
+      const cpfDigits = cpfFormatted.replace(/\D/g, '');
+      const cnpjDigits = cnpjFormatted.replace(/\D/g, '');
 
-              if (cnpjDigits && !validaCNPJ(cnpjDigits)) {
-                e.preventDefault();
-                alert('CNPJ inválido!');
-                return;
-              }
+      document.getElementById('client_phone').value = telDigits;
+      document.getElementById('client_cpf').value = cpfDigits;
+      document.getElementById('client_cnpj').value = cnpjDigits;
 
-             const periodo = document.getElementById('transaction_period');
-    if (!periodo || !periodo.value.trim()) {
-      e.preventDefault();
+      if (cpfDigits && !validaCPF(cpfDigits)) {
+        e.preventDefault();
+        alert('CPF inválido!');
+        formValido = false;
+      }
 
-      // Mostra alerta moderno e destrava a interface
-      setTimeout(() => {
-  mostrarToast('Por favor, selecione um período de locação.', 'danger');
+      if (cnpjDigits && !validaCNPJ(cnpjDigits)) {
+        e.preventDefault();
+        alert('CNPJ inválido!');
+        formValido = false;
+      }
+
+      const periodo = document.getElementById('transaction_period');
+      if (!periodo || !periodo.value.trim()) {
+        e.preventDefault();
+        mostrarToast('Por favor, selecione um período de locação.', 'danger');
         document.getElementById('transaction_period_display')?.focus();
-      }, 100);
+        formValido = false;
+      }
 
-      return false;
+      if (!formValido) {
+        const submitBtn = this.querySelector('button[type="submit"]');
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          const spinner = submitBtn.querySelector('.spinner-border');
+          const text = submitBtn.querySelector('span');
+          if (spinner) spinner.style.display = 'none';
+          if (text) text.textContent = 'Confirmar';
+        }
+      }
+    });
+  }
+</script>
+
+<script>
+  function validaCPF(cpf) {
+    if (cpf.length !== 11 || /^(\d)\1+$/.test(cpf)) return false;
+    let soma = 0,
+      resto;
+    for (let i = 1; i <= 9; i++) soma += parseInt(cpf[i - 1]) * (11 - i);
+    resto = (soma * 10) % 11;
+    if (resto === 10 || resto === 11) resto = 0;
+    if (resto !== parseInt(cpf[9])) return false;
+    soma = 0;
+    for (let i = 1; i <= 10; i++) soma += parseInt(cpf[i - 1]) * (12 - i);
+    resto = (soma * 10) % 11;
+    if (resto === 10 || resto === 11) resto = 0;
+    return resto === parseInt(cpf[10]);
+  }
+
+  function validaCNPJ(cnpj) {
+    if (cnpj.length !== 14 || /^(\d)\1+$/.test(cnpj)) return false;
+    let tamanho = cnpj.length - 2;
+    let numeros = cnpj.substring(0, tamanho);
+    let digitos = cnpj.substring(tamanho);
+    let soma = 0;
+    let pos = tamanho - 7;
+
+    for (let i = tamanho; i >= 1; i--) {
+      soma += parseInt(numeros.charAt(tamanho - i)) * pos--;
+      if (pos < 2) pos = 9;
     }
 
+    let resultado = soma % 11 < 2 ? 0 : 11 - (soma % 11);
+    if (resultado != parseInt(digitos.charAt(0))) return false;
 
+    tamanho += 1;
+    numeros = cnpj.substring(0, tamanho);
+    soma = 0;
+    pos = tamanho - 7;
+    for (let i = tamanho; i >= 1; i--) {
+      soma += parseInt(numeros.charAt(tamanho - i)) * pos--;
+      if (pos < 2) pos = 9;
+    }
 
+    resultado = soma % 11 < 2 ? 0 : 11 - (soma % 11);
+    return resultado == parseInt(digitos.charAt(1));
+  }
 
+  // 🚀 Inicializar tudo quando a página carregar
+  window.addEventListener('DOMContentLoaded', () => {
+    configurarValidacao();
 
-            });
-          }
+    // 🧼 Aplicar máscara de telefone ao digitar
+    const telInput = document.getElementById('client_phone');
+    if (telInput) {
+      telInput.addEventListener('input', (e) => {
+        e.target.value = maskPhone(e.target.value);
+      });
+    }
 
-          function validaCPF(cpf) {
-            if (cpf.length !== 11 || /^(\d)\1+$/.test(cpf)) return false;
-            let soma = 0, resto;
-            for (let i = 1; i <= 9; i++) soma += parseInt(cpf[i - 1]) * (11 - i);
-            resto = (soma * 10) % 11;
-            if (resto === 10 || resto === 11) resto = 0;
-            if (resto !== parseInt(cpf[9])) return false;
-            soma = 0;
-            for (let i = 1; i <= 10; i++) soma += parseInt(cpf[i - 1]) * (12 - i);
-            resto = (soma * 10) % 11;
-            if (resto === 10 || resto === 11) resto = 0;
-            return resto === parseInt(cpf[10]);
-          }
+    // 🧼 Aplicar máscara de CPF ao digitar
+    const cpfInput = document.getElementById('client_cpf');
+    if (cpfInput) {
+      cpfInput.addEventListener('input', (e) => {
+        e.target.value = maskCPF(e.target.value);
+      });
+    }
 
-          function validaCNPJ(cnpj) {
-            if (cnpj.length !== 14 || /^(\d)\1+$/.test(cnpj)) return false;
-            let tamanho = cnpj.length - 2;
-            let numeros = cnpj.substring(0, tamanho);
-            let digitos = cnpj.substring(tamanho);
-            let soma = 0;
-            let pos = tamanho - 7;
-
-            for (let i = tamanho; i >= 1; i--) {
-              soma += parseInt(numeros.charAt(tamanho - i)) * pos--;
-              if (pos < 2) pos = 9;
-            }
-
-            let resultado = soma % 11 < 2 ? 0 : 11 - (soma % 11);
-            if (resultado != parseInt(digitos.charAt(0))) return false;
-
-            tamanho += 1;
-            numeros = cnpj.substring(0, tamanho);
-            soma = 0;
-            pos = tamanho - 7;
-            for (let i = tamanho; i >= 1; i--) {
-              soma += parseInt(numeros.charAt(tamanho - i)) * pos--;
-              if (pos < 2) pos = 9;
-            }
-
-            resultado = soma % 11 < 2 ? 0 : 11 - (soma % 11);
-            return resultado == parseInt(digitos.charAt(1));
-          }
-
-          // 🚀 Inicializar tudo quando a página carregar
-          window.addEventListener('DOMContentLoaded', () => {
-            configurarValidacao();
-
-            // 🧼 Aplicar máscara de telefone ao digitar
-            const telInput = document.getElementById('client_phone');
-            if (telInput) {
-            telInput.addEventListener('input', (e) => {
-              e.target.value = maskPhone(e.target.value);
-            });
-          }
-
-          // 🧼 Aplicar máscara de CPF ao digitar
-          const cpfInput = document.getElementById('client_cpf');
-          if (cpfInput) {
-            cpfInput.addEventListener('input', (e) => {
-              e.target.value = maskCPF(e.target.value);
-            });
-          }
-
-          // 🧼 Aplicar máscara de CNPJ ao digitar
-          const cnpjInput = document.getElementById('client_cnpj');
-          if (cnpjInput) {
-            cnpjInput.addEventListener('input', (e) => {
-              e.target.value = maskCNPJ(e.target.value);
-            });
-          }
-          });
+    // 🧼 Aplicar máscara de CNPJ ao digitar
+    const cnpjInput = document.getElementById('client_cnpj');
+    if (cnpjInput) {
+      cnpjInput.addEventListener('input', (e) => {
+        e.target.value = maskCNPJ(e.target.value);
+      });
+    }
+  });
 </script>
 
 {{ super() }}
@@ -813,7 +824,7 @@
     if (forcarFormatacao && input.value) {
       const raw = input.value.replace(/\D/g, '');
       if (raw) {
-        const floatValue = parseFloat(raw) / 100;
+        const floatValue = parseFloat(raw);
         input.value = floatValue.toLocaleString('pt-BR', {
           minimumFractionDigits: 2,
           maximumFractionDigits: 2,

@@ -52,7 +52,13 @@
 }
 
 .card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 0.75rem 1.25rem rgba(0, 0, 0, 0.1);
-  transition: all 0.2s ease-in-out;
+  box-shadow: 0 1rem 1.5rem rgba(0, 0, 0, 0.15);
+  transition: box-shadow 0.2s ease-in-out;
+}
+
+.card-img-top {
+  margin-top: 1rem; /* mantém o espaçamento */
+  border-radius: 0.25rem; /* mantém a estética */
+  position: relative; /* garante stacking context previsível */
+  z-index: 1; /* abaixo do dropdown */
 }
