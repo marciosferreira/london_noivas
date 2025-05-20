@@ -30,7 +30,7 @@
       <div class="col-sm-6 col-lg-4">
         <img src="/static/icons/icon_2.png" alt="Para qualquer locadora" class="img-fluid mb-3" style="max-height: 80px" />
         <h5>Serve para qualquer tipo de aluguel</h5>
-        <p>De vestidos a ferramentas. Se adapta à qualquer realidade no ramo de aluguéis de itens em geral.</p>
+        <p>Com campos customizáveis, se adapta à qualquer realidade no ramo de aluguéis de itens em geral.</p>
       </div>
       <div class="col-sm-6 col-lg-4">
         <img src="/static/icons/icon_3.png" alt="Fácil e seguro" class="img-fluid mb-3" style="max-height: 80px" />
@@ -75,32 +75,34 @@
 
   <hr class="my-4" />
 
-  <!-- TELAS DO SISTEMA -->
-  <section class="mb-5 text-center">
-    <h2 class="mb-4">Algumas telas do sistema</h2>
-    <div class="row g-3 justify-content-center">
-      {% for img in ['telas_transactions.png', 'yyy.png', 'zzz.png', 'www.png'] %}
-      <div class="col-6 col-md-3">
-        <img src="/static/icons/{{ img }}" alt="Tela" class="img-fluid fixed-height-img shadow-sm" data-bs-toggle="modal" data-bs-target="#imageModal" />
-      </div>
-      {% endfor %}
+<!-- TELAS DO SISTEMA -->
+<section class="mb-5 text-center">
+  <h2 class="mb-4">Algumas telas do sistema</h2>
+  <div class="row g-3 justify-content-center">
+    {% for img in ['a_clients.png', 'a_custom.png', 'a_inventory.png', 'a_rent.png', 'a_reports.png', 'a_transactions.png'] %}
+    <div class="col-12 col-sm-6 col-md-4">
+      <img src="/static/icons/{{ img }}" alt="Tela"
+           class="img-fluid fixed-height-img destacado"
+           data-bs-toggle="modal" data-bs-target="#imageModal" />
     </div>
-  </section>
-
-  <hr class="my-4" />
-
-  <!-- VÍDEO -->
-  <section class="mb-4 text-center">
-    <h2 class="mb-3">Assista o sistema em ação</h2>
-    <video controls preload="metadata" class="w-100 rounded shadow" style="max-width: 720px">
-      <source src="https://alugueqqc-images.s3.us-east-1.amazonaws.com/video/alugue_qqc.mp4" type="video/mp4" />
-    </video>
-  </section>
-
-  <div class="text-center mt-4">
-    <a class="btn btn-success px-4" href="{{ url_for('register') }}">Cadastre-se</a>
+    {% endfor %}
   </div>
+</section>
+
+<hr class="my-4" />
+
+<!-- VÍDEO -->
+<section class="mb-4 text-center">
+  <h2 class="mb-3">Assista o sistema em ação</h2>
+  <video controls preload="metadata" class="w-100 rounded shadow" style="max-width: 720px">
+    <source src="https://alugueqqc-images.s3.us-east-1.amazonaws.com/video/alugue_qqc.mp4" type="video/mp4" />
+  </video>
+</section>
+
+<div class="text-center mt-4">
+  <a class="btn btn-success px-4" href="{{ url_for('register') }}">Cadastre-se</a>
 </div>
+
 
 <!-- Modal permanece igual -->
 

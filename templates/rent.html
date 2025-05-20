@@ -288,6 +288,26 @@
       // Adia o carregamento até que a aba transação esteja ativa
       window.itemIdSelecionadoParaDatas = item.item_id;
     }
+
+    // 🔁 Preenche imagem, se houver
+    const imageInput = document.getElementById('image-url-input');
+    const imagePreview = document.getElementById('item-image');
+    const fileInput = document.getElementById('image_file');
+    const removeBtn = document.getElementById('remove-btn');
+
+    if (item.item_image_url && imageInput && imagePreview) {
+      imageInput.value = item.item_image_url;
+      imagePreview.src = item.item_image_url;
+
+      if (removeBtn) removeBtn.style.display = 'block';
+      if (fileInput) fileInput.style.display = 'none';
+    } else {
+      // Se não houver imagem, usa placeholder e limpa campos
+      if (imageInput) imageInput.value = '';
+      if (imagePreview) imagePreview.src = "{{ url_for('static', filename='item-placeholder.png') }}";
+      if (removeBtn) removeBtn.style.display = 'none';
+      if (fileInput) fileInput.style.display = 'block';
+    }
   }
 
   async function carregarReservedRanges(itemId) {
