@@ -24,8 +24,8 @@
       <label for="store_name">Nome da sua loja*</label>
       <input
         type="text"
-        id="store_name"
-        name="store_name"
+        id="username"
+        name="username"
         class="form-control"
         placeholder="Digite o nome da loja"
         required
@@ -103,6 +103,8 @@
     const passwordError = document.getElementById('password-error');
     const requirements = document.getElementById('password-requirements');
     const termsCheckbox = document.getElementById('terms-checkbox');
+    const spinner = document.getElementById('register-spinner');
+    const text = document.getElementById('register-text');
 
     function temLetraENumero(senha) {
       return /[A-Za-z]/.test(senha) && /\d/.test(senha);
@@ -113,7 +115,6 @@
       const confirmar = confirmPasswordInput.value;
       let valido = true;
 
-      // 🔹 Verifica se tem letra e número
       if (!temLetraENumero(senha)) {
         requirements.classList.remove('d-none');
         valido = false;
@@ -121,7 +122,6 @@
         requirements.classList.add('d-none');
       }
 
-      // 🔹 Verifica se senhas batem
       if (senha && confirmar && senha !== confirmar) {
         passwordError.classList.remove('d-none');
         valido = false;
@@ -129,39 +129,32 @@
         passwordError.classList.add('d-none');
       }
 
-      // 🔹 Verifica termos
       if (!termsCheckbox.checked) {
         valido = false;
       }
 
       registerBtn.disabled = !valido;
+      return valido;
     }
 
-    // 🧠 Eventos
     passwordInput.addEventListener('input', atualizarMensagens);
     confirmPasswordInput.addEventListener('input', atualizarMensagens);
     termsCheckbox.addEventListener('change', atualizarMensagens);
 
-    // 🧠 Mostra mensagens no submit se algo estiver errado
     form.addEventListener('submit', function (e) {
-      if (registerBtn.disabled) {
+      const valido = atualizarMensagens();
+      if (!valido) {
         e.preventDefault();
-        atualizarMensagens();
         alert('Por favor, corrija os erros antes de continuar.');
+        return;
       }
+
+      // Só exibe spinner se for válido
+      registerBtn.disabled = true;
+      spinner.style.display = 'inline-block';
+      text.textContent = 'Enviando...';
     });
   });
 </script>
 
-<script>
-  document.querySelector('form').addEventListener('submit', function () {
-    const btn = document.getElementById('register-btn');
-    const spinner = document.getElementById('register-spinner');
-    const text = document.getElementById('register-text');
-
-    btn.disabled = true;
-    spinner.style.display = 'inline-block';
-    text.textContent = 'Enviando...';
-  });
-</script>
 {% endblock %}
