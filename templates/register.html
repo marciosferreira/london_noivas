@@ -1,11 +1,17 @@
 {% extends "base.html" %} {% block title %}Cadastrar-se - Alugue QQC{% endblock %} {% block styles %}
+<style>
+  .btn-green-custom .spinner-border {
+    vertical-align: middle;
+  }
+</style>
+
 <link rel="stylesheet" href="{{ url_for('static', filename='style_login.css') }}" />
 {% endblock %} {% block content %}
 <!-- Importa o estilo do header -->
 {% include 'not_logged_header.html' %}
 
 <div class="login-container">
-  <h1>Cadastro</h1>
+  <h1 class="mb-4">Cadastro</h1>
 
   {% if error %}
   <div class="alert alert-danger">{{ error }}</div>
@@ -14,27 +20,27 @@
   {% endif %}
 
   <form action="{{ url_for('register') }}" method="POST">
-    <div class="form-group">
-      <label for="reg-username">Nome da sua locadora</label>
+    <div class="form-group mb-3">
+      <label for="store_name">Nome da sua loja*</label>
       <input
         type="text"
-        id="reg-username"
-        name="username"
+        id="store_name"
+        name="store_name"
         class="form-control"
-        placeholder="Digite o nome da sua locadora"
+        placeholder="Digite o nome da loja"
         required
         minlength="3"
-        maxlength="15"
+        maxlength="25"
       />
     </div>
 
-    <div class="form-group">
-      <label for="reg-email">Email</label>
+    <div class="form-group mb-3">
+      <label for="reg-email">Email*</label>
       <input type="email" id="reg-email" name="email" class="form-control" placeholder="Digite seu email" required />
     </div>
 
-    <div class="form-group">
-      <label for="reg-password">Senha (8 caracteres)</label>
+    <div class="form-group mb-3">
+      <label for="reg-password">Senha (mínimo 6 caracteres)*</label>
       <input
         type="password"
         id="reg-password"
@@ -45,10 +51,13 @@
         minlength="8"
         maxlength="64"
       />
+      <span id="password-requirements" class="form-text text-danger d-none" style="font-size: 0.9em">
+        Mínimo de 6 caracteres com ao menos uma letra e um número.
+      </span>
     </div>
 
-    <div class="form-group">
-      <label for="confirm-password">Confirme a Senha</label>
+    <div class="form-group mb-3">
+      <label for="confirm-password">Confirme a Senha*</label>
       <input
         type="password"
         id="confirm-password"
@@ -59,7 +68,7 @@
         minlength="8"
         maxlength="64"
       />
-      <span id="password-error" style="color: red; font-size: 0.8em; display: none">As senhas não coincidem</span>
+      <span id="password-error" class="form-text text-danger d-none" style="font-size: 0.9em">As senhas não coincidem.</span>
     </div>
 
     <div class="form-check mb-3">
@@ -75,29 +84,84 @@
       <div class="g-recaptcha" data-sitekey="6LdriyYrAAAAAEyfAFjmOpZmGr9XGNOqsCuOPsNG"></div>
     </div>
 
-    <button type="submit" class="btn btn-green-custom" id="register-btn" disabled>Cadastrar</button>
+    <button type="submit" class="btn btn-green-custom d-flex align-items-center justify-content-center gap-2" id="register-btn" disabled>
+      <span id="register-text">Cadastrar</span>
+      <div id="register-spinner" class="spinner-border spinner-border-sm text-light" role="status" style="display: none"></div>
+    </button>
   </form>
 </div>
+
 {% endblock %} {% block scripts %}
 <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 
 <script>
   document.addEventListener('DOMContentLoaded', function () {
+    const form = document.querySelector('form');
     const registerBtn = document.getElementById('register-btn');
     const passwordInput = document.getElementById('reg-password');
     const confirmPasswordInput = document.getElementById('confirm-password');
     const passwordError = document.getElementById('password-error');
+    const requirements = document.getElementById('password-requirements');
     const termsCheckbox = document.getElementById('terms-checkbox');
 
-    function validateForm() {
-      const passwordsMatch = passwordInput.value === confirmPasswordInput.value;
-      passwordError.style.display = passwordsMatch ? 'none' : 'block';
-      registerBtn.disabled = !(passwordsMatch && termsCheckbox.checked);
+    function temLetraENumero(senha) {
+      return /[A-Za-z]/.test(senha) && /\d/.test(senha);
     }
 
-    passwordInput.addEventListener('input', validateForm);
-    confirmPasswordInput.addEventListener('input', validateForm);
-    termsCheckbox.addEventListener('change', validateForm);
+    function atualizarMensagens() {
+      const senha = passwordInput.value;
+      const confirmar = confirmPasswordInput.value;
+      let valido = true;
+
+      // 🔹 Verifica se tem letra e número
+      if (!temLetraENumero(senha)) {
+        requirements.classList.remove('d-none');
+        valido = false;
+      } else {
+        requirements.classList.add('d-none');
+      }
+
+      // 🔹 Verifica se senhas batem
+      if (senha && confirmar && senha !== confirmar) {
+        passwordError.classList.remove('d-none');
+        valido = false;
+      } else {
+        passwordError.classList.add('d-none');
+      }
+
+      // 🔹 Verifica termos
+      if (!termsCheckbox.checked) {
+        valido = false;
+      }
+
+      registerBtn.disabled = !valido;
+    }
+
+    // 🧠 Eventos
+    passwordInput.addEventListener('input', atualizarMensagens);
+    confirmPasswordInput.addEventListener('input', atualizarMensagens);
+    termsCheckbox.addEventListener('change', atualizarMensagens);
+
+    // 🧠 Mostra mensagens no submit se algo estiver errado
+    form.addEventListener('submit', function (e) {
+      if (registerBtn.disabled) {
+        e.preventDefault();
+        atualizarMensagens();
+        alert('Por favor, corrija os erros antes de continuar.');
+      }
+    });
+  });
+</script>
+
+<script>
+  document.querySelector('form').addEventListener('submit', function () {
+    const btn = document.getElementById('register-btn');
+    const spinner = document.getElementById('register-spinner');
+    const text = document.getElementById('register-text');
+
+    btn.disabled = true;
+    spinner.style.display = 'inline-block';
+    text.textContent = 'Enviando...';
   });
 </script>
 {% endblock %}

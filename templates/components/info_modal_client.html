@@ -1,87 +1,32 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Teste Modal</title>
-  </head>
-  <body>
-    <!-- Modal -->
-    <div class="modal fade" id="infoModal" tabindex="-1" aria-labelledby="infoModalLabel" aria-hidden="true">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title">Detalhes do Cliente</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-          </div>
-          <div class="modal-body">
-            <p>
-              <strong>Nome:</strong>
-              <span id="modalName"></span>
-            </p>
-            <p>
-              <strong>Telefone:</strong>
-              <span id="modalPhone"></span>
-            </p>
-            <p>
-              <strong>Email:</strong>
-              <span id="modalEmail"></span>
-            </p>
-            <p>
-              <strong>Endereço:</strong>
-              <span id="modalAddress"></span>
-            </p>
-            <p></p>
-            <p>
-              <strong>CPF:</strong>
-              <span id="modalCPF"></span>
-            </p>
-            <p></p>
-            <p>
-              <strong>CNPJ:</strong>
-              <span id="modalCNPJ"></span>
-            </p>
-            <p>
-              <strong>Data de Cadastro:</strong>
-              <span id="modalCreated"></span>
-            </p>
+<div class="modal fade" id="modalItem{{ loop.index }}" tabindex="-1" aria-labelledby="modalItemLabel{{ loop.index }}" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalItemLabel{{ loop.index }}">Detalhes do Cliente</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body">
+        <div class="container-fluid">
+          <div class="row g-3">
+            {% for field in fields_config if field.type != 'image_url' %}
+            <div class="col-12 col-md-6">
+              <strong>{{ field.label }}:</strong>
+              <br />
+              {% set value = item.key_values[field.id] if item.key_values is defined and field.id in item.key_values else item[field.id] if field.id
+              in item else '' %} {% if value == 'None' or value is none %}
+              <span class="text-muted">-</span>
+              {% else %}
+              <span>
+                {% if field.type == "date" %} {{ value | format_date }} {% elif field.type == "value" %} {{ value | format_brl }} {% elif field.type
+                == "client_cpf" %} {{ value | format_cpf }} {% elif field.type == "client_cnpj" %} {{ value | format_cnpj }} {% elif field.type ==
+                "client_phone" %} {{ value | format_phone }}{% else %} {{ value }} {% endif %}
+              </span>
+              {% endif %}
+            </div>
+            {% endfor %}
           </div>
         </div>
       </div>
     </div>
-
-    <script>
-      function formatarDataBrasilComHora(dataISO) {
-        if (!dataISO) return 'N/A';
-        const data = new Date(dataISO);
-        const dia = String(data.getDate()).padStart(2, '0');
-        const mes = String(data.getMonth() + 1).padStart(2, '0');
-        const ano = data.getFullYear();
-        const horas = String(data.getHours()).padStart(2, '0');
-        const minutos = String(data.getMinutes()).padStart(2, '0');
-        return `${dia}/${mes}/${ano} ${horas}:${minutos}`;
-      }
-
-      document.addEventListener('DOMContentLoaded', function () {
-        document.querySelectorAll('.open-modal').forEach((cell) => {
-          cell.addEventListener('click', function () {
-            try {
-              let item = JSON.parse(this.getAttribute('data-item'));
-              document.getElementById('modalName').textContent = item.client_name || 'N/A';
-              document.getElementById('modalPhone').textContent = item.client_tel || 'N/A';
-              document.getElementById('modalEmail').textContent = item.client_email || 'N/A';
-              document.getElementById('modalAddress').textContent = item.client_address || 'N/A';
-              document.getElementById('modalCPF').textContent = item.client_cpf || 'N/A';
-              document.getElementById('modalCNPJ').textContent = item.client_cnpj || 'N/A';
-              document.getElementById('modalCreated').textContent = formatarDataBrasilComHora(item.created_at);
-
-              let modal = new bootstrap.Modal(document.getElementById('infoModal'));
-              modal.show();
-            } catch (e) {
-              console.error('Erro ao abrir modal:', e);
-            }
-          });
-        });
-      });
-    </script>
-  </body>
-</html>
+  </div>
+</div>

@@ -2,78 +2,86 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='style_archive.css') }}" />
 {% endblock %} {% block content %}
 <div class="container mt-3">
-  <h2 class="mb-4">Inventário de itens</h2>
+  <h2 class="mb-4">Arquivo de itens</h2>
 
   {% if request.args or itens %} {% set show_item_filter = True %} {% endif %} {% set show_add_item = True %} {% include
   "components/item_filter_section.html" with context %} {% if not itens %}
-  <div
-    style="
-      display: flex;
-      align-items: center;
-      background-color: #cce5ff;
-      border-left: 6px solid #007bff; /* Tarja azul à esquerda */
-      color: #004085;
-      padding: 1rem;
-      border-radius: 0.25rem;
-      margin-top: 1rem;
-    "
-  >
-    <span>Não há itens que satisfazem os cirtérios selecionados.</span>
-  </div>
-  <br />
+  <div class="alert alert-info mt-3">Não há itens que satisfazem os critérios selecionados.</div>
   {% endif %} {% if itens %}
-  <!-- Tabela (que vira "cards" no mobile) -->
-  <div class="table-container mt-4">
-    <table class="table table-hover responsive-table align-middle rounded-table">
-      <thead>
-        <tr>
-          <th>Imagem</th>
-          <th>Item ID#</th>
-          <th>Descrição</th>
-          <th>Preço (R$)</th>
-          <th>Comentários</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for item in itens %}
-        <tr>
-          <td data-label="Imagem">
-            {% if item.image_url and item.image_url != "N/A" %}
-            <img src="{{ item.image_url }}" alt="Imagem do item" class="img-fluid item-thumbnail" style="max-width: 100px" />
-            {% else %}
-            <img
-              src="{{ url_for('static', filename='item-placeholder.png') }}"
-              alt="Sem Imagem"
-              class="img-fluid item-thumbnail"
-              style="max-width: 100px"
-            />
-            {% endif %}
-          </td>
-          <td data-label="Item ID#">{{ '' if item.item_custom_id == 'None' else item.item_custom_id or '' }}</td>
-          <td data-label="Descrição" style="white-space: pre-wrap; text-align: left">{{ item.description }}</td>
-          <td data-label="Valor">{{ item.valor }}</td>
-          <td data-label="Comentários">{{ '' if item.item_obs == 'None' else item.item_obs or '' }}</td>
-          <td data-label="Ações">
-            <div class="d-flex flex-wrap gap-2 justify-content-center align-items-center">
+  <div class="row g-3 mt-2">
+    {% for item in itens %}
+    <div class="col-12 col-md-6 col-lg-4">
+      <div class="card shadow-lg h-100 position-relative rounded-3 border-0 border-start border-4 border-primary">
+        <!-- Badge de status -->
+        <span class="badge bg-secondary position-absolute top-0 end-0 m-2">Arquivado</span>
+
+        <!-- Imagem do item -->
+        {% for field in fields_config if field.type == 'item_image_url' and field.preview and field.visible %} {% set image_value =
+        item.key_values[field.id] if item.key_values is defined and field.id in item.key_values else item[field.id] if field.id in item else '' %}
+        <div class="text-center mt-2">
+          <img
+            src="{{ image_value if image_value and image_value != 'N/A' else url_for('static', filename='item-placeholder.png') }}"
+            alt="Imagem"
+            class="card-img-top mx-auto d-block"
+            style="height: 240px; width: auto; max-width: 100%; object-fit: cover; cursor: pointer"
+            onclick="mostrarImagemModal('{{ image_value if image_value and image_value != 'N/A' else url_for('static', filename='item-placeholder.png') }}')"
+          />
+        </div>
+        {% endfor %}
+
+        <!-- Conteúdo do card -->
+        <div class="card-body py-3 px-4">
+          <!-- Ações -->
+          <div class="d-flex justify-content-end mb-2 gap-1">
+            <div class="dropdown">
+              <button
+                class="btn btn-sm btn-outline-secondary dropdown-toggle"
+                type="button"
+                id="dropdownMenuButton{{ loop.index }}"
+                data-bs-toggle="dropdown"
+                aria-expanded="false"
+              >
+                <i class="fas fa-ellipsis-v"></i>
+              </button>
+
               {% set show_delete_item = True %} {% set show_edit_item = True %} {% set show_rent = True %} {% set show_archive = True %} {% set
               show_consult = True %} {% set show_qrcode = True %} {% set show_share = True %} {% set show_item_transactions = True %} {% include
               'components/action_buttons.html' with context %}
+              <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton{{ loop.index }}">
+                <li class="px-2 py-1"><div class="d-flex flex-column gap-1"></div></li>
+              </ul>
             </div>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+
+            <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalItem{{ loop.index }}">
+              <i class="fas fa-eye"></i>
+            </button>
+          </div>
+
+          <!-- Campos do item -->
+          <div class="d-flex flex-column gap-2">
+            {% for field in fields_config if field.preview and field.visible and field.type != 'item_image_url' %}
+            <div class="d-flex justify-content-between small border-bottom pb-1">
+              <span class="text-muted">{{ field.label }}</span>
+              <span class="text-end">
+                {% set value = item.key_values[field.id] if item.key_values is defined and field.id in item.key_values else item[field.id] if field.id
+                in item else '' %} {% if value == 'None' or value is none %}
+                <span class="text-muted">-</span>
+                {% else %} {% if field.type == "date" %} {{ value | format_date }} {% elif field.type in ["value", "item_value"] %} {{ value |
+                format_brl }} {% else %} {{ value | truncate(30, True) }} {% endif %} {% endif %}
+              </span>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+    {% include 'components/info_modal_item.html' with context %} {% endfor %}
   </div>
-
   {% endif %} {% if itens %}
-
-  <!-- Pagination -->
-  <ul class="pagination justify-content-center"></ul>
+  <ul class="pagination justify-content-center mt-4"></ul>
   {% endif %}
 
-  <!-- MODAL para imagem -->
+  <!-- Modal para imagem -->
   {% include 'components/image_modal.html' %}
 
   <!-- Modal do calendário -->
@@ -89,6 +97,7 @@
     </div>
   </div>
 </div>
+
 {% endblock %} {% block scripts %}
 
 <script>

@@ -71,16 +71,13 @@ label {
   color: #333;
 }
 
-/* Botão de submit */
-button[type='submit'] {
-  width: 100%;
-  background-color: #28a745;
-  color: white;
-  font-size: 16px;
-  padding: 12px;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
+/* Corrige a largura do botão de envio específico */
+.btn-submit {
+  width: auto !important;
+  padding-left: 24px;
+  padding-right: 24px;
+  display: block; /* Necessário para o margin funcionar corretamente */
+  margin: 0 auto; /* Centraliza horizontalmente */
 }
 button[type='submit']:hover {
   background-color: #218838;
@@ -160,4 +157,81 @@ button[type='submit'] {
 
 button[type='submit']:hover {
   background-color: #218838;
+}
+
+.exit-link {
+  color: #6c757d;
+  text-decoration: none;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  transition: color 0.2s ease;
+}
+
+.exit-link:hover {
+  color: #dc3545; /* vermelho suave ao passar o mouse */
+  text-decoration: underline;
+}
+
+.autocomplete-item {
+  background-color: #fff8dc; /* cor amarelo claro sólida (tipo creme) */
+  border-bottom: 1px solid #ffeeba;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+}
+
+.autocomplete-item:hover {
+  background-color: #fff3cd; /* mesmo tom do alerta amarelo */
+}
+
+.autocomplete-item:hover {
+  background-color: #f8f9fa;
+}
+
+.status-message.user-found {
+  color: #0c4f91;
+  font-weight: bold;
+}
+
+.status-message.user-new {
+  background-color: #fff3cd; /* amarelo claro */
+  border: 1px solid #ffeeba;
+  color: #856404; /* texto escuro de alerta */
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  font-size: 0.9rem;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.05);
+}
+
+.status-message.user-found {
+  background-color: #d1ecf1;
+  border: 1px solid #bee5eb;
+  color: #0c5460;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.suggestions-title {
+  font-size: 14px;
+  color: #856404; /* mesmo tom de alerta */
+  margin-top: 5px;
+  margin-bottom: 5px;
+  font-weight: 600;
+}
+
+.exit-link {
+  color: #6c757d;
+  text-decoration: none;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  transition: color 0.2s ease;
+}
+
+.exit-link:hover {
+  color: #dc3545; /* vermelho suave ao passar o mouse */
+  text-decoration: underline;
 }

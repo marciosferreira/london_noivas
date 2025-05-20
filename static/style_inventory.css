@@ -38,14 +38,9 @@
   margin-top: 1rem;
 }
 
-.alert {
-  max-width: 600px;
-  margin: 0 auto;
-  font-weight: bold;
-}
 .usage-banner {
   background: linear-gradient(to bottom, #f8f9fa, #e0e0e0); /* Cinza prateado suave */
-  border: 1px solid #ccc;
+  border: 2px solid #ccc;
   border-radius: 12px; /* Arredonda IGUAL os 4 cantos */
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1); /* Sombra levinha */
   color: #333;
@@ -54,4 +49,22 @@
 .usage-banner div {
   font-size: 0.95rem; /* Letras menores */
   font-weight: normal; /* Sem bold */
+}
+
+.card-img-top {
+  margin-top: 1rem; /* mantém o espaçamento */
+  border-radius: 0.25rem; /* mantém a estética */
+  position: relative; /* garante stacking context previsível */
+}
+
+.card:hover,
+.card:has(.dropdown-menu.show) {
+  transform: translateY(-4px);
+  box-shadow: 0 0.75rem 1.25rem rgba(0, 0, 0, 0.1);
+  z-index: 2;
+}
+
+.badge {
+  z-index: 1;
+  position: absolute;
 }

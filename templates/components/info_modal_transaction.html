@@ -1,206 +1,60 @@
-<div class="modal fade" id="infoModal" tabindex="-1" aria-labelledby="infoModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
+<div class="modal fade" id="modalItem{{ loop.index }}" tabindex="-1" aria-labelledby="modalItemLabel{{ loop.index }}" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">Mais Detalhes</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        <h5 class="modal-title" id="modalItemLabel{{ loop.index }}">Detalhes da Transação</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
       </div>
+
       <div class="modal-body">
-        <!-- Seção Cliente -->
-        <h4><strong>Cliente:</strong></h4>
-        <p>
-          <strong>Nome:</strong>
-          <span id="modalName"></span>
-        </p>
-        <p>
-          <strong>Telefone:</strong>
-          <span id="modalPhone"></span>
-        </p>
-        <p>
-          <strong>Email:</strong>
-          <span id="modalEmail"></span>
-        </p>
-        <p>
-          <strong>Endereço:</strong>
-          <span id="modalAddress"></span>
-        </p>
-        <p>
-          <strong>CPF:</strong>
-          <span id="modalCPF"></span>
-        </p>
-        <p>
-          <strong>CNPJ:</strong>
-          <span id="modalCNPJ"></span>
-        </p>
-        <p>
-          <strong>Observações do Cliente:</strong>
-          <span id="modalObs"></span>
-        </p>
+        {% set show_image = (fields_config | selectattr("id", "equalto", "item_image_url") | selectattr("visible") | list | length) > 0 %} {% if
+        show_image %}
+        <div class="text-center mb-3">
+          {% set image = item.item_key_values['item_image_url'] if item.item_key_values is defined and 'item_image_url' in item.item_key_values else
+          item['item_image_url'] if 'item_image_url' in item else '' %} {% if image and image != "N/A" %}
+          <img
+            src="{{ image }}"
+            alt="Imagem do item"
+            class="img-fluid"
+            style="max-width: 200px; cursor: pointer"
+            onclick="mostrarImagemModal('{{ image }}')"
+          />
+          {% else %}
+          <img
+            src="{{ url_for('static', filename='item-placeholder.png') }}"
+            alt="Sem imagem"
+            class="img-fluid"
+            style="max-width: 200px; cursor: pointer"
+            onclick="mostrarImagemModal('{{ url_for('static', filename='item-placeholder.png') }}')"
+          />
+          {% endif %}
+        </div>
+        {% endif %}
 
-        <hr />
-
-        <!-- Seção Item -->
-        <h4><strong>Item:</strong></h4>
-        <p>
-          <strong>Item Custom ID:</strong>
-          <span id="modalItemCustomId"></span>
-        </p>
-        <p>
-          <strong>Descrição:</strong>
-          <span id="modalItemDescription"></span>
-        </p>
-
-        <hr />
-
-        <!-- Seção Transação -->
-        <h4><strong>Transação:</strong></h4>
-        <p>
-          <strong>Retirada prevista:</strong>
-          <span id="modalRentalDate"></span>
-        </p>
-        <p>
-          <strong>Devolução prevista:</strong>
-          <span id="modalReturnDate"></span>
-        </p>
-
-        <p>
-          <strong>Devolvido em:</strong>
-          <span id="modalDevDate"></span>
-        </p>
-
-        <p>
-          <strong>Valor(R$):</strong>
-          <span id="modalValor"></span>
-        </p>
-        <p>
-          <strong>Pago(R$):</strong>
-          <span id="modalPagamento"></span>
-        </p>
-
-        <p>
-          <strong>Observações da Transação:</strong>
-          <span id="modalTransactionComments"></span>
-        </p>
-        <p>
-          <strong>Data da transação:</strong>
-          <span id="modalCreated"></span>
-        </p>
+        <div class="container-fluid">
+          <div class="row g-3">
+            {% set status_mapping = { 'reserved': 'Reservado', 'rented': 'Retirado', 'returned': 'Devolvido' } %} {% for field in fields_config if
+            field.type != 'item_image_url' %} {% if field.type != 'image_url' %} {% if not (item.transaction_status == 'reserved' and field.id ==
+            'transaction_ret_date') %}
+            <div class="col-12 col-md-6">
+              <strong>{{ field.label }}:</strong>
+              <br />
+              {% set value = item.key_values[field.id] if item.key_values is defined and field.id in item.key_values else item[field.id] if field.id
+              in item else '' %} {% if value == 'None' or value is none %}
+              <span class="text-muted">-</span>
+              {% else %}
+              <span>
+                {% if field.type == "date" %} {{ value | format_date }} {% elif field.type in ["value", "transaction_value_paid", "transaction_price",
+                "item_value"] %} {{ value | format_brl }} {% elif field.type == "transaction_ret_date" %} {{ value | formatar_data_br }} {% elif
+                field.type in ["phone", "client_phone"] %} {{ value | format_phone }} {% elif field.id == "transaction_status" %} {{
+                status_mapping.get(value, value) }} {% else %} {{ value }} {% endif %}
+              </span>
+              {% endif %}
+            </div>
+            {% endif %} {% endif %} {% endfor %}
+          </div>
+        </div>
       </div>
     </div>
   </div>
 </div>
-
-<script>
-  function formatarDataBrasilComHora(dataISO) {
-    if (!dataISO) return 'N/A';
-    const data = new Date(dataISO);
-    const dia = String(data.getDate()).padStart(2, '0');
-    const mes = String(data.getMonth() + 1).padStart(2, '0');
-    const ano = data.getFullYear();
-    const horas = String(data.getHours()).padStart(2, '0');
-    const minutos = String(data.getMinutes()).padStart(2, '0');
-    return `${dia}/${mes}/${ano} ${horas}:${minutos}`;
-  }
-
-  function formatarDataBrasil(dataISO) {
-    if (!dataISO) return 'N/A';
-    const data = new Date(dataISO);
-    const dia = String(data.getDate()).padStart(2, '0');
-    const mes = String(data.getMonth() + 1).padStart(2, '0');
-    const ano = data.getFullYear();
-
-    return `${dia}/${mes}/${ano}`;
-  }
-
-  document.addEventListener('DOMContentLoaded', function () {
-    if (window.location.pathname.endsWith('/returned')) {
-      const pagamentoContainer = document.getElementById('modalPagamentoContainer');
-      if (pagamentoContainer) {
-        pagamentoContainer.style.display = 'none';
-      }
-    }
-
-    document.querySelectorAll('.open-modal').forEach((cell) => {
-      cell.addEventListener('click', function () {
-        try {
-          const data = JSON.parse(this.getAttribute('data-item'));
-          console.log('🧪 Dados recebidos no modal:', data);
-
-          document.getElementById('modalName').textContent = data.client_name || 'N/A';
-          document.getElementById('modalPhone').textContent = data.client_tel || 'N/A';
-          document.getElementById('modalEmail').textContent = data.client_email || 'N/A';
-          document.getElementById('modalAddress').textContent = data.client_address || 'N/A';
-          document.getElementById('modalCPF').textContent = data.client_cpf || 'N/A';
-          document.getElementById('modalCNPJ').textContent = data.client_cnpj || 'N/A';
-          document.getElementById('modalObs').textContent = data.client_obs || 'N/A';
-
-          document.getElementById('modalItemCustomId').textContent = data.item_custom_id || 'N/A';
-          document.getElementById('modalItemDescription').textContent = data.description || 'N/A';
-
-          document.getElementById('modalRentalDate').textContent = formatarDataBrasil(data.rental_date);
-          document.getElementById('modalReturnDate').textContent = formatarDataBrasil(data.return_date);
-          document.getElementById('modalDevDate').textContent = formatarDataBrasilComHora(data.dev_date);
-
-          document.getElementById('modalValor').textContent = data.valor || 'N/A';
-          const pagamento = parseFloat(data.pagamento) || 0;
-          const valor = parseFloat(data.valor) || 0;
-
-          let textoPagamento = `${pagamento.toFixed(2)}`;
-          let statusPagamento = '';
-
-          if (valor === 0) {
-            statusPagamento = '(Não Pago)';
-          } else if (pagamento === valor) {
-            statusPagamento = '(Pagamento Total)';
-          } else if (pagamento > 0 && pagamento < valor) {
-            statusPagamento = '(Pagamento Parcial)';
-          } else {
-            statusPagamento = '(Não Pago)';
-          }
-
-          document.getElementById('modalPagamento').textContent = `${textoPagamento} ${statusPagamento}`;
-
-          document.getElementById('modalTransactionComments').textContent = data.transaction_obs || 'N/A';
-          document.getElementById('modalCreated').textContent = formatarDataBrasilComHora(data.created_at);
-
-          new bootstrap.Modal(document.getElementById('infoModal')).show();
-        } catch (e) {
-          console.error('Erro ao abrir modal:', e);
-        }
-      });
-    });
-  });
-</script>
-
-<script>
-  let transacaoSelecionada = null;
-
-  function abrirModalModelo(transactionId) {
-    transacaoSelecionada = transactionId;
-    document.getElementById('print-area').innerHTML = "<p class='text-muted'>Nenhum modelo selecionado.</p>";
-    document.getElementById('select-modelo').value = '';
-  }
-
-  function carregarModeloSelecionado() {
-    const select = document.getElementById('select-modelo');
-    const textId = select.value;
-    const outputDiv = document.getElementById('print-area');
-
-    if (!textId || !transacaoSelecionada) {
-      outputDiv.innerHTML = "<p class='text-muted'>Selecione um modelo para visualizar2.</p>";
-      return;
-    }
-
-    outputDiv.innerHTML = '<p>Carregando...</p>';
-
-    fetch(`/visualizar-modelo/${textId}/${transacaoSelecionada}`)
-      .then((response) => response.text())
-      .then((html) => {
-        outputDiv.innerHTML = html;
-      })
-      .catch((error) => {
-        outputDiv.innerHTML = "<p class='text-danger'>Erro ao carregar modelo.</p>";
-        console.error(error);
-      });
-  }
-</script>

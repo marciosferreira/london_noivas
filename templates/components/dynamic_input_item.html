@@ -1,0 +1,97 @@
+{% set readonly = not item_editavel %}
+<div id="tab-cliente" class="tab-content active">
+
+  <input type="hidden" id="item_id" name="item_id" value="{{ item.get('item_id', '') }}">
+
+
+
+
+
+
+
+  <div class="row row-cols-1 row-cols-md-3 g-4">
+      {% for field in all_fields if field.id.startswith("item_") and field.visible %}
+      <div class="col d-flex">
+        <div class="bg-light shadow-sm rounded p-3 border w-100 h-100 d-flex flex-column justify-content-center">
+          <label for="{{ field.id }}" class="form-label fw-semibold">
+            {{ field.label if field.fixed else field.title }}{% if field.required %} *{% endif %}
+          </label>
+
+          {% set value = item.get(field.id, '') %}
+
+          {% if field.type in ["text", "item_obs"] %}
+            <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+              value="{{ value }}" {% if field.required %}required{% endif %} {% if readonly %}readonly{% endif %} />
+
+              {% elif field.type == "date" %}
+              <input type="date" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+                value="{{ value }}" {% if field.required %}required{% endif %} {% if readonly %}readonly{% endif %} />
+
+
+              {% elif field.type in ["value", "item_value"] %}
+              <input type="text" class="form-control campo-monetario" id="{{ field.id }}" name="{{ field.id }}"
+                value="{{ value }}" {% if field.required %}required{% endif %} {% if readonly %}readonly{% endif %} />
+
+                {% elif field.type in ["number"] %}
+              <input type="text" class="form-control campo-monetario" id="{{ field.id }}" name="{{ field.id }}"
+                value="{{ value }}" {% if field.required %}required{% endif %} {% if readonly %}readonly{% endif %} />
+
+
+          {% elif field.type == "dropdown" %}
+            <select class="form-select" id="{{ field.id }}" name="{{ field.id }}" {% if field.required %}required{% endif %} {% if readonly %}disabled{% endif %}>
+              <option value="">Selecione</option>
+              {% for option in field.options %}
+                <option value="{{ option }}" {% if value == option %}selected{% endif %}>{{ option }}</option>
+              {% endfor %}
+            </select>
+
+          {% elif field.type == "item_image_url" %}
+            <div class="text-center mb-2">
+              <img id="item-image"
+                   src="{{ value if value and value != 'N/A' else url_for('static', filename='item-placeholder.png') }}"
+                   style="max-width: 150px;" />
+              {% if not readonly %}
+              <input type="text" name="item_image_url" id="image-url-input"
+                     value="{{ value if value != 'N/A' else '' }}"
+                     style="opacity: 0; position: absolute; left: -9999px" />
+              <button type="button" onclick="removeImage()" id="remove-btn"
+                      class="btn btn-outline-danger btn-sm mt-2"
+                      style="{{ 'display: block;' if value and value != 'N/A' else 'display: none;' }}">
+                Excluir imagem
+              </button>
+              <input type="file" class="form-control" id="image_file" name="image_file"
+                {% if field.required %}data-required="true"{% endif %} />
+              {% endif %}
+            </div>
+
+  {% elif field.type in ["item_custom_id", "item_description"] %}
+  <div class="autocomplete-wrapper position-relative w-100">
+    {% if field.id == "item_custom_id" and not readonly %}
+  <div class="d-flex justify-content-end mb-1">
+<a href="#" onclick="event.preventDefault(); gerarCodigoItem();" class="text-success small ms-2" style="text-decoration: underline;">
+  gerar aleatório
+</a>
+  </div>
+{% endif %}
+
+    <input type="text"
+           class="form-control"
+           id="{{ field.id }}"
+           name="{{ field.id }}"
+           value="{{ value }}"
+           autocomplete="off"
+           {% if field.required %}required{% endif %} {% if readonly %}readonly{% endif %} />
+    <small class="text-muted ms-1" style="margin-top: -10px; margin-bottom: 6px; display: block;">campo de busca</small>
+    <div id="{{ field.id }}_status" class="status-message" style="display: none;"></div>
+    <div id="{{ field.id }}_suggestions" class="autocomplete-box position-absolute w-100 bg-white shadow-sm z-3"></div>
+  </div>
+
+
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+</div>
+
+

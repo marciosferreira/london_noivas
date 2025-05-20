@@ -1,82 +1,149 @@
 {% extends "base.html" %}
-{% block title %}Adicionar Item{% endblock %}
+{% block title %}{{title}}{% endblock %}
 {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='style_edit_item.css') }}" />
 {% endblock %}
 {% block content %}
 
-<div class="form-container">
-  <h1>Adicionar Item</h1>
-  <a href="{{ request.args.get('next', url_for('index')) }}" class="cancel-link">Sair sem Finalizar</a>
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="mb-0">{{title}}</h1>
+    <a href="{{ url_for('inventory') }}" class="exit-link">
+      <i class="fas fa-sign-out-alt me-2"></i>
+      Sair sem Finalizar
+    </a>
+  </div>
+
+  <div class="alert alert-primary d-flex justify-content-between align-items-center" role="alert">
+    <div>
+      Dica: Acesse <a href="/custom_fields/item" class="alert-link">Customizar Campos</a> para criar novos ou ajustar os existentes.
+    </div>
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+  </div>
 
   <form method="POST" enctype="multipart/form-data">
     <input type="hidden" name="next" value="{{ request.args.get('next', url_for('index')) }}" />
 
-    {% for field in all_fields if field.visible %}
-    <label for="{{ field.id }}">{{ field.label if field.fixed else field.title }}{% if field.required %} *{% endif %}</label>
-    <br />
+    <div class="row row-cols-1 row-cols-md-3 g-4">
+      {% for field in all_fields if field.visible %}
+      <div class="col d-flex">
+        <div class="bg-light shadow-sm rounded p-3 border w-100 h-100 d-flex flex-column justify-content-center">
+          <label for="{{ field.id }}" class="form-label fw-semibold">
+            {{ field.label if field.fixed else field.title }}{% if field.required %} *{% endif %}
+            {% if field.type == "item_custom_id" %}
+<a href="#" onclick="event.preventDefault(); gerarCodigoItem();" class="text-success small ms-2" style="text-decoration: underline;">
+  gerar aleatório
+</a>
+            {% endif %}
+          </label>
 
-    {% if field.type == 'string' %}
-      {% if field.id == 'image_url' %}
-      <!-- Campo especial para imagem -->
-      <div id="image-container" style="text-align: center; margin-bottom: 20px">
-        <img
-          id="item-image"
-          src="{{ item.image_url if item.image_url and item.image_url != 'N/A' else url_for('static', filename='item-placeholder.png') }}"
-          style="max-width: 150px; margin: 0 auto"
-        />
-        <input type="text" name="image_url" id="image-url-input" value="{{ item.image_url if item.image_url != 'N/A' else '' }}" style="opacity: 0; position: absolute; left: -9999px" />
-        <button type="button" onclick="removeImage()" id="remove-btn"
-        style="display: {{ 'block' if item.image_url and item.image_url != 'N/A' else 'none' }}; margin: 10px auto; display: block;">
-        Excluir imagem
-      </button>      </div>
-      <input type="file" id="image_file" name="image_file"
-      {% if field.required %}data-required="true"{% endif %} />
-      {% else %}
-      <input
-        type="text"
-        id="{{ field.id }}"
-        name="{{ field.id }}"
-        value="{{ item[field.id] if item[field.id] is defined else '' }}"
-        {% if field.required %}required{% endif %}
-      />
-      {% endif %}
-    {% elif field.type == 'number' %}
-      <input
-        type="text"
-        id="{{ field.id }}"
-        name="{{ field.id }}"
-        value="{{ item[field.id] if item[field.id] is defined else '' }}"
-        {% if field.required %}required{% endif %}
-      />
-    {% elif field.type == 'date' %}
-      <input
-        type="date"
-        id="{{ field.id }}"
-        name="{{ field.id }}"
-        value="{{ item[field.id] if item[field.id] is defined else '' }}"
-        {% if field.required %}required{% endif %}
-      />
-    {% elif field.type == 'dropdown' %}
-      <select id="{{ field.id }}" name="{{ field.id }}" {% if field.required %}required{% endif %}>
-        <option value="">Selecione</option>
-        {% for option in field.options %}
-        <option value="{{ option }}" {% if item[field.id] == option %}selected{% endif %}>{{ option }}</option>
-        {% endfor %}
-      </select>
-    {% endif %}
-    <br /><br />
-    {% endfor %}
+          {% set valor = item.get(field.id, '') %}
+
+          {% if field.type == "text" or field.type == "item_obs" %}
+          <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}" value="{{ valor }}" {% if field.required %}required{% endif %} />
+
+          {% elif field.type == "value" or field.type == "item_value" or field.type == "number" %}
+          <input type="text" class="form-control campo-monetario" id="{{ field.id }}" name="{{ field.id }}" value="{{ valor }}" {% if field.required %}required{% endif %} />
+
+          {% elif field.type == 'date' %}
+          <input type="date" class="form-control" id="{{ field.id }}" name="{{ field.id }}" value="{{ valor }}" {% if field.required %}required{% endif %} />
+
+          {% elif field.type == 'dropdown' %}
+          <select class="form-select" id="{{ field.id }}" name="{{ field.id }}" {% if field.required %}required{% endif %}>
+            <option value="">Selecione</option>
+            {% for option in field.options %}
+            <option value="{{ option }}" {% if valor == option %}selected{% endif %}>{{ option }}</option>
+            {% endfor %}
+          </select>
+
+          {% elif field.type == 'item_image_url' %}
+          <div class="text-center mb-2">
+            <img id="item-image"
+              src="{{ valor if valor and valor != 'N/A' else url_for('static', filename='item-placeholder.png') }}"
+              style="max-width: 150px;" />
+            <input type="text" name="item_image_url" id="image-url-input" value="{{ valor if valor != 'N/A' else '' }}" style="opacity: 0; position: absolute; left: -9999px" />
+            <button type="button" onclick="removeImage()" id="remove-btn" class="btn btn-outline-danger btn-sm mt-2" style="{{ 'display: block;' if valor and valor != 'N/A' else 'display: none;' }}">
+              Excluir imagem
+            </button>
+          </div>
+          <input type="file" class="form-control" id="image_file" name="image_file" {% if field.required %}data-required="true"{% endif %} />
+
+         {% elif field.type in ["item_custom_id", "item_description"] %}
+  <div class="autocomplete-wrapper position-relative w-100">
+    <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+      value="{{ item.get(field.id, '') }}" autocomplete="off"
+      {% if field.required %}required{% endif %} />
+
+    <small class="text-muted ms-1" style="margin-top: -10px; margin-bottom: 6px; display: block;">
+      campo de busca
+    </small>
+
+    <div id="{{ field.id }}_status" class="status-message"></div>
+    <div id="{{ field.id }}_suggestions"
+         class="autocomplete-box position-absolute w-100 bg-white shadow-sm z-3">
+    </div>
+  </div>
+
+
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
 
 
 
-    <button type="submit">Salvar</button>
+
+
+
+
+    <div class="d-flex justify-content-center mt-4">
+      <button type="submit" class="btn btn-success d-flex align-items-center justify-content-center gap-2">
+  <span>Salvar</span>
+  <div class="spinner-border spinner-border-sm text-light" role="status" style="display: none;"></div>
+</button>
+
+    </div>
   </form>
 </div>
 
+<!-- Modal plano -->
+<div class="modal fade" id="limitModal" tabindex="-1" aria-labelledby="limitModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-warning">
+      <div class="modal-header bg-warning text-dark">
+        <h5 class="modal-title" id="limitModalLabel">Limite de Itens Atingido</h5>
+      </div>
+      <div class="modal-body text-center">
+        Você atingiu o número máximo de <strong>itens cadastrados</strong> permitido pelo seu plano atual.
+        <br />
+      </div>
+      <div class="modal-footer justify-content-center">
+        <a href="{{ url_for('adjustments') }}" class="btn btn-primary btn-lg">Atualizar Plano</a>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    inicializarAutocompleteItem('item_custom_id');
+    inicializarAutocompleteItem('item_description');
+  });
+</script>
+<script>
+  function gerarCodigoItem() {
+    const campo = document.getElementById('item_custom_id');
+    if (campo) {
+      const uuid = crypto.randomUUID().replace(/-/g, '').substring(0, 12);
+      campo.value = uuid;
+      campo.dispatchEvent(new Event('input'));
+      campo.dispatchEvent(new Event('blur'));
+    }
+  }
+</script>
 <script>
   function removeImage() {
     document.getElementById('item-image').src = "{{ url_for('static', filename='item-placeholder.png') }}";
@@ -84,7 +151,6 @@
     document.getElementById('remove-btn').style.display = 'none';
     document.getElementById('image_file').value = '';
   }
-
   document.getElementById('image_file')?.addEventListener('change', function (e) {
     const file = e.target.files[0];
     if (!file) return;
@@ -95,34 +161,222 @@
     };
     reader.readAsDataURL(file);
   });
-
+</script>
+<script>
   function formatarCampoMonetario(input) {
     input.addEventListener('input', function (e) {
       let value = e.target.value.replace(/\D/g, '');
+      if (value.length > 12) value = value.slice(0, 12);
       if (!value) {
-        e.target.value = '';
+        input.value = '';
         return;
       }
-      let floatValue = parseInt(value, 10) / 100;
-      e.target.value = floatValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+      const floatValue = parseFloat(value) / 100;
+      input.value = floatValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     });
+    const raw = input.value.replace(/\D/g, '');
+    if (raw) {
+      const floatValue = parseFloat(raw) / 100;
+      input.value = floatValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
   }
-
-  const campoValor = document.getElementById('valor');
-  if (campoValor) formatarCampoMonetario(campoValor);
+  document.addEventListener('DOMContentLoaded', function () {
+    const campoValor = document.getElementById('item_value');
+    if (campoValor) formatarCampoMonetario(campoValor);
+  });
 </script>
 
 
 <script>
-  document.querySelector('form')?.addEventListener('submit', function (e) {
-    const imageInput = document.getElementById('image_file');
+  function buscarSugestoes(term) {
+    return fetch(`/autocomplete_items?term=${encodeURIComponent(term)}`).then((res) => res.json());
+  }
 
-    if (imageInput?.dataset.required === "true" && imageInput.files.length === 0) {
-      e.preventDefault();
-      alert('A imagem é obrigatória. Por favor, selecione uma imagem.');
-      imageInput.focus();
+function preencherCampos(item) {
+  for (const key in item) {
+    const el = document.getElementById(key);
+    if (el && el.type !== 'hidden') {
+      const novoValor = item[key] || '';
+      if (el.value !== novoValor) {
+        el.value = novoValor;
+        // Aplica formatação monetária se for campo de valor
+if (key === 'item_value') {
+  formatarCampoMonetario(el);
+}
+
+
+        // Só dispara se for o campo item_custom_id e valor realmente mudou
+        if (key === 'item_custom_id') {
+          el.dataset.lastChecked = novoValor;
+          el.dispatchEvent(new Event('input'));
+        }
+      }
     }
+  }
+}
+
+
+  function exibirStatus(inputId, texto, classe) {
+    const statusEl = document.getElementById(`${inputId}_status`);
+    if (!statusEl) return;
+    statusEl.innerHTML = texto;
+    statusEl.className = `status-message ${classe}`;
+    statusEl.style.display = 'block';
+  }
+
+  function limparStatus(inputId) {
+    const statusEl = document.getElementById(`${inputId}_status`);
+    if (statusEl) statusEl.style.display = 'none';
+  }
+
+  function inicializarAutocomplete(inputId, isDescricao = false) {
+    const input = document.getElementById(inputId);
+    const boxId = `${inputId}_suggestions`;
+    const statusId = `${inputId}_status`;
+
+    if (!input) return;
+
+    let box = document.getElementById(boxId);
+    if (!box) {
+      box = document.createElement('div');
+      box.id = boxId;
+      box.className = 'autocomplete-box position-absolute w-100 bg-white shadow-sm z-3';
+      input.closest('.position-relative')?.appendChild(box);
+    }
+
+    const statusEl = document.getElementById(statusId);
+
+    let itensSugeridos = [];
+
+    input.addEventListener('input', async () => {
+      const termo = input.value.trim();
+      if (!termo) {
+        box.innerHTML = '';
+        if (!isDescricao) limparStatus(inputId);
+        return;
+      }
+
+      try {
+        itensSugeridos = await buscarSugestoes(termo);
+        box.innerHTML = '';
+
+        itensSugeridos.forEach((item) => {
+          const div = document.createElement('div');
+          div.className = 'autocomplete-item px-2 py-1';
+         div.innerHTML = `
+  <div class="d-flex flex-column">
+    <div class="d-flex align-items-center">
+      <i class="fas fa-barcode me-2 text-primary"></i>
+      <strong>${item.item_custom_id || '(sem código)'}</strong>
+    </div>
+    <div class="d-flex align-items-center mt-1">
+      <i class="fas fa-align-left me-2 text-secondary"></i>
+      <small class="text-muted">${item.item_description || 'Sem descrição'}</small>
+    </div>
+  </div>
+`;
+
+          div.addEventListener('click', () => {
+            input.value = item[inputId];
+            box.innerHTML = '';
+
+            if (isDescricao) {
+              preencherCampos(item);
+            } else {
+              checarDuplicidade(inputId, item[inputId], itensSugeridos);
+            }
+          });
+          box.appendChild(div);
+        });
+
+        if (!isDescricao) checarDuplicidade(inputId, termo, itensSugeridos);
+      } catch (err) {
+        console.error('Erro ao buscar itens:', err);
+      }
+    });
+
+    input.addEventListener('blur', () => {
+      setTimeout(() => (box.innerHTML = ''), 200);
+    });
+  }
+  function checarDuplicidade(inputId, termo, sugestoes) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+
+  // Impede checagem repetida do mesmo valor
+  if (input.dataset.lastChecked === termo) return;
+  input.dataset.lastChecked = termo;
+
+  const match = sugestoes.find((item) => (item.item_custom_id || '').toLowerCase() === termo.toLowerCase());
+  const box = document.getElementById(`${inputId}_suggestions`);
+
+  if (match) {
+    preencherCampos(match); // só dispara se valor for diferente
+    const editarLink = `
+      <a href="/edit_item/${match.item_id}?item_id=${match.item_id}&next=${encodeURIComponent(window.location.pathname)}"
+         class="ms-2 text-decoration-underline text-warning">
+        Editar
+      </a>`;
+    exibirStatus(inputId, 'Item Id encontrado ' + editarLink, 'user-found');
+    if (box) box.innerHTML = '';
+  } else {
+    exibirStatus(inputId, 'Novo item será criado', 'user-new');
+  }
+}
+
+
+  document.addEventListener('DOMContentLoaded', () => {
+    inicializarAutocomplete('item_custom_id', false);
+    inicializarAutocomplete('item_description', true);
   });
 
+  function gerarCodigoItem() {
+    const campo = document.getElementById('item_custom_id');
+    if (campo) {
+      const uuid = crypto.randomUUID().replace(/-/g, '').substring(0, 12);
+      campo.value = uuid;
+      campo.dispatchEvent(new Event('input'));
+    }
+  }
 </script>
+
+
+<script>
+  function formatarCampoMonetario(input) {
+    input.addEventListener('input', function (e) {
+      let value = e.target.value.replace(/\D/g, '');
+
+      // Limita a 12 dígitos para evitar problemas com números muito grandes
+      if (value.length > 12) value = value.slice(0, 12);
+
+      if (!value) {
+        input.value = '';
+        return;
+      }
+
+      const floatValue = parseFloat(value) / 100;
+      input.value = floatValue.toLocaleString('pt-BR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+    });
+
+    // Formata valor já existente ao carregar a página
+    const raw = input.value.replace(/\D/g, '');
+    if (raw) {
+      const floatValue = parseFloat(raw) / 100;
+      input.value = floatValue.toLocaleString('pt-BR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    const campoValor = document.getElementById('item_value');
+    if (campoValor) formatarCampoMonetario(campoValor);
+  });
+</script>
+
+
 {% endblock %}

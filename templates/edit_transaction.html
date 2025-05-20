@@ -1,172 +1,178 @@
 {% extends "base.html" %} {% block title %}Editar Transação{% endblock %} {% block styles %}
-<link rel="stylesheet" href="{{ url_for('static', filename='style_edit_transaction.css') }}" />
-
+<link rel="stylesheet" href="{{ url_for('static', filename='style_rent.css') }}" />
+<style>
+  .stepper .step {
+    flex: 1;
+    text-align: center;
+    padding: 0.75rem;
+    border-bottom: 3px solid #ccc;
+    font-weight: 500;
+  }
+  .stepper .step.active {
+    border-color: #0d6efd;
+    color: #0d6efd;
+  }
+  .exit-link {
+    color: #6c757d;
+    text-decoration: none;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    transition: color 0.2s ease;
+  }
+  .exit-link:hover {
+    color: #dc3545;
+    text-decoration: underline;
+  }
+</style>
 {% endblock %} {% block content %}
-<div class="form-container">
-  <h1>Editar transação</h1>
-  <a href="{{ request.args.get('next', url_for('index')) }}" class="cancel-link">Sair sem Finalizar</a>
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <h1 class="mb-0">Editar Transação</h1>
+    <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center gap-2">
+      <a href="{{ url_for('editar_cliente', client_id=client.client_id, next=request.path) }}" class="exit-link text-success">
+        <i class="fas fa-user-edit me-1"></i>
+        Editar Cliente
+      </a>
+      <a href="{{ url_for('edit_item', item_id=item.item_id, next=request.full_path) }}" class="exit-link text-primary">
+        <i class="fas fa-box-open me-1"></i>
+        Editar Item
+      </a>
 
-  <form method="POST" enctype="multipart/form-data" id="form-transaction" novalidate>
-    <!-- Menu de abas -->
-    <div class="tabs">
-      <button type="button" class="tab-button active" data-tab="tab-transacao">Transação</button>
-      <button type="button" class="tab-button" data-tab="tab-cliente">Cliente</button>
-      <button type="button" class="tab-button" data-tab="tab-item">Item</button>
+      <a href="{{ request.args.get('next') }}" class="exit-link">
+        <i class="fas fa-sign-out-alt me-2"></i>
+        Sair sem Finalizar
+      </a>
     </div>
-
-    <!-- Aba CLIENTE -->
-    <div id="tab-cliente" class="tab-content">
-      <h3>Informações do Cliente</h3>
-
-      <p><strong>Nome:</strong> {{ item.client_name or '-' }}</p>
-      <p><strong>Telefone:</strong> {{ item.client_tel or '-' }}</p>
-      <p><strong>Email:</strong> {{ item.client_email or '-' }}</p>
-      <p><strong>Endereço:</strong> {{ item.client_address or '-' }}</p>
-      <p><strong>CPF:</strong> {{ item.client_cpf or '-' }}</p>
-      <p><strong>CNPJ:</strong> {{ item.client_cnpj or '-' }}</p>
-      <p><strong>Observações:</strong> {{ item.client_obs or '-' }}</p>
-    </div>
-
-
-    <div id="tab-item" class="tab-content">
-      <h3>Informações do Item</h3>
-
-      <p><strong>ID do Item:</strong> {{ item.item_custom_id or '-' }}</p>
-      <p><strong>Descrição:</strong> {{ item.description or '-' }}</p>
-      <p><strong>Observações:</strong> {{ item.item_obs or '-' }}</p>
-
-      <p><strong>Imagem do Item:</strong></p>
-      <img src="{{ item.image_url if item.image_url and item.image_url != 'N/A' else url_for('static', filename='item-placeholder.png') }}"
-           alt="Imagem do item" style="max-width: 150px; display: block; margin: 0 auto;">
-    </div>
-
-
-
-<!-- Aba TRANSACAO -->
-<div id="tab-transacao" class="tab-content">
-
-  <label for="transaction_status">Status da Transação:</label>
-  <select id="transaction_status" name="transaction_status" class="form-control" required>
-    <option value="reserved" {% if item.transaction_status == 'reserved' %}selected{% endif %}>Reservado</option>
-    <option value="rented" {% if item.transaction_status == 'rented' %}selected{% endif %}>Alugado</option>
-    <option value="returned" {% if item.transaction_status == 'returned' %}selected{% endif %}>Devolvido</option>
-  </select>
-
-
-  <div id="ret-date-container" style="display: none;">
-    <label for="ret_date">Retirada real:</label>
-    <input type="date" id="ret_date" name="ret_date" class="form-control"
-           value="{{ item.ret_date[:10] if item.ret_date }}">
   </div>
 
-  <div id="dev-date-container" style="display: none;">
-    <label for="dev_date">Devolução real:</label>
-    <input type="date" id="dev_date" name="dev_date" class="form-control"
-           value="{{ item.dev_date[:10] if item.dev_date }}">
+  <div class="stepper mb-4 d-flex justify-content-between">
+    <div class="step active" data-step="1">Transação</div>
+    <div class="step" data-step="2">Cliente</div>
+    <div class="step" data-step="3">Item</div>
   </div>
-
-
-
-      <label for="datepicker">Intervalo acordado do aluguel:</label>
-      <input id="datepicker" name="range_date" class="form-control" value="{{ item.range_date }}" />
-
-
-
-
-      <label for="valor">Preço do aluguel (R$):</label>
-      <input type="text" class="form-control" id="valor" name="valor" value="{{ item.valor | round(2) | string | replace('.', ',') }}" required />
-
-
-      <label for="pagamento">Valor já pago (R$):</label>
-      <input type="text" class="form-control" id="pagamento" name="pagamento" value="{{ item.pagamento | round(2) | string | replace('.', ',') or '' }}" />
-
-      <label for="transaction_obs">Observações da transação:</label>
-      <textarea id="transaction_obs" name="transaction_obs" rows="2">{{ item.transaction_obs }}</textarea>
-
-      <div id="dev-date-container" style="display: none">
-        <label for="dev_date">Devolvido em:</label>
-        <input type="date" id="dev_date" name="dev_date" value="{{ item.dev_date }}" />
+  <form action="{{ url_for('edit_transaction', transaction_id=transaction.transaction_id) }}" method="POST" id="form-rent">
+    <div id="bloco-transacao" class="form-section">
+      <h4 class="mb-3">Detalhes da Transação</h4>
+      <div class="mb-4">{% include 'components/dynamic_input_transaction.html' with context %}</div>
+      <div class="d-flex justify-content-between">
+        <button type="button" class="btn btn-primary" onclick="avancarAba(this)">Avançar</button>
       </div>
     </div>
 
-    <br />
-    <button type="submit">Salvar</button>
+    <div id="bloco-cliente" class="form-section d-none">
+      <h4 class="mb-3">Informações do Cliente</h4>
+      <p class="text-muted mb-3" style="margin-top: -0.5rem">Apenas consulta</p>
+
+      <div class="mb-4">{% include 'components/dynamic_input_client.html' with context %}</div>
+      <div class="d-flex justify-content-between">
+        <button type="button" class="btn btn-outline-secondary" onclick="voltarAba(this)">Voltar</button>
+        <button type="button" class="btn btn-primary" onclick="mostrarAba('bloco-item')">Avançar</button>
+      </div>
+    </div>
+
+    <div id="bloco-item" class="form-section d-none">
+      <h4 class="mb-3">Dados do Item</h4>
+      <p class="text-muted mb-3" style="margin-top: -0.5rem">Apenas consulta</p>
+
+      <div class="mb-4">{% include 'components/dynamic_input_item.html' with context %}</div>
+      <div class="d-flex justify-content-between">
+        <button type="button" class="btn btn-outline-secondary" onclick="voltarAba(this)">Voltar</button>
+        <button type="submit" class="btn btn-primary w-auto">Concluir</button>
+      </div>
+    </div>
   </form>
 </div>
-
-
-
-
-
-
-{% endblock %} {% block scripts %}
+{% endblock %} {% block scripts %}{{ super() }}
 
 <script src="https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.umd.min.js"></script>
 
 <script>
-  document.querySelectorAll('.tab-button').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-      const selectedTab = document.getElementById(btn.dataset.tab);
-      if (selectedTab) selectedTab.classList.add('active');
-
-      // Se clicou na aba transação, atualiza campos extras
-      if (btn.dataset.tab === 'tab-transacao') {
-        toggleExtraFields();
+  const ORDEM_BLOCOS = ['bloco-transacao', 'bloco-cliente', 'bloco-item'];
+  function mostrarAba(id) {
+    document.querySelectorAll('.form-section').forEach((sec) => sec.classList.add('d-none'));
+    document.getElementById(id).classList.remove('d-none');
+    document.querySelectorAll('.step').forEach((step, i) => step.classList.toggle('active', i === ORDEM_BLOCOS.indexOf(id)));
+  }
+  function avancarAba(botao) {
+    const abaAtual = botao.closest('.form-section');
+    const idAtual = abaAtual.id;
+    const campos = abaAtual.querySelectorAll('input, select, textarea');
+    let valido = true;
+    campos.forEach((el) => {
+      if (!el.hasAttribute('required')) return;
+      if (idAtual === 'bloco-transacao' && !el.disabled && !el.readOnly && !el.checkValidity()) {
+        el.classList.add('is-invalid');
+        valido = false;
+      } else {
+        el.classList.remove('is-invalid');
       }
     });
-  });
-
-  // Exibe/esconde campos ret_date e dev_date
-  function toggleExtraFields() {
-    const statusSelect = document.getElementById('transaction_status');
-    const retDateContainer = document.getElementById('ret-date-container');
-    const devDateContainer = document.getElementById('dev-date-container');
-    const retDateInput = document.getElementById('ret_date');
-    const devDateInput = document.getElementById('dev_date');
-
-    if (statusSelect.value === 'reserved') {
-      retDateContainer.style.display = 'none';
-      devDateContainer.style.display = 'none';
-      retDateInput.removeAttribute('required');
-      devDateInput.removeAttribute('required');
-    } else if (statusSelect.value === 'rented') {
-      retDateContainer.style.display = 'block';
-      devDateContainer.style.display = 'none';
-      retDateInput.setAttribute('required', 'required');
-      devDateInput.removeAttribute('required');
-    } else if (statusSelect.value === 'returned') {
-      retDateContainer.style.display = 'block';
-      devDateContainer.style.display = 'block';
-      retDateInput.setAttribute('required', 'required');
-      devDateInput.setAttribute('required', 'required');
+    if (!valido) {
+      alert('Preencha todos os campos obrigatórios válidos antes de avançar.');
+      return;
+    }
+    const proxIndex = ORDEM_BLOCOS.indexOf(idAtual) + 1;
+    if (proxIndex < ORDEM_BLOCOS.length) {
+      mostrarAba(ORDEM_BLOCOS[proxIndex]);
     }
   }
+  function voltarAba(botao) {
+    const abaAtual = botao.closest('.form-section');
+    const anteriorIndex = ORDEM_BLOCOS.indexOf(abaAtual.id) - 1;
+    if (anteriorIndex >= 0) mostrarAba(ORDEM_BLOCOS[anteriorIndex]);
+  }
+</script>
 
-  toggleExtraFields();
-  document.getElementById('transaction_status').addEventListener('change', toggleExtraFields);
+<script>
+  function formatarCampoMonetario(input) {
+    input.addEventListener('input', function (e) {
+      let value = e.target.value.replace(/\D/g, '');
 
-  // 🟥 Inicialização do Easepick (datepicker)
-  function iniciarDatePicker() {
+      if (!value) {
+        e.target.value = '';
+        return;
+      }
+
+      let intValue = parseInt(value, 10);
+      let floatValue = intValue / 100;
+
+      // 🔒 Limite de 1.000.000,00
+      if (floatValue > 1000000) {
+        floatValue = 1000000;
+      }
+
+      e.target.value = floatValue.toLocaleString('pt-BR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+    });
+  }
+
+  // Aplica nos campos que precisam
+  const campos = [document.getElementById('item_value'), document.getElementById('transaction_value_paid')];
+  campos.forEach((campo) => {
+    if (campo) {
+      formatarCampoMonetario(campo);
+    }
+  });
+</script>
+<script>
+  function iniciarDatePickerComDatas(rawDates) {
+    const oldPicker = document.getElementById('transaction_period_display')._easepick;
+
     const DateTime = easepick.DateTime;
-    const rawDates = {{ reserved_ranges | tojson(indent=2) }};
-    const bookedDates = rawDates.map(d => {
-      if (d instanceof Array) {
-        const start = new DateTime(d[0], 'YYYY-MM-DD');
-        const end = new DateTime(d[1], 'YYYY-MM-DD');
-        return [start, end];
+
+    const bookedDates = rawDates.map((d) => {
+      if (Array.isArray(d)) {
+        return [new DateTime(d[0], 'YYYY-MM-DD'), new DateTime(d[1], 'YYYY-MM-DD')];
       }
       return new DateTime(d, 'YYYY-MM-DD');
     });
 
-    const picker = new easepick.create({
-      element: document.getElementById('datepicker'),
-      css: [
-        'https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.css',
-        'https://easepick.com/css/demo_hotelcal.css',
-      ],
+    new easepick.create({
+      element: document.getElementById('transaction_period_display'),
+      css: ['https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.css', 'https://easepick.com/css/demo_hotelcal.css'],
       lang: 'pt-BR',
       autoApply: false,
       plugins: ['RangePlugin', 'LockPlugin', 'AmpPlugin'],
@@ -183,7 +189,7 @@
         },
       },
       LockPlugin: {
-
+        minDate: new Date(),
         minDays: 1,
         inseparable: true,
         filter(date, picked) {
@@ -193,102 +199,71 @@
           return date.inArray(bookedDates, '[]');
         },
       },
-      locale: {
-        cancel: 'Cancelar',
-        apply: 'Aplicar',
-        reset: 'Limpar',
-        one: 'dia',
-        other: 'dias',
-      },
       format: 'DD/MM/YYYY',
-    });
-
-    picker.on('preselect', (evt) => {
-      const clickedDate = evt.detail.date;
-      evt.preventDefault();
-      picker.setStartDate(null);
-      picker.setEndDate(null);
-      document.getElementById('datepicker').value = '';
-      picker.setStartDate(clickedDate);
-    });
-  }
-
-  // Validação do formulário
-  function configurarValidacaoFormulario() {
-    const form = document.getElementById('form-transaction');
-    if (!form) return;
-
-    form.addEventListener('submit', function (e) {
-      const dp = document.getElementById('datepicker');
-      if (dp && (!dp.value || dp.value.trim() === '')) {
-        e.preventDefault();
-        alert('Selecione um intervalo de datas acordado do aluguel.');
-        dp.focus();
-        return;
-      }
-
-      const statusSelect = document.getElementById('transaction_status');
-      const retDateInput = document.getElementById('ret_date');
-      const devDateInput = document.getElementById('dev_date');
-
-      if (statusSelect.value !== 'reserved') {
-        if (!retDateInput.value || retDateInput.value.trim() === '') {
-          e.preventDefault();
-          alert('Por favor, informe a data de retirada do item.');
-          retDateInput.focus();
-          return;
-        }
-      }
-
-      if (statusSelect.value === 'returned') {
-        if (!devDateInput.value || devDateInput.value.trim() === '') {
-          e.preventDefault();
-          alert('Por favor, informe a data de devolução do item.');
-          devDateInput.focus();
-        }
-      }
+      setup(picker) {
+        picker.on('select', () => {
+          const start = picker.getStartDate()?.format('DD/MM/YYYY');
+          const end = picker.getEndDate()?.format('DD/MM/YYYY');
+          const displayInput = document.getElementById('transaction_period_display');
+          const hiddenInput = document.getElementById('transaction_period');
+          if (start && end) {
+            displayInput.value = `${start} - ${end}`;
+            hiddenInput.value = `${start} - ${end}`;
+          } else {
+            displayInput.value = '';
+            hiddenInput.value = '';
+          }
+        });
+      },
     });
   }
-  window.addEventListener('DOMContentLoaded', () => {
-    configurarValidacaoFormulario();
-    iniciarDatePicker();
+</script>
 
-    // Ativar a aba inicial (transação)
-    const activeTabButton = document.querySelector('.tab-button.active');
-    if (activeTabButton) {
-      activeTabButton.click(); // força a execução certa
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const displayInput = document.getElementById('transaction_period_display');
+    if (displayInput) {
+      iniciarDatePickerComDatas({{ reserved_ranges | tojson }});
+    } else {
+      console.warn('⚠️ Campo #transaction_period_display não encontrado no DOM.');
     }
   });
 </script>
 
-
-
 <script>
-  function formatarCampoMonetario(input) {
-    input.addEventListener('input', function(e) {
-      let value = e.target.value.replace(/\D/g, '');
+  document.addEventListener('DOMContentLoaded', function () {
+    const statusField = document.getElementById('transaction_status');
+    const retDateWrapper = document.getElementById('ret_date_wrapper');
+    const retDateInput = document.getElementById('transaction_ret_date');
+    const hintMsg = document.getElementById('ret_date_hint');
 
-      if (!value) {
-        e.target.value = '';
-        return;
+    function atualizarEstadoRetDate() {
+      const status = statusField?.value;
+      const deveExibir = status === 'rented';
+
+      if (retDateWrapper) {
+        retDateWrapper.style.display = deveExibir ? 'block' : 'none';
       }
 
-      let intValue = parseInt(value, 10);
-      let floatValue = intValue / 100;
+      if (retDateInput) {
+        if (deveExibir) {
+          retDateInput.removeAttribute('disabled');
+          retDateInput.setAttribute('required', 'required');
+        } else {
+          retDateInput.setAttribute('disabled', 'disabled');
+          retDateInput.removeAttribute('required');
+        }
+      }
 
-      e.target.value = floatValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    });
-  }
-
-  // Aplica em todos os campos que precisam
-  const campos = [document.getElementById('valor'), document.getElementById('pagamento')];
-
-  campos.forEach(campo => {
-    if (campo) {
-      formatarCampoMonetario(campo);
+      if (hintMsg) {
+        hintMsg.style.color = deveExibir ? '#198754' : '#6c757d';
+        hintMsg.innerHTML = deveExibir ? 'Obrigatório no status <strong>Retirado</strong>.' : 'Obrigatório no status <strong>Retirado</strong>.';
+      }
     }
-  });
-  </script>
 
+    atualizarEstadoRetDate();
+    statusField?.addEventListener('change', atualizarEstadoRetDate);
+  });
+</script>
 
 {% endblock %}

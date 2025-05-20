@@ -1,365 +1,132 @@
 {% extends "base.html" %} {% block title %}Itens Disponíveis{% endblock %} {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='style_inventory.css') }}" />
 {% endblock %} {% block content %}
-<div class="container mt-3">
+<div class="container my-3">
   <h2 class="mb-4">Inventário de itens</h2>
 
-  {% if not itens %}
-  <div
-    style="display: flex; align-items: center; background-color: #cce5ff; border-left: 6px solid #007bff; color: #004085; padding: 1rem; border-radius: 0.25rem; margin-top: 1rem;">
-    <span>Não há itens que satisfazem os critérios selecionados.</span>
-  </div>
-  <br />
-  {% endif %}
+  {% set show_add_item = True %} {% set show_item_filter = True %} {% include "components/item_filter_section.html" with context %} {% if not itens %}
 
-  {% if total_relevant_transactions == 0 and itens|length == 1 %}
-  <div
-    style="background-color: rgba(255, 193, 7, 0.3); border: 1px solid #ffc107; padding: 1rem; border-radius: 0.5rem; display: inline-flex; align-items: center; gap: 1rem; margin-bottom: 1rem; position: relative;">
-    <span style="color: #664d03; font-weight: 500">Dica: para iniciar uma transação, abra o menu "Ações" do item e clique em "Iniciar transação".</span>
-  </div>
-  {% endif %}
-</div>
-
-{% if last_page == False and not itens %}
-<p style="color: #308be3; font-weight: bold; font-size: 1.2rem; margin-top: -1rem; margin-left: 0.25rem">Nada por aqui!</p>
-{% endif %}
-
-{% if request.args or itens %}
-{% set show_item_filter = True %}
-{% endif %}
-
-{% set show_add_item = True %}
-{% include "components/item_filter_section.html" with context %}
-
-{% if itens %}
-<div class="table-container mt-4">
-  <table class="table table-hover responsive-table align-middle rounded-table">
-    <thead>
-      <tr>
-        {% for field in fields_config if field.preview and field.visible %}
-  <th>{{ field.label }}</th>
-{% endfor %}
-
-
-        <th>Ações</th>
-      </tr>
-    </thead>
-    <tbody>
-
-      {% for item in itens %}
-      <tr>
-        {% for field in fields_config if field.preview and field.visible %}
-        <td data-label="{{ field.label }}">
-          {% if field.id == 'image_url' %}
-          {% set value = item.key_values[field.id] if item.key_values is defined and field.id in item.key_values else item[field.id] if field.id in item else '' %}
-          {% if value and value != "N/A" %}
-  <img src="{{ value }}" alt="Imagem" class="img-fluid item-thumbnail"
-       style="max-width: 100px; cursor: pointer;"
-       onclick="mostrarImagemModal('{{ value }}')" />
-{% else %}
-  <img src="{{ url_for('static', filename='item-placeholder.png') }}" alt="Sem Imagem" class="img-fluid item-thumbnail"
-       style="max-width: 100px; cursor: pointer;"
-       onclick="mostrarImagemModal('{{ url_for('static', filename='item-placeholder.png') }}')" />
-{% endif %}
-{% else %}
-
-          {% set value = item.key_values[field.id] if item.key_values is defined and field.id in item.key_values else item[field.id] if field.id in item else '' %}
-          {% if value == 'None' or value is none %}
-              <span class="text-muted">-</span>
-            {% else %}
-            <span>
-              {% if field.id.startswith("valor") %}
-  {{ value | format_brl }}
-{% elif field.id.startswith("date") %}
-  {{ value | format_date }}
-{% else %}
-  {{ value }}
-{% endif %}
-
-            </span>
-
-            {% endif %}
-          {% endif %}
-        </td>
+  <div class="alert alert-info mt-3">Não há itens que satisfazem os critérios selecionados.</div>
+  {% endif %} {% if itens %}
+  <div class="row g-3">
+    {% for item in itens %}
+    <div class="col-12 col-md-6 col-lg-4">
+      <div class="card shadow-lg h-100 position-relative rounded-3 border-0 border-start border-4 border-primary">
+        <!-- Badge de status -->
+        <span class="badge bg-success position-absolute top-0 end-0 m-2">Disponível</span>
+        {% for field in fields_config if field.type == 'item_image_url' and field.preview and field.visible %} {% set image_value =
+        item.key_values[field.id] if item.key_values is defined and field.id in item.key_values else item[field.id] if field.id in item else '' %}
+        <div class="text-center mt-2">
+          <img
+            src="{{ image_value if image_value and image_value != 'N/A' else url_for('static', filename='item-placeholder.png') }}"
+            alt="Imagem"
+            class="card-img-top mx-auto d-block"
+            style="height: 240px; width: auto; max-width: 100%; object-fit: cover; cursor: pointer"
+            onclick="mostrarImagemModal('{{ image_value if image_value and image_value != 'N/A' else url_for('static', filename='item-placeholder.png') }}')"
+          />
+        </div>
         {% endfor %}
-        <td data-label="Ações">
-          <div class="d-flex flex-column gap-2 align-items-center">
-            <div style="width: 120px;">
-              {% set show_delete_item = True %}
-              {% set show_edit_item = True %}
-              {% set show_rent = True %}
-              {% set show_archive = True %}
-              {% set show_consult = True %}
-              {% set show_qrcode = True %}
-              {% set show_share = True %}
-              {% set show_item_transactions = True %}
-              {% include 'components/action_buttons.html' with context %}
+
+        <div class="card-body py-3 px-4">
+          <div class="d-flex justify-content-end mb-2 gap-1">
+            <div class="dropdown position-relative" style="z-index: 9999">
+              <button
+                class="btn btn-sm btn-outline-secondary dropdown-toggle"
+                type="button"
+                id="dropdownMenuButton{{ loop.index }}"
+                data-bs-toggle="dropdown"
+                aria-expanded="false"
+              >
+                <i class="fas fa-ellipsis-v"></i>
+              </button>
+              {% set show_delete_item = True %} {% set show_edit_item = True %} {% set show_rent = True %} {% set show_archive = True %} {% set
+              show_consult = True %} {% set show_qrcode = True %} {% set show_share = True %} {% set show_item_transactions = True %} {% include
+              'components/action_buttons.html' with context %}
+              <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton{{ loop.index }}">
+                <li class="px-2 py-1">
+                  <div class="d-flex flex-column gap-1"></div>
+                </li>
+              </ul>
             </div>
-            <button class="btn btn-primary btn-sm" style="width: 120px;" data-bs-toggle="modal" data-bs-target="#modalItem{{ loop.index }}">
-              Detalhes
+
+            <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalItem{{ loop.index }}">
+              <i class="fas fa-eye"></i>
             </button>
           </div>
-        </td>
-      </tr>
 
-
-      <div class="modal fade" id="modalItem{{ loop.index }}" tabindex="-1" aria-labelledby="modalItemLabel{{ loop.index }}" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-scrollable modal-lg">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title" id="modalItemLabel{{ loop.index }}">Detalhes do Item</h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+          <div class="d-flex flex-column gap-2">
+            {% for field in fields_config if field.preview and field.visible and field.type != 'item_image_url' %}
+            <div class="d-flex justify-content-between small border-bottom pb-1">
+              <span class="text-muted">{{ field.label }}</span>
+              <span class="text-end">
+                {% set value = item.key_values[field.id] if item.key_values is defined and field.id in item.key_values else item[field.id] if field.id
+                in item else '' %} {% if value == 'None' or value is none %}
+                <span class="text-muted">-</span>
+                {% else %} {% if field.type == "date" %} {{ value | format_date }} {% elif field.type in ["value", "item_value"] %} {{ value |
+                format_brl }} {% else %} {{ value | truncate(30, True) }} {% endif %} {% endif %}
+              </span>
             </div>
-            <div class="modal-body">
-
-              {% set show_image = (fields_config | selectattr("id", "equalto", "image_url") | selectattr("visible") | list | length) > 0 %}
-
-
-              {% if show_image %}
-              <!-- Imagem do item -->
-              <div class="text-center mb-3">
-                {% set image = item.key_values['image_url'] if item.key_values is defined and 'image_url' in item.key_values else item['image_url'] if 'image_url' in item else '' %}
-                {% if image and image != "N/A" %}
-                <img src="{{ image }}" alt="Imagem do item"
-                class="img-fluid"
-                style="max-width: 200px; cursor: pointer;"
-                onclick="mostrarImagemModal('{{ image }}')" />
-                           {% else %}
-                <img src="{{ url_for('static', filename='item-placeholder.png') }}" alt="Sem imagem" class="img-fluid" style="max-width: 200px; cursor: pointer;" onclick="mostrarImagemModal('{{ url_for('static', filename='item-placeholder.png') }}')" />
-                {% endif %}
-              </div>
-              {% endif %}
-
-              <div class="container-fluid">
-                <div class="row g-3">
-                  {% for field in fields_config if field.id != 'image_url' %}
-                  <div class="col-12 col-md-6">
-                    <strong>{{ field.label }}:</strong><br />
-                    {% set value = item.key_values[field.id] if item.key_values is defined and field.id in item.key_values else item[field.id] if field.id in item else '' %}
-                    {% if value == 'None' or value is none %}
-                      <span class="text-muted">-</span>
-                    {% else %}
-                    <span>
-                      <span>
-
-                        {% if field.id.startswith("date") %}
-  {{ value | format_date }}
-{% elif field.id.startswith("valor") %}
-  {{ value | format_brl }}
-{% else %}
-  {{ value }}
-{% endif %}
-
-                      </span>
-
-                    </span>
-                    {% endif %}
-                  </div>
-                  {% endfor %}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
-{% endif %}
-
-
-
-
-
-
-
-
-{% if itens %}
-
-<!-- Pagination -->
-<ul class="pagination justify-content-center"></ul>
-{% endif %}
-
-{% set active_statuses = ["trialing", "active", "past_due"] %}
-{% set max_limit = 300 if current_transaction and current_transaction.subscription_status in active_statuses else 0 %}
-
-<div class="container mt-4">
-  <div class="row g-3 justify-content-center">
-    <div class="usage-banner container-fluid py-2 px-3 my-2">
-      <div class="row justify-content-center align-items-center text-center">
-        <div class="col-12 col-md-auto mb-2 mb-md-0">
-          <div>
-            <strong>Transações ativas:</strong>
-            {{ total_relevant_transactions }} de {{ max_limit }} no seu plano
-          </div>
-        </div>
-        <div class="col-12 col-md-auto">
-          <div>
-            <strong>Itens cadastrados:</strong>
-            {{ total_itens }} de {{ max_limit }} no seu plano
+            {% endfor %}
           </div>
         </div>
       </div>
     </div>
+    {% include 'components/info_modal_item.html' with context %} {% endfor %}
+  </div>
+
+  {% endif %} {% if itens %}
+  <ul class="pagination justify-content-center mt-4"></ul>
+  {% endif %}
 </div>
 
-</div>
-</div>
-    <!-- MODAL para imagem -->
-    {% include 'components/image_modal.html' %} {% endblock %} {% block scripts %}
-    <!-- Modal do calendário -->
-    <div class="modal fade" id="calendarModal" tabindex="-1" aria-hidden="true">
-      <div class="modal-dialog modal-dialog-centered" style="max-width: 400px">
-        <div class="modal-content p-3">
-          <div class="modal-header">
-            <h5 class="modal-title">Calendário do Item</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
-          </div>
-          <div class="modal-body" id="calendarModalBody">Carregando...</div>
-        </div>
-      </div>
-    </div>
+{% include 'components/image_modal.html' %} {% endblock %} {% block scripts %}
+<script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
 
-    <script>
-      function abrirCalendario(url) {
-        fetch(url)
-          .then((response) => response.text())
-          .then((html) => {
-            document.getElementById('calendarModalBody').innerHTML = html;
-            const modal = new bootstrap.Modal(document.getElementById('calendarModal'));
-            modal.show();
-          })
-          .catch((error) => {
-            console.error('Erro ao carregar calendário:', error);
-            alert('Erro ao carregar calendário.');
-          });
-      }
-    </script>
+<script>
+  function mostrarImagemModal(imageUrl) {
+    const modalImg = document.getElementById('modalImg');
+    const imageModal = new bootstrap.Modal(document.getElementById('imageModal'));
+    modalImg.src = imageUrl;
+    imageModal.show();
+  }
 
-    <script src="https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.umd.min.js"></script>
-    <script>
-      function iniciarDatePicker() {
-        const picker = new easepick.create({
-          element: document.getElementById('datepicker'),
-          css: ['https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.css'],
-          inline: true,
-          container: document.getElementById('calendar-container'),
-        });
+  const urlParams = new URLSearchParams(window.location.search);
+  let currentPage = parseInt(urlParams.get('page') || '1');
+  const paginacao = document.querySelector('.pagination');
 
-        picker.show();
-      }
-    </script>
+  urlParams.delete('page');
+  const baseParams = urlParams.toString();
+  const prefix = baseParams ? `?${baseParams}&` : '?';
 
-    <script>
-      function checkTransactionLimit(event) {
-        const totalTransactions = {{ total_relevant_transactions if total_relevant_transactions is not none else 0 | tojson }};
-        const paymentStatus = const paymentStatus = {{ current_transaction.payment_status | default('') | tojson }};
+  if (currentPage > 1) {
+    const liPrev = document.createElement('li');
+    liPrev.className = 'page-item';
+    const aPrev = document.createElement('a');
+    aPrev.className = 'page-link';
+    aPrev.innerText = '← Anterior';
+    aPrev.href = `${prefix}page=${currentPage - 1}`;
+    liPrev.appendChild(aPrev);
+    paginacao.appendChild(liPrev);
+  }
 
-        const allowStatuses = ["trialing", "active", "past_due"];
-        const maxTransactions = allowStatuses.includes(paymentStatus) ? 300 : 0;
+  const liCurrent = document.createElement('li');
+  liCurrent.className = 'page-item active';
+  const aCurrent = document.createElement('a');
+  aCurrent.className = 'page-link';
+  aCurrent.innerText = `Página ${currentPage}`;
+  aCurrent.href = "#";
+  liCurrent.appendChild(aCurrent);
+  paginacao.appendChild(liCurrent);
 
-        if (totalTransactions >= maxTransactions) {
-          alert("O limite de transações ativas do seu plano foi atingido.");
-          event.preventDefault();
-          return false;
-        }
-        return true;
-      }
-    </script>
-
-    <script>
-      document.addEventListener("DOMContentLoaded", function () {
-        const totalItems = {{ total_itens }};
-        const paymentStatus = {{ current_transaction.subscription_status | default('none') | tojson }};
-        const allowedStatuses = ["trialing", "active", "past_due"];
-        const maxItems = allowedStatuses.includes(paymentStatus) ? 300 : 0;
-
-        const addButton = document.getElementById("add-item-btn");
-        if (addButton) {
-          addButton.addEventListener("click", function (event) {
-            event.preventDefault();
-            if (totalItems >= maxItems) {
-              alert("Você atingiu o limite de itens cadastrados no seu plano.");
-            } else {
-              const targetUrl = addButton.getAttribute("data-add-url");
-              window.location.href = targetUrl;
-            }
-          });
-        }
-      });
-    </script>
-
-    <script>
-      const urlParams = new URLSearchParams(window.location.search);
-      let currentPage = parseInt(urlParams.get('page') || '1');
-
-      const paginacao = document.querySelector('.pagination');
-
-      // Remove o parâmetro de página antes de recriar a URL
-      urlParams.delete('page');
-
-      const baseParams = urlParams.toString();
-      const prefix = baseParams ? `?${baseParams}&` : '?';
-
-      // ← Anterior
-      if (currentPage > 1) {
-        const liPrev = document.createElement('li');
-        liPrev.className = 'page-item';
-        const aPrev = document.createElement('a');
-        aPrev.className = 'page-link';
-        aPrev.innerText = '← Anterior';
-        aPrev.href = `${prefix}page=${currentPage - 1}`;
-        liPrev.appendChild(aPrev);
-        paginacao.appendChild(liPrev);
-      }
-
-      // Página atual
-      const liCurrent = document.createElement('li');
-      liCurrent.className = 'page-item active';
-      const aCurrent = document.createElement('a');
-      aCurrent.className = 'page-link';
-      aCurrent.innerText = `Página ${currentPage}`;
-      aCurrent.href = "#";
-      liCurrent.appendChild(aCurrent);
-      paginacao.appendChild(liCurrent);
-
-      // → Próxima
-      {% if has_next %}
-        const liNext = document.createElement('li');
-        liNext.className = 'page-item';
-        const aNext = document.createElement('a');
-        aNext.className = 'page-link';
-        aNext.innerText = 'Próxima →';
-        aNext.href = `${prefix}page=${currentPage + 1}`;
-        liNext.appendChild(aNext);
-        paginacao.appendChild(liNext);
-      {% endif %}
-    </script>
-
-
-
-    <script>
-      function mostrarImagemModal(imageUrl) {
-        const modalImage = document.getElementById('modalImg');
-        modalImage.src = imageUrl;
-
-        // Fecha o modal atual antes de abrir o novo
-        const modals = document.querySelectorAll('.modal.show');
-        modals.forEach(modalEl => {
-          bootstrap.Modal.getInstance(modalEl)?.hide();
-        });
-
-        // Aguarda o fechamento e então abre o novo modal
-        setTimeout(() => {
-          const imageModal = new bootstrap.Modal(document.getElementById('imageModal'));
-          imageModal.show();
-        }, 300); // espera 300ms
-      }
-    </script>
-
-
-    {% endblock %}
-
+  {% if has_next %}
+    const liNext = document.createElement('li');
+    liNext.className = 'page-item';
+    const aNext = document.createElement('a');
+    aNext.className = 'page-link';
+    aNext.innerText = 'Próxima →';
+    aNext.href = `${prefix}page={{ current_page + 1 }}`;
+    liNext.appendChild(aNext);
+    paginacao.appendChild(liNext);
+  {% endif %}
+</script>
+{% endblock %}

@@ -6,59 +6,98 @@
 {% endblock %}
 
 {% block content %}
-<div class="page-wrapper">
-  <div class="form-container">
-    <h1>Novo Cliente</h1>
-    <a href="{{ request.args.get('next', url_for('listar_clientes')) }}" class="cancel-link">Cancelar</a>
-
-    <form method="POST" id="clientForm">
-      <input type="hidden" name="next" value="{{ request.args.get('next', url_for('listar_clientes')) }}" />
-
-      {% for field in all_fields if field.visible %}
-        <label for="{{ field.id }}">{{ field.label if field.fixed else field.title }}{% if field.required %} *{% endif %}</label><br/>
-
-        {% if field.type == 'string' %}
-          <input
-            type="text"
-            id="{{ field.id }}"
-            name="{{ field.id }}"
-            class="form-control"
-            value="{{ client[field.id] if client[field.id] is defined else '' }}"
-            {% if field.required %}required{% endif %}
-          />
-        {% elif field.type == 'number' %}
-          <input
-            type="text"
-            id="{{ field.id }}"
-            name="{{ field.id }}"
-            class="form-control"
-            value="{{ client[field.id] if client[field.id] is defined else '' }}"
-            {% if field.required %}required{% endif %}
-          />
-        {% elif field.type == 'date' %}
-          <input
-            type="date"
-            id="{{ field.id }}"
-            name="{{ field.id }}"
-            class="form-control"
-            value="{{ client[field.id] if client[field.id] is defined else '' }}"
-            {% if field.required %}required{% endif %}
-          />
-        {% elif field.type == 'dropdown' %}
-          <select id="{{ field.id }}" name="{{ field.id }}" class="form-control" {% if field.required %}required{% endif %}>
-            <option value="">Selecione</option>
-            {% for option in field.options %}
-              <option value="{{ option }}" {% if client[field.id] == option %}selected{% endif %}>{{ option }}</option>
-            {% endfor %}
-          </select>
-        {% endif %}
-
-        <br /><br />
-      {% endfor %}
-
-      <button type="submit">Salvar</button>
-    </form>
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="mb-0">Novo Cliente</h1>
+<a href="{{ request.args.get('next') }}" class="exit-link">
+  <i class="fas fa-sign-out-alt me-2"></i>
+  Sair sem Finalizar
+</a>  </div>
+  <div class="alert alert-primary d-flex justify-content-between align-items-center" role="alert">
+    <div>
+      Dica: Acesse <a href="/custom_fields/item" class="alert-link">Customizar Campos</a> para criar novos ou ajustar os existentes.
+    </div>
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
   </div>
+
+  <form method="POST" id="clientForm">
+    <input type="hidden" name="next" value="{{ next or url_for('listar_clientes') }}" />
+
+    <div class="row row-cols-1 row-cols-md-3 g-4">
+      {% for field in all_fields if field.visible %}
+      <div class="col d-flex">
+        <div class="bg-light shadow-sm rounded p-3 border w-100 h-100 d-flex flex-column justify-content-center">
+          <label for="{{ field.id }}" class="form-label fw-semibold">
+            {{ field.label if field.fixed else field.title }}{% if field.required %} *{% endif %}
+          </label>
+
+          {% if field.type == 'client_phone' %}
+            <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+              value="{{ client.get(field.id, '') }}" {% if field.required %}required{% endif %} />
+
+              {% elif field.type == 'client_name' %}
+              <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+                value="{{ client.get(field.id, '') }}" {% if field.required %}required{% endif %} />
+                <div id="client-suggestions-title" style="display: none;">Clientes encontrados:</div>
+<div id="client_suggestions" class="autocomplete-box"></div>
+<div id="client-status-message" class="status-message" style="display: none;"></div>
+
+
+          {% elif field.type == 'client_email' %}
+            <input type="email" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+              value="{{ client.get(field.id, '') }}" {% if field.required %}required{% endif %} />
+
+              {% elif field.type == 'client_address' %}
+            <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+              value="{{ client.get(field.id, '') }}" {% if field.required %}required{% endif %} />
+
+          {% elif field.type == 'client_cpf' %}
+            <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+              value="{{ client.get(field.id, '') }}" {% if field.required %}required{% endif %} />
+
+              {% elif field.type == 'client_cnpj' %}
+            <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+              value="{{ client.get(field.id, '') }}" {% if field.required %}required{% endif %} />
+
+              {% elif field.type == 'client_notes' %}
+              <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+                value="{{ client.get(field.id, '') }}" {% if field.required %}required{% endif %} />
+
+                {% elif field.type == "text" %}
+                <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+                  value="{{ client.get(field.id, '') }}" {% if field.required %}required{% endif %} />
+
+                  {% elif field.type == 'value' %}
+                  <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+                    value="{{ client.get(field.id, '') }}" {% if field.required %}required{% endif %} />
+
+
+              {% elif field.type == 'number' %}
+                <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+                  value="{{ client.get(field.id, '') }}" {% if field.required %}required{% endif %} />
+
+              {% elif field.type == 'date' %}
+                <input type="date" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+                  value="{{ client.get(field.id, '') }}" {% if field.required %}required{% endif %} />
+
+
+          {% elif field.type == 'dropdown' %}
+            <select class="form-select" id="{{ field.id }}" name="{{ field.id }}" {% if field.required %}required{% endif %}>
+              <option value="">Selecione</option>
+              {% for option in field.options %}
+                <option value="{{ option }}" {% if client.get(field.id) == option %}selected{% endif %}>{{ option }}</option>
+              {% endfor %}
+            </select>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="d-flex justify-content-center mt-4">
+      <button type="submit" class="btn btn-success btn-submit">Salvar</button>
+    </div>
+  </form>
 </div>
 {% endblock %}
 
@@ -67,8 +106,239 @@
 
 
  {% block scripts %}
+ <script>
+  document.addEventListener('DOMContentLoaded', function () {
+    function maskCPF(cpf) {
+      return cpf.replace(/\D/g, '')
+        .replace(/(\d{3})(\d)/, '$1.$2')
+        .replace(/(\d{3})(\d)/, '$1.$2')
+        .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+    }
+
+    function maskCNPJ(cnpj) {
+      return cnpj.replace(/\D/g, '')
+        .replace(/^(\d{2})(\d)/, '$1.$2')
+        .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
+        .replace(/\.(\d{3})(\d)/, '.$1/$2')
+        .replace(/(\d{4})(\d)/, '$1-$2');
+    }
+
+    function maskPhone(value) {
+      const v = value.replace(/\D/g, '').slice(0, 11);
+      return v.length >= 8
+        ? `(${v.slice(0,2)}) ${v.slice(2,7)}-${v.slice(7)}`
+        : v.length >= 3
+        ? `(${v.slice(0,2)}) ${v.slice(2)}`
+        : v.length >= 1
+        ? `(${v}`
+        : '';
+    }
+
+    const cpfInput = document.getElementById('client_cpf');
+    const cnpjInput = document.getElementById('client_cnpj');
+    const telInput = document.getElementById('client_phone');
+
+    if (cpfInput) cpfInput.addEventListener('input', e => e.target.value = maskCPF(e.target.value));
+    if (cnpjInput) cnpjInput.addEventListener('input', e => e.target.value = maskCNPJ(e.target.value));
+    if (telInput) telInput.addEventListener('input', e => e.target.value = maskPhone(e.target.value));
+
+    const form = document.getElementById('clientForm');
+    if (form) {
+      form.addEventListener('submit', function (e) {
+        const cpf = cpfInput?.value.replace(/\D/g, '');
+        const cnpj = cnpjInput?.value.replace(/\D/g, '');
+
+        if (cpf && !validaCPF(cpf)) {
+          e.preventDefault();
+          alert('CPF inválido!');
+        }
+
+        if (cnpj && !validaCNPJ(cnpj)) {
+          e.preventDefault();
+          alert('CNPJ inválido!');
+        }
+      });
+    }
+
+    function validaCPF(cpf) {
+      if (cpf.length !== 11 || /^(\d)\1+$/.test(cpf)) return false;
+      let soma = 0;
+      for (let i = 0; i < 9; i++) soma += parseInt(cpf[i]) * (10 - i);
+      let resto = soma % 11;
+      let dig1 = resto < 2 ? 0 : 11 - resto;
+
+      if (dig1 != parseInt(cpf[9])) return false;
+
+      soma = 0;
+      for (let i = 0; i < 10; i++) soma += parseInt(cpf[i]) * (11 - i);
+      resto = soma % 11;
+      let dig2 = resto < 2 ? 0 : 11 - resto;
+
+      return dig2 == parseInt(cpf[10]);
+    }
+
+    function validaCNPJ(cnpj) {
+      if (cnpj.length !== 14 || /^(\d)\1+$/.test(cnpj)) return false;
+      let t = cnpj.length - 2, d = cnpj.substring(t), n = cnpj.substring(0, t), s = 0, p = t - 7;
+      for (let i = t; i >= 1; i--) {
+        s += n.charAt(t - i) * p--;
+        if (p < 2) p = 9;
+      }
+      let r = s % 11 < 2 ? 0 : 11 - s % 11;
+      if (r != d.charAt(0)) return false;
+
+      t += 1; n = cnpj.substring(0, t); s = 0; p = t - 7;
+      for (let i = t; i >= 1; i--) {
+        s += n.charAt(t - i) * p--;
+        if (p < 2) p = 9;
+      }
+      r = s % 11 < 2 ? 0 : 11 - s % 11;
+      return r == d.charAt(1);
+    }
+  });
+</script>
+
+
 <script>
-  // Função para aplicar máscara ao CPF
+  function buscarSugestoes(term) {
+    return fetch(`/autocomplete_items?term=${encodeURIComponent(term)}`).then((res) => res.json());
+  }
+
+  function preencherCampos(item) {
+    for (const key in item) {
+      const el = document.getElementById(key);
+      if (el && el.type !== 'hidden') {
+        el.value = item[key];
+      }
+    }
+
+    // Disparar checagem no campo item_custom_id após preenchimento
+    const customInput = document.getElementById('item_custom_id');
+    if (customInput) {
+      customInput.dispatchEvent(new Event('input'));
+    }
+  }
+
+  function exibirStatus(inputId, texto, classe) {
+    const statusEl = document.getElementById(`${inputId}_status`);
+    if (!statusEl) return;
+    statusEl.innerHTML = texto;
+    statusEl.className = `status-message ${classe}`;
+    statusEl.style.display = 'block';
+  }
+
+  function limparStatus(inputId) {
+    const statusEl = document.getElementById(`${inputId}_status`);
+    if (statusEl) statusEl.style.display = 'none';
+  }
+
+  function inicializarAutocomplete(inputId, isDescricao = false) {
+    const input = document.getElementById(inputId);
+    const boxId = `${inputId}_suggestions`;
+    const statusId = `${inputId}_status`;
+
+    if (!input) return;
+
+    let box = document.getElementById(boxId);
+    if (!box) {
+      box = document.createElement('div');
+      box.id = boxId;
+      box.className = 'autocomplete-box position-absolute w-100 bg-white shadow-sm z-3';
+      input.closest('.position-relative')?.appendChild(box);
+    }
+
+    const statusEl = document.getElementById(statusId);
+
+    let itensSugeridos = [];
+
+    input.addEventListener('input', async () => {
+      const termo = input.value.trim();
+      if (!termo) {
+        box.innerHTML = '';
+        if (!isDescricao) limparStatus(inputId);
+        return;
+      }
+
+      try {
+        itensSugeridos = await buscarSugestoes(termo);
+        box.innerHTML = '';
+
+        itensSugeridos.forEach((item) => {
+          const div = document.createElement('div');
+          div.className = 'autocomplete-item px-2 py-1';
+          div.innerHTML = `
+            <strong>${item.item_custom_id || '(sem código)'}</strong><br>
+            <small>${item.item_description || ''}</small>
+          `;
+          div.addEventListener('click', () => {
+            input.value = item[inputId];
+            box.innerHTML = '';
+
+            if (isDescricao) {
+              preencherCampos(item);
+            } else {
+              checarDuplicidade(inputId, item[inputId], itensSugeridos);
+            }
+          });
+          box.appendChild(div);
+        });
+
+        if (!isDescricao) checarDuplicidade(inputId, termo, itensSugeridos);
+      } catch (err) {
+        console.error('Erro ao buscar itens:', err);
+      }
+    });
+
+    input.addEventListener('blur', () => {
+      setTimeout(() => (box.innerHTML = ''), 200);
+    });
+  }
+  function checarDuplicidade(inputId, termo, sugestoes) {
+    const match = sugestoes.find((item) => (item.item_custom_id || '').toLowerCase() === termo.toLowerCase());
+
+    const box = document.getElementById(`${inputId}_suggestions`);
+    if (match) {
+      preencherCampos(match); // 👈 Isso garante que os outros campos sejam atualizados
+      const editarLink = `
+      <a href="/edit_item/${match.item_id}?item_id=${match.item_id}&next=${encodeURIComponent(window.location.pathname)}"
+         class="ms-2 text-decoration-underline text-warning">
+        Editar
+      </a>
+    `;
+      exibirStatus(inputId, 'Item Id encontrado ' + editarLink, 'user-found');
+      if (box) box.innerHTML = '';
+    } else {
+      exibirStatus(inputId, 'Novo item será criado', 'user-new');
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    inicializarAutocomplete('item_custom_id', false);
+    inicializarAutocomplete('item_description', true);
+  });
+
+  function gerarCodigoItem() {
+    const campo = document.getElementById('item_custom_id');
+    if (campo) {
+      const uuid = crypto.randomUUID().replace(/-/g, '').substring(0, 12);
+      campo.value = uuid;
+      campo.dispatchEvent(new Event('input'));
+    }
+  }
+</script>
+
+<script>
+  // 🧼 Máscaras
+  function maskPhone(value) {
+    let input = value.replace(/\D/g, '');
+    if (input.length > 11) input = input.slice(0, 11);
+    let formatted = '';
+    if (input.length > 0) formatted += '(' + input.substring(0, 2);
+    if (input.length >= 3) formatted += ') ' + input.substring(2, 7);
+    if (input.length >= 8) formatted += '-' + input.substring(7);
+    return formatted;
+  }
+
   function maskCPF(cpf) {
     cpf = cpf.replace(/\D/g, '');
     cpf = cpf.replace(/(\d{3})(\d)/, '$1.$2');
@@ -77,7 +347,6 @@
     return cpf;
   }
 
-  // Função para aplicar máscara ao CNPJ
   function maskCNPJ(cnpj) {
     cnpj = cnpj.replace(/\D/g, '');
     cnpj = cnpj.replace(/^(\d{2})(\d)/, '$1.$2');
@@ -86,188 +355,143 @@
     cnpj = cnpj.replace(/(\d{4})(\d)/, '$1-$2');
     return cnpj;
   }
-
-  // Aplicando máscaras nos campos
-  document.getElementById('client_cpf').addEventListener('input', function (e) {
-    let value = e.target.value;
-    e.target.value = maskCPF(value);
-  });
-
-  document.getElementById('client_cnpj').addEventListener('input', function (e) {
-    let value = e.target.value;
-    e.target.value = maskCNPJ(value);
-  });
-
-  // Validação de CPF e CNPJ ao submeter o formulário
-  document.getElementById('clientForm').addEventListener('submit', function (e) {
-    // Obter valores com formatação
-    const telFormatted = document.getElementById('client_tel').value;
-    const cpfFormatted = document.getElementById('client_cpf').value;
-    const cnpjFormatted = document.getElementById('client_cnpj').value;
-
-    // Remover formatação e manter apenas dígitos
-    const telDigits = telFormatted.replace(/\D/g, '');
-    const cpfDigits = cpfFormatted.replace(/\D/g, '');
-    const cnpjDigits = cnpjFormatted.replace(/\D/g, '');
-
-    // Preencher campos ocultos com apenas dígitos
-    document.getElementById('client_tel_digits').value = telDigits;
-    document.getElementById('client_cpf_digits').value = cpfDigits;
-    document.getElementById('client_cnpj_digits').value = cnpjDigits;
-
-    // Validar CPF
-    if (cpfDigits && !validaCPF(cpfDigits)) {
-      e.preventDefault();
-      alert('CPF inválido!');
-      return;
-    }
-
-    // Validar CNPJ
-    if (cnpjDigits && !validaCNPJ(cnpjDigits)) {
-      e.preventDefault();
-      alert('CNPJ inválido!');
-      return;
-    }
-  });
-
-  function validaCPF(cpf) {
-    if (cpf.length !== 11 || /^(\d)\1+$/.test(cpf)) return false;
-    let soma = 0,
-      resto;
-    for (let i = 1; i <= 9; i++) soma += parseInt(cpf[i - 1]) * (11 - i);
-    resto = (soma * 10) % 11;
-    if (resto === 10 || resto === 11) resto = 0;
-    if (resto !== parseInt(cpf[9])) return false;
-    soma = 0;
-    for (let i = 1; i <= 10; i++) soma += parseInt(cpf[i - 1]) * (12 - i);
-    resto = (soma * 10) % 11;
-    if (resto === 10 || resto === 11) resto = 0;
-    return resto === parseInt(cpf[10]);
-  }
-
-  function validaCNPJ(cnpj) {
-    if (cnpj.length !== 14 || /^(\d)\1+$/.test(cnpj)) return false;
-    let tamanho = cnpj.length - 2;
-    let numeros = cnpj.substring(0, tamanho);
-    let digitos = cnpj.substring(tamanho);
-    let soma = 0;
-    let pos = tamanho - 7;
-
-    for (let i = tamanho; i >= 1; i--) {
-      soma += parseInt(numeros.charAt(tamanho - i)) * pos--;
-      if (pos < 2) pos = 9;
-    }
-
-    let resultado = soma % 11 < 2 ? 0 : 11 - (soma % 11);
-    if (resultado != parseInt(digitos.charAt(0))) return false;
-
-    tamanho += 1;
-    numeros = cnpj.substring(0, tamanho);
-    soma = 0;
-    pos = tamanho - 7;
-    for (let i = tamanho; i >= 1; i--) {
-      soma += parseInt(numeros.charAt(tamanho - i)) * pos--;
-      if (pos < 2) pos = 9;
-    }
-
-    resultado = soma % 11 < 2 ? 0 : 11 - (soma % 11);
-    return resultado == parseInt(digitos.charAt(1));
-  }
 </script>
 
 <script>
-  const telInput = document.getElementById('client_tel');
+  // 🧠 Bloqueia todos os campos do bloco de cliente
+  function bloquearCamposCliente() {
+    const blocoCliente = document.getElementById('bloco-cliente');
+    if (!blocoCliente) return;
 
-  telInput.addEventListener('input', function (e) {
-    let input = e.target.value.replace(/\D/g, ''); // Remove tudo que não for número
+    const campos = blocoCliente.querySelectorAll('input, select, textarea');
 
-    if (input.length > 11) {
-      input = input.slice(0, 11); // Limita a 11 dígitos
-    }
+    campos.forEach((el) => {
+      if (el.id !== 'client_name' && el.type !== 'hidden') {
+        el.setAttribute('readonly', true);
+        el.setAttribute('disabled', true);
+      } else if (el.id === 'client_name') {
+        // Garante que client_name fique ativo
+        el.removeAttribute('readonly');
+        el.removeAttribute('disabled');
+      }
+    });
+  }
 
-    let formatted = '';
+  function desbloquearCamposCliente() {
+    const blocoCliente = document.getElementById('bloco-cliente');
+    if (!blocoCliente) return;
 
-    if (input.length > 0) {
-      formatted += '(' + input.substring(0, 2);
-    }
-    if (input.length >= 3) {
-      formatted += ') ' + input.substring(2, 7);
-    }
-    if (input.length >= 8) {
-      formatted += '-' + input.substring(7);
-    }
+    const campos = blocoCliente.querySelectorAll('input, select, textarea');
+    campos.forEach((el) => {
+      if (el.type !== 'hidden') {
+        el.removeAttribute('readonly');
+        el.removeAttribute('disabled');
+      }
+    });
+  }
 
-    e.target.value = formatted;
-  });
-</script>
+  // 🧠 Aplica máscaras específicas para CPF, CNPJ e telefone
+  function aplicarMascaraCliente(id, valor) {
+    if (!valor) return '';
+    if (id === 'client_phone') return maskPhone(valor);
+    if (id === 'client_cpf') return maskCPF(valor);
+    if (id === 'client_cnpj') return maskCNPJ(valor);
+    return valor;
+  }
 
-<script>
-  function autocompleteClienteRedirect() {
+  // 🧠 Autocomplete de cliente
+  function autocompleteCliente() {
     const clientInput = document.getElementById('client_name');
     const statusMessage = document.getElementById('client-status-message');
     const suggestionsBox = document.getElementById('client_suggestions');
-    const titleBox = document.getElementById('client-suggestions-title'); // ⬅️ fora do loop!
 
-    let suggestionClicked = false;
+    let suggestionSelected = false;
 
-    if (!clientInput || !statusMessage || !suggestionsBox || !titleBox) return;
+    if (!clientInput || !statusMessage || !suggestionsBox) return;
 
     clientInput.addEventListener('input', async () => {
-      suggestionClicked = false;
       const term = clientInput.value.trim();
-
-      suggestionsBox.innerHTML = '';
-      titleBox.style.display = 'none';
-      statusMessage.style.display = 'none';
-
-      if (term.length < 1) return;
+      if (term.length < 1) {
+        suggestionsBox.innerHTML = '';
+        statusMessage.style.display = 'none';
+        return;
+      }
 
       try {
         const res = await fetch(`/autocomplete_clients?term=${encodeURIComponent(term)}`);
         const clients = await res.json();
 
-        if (clients.length === 0) return;
+        suggestionsBox.innerHTML = '';
 
-        // 🟡 Mostrar "Clientes encontrados:"
-        titleBox.style.display = 'block';
-
-        clients.forEach((client) => {
+        clients.forEach((cli) => {
           const div = document.createElement('div');
           div.className = 'autocomplete-item';
-          div.innerHTML = `<strong>${client.client_name}</strong>
-            ${client.client_tel ? `<div><small>📞 ${client.client_tel}</small></div>` : ''}`;
+          div.innerHTML = `
+  <strong>${cli.client_name}</strong>
+  ${cli.client_phone ? `<div><small>📞 ${maskPhone(cli.client_phone)}</small></div>` : ''}
+  ${cli.client_email ? `<div><small>📧 ${cli.client_email}</small></div>` : ''}
+  ${cli.client_cpf ? `<div><small>🆔 CPF: ${maskCPF(cli.client_cpf)}</small></div>` : ''}
+  ${cli.client_cnpj ? `<div><small>🏢 CNPJ: ${maskCNPJ(cli.client_cnpj)}</small></div>` : ''}
+`;
           div.addEventListener('click', () => {
-            suggestionClicked = true;
-            window.location.href = `/editar_cliente/${client.client_id}`;
+            // Preenche qualquer campo que existir com base nas chaves do JSON
+            for (const key in cli) {
+              const el = document.getElementById(key);
+              if (el) {
+                el.value = aplicarMascaraCliente(key, cli[key]);
+              }
+            }
+
+            suggestionSelected = true;
+            suggestionsBox.innerHTML = '';
+            statusMessage.className = 'status-message user-found';
+            const editarLink = `
+  <a href="/editar_cliente/${cli.client_id}?client_id=${cli.client_id}&next=${encodeURIComponent(window.location.pathname)}"
+     class="ms-2 text-decoration-underline text-warning">
+    Editar
+  </a>
+`;
+
+            statusMessage.innerHTML = 'Cliente encontrado ' + editarLink;
+            statusMessage.style.display = 'block';
+
+            bloquearCamposCliente();
           });
+
           suggestionsBox.appendChild(div);
         });
-      } catch (err) {
-        console.error('Erro no autocomplete:', err);
-      }
-    });
 
-    clientInput.addEventListener('blur', () => {
-      setTimeout(() => {
-        if (!suggestionClicked && clientInput.value.trim().length > 0) {
-          suggestionsBox.innerHTML = '';
-          titleBox.style.display = 'none';
+        const exactMatch = clients.find((client) => client.client_name.trim().toLowerCase() === term.toLowerCase());
+
+        if (exactMatch) {
+          statusMessage.className = 'status-message user-found';
+          statusMessage.innerHTML = 'Cliente encontrado';
+        } else {
           statusMessage.className = 'status-message user-new';
-          statusMessage.innerHTML = 'Novo cliente será criado.';
-          statusMessage.style.display = 'block';
+          statusMessage.innerHTML = 'Cliente novo será criado';
+          desbloquearCamposCliente();
         }
-      }, 200);
+
+        statusMessage.style.display = 'block';
+      } catch (error) {
+        console.error('Erro ao buscar clientes:', error);
+      }
     });
 
     document.addEventListener('click', (e) => {
       if (!clientInput.contains(e.target) && !suggestionsBox.contains(e.target)) {
         suggestionsBox.innerHTML = '';
-        titleBox.style.display = 'none';
       }
+    });
+
+    clientInput.addEventListener('focus', () => {
+      suggestionSelected = false;
     });
   }
 
-  document.addEventListener('DOMContentLoaded', autocompleteClienteRedirect);
+  // 🔁 Inicializar ao carregar
+  autocompleteCliente();
 </script>
+
 
 {% endblock %}

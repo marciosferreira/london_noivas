@@ -440,3 +440,114 @@ def get_account_plan(account_id):
         # Em caso de erro, assume como free por segurança
         print(f"Erro ao consultar plano: {str(e)}")
         return "free"
+
+
+def entidade_atende_filtros_dinamico(entidade, filtros, fields_config, image_url_required=None):
+    from decimal import Decimal, InvalidOperation
+    import datetime
+
+    def get_valor(entidade, field):
+        field_id = field["id"]
+        if field.get("fixed"):
+            return entidade.get(field_id, "")
+        return (entidade.get("key_values", {}) or {}).get(field_id, "")
+
+    # Lógica especial para imagem (usado apenas em itens, mas é seguro ignorar para outros)
+    if image_url_required is not None:
+        imagem = entidade.get("item_image_url", "")
+        imagem = str(imagem).strip().lower()
+        tem_imagem = bool(imagem) and imagem != "n/a"
+        if image_url_required != tem_imagem:
+            return False
+
+    # Filtros manuais para datas fixas da transação (rental_date e return_date)
+    rental_start = filtros.get("start_rental_date")
+    rental_end = filtros.get("end_rental_date")
+    return_start = filtros.get("start_return_date")
+    return_end = filtros.get("end_return_date")
+
+    try:
+        if rental_start:
+            date_val = datetime.datetime.strptime(entidade.get("rental_date", ""), "%Y-%m-%d").date()
+            if date_val < datetime.datetime.strptime(rental_start, "%Y-%m-%d").date():
+                return False
+        if rental_end:
+            date_val = datetime.datetime.strptime(entidade.get("rental_date", ""), "%Y-%m-%d").date()
+            if date_val > datetime.datetime.strptime(rental_end, "%Y-%m-%d").date():
+                return False
+        if return_start:
+            date_val = datetime.datetime.strptime(entidade.get("return_date", ""), "%Y-%m-%d").date()
+            if date_val < datetime.datetime.strptime(return_start, "%Y-%m-%d").date():
+                return False
+        if return_end:
+            date_val = datetime.datetime.strptime(entidade.get("return_date", ""), "%Y-%m-%d").date()
+            if date_val > datetime.datetime.strptime(return_end, "%Y-%m-%d").date():
+                return False
+    except Exception:
+        if rental_start or rental_end or return_start or return_end:
+            return False
+
+    # Filtros dinâmicos baseados em fields_config
+    for field in fields_config:
+        field_id = field["id"]
+        field_type = field.get("type")
+        valor = get_valor(entidade, field)
+
+        # TEXTOS
+        if field_type in ["text", "client_name", "client_phone", "client_email", "client_address",
+                          "client_cpf", "client_cnpj", "client_notes",
+                          "item_custom_id", "item_description", "item_obs"]:
+            filtro = filtros.get(field_id)
+            if filtro and filtro.lower() not in str(valor).lower():
+                return False
+
+        # NÚMEROS E VALORES
+        elif field_type in ["number", "value", "item_value", "transaction_price"]:
+            min_val = filtros.get(f"min_{field_id}")
+            max_val = filtros.get(f"max_{field_id}")
+            try:
+                valor = Decimal(str(valor))
+                if min_val and valor < Decimal(min_val):
+                    return False
+                if max_val and valor > Decimal(max_val):
+                    return False
+            except (InvalidOperation, ValueError, TypeError):
+                if min_val or max_val:
+                    return False
+
+        # OPÇÕES
+        elif field_type in ["dropdown", "transaction_status"]:
+            selected = filtros.get(field_id)
+            if selected and selected != valor:
+                return False
+
+        # DATAS
+        elif field_type == "date":
+            start_date = filtros.get(f"start_{field_id}")
+            end_date = filtros.get(f"end_{field_id}")
+            try:
+                date_val = datetime.datetime.strptime(str(valor), "%Y-%m-%d").date()
+                if start_date and date_val < datetime.datetime.strptime(start_date, "%Y-%m-%d").date():
+                    return False
+                if end_date and date_val > datetime.datetime.strptime(end_date, "%Y-%m-%d").date():
+                    return False
+            except:
+                if start_date or end_date:
+                    return False
+
+    return True
+
+
+def converter_intervalo_data_br_para_iso(filtros, chave, destino_inicio, destino_fim):
+    """Converte filtros do tipo 'dd/mm/yyyy - dd/mm/yyyy' para 'yyyy-mm-dd'"""
+    intervalo = filtros.get(chave)
+    if intervalo:
+        try:
+            partes = intervalo.split(" - ")
+            if len(partes) == 2:
+                inicio = datetime.datetime.strptime(partes[0], "%d/%m/%Y").date().isoformat()
+                fim = datetime.datetime.strptime(partes[1], "%d/%m/%Y").date().isoformat()
+                filtros[destino_inicio] = inicio
+                filtros[destino_fim] = fim
+        except Exception as e:
+            print(f"[Erro ao converter intervalo de data {chave}]:", e)

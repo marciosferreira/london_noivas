@@ -41,7 +41,7 @@ def init_transaction_routes(
             current_status = transaction.get(
                 "transaction_status"
             )  # 🔹 Captura o status atual
-            deleted_date = datetime.datetime.now(user_utc).strftime("%d/%m/%Y %H:%M:%S")
+            deleted_date = datetime.datetime.now(user_utc).strftime("%Y-%m-%d %H:%M:%S")
 
             # 🔹 Atualizar o `previous_status` primeiro
             transactions_table.update_item(

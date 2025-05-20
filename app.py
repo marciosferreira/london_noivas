@@ -162,6 +162,18 @@ def datetimeformat(value):
     return dt.strftime("%d/%m/%Y %H:%M")
 
 
+
+@app.template_filter("formatar_data_br")
+def formatar_data_br(data_iso):
+    if not data_iso:
+        return "-"
+    try:
+        dt = datetime.strptime(data_iso, "%Y-%m-%d")
+        return dt.strftime("%d/%m/%Y")
+    except ValueError:
+        return data_iso  # retorna como está, se não seguir o formato esperado
+
+
 @app.template_filter("format_brl")
 def format_brl(value):
     print(value)
@@ -187,6 +199,58 @@ def format_date(value):
     except Exception:
         return value
 
+
+import re
+
+
+def format_cpf(value):
+    if not value:
+        return value
+    digits = re.sub(r"\D", "", value)
+    if len(digits) == 11:
+        return f"{digits[:3]}.{digits[3:6]}.{digits[6:9]}-{digits[9:]}"
+    return value
+
+
+def format_cnpj(value):
+    if not value:
+        return value
+    digits = re.sub(r"\D", "", value)
+    if len(digits) == 14:
+        return f"{digits[:2]}.{digits[2:5]}.{digits[5:8]}/{digits[8:12]}-{digits[12:]}"
+    return value
+
+
+def format_phone(value):
+    if not value:
+        return value
+    digits = re.sub(r"\D", "", value)
+    if len(digits) == 11:
+        return f"({digits[:2]}) {digits[2:7]}-{digits[7:]}"
+    return value
+
+from decimal import Decimal
+
+def format_currency(value):
+    if value is None:
+        return ""
+    try:
+        return "{:,.2f}".format(float(value)).replace(",", "X").replace(".", ",").replace("X", ".")
+    except (ValueError, TypeError):
+        return str(value)
+
+
+# Registrar filtros no Jinja
+app.jinja_env.filters["format_cpf"] = format_cpf
+app.jinja_env.filters["format_cnpj"] = format_cnpj
+app.jinja_env.filters["format_phone"] = format_phone
+app.jinja_env.filters["format_currency"] = format_currency
+
+from datetime import datetime
+
+@app.context_processor
+def inject_now():
+    return {'now': datetime.now}
 
 if __name__ == "__main__":
     # Determina se está no localhost

@@ -1,228 +1,209 @@
-{% extends "base.html" %}
-{% block title %}Alugar Item{% endblock %}
-{% block styles %}
+{% extends "base.html" %} {% block title %}Adicionar Transação{% endblock %} {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='style_rent.css') }}" />
-{% endblock %}
 
-{% block content %}
-<div class="form-container">
-  <h1>Alugar item</h1>
-  <a href="{{ url_for('inventory') }}" class="cancel-link">Sair sem Finalizar</a>
+<style>
+  .stepper .step {
+    flex: 1;
+    text-align: center;
+    padding: 0.75rem;
+    border-bottom: 3px solid #ccc;
+    font-weight: 500;
+  }
+  .stepper .step.active {
+    border-color: #0d6efd;
+    color: #0d6efd;
+  }
 
-  <form method="POST" enctype="multipart/form-data" id="form-rent" novalidate>
-    <div class="tabs">
-      <button type="button" class="tab-button active" data-tab="tab-cliente">Cliente</button>
-      <button type="button" class="tab-button" data-tab="tab-transacao">Transação</button>
+  .exit-link {
+    color: #6c757d;
+    text-decoration: none;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    transition: color 0.2s ease;
+  }
+
+  .exit-link:hover {
+    color: #dc3545; /* vermelho suave ao passar o mouse */
+    text-decoration: underline;
+  }
+
+  .status-message {
+    font-size: 0.9rem;
+    display: none;
+    margin-top: -7px;
+  }
+</style>
+{% endblock %} {% block content %}
+
+<div class="position-fixed top-0 end-0 p-3" style="z-index: 1080">
+  <div id="toastAlerta" class="toast align-items-center text-bg-warning border-0 shadow" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="d-flex">
+      <div class="toast-body" id="toastAlertaTexto">Mensagem de alerta</div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Fechar"></button>
     </div>
+  </div>
+</div>
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <h1 class="mb-0">Adicionar Transação</h1>
 
-    <div id="tab-cliente" class="tab-content active">
-      <label for="client_name">Nome do Cliente:</label>
-      <div class="position-relative">
-        <input type="text" id="client_name" name="client_name" autocomplete="off" class="form-control" required />
-        <div id="client_suggestions" class="autocomplete-suggestions"></div>
+    <a href="{{ next | default(url_for('all_transactions')) }}" class="exit-link">
+      <i class="fas fa-sign-out-alt me-2"></i>
+      Sair sem Finalizar
+    </a>
+  </div>
+</div>
+
+<!-- Stepper visual -->
+<div class="stepper mb-4 d-flex justify-content-between">
+  {% for bloco in ordem %}
+  <div class="step {% if loop.first %}active{% endif %}" data-step="{{ loop.index }}">
+    {% if "cliente" in bloco %} Cliente {% elif "item" in bloco %} Item {% else %} Transação {% endif %}
+  </div>
+  {% endfor %}
+</div>
+
+<form method="POST" enctype="multipart/form-data" id="form-rent">
+  {% for bloco in ordem %}
+  <div id="{{ bloco }}" class="form-section {% if not loop.first %}d-none{% endif %}">
+    {% if bloco == 'bloco-cliente' %}
+    <h4 class="mb-3">Informações do Cliente</h4>
+    <div class="mb-4">{% include 'components/dynamic_input_client.html' with context %}</div>
+    <div class="d-flex justify-content-end">
+      <button type="button" class="btn btn-primary w-auto" onclick="avancarAba(this)">Avançar</button>
+    </div>
+    {% elif bloco == 'bloco-item' %}
+    <h4 class="mb-3">Dados do Item</h4>
+    <div class="mb-4">{% include 'components/dynamic_input_item.html' with context %}</div>
+    <div class="d-flex justify-content-between">
+      <button type="button" class="btn btn-outline-secondary" onclick="voltarAba(this)">Voltar</button>
+      <button type="button" class="btn btn-primary w-auto" onclick="avancarAba(this)">Avançar</button>
+    </div>
+    {% elif bloco == 'bloco-transacao' %}
+    <h4 class="mb-3">Detalhes da Transação</h4>
+    <div class="mb-4">{% include 'components/dynamic_input_transaction.html' with context %}</div>
+    <div class="d-flex justify-content-between">
+      <button type="button" class="btn btn-outline-secondary" onclick="voltarAba(this)">Voltar</button>
+      <button type="submit" class="btn btn-primary w-auto">Concluir</button>
+    </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</form>
+
+<!-- 🔹Modal limite atingido -->
+
+<div
+  class="modal fade"
+  id="limitModal"
+  tabindex="-1"
+  aria-labelledby="limitModalLabel"
+  aria-hidden="true"
+  data-bs-backdrop="static"
+  data-bs-keyboard="false"
+>
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-warning">
+      <div class="modal-header bg-warning text-dark">
+        <h5 class="modal-title" id="limitModalLabel">Limite do Plano Atingido</h5>
       </div>
-      <!-- Tarja de mensagem de status -->
-      <div id="client-status-message" class="status-message"></div>
-      <input type="hidden" name="client_id" id="client_id" />
-      <label for="client_tel">Telefone do Cliente:</label>
-      <input type="tel" id="client_tel" name="client_tel" class="form-control" placeholder="(xx) xxxxx-xxxx" required />
-
-      <label for="client_email">E-mail do Cliente:</label>
-      <input type="email" id="client_email" name="client_email" class="form-control" placeholder="cliente@email.com" />
-
-      <label for="client_cpf">CPF:</label>
-      <input type="text" id="client_cpf" name="client_cpf" maxlength="14" placeholder="000.000.000-00" class="form-control" />
-      <label for="client_cnpj">CNPJ:</label>
-      <input type="text" id="client_cnpj" name="client_cnpj" maxlength="18" placeholder="00.000.000/0000-00" class="form-control" />
-      <label for="client_address">Endereço do Cliente:</label>
-      <input type="text" id="client_address" name="client_address" class="form-control" placeholder="Rua Exemplo, 123 - Bairro - Cidade" />
-
-      <label for="client_obs">Observações do Cliente:</label>
-      <textarea id="client_obs" name="client_obs" class="form-control" rows="2" placeholder="Observações relevantes sobre o cliente..."></textarea>
-
-      <input type="hidden" id="client_tel_digits" name="client_tel_digits" />
-      <input type="hidden" id="client_cpf_digits" name="client_cpf_digits" />
-      <input type="hidden" id="client_cnpj_digits" name="client_cnpj_digits" />
-
-
-
+      <div class="modal-body text-center">
+        Você atingiu os limites de
+        <strong>transações</strong>
+        permitidas pelo seu plano atual.
+        <br />
+      </div>
+      <div class="modal-footer justify-content-center">
+        <a href="{{ url_for('adjustments') }}" class="btn btn-primary btn-lg">Atualizar Plano Agora</a>
+      </div>
     </div>
-
-    <br />
-
-    <div id="tab-transacao" class="tab-content">
-      <label for="transaction_status">Status da Transação:</label>
-      <select id="transaction_status" name="transaction_status" class="form-control" required>
-        <option value="" disabled selected>Selecione o status</option>
-        <option value="reserved" {% if item.transaction_status == 'reserved' %}selected{% endif %}>Reservado</option>
-        <option value="rented" {% if item.transaction_status == 'rented' %}selected{% endif %}>Alugado</option>
-      </select>
-
-      <label for="datepicker">Defina as datas:</label>
-      <input id="datepicker" name="range_date" class="form-control" />
-
-      <label for="valor">Preço do aluguel (R$):</label>
-      <input type="text" class="form-control" id="valor" name="valor" value="{{ item.valor or '' }}" required />
-
-      <label for="pagamento">Valor já pago (R$):</label>
-      <input type="text" class="form-control" id="pagamento" name="pagamento" value="{{ item.pagamento or '' }}" />
-
-      <label for="transaction_obs">Observações da Transação:</label>
-      <textarea id="transaction_obs" name="transaction_obs" class="form-control" rows="2" placeholder="Ex: combinado com o cliente que ..."></textarea>
-    </div>
-
-    <!-- Botão de envio do formulário dentro da tag form -->
-    <br />
-    <button type="submit">Salvar</button>
-  </form>
+  </div>
 </div>
 {% endblock %} {% block scripts %} {{ super() }}
 <script src="https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.umd.min.js"></script>
 
 <script>
-  // 🟦 Alternância entre abas
-  document.querySelectorAll('.tab-button').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-      const selectedTab = document.getElementById(btn.dataset.tab);
-      if (selectedTab) selectedTab.classList.add('active');
-    });
-  });
+  const ORDEM_BLOCOS = {{ ordem | tojson }};
+</script>
 
-  // 🧼 Máscaras
-  function maskPhone(value) {
-    let input = value.replace(/\D/g, '');
-    if (input.length > 11) input = input.slice(0, 11);
-    let formatted = '';
-    if (input.length > 0) formatted += '(' + input.substring(0, 2);
-    if (input.length >= 3) formatted += ') ' + input.substring(2, 7);
-    if (input.length >= 8) formatted += '-' + input.substring(7);
-    return formatted;
-  }
+<script>
+  function mostrarAba(id) {
+    const sections = document.querySelectorAll('.form-section');
+    const steps = document.querySelectorAll('.step');
 
-  function maskCPF(cpf) {
-    cpf = cpf.replace(/\D/g, '');
-    cpf = cpf.replace(/(\d{3})(\d)/, '$1.$2');
-    cpf = cpf.replace(/(\d{3})(\d)/, '$1.$2');
-    cpf = cpf.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
-    return cpf;
-  }
+    sections.forEach((sec) => sec.classList.add('d-none'));
+    document.getElementById(id).classList.remove('d-none');
 
-  function maskCNPJ(cnpj) {
-    cnpj = cnpj.replace(/\D/g, '');
-    cnpj = cnpj.replace(/^(\d{2})(\d)/, '$1.$2');
-    cnpj = cnpj.replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3');
-    cnpj = cnpj.replace(/\.(\d{3})(\d)/, '.$1/$2');
-    cnpj = cnpj.replace(/(\d{4})(\d)/, '$1-$2');
-    return cnpj;
-  }
+    const index = ORDEM_BLOCOS.indexOf(id);
+    steps.forEach((step, i) => step.classList.toggle('active', i === index));
 
-  // 🧠 Autocomplete de cliente
-  function autocompleteCliente() {
-    const clientInput = document.getElementById("client_name");
-    const statusMessage = document.getElementById("client-status-message");
-    const suggestionsBox = document.getElementById("client_suggestions");
-
-    let suggestionSelected = false; // Flag para verificar se uma sugestão foi selecionada
-
-    if (!clientInput || !statusMessage || !suggestionsBox) return;
-
-    // Exibe sugestões enquanto o usuário digita
-    clientInput.addEventListener("input", async () => {
-      const term = clientInput.value.trim();
-      if (term.length < 1) {
-        suggestionsBox.innerHTML = ""; // Limpa as sugestões se o termo for muito curto
-        statusMessage.style.display = 'none';  // Esconde a faixa de status
-        return;
+    if (id === 'bloco-transacao') {
+      const itemId = document.getElementById('item_id')?.value;
+      if (window.itemIdSelecionadoParaDatas) {
+        carregarReservedRanges(window.itemIdSelecionadoParaDatas);
+        window.itemIdSelecionadoParaDatas = null;
+      } else if (!itemId) {
+        iniciarDatePickerComDatas([]); // inicializa com nenhuma data bloqueada
       }
+    }
+  }
+</script>
 
-      try {
-        const res = await fetch(`/autocomplete_clients?term=${encodeURIComponent(term)}`);
-        const clients = await res.json();
+<script>
+  function avancarAba(botao) {
+    const sectionAtual = botao.closest('.form-section');
 
-        // Exibe as sugestões
-        suggestionsBox.innerHTML = "";
-        clients.forEach(client => {
-          const div = document.createElement("div");
-          div.className = "autocomplete-item";
-          div.innerHTML = `<strong>${client.client_name}</strong>
-            ${client.client_tel ? `<div><small>📞 ${client.client_tel}</small></div>` : ""}
-            ${client.client_email ? `<div><small>📧 ${client.client_email}</small></div>` : ""}
-            ${client.client_cpf ? `<div><small>🆔 CPF: ${client.client_cpf}</small></div>` : ""}
-            ${client.client_cnpj ? `<div><small>🏢 CNPJ: ${client.client_cnpj}</small></div>` : ""}`;
-
-          // Ao clicar numa sugestão, preenche os campos com os dados do cliente
-          div.addEventListener("click", () => {
-            clientInput.value = client.client_name || "";
-            suggestionSelected = true; // Marca que uma sugestão foi selecionada
-            suggestionsBox.innerHTML = ""; // Limpa as sugestões após a seleção
-            statusMessage.className = 'status-message user-found'; // Exibe como "Usuário encontrado"
-            statusMessage.innerHTML = 'Cliente encontrado';
-            statusMessage.style.display = 'block'; // Exibe a faixa de status
-          });
-
-          suggestionsBox.appendChild(div);
-        });
-
-        // Verificação do "Usuário encontrado" ou "Usuário novo"
-        const exactMatch = clients.find(client => client.client_name.trim().toLowerCase() === term.toLowerCase());
-
-        // Atualiza a faixa de status conforme o valor inserido
-        if (exactMatch) {
-          statusMessage.className = 'status-message user-found';
-          statusMessage.innerHTML = 'Cliente encontrado';
-          statusMessage.style.display = 'block';
-        } else {
-          statusMessage.className = 'status-message user-new';
-          statusMessage.innerHTML = 'Cliente novo';
-          statusMessage.style.display = 'block';
+    // Validação dos campos required
+    const inputs = sectionAtual.querySelectorAll('input, select, textarea');
+    for (const input of inputs) {
+      if (input.hasAttribute('required') && !input.disabled && !input.readOnly) {
+        if (!input.checkValidity()) {
+          input.reportValidity(); // Mostra a mensagem do browser
+          return; // Interrompe aqui
         }
-
-      } catch (error) {
-        console.error("Erro ao buscar clientes:", error);
       }
-    });
+    }
 
-    // Ao clicar fora do campo, as sugestões desaparecem
-    document.addEventListener("click", (e) => {
-      if (!clientInput.contains(e.target) && !suggestionsBox.contains(e.target)) {
-        suggestionsBox.innerHTML = ""; // Limpa as sugestões se clicar fora do campo
-      }
-    });
+    // Se todos forem válidos, avança
+    const idAtual = sectionAtual?.id;
+    const proximoIndex = ORDEM_BLOCOS.indexOf(idAtual) + 1;
 
-    // Se o usuário começar a editar o nome após selecionar uma sugestão, restabelece a flag
-    clientInput.addEventListener("focus", () => {
-      suggestionSelected = false; // Resetando a flag quando o usuário começa a digitar
-    });
+    if (proximoIndex < ORDEM_BLOCOS.length) {
+      mostrarAba(ORDEM_BLOCOS[proximoIndex]);
+    }
   }
 
-  // Inicializar a função de auto-completar ao carregar a página
-  autocompleteCliente();
+  function voltarAba(botao) {
+    const sectionAtual = botao.closest('.form-section');
+    const idAtual = sectionAtual?.id;
+    const anteriorIndex = ORDEM_BLOCOS.indexOf(idAtual) - 1;
 
+    if (anteriorIndex >= 0) {
+      mostrarAba(ORDEM_BLOCOS[anteriorIndex]);
+    }
+  }
+</script>
 
+<script>
+  function iniciarDatePickerComDatas(rawDates) {
+    const oldPicker = document.getElementById('transaction_period_display')._easepick;
+    if (oldPicker) {
+      oldPicker.destroy(); // remove anterior
+    }
 
-
-  // 📆 Datepicker com datas bloqueadas
-  function iniciarDatePicker() {
+    console.log('📆 Raw dates recebidos:', rawDates);
     const DateTime = easepick.DateTime;
-    const rawDates = {{ reserved_ranges | tojson(indent=2) }};
-    const bookedDates = rawDates.map(d => {
-      if (d instanceof Array) {
-        const start = new DateTime(d[0], 'YYYY-MM-DD');
-        const end = new DateTime(d[1], 'YYYY-MM-DD');
-        return [start, end];
+    const bookedDates = rawDates.map((d) => {
+      if (Array.isArray(d)) {
+        return [new DateTime(d[0], 'YYYY-MM-DD'), new DateTime(d[1], 'YYYY-MM-DD')];
       }
       return new DateTime(d, 'YYYY-MM-DD');
     });
 
     new easepick.create({
-      element: document.getElementById('datepicker'),
-      css: [
-        'https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.css',
-        'https://easepick.com/css/demo_hotelcal.css',
-      ],
+      element: document.getElementById('transaction_period_display'),
+      css: ['https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.css', 'https://easepick.com/css/demo_hotelcal.css'],
       lang: 'pt-BR',
       autoApply: false,
       plugins: ['RangePlugin', 'LockPlugin', 'AmpPlugin'],
@@ -257,16 +238,474 @@
         other: 'dias',
       },
       format: 'DD/MM/YYYY',
+      setup(picker) {
+        picker.on('select', () => {
+          const start = picker.getStartDate()?.format('DD/MM/YYYY');
+          const end = picker.getEndDate()?.format('DD/MM/YYYY');
+          const displayInput = document.getElementById('transaction_period_display');
+          const hiddenInput = document.getElementById('transaction_period');
+          if (start && end) {
+            displayInput.value = `${start} - ${end}`;
+            hiddenInput.value = `${start} - ${end}`;
+          } else {
+            displayInput.value = '';
+            hiddenInput.value = '';
+          }
+        });
+      },
+    });
+  }
+</script>
+
+<script>
+  function buscarSugestoes(term) {
+    return fetch(`/autocomplete_items?term=${encodeURIComponent(term)}`).then((res) => res.json());
+  }
+
+  function preencherCampos(item) {
+    for (const key in item) {
+      const el = document.getElementById(key);
+      if (el) {
+        const novoValor = item[key] || '';
+        if (el.value !== novoValor) {
+          el.value = novoValor;
+
+          if (key === 'item_custom_id') {
+            el.dataset.lastChecked = novoValor;
+            el.dispatchEvent(new Event('input'));
+          }
+
+          if (el.classList.contains('campo-monetario')) {
+            formatarCampoMonetario(el, true);
+          }
+        }
+      }
+    }
+    document.dispatchEvent(new CustomEvent('item-preenchido'));
+
+    // Se item_id estiver presente, carrega as datas
+    if (item.item_id) {
+      // Adia o carregamento até que a aba transação esteja ativa
+      window.itemIdSelecionadoParaDatas = item.item_id;
+    }
+
+    // 🔁 Preenche imagem, se houver
+    const imageInput = document.getElementById('image-url-input');
+    const imagePreview = document.getElementById('item-image');
+    const fileInput = document.getElementById('image_file');
+    const removeBtn = document.getElementById('remove-btn');
+
+    if (item.item_image_url && imageInput && imagePreview) {
+      imageInput.value = item.item_image_url;
+      imagePreview.src = item.item_image_url;
+
+      if (removeBtn) removeBtn.style.display = 'block';
+      if (fileInput) fileInput.style.display = 'none';
+    } else {
+      // Se não houver imagem, usa placeholder e limpa campos
+      if (imageInput) imageInput.value = '';
+      if (imagePreview) imagePreview.src = "{{ url_for('static', filename='item-placeholder.png') }}";
+      if (removeBtn) removeBtn.style.display = 'none';
+      if (fileInput) fileInput.style.display = 'block';
+    }
+  }
+
+  async function carregarReservedRanges(itemId) {
+    try {
+      const res = await fetch(`/item_reserved_ranges/${itemId}`);
+      const ranges = await res.json();
+      console.log('Exibindo input?', document.getElementById('transaction_period_display'));
+
+      setTimeout(() => {
+        const display = document.getElementById('transaction_period_display');
+        if (display) {
+          iniciarDatePickerComDatas(ranges);
+        } else {
+          console.warn('Elemento transaction_period_display ainda não está visível.');
+        }
+      }, 300); // tempo suficiente para o DOM atualizar, ajuste se necessário
+    } catch (err) {
+      console.error('Erro ao carregar datas reservadas:', err);
+    }
+  }
+
+  function exibirStatus(inputId, texto, classe) {
+    const statusEl = document.getElementById(`${inputId}_status`);
+    if (!statusEl) return;
+    statusEl.innerHTML = texto;
+    statusEl.className = `status-message ${classe}`;
+    statusEl.style.display = 'block';
+  }
+
+  function limparStatus(inputId) {
+    const statusEl = document.getElementById(`${inputId}_status`);
+    if (statusEl) statusEl.style.display = 'none';
+  }
+
+  function inicializarAutocomplete(inputId, isDescricao = false) {
+    const input = document.getElementById(inputId);
+    const boxId = `${inputId}_suggestions`;
+    const statusId = `${inputId}_status`;
+
+    if (!input) return;
+
+    let box = document.getElementById(boxId);
+    if (!box) {
+      box = document.createElement('div');
+      box.id = boxId;
+      box.className = 'autocomplete-box position-absolute w-100 bg-white shadow-sm z-3';
+      input.closest('.position-relative')?.appendChild(box);
+    }
+
+    const statusEl = document.getElementById(statusId);
+
+    let itensSugeridos = [];
+
+    input.addEventListener('input', async () => {
+      const termo = input.value.trim();
+      if (!termo) {
+        box.innerHTML = '';
+        if (!isDescricao) limparStatus(inputId);
+        return;
+      }
+
+      try {
+        itensSugeridos = await buscarSugestoes(termo);
+        box.innerHTML = '';
+
+        itensSugeridos.forEach((item) => {
+          const div = document.createElement('div');
+          div.className = 'autocomplete-item px-2 py-1';
+          div.innerHTML = `
+  <div class="d-flex flex-column">
+    <div class="d-flex align-items-center">
+      <i class="fas fa-barcode me-2 text-primary"></i>
+      <strong>${item.item_custom_id || '(sem código)'}</strong>
+    </div>
+    <div class="d-flex align-items-center mt-1">
+      <i class="fas fa-align-left me-2 text-secondary"></i>
+      <small class="text-muted">${item.item_description || 'Sem descrição'}</small>
+    </div>
+  </div>
+`;
+
+          div.addEventListener('click', () => {
+            input.value = item[inputId];
+            box.innerHTML = '';
+
+            if (isDescricao) {
+              preencherCampos(item);
+            } else {
+              checarDuplicidade(inputId, item[inputId], itensSugeridos);
+            }
+          });
+          box.appendChild(div);
+        });
+
+        if (!isDescricao) checarDuplicidade(inputId, termo, itensSugeridos);
+      } catch (err) {
+        console.error('Erro ao buscar itens:', err);
+      }
+    });
+
+    input.addEventListener('blur', () => {
+      setTimeout(() => (box.innerHTML = ''), 200);
+    });
+  }
+  function checarDuplicidade(inputId, termo, sugestoes) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+
+    // Impede checagem repetida do mesmo valor
+    if (input.dataset.lastChecked === termo) return;
+    input.dataset.lastChecked = termo;
+
+    const match = sugestoes.find((item) => (item.item_custom_id || '').toLowerCase() === termo.toLowerCase());
+    const box = document.getElementById(`${inputId}_suggestions`);
+
+    if (match) {
+      preencherCampos(match); // só dispara se valor for diferente
+      const editarLink = `
+      <a href="/edit_item/${match.item_id}?item_id=${match.item_id}&next=${encodeURIComponent(window.location.pathname)}"
+         class="ms-2 text-decoration-underline text-warning">
+        Editar
+      </a>`;
+      exibirStatus(inputId, 'Item Id encontrado ' + editarLink, 'user-found');
+      if (box) box.innerHTML = '';
+    } else {
+      exibirStatus(inputId, 'Novo item será criado', 'user-new');
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    inicializarAutocomplete('item_custom_id', false);
+    inicializarAutocomplete('item_description', true);
+  });
+
+  function gerarCodigoItem() {
+    const campo = document.getElementById('item_custom_id');
+    if (campo) {
+      const uuid = crypto.randomUUID().replace(/-/g, '').substring(0, 12);
+      campo.value = uuid;
+      campo.dispatchEvent(new Event('input'));
+    }
+  }
+</script>
+
+<script>
+  // 🧼 Máscaras
+  function maskPhone(value) {
+    let input = value.replace(/\D/g, '');
+    if (input.length > 11) input = input.slice(0, 11);
+    let formatted = '';
+    if (input.length > 0) formatted += '(' + input.substring(0, 2);
+    if (input.length >= 3) formatted += ') ' + input.substring(2, 7);
+    if (input.length >= 8) formatted += '-' + input.substring(7);
+    return formatted;
+  }
+
+  function maskCPF(cpf) {
+    cpf = cpf.replace(/\D/g, '');
+    cpf = cpf.replace(/(\d{3})(\d)/, '$1.$2');
+    cpf = cpf.replace(/(\d{3})(\d)/, '$1.$2');
+    cpf = cpf.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+    return cpf;
+  }
+
+  function maskCNPJ(cnpj) {
+    cnpj = cnpj.replace(/\D/g, '');
+    cnpj = cnpj.replace(/^(\d{2})(\d)/, '$1.$2');
+    cnpj = cnpj.replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3');
+    cnpj = cnpj.replace(/\.(\d{3})(\d)/, '.$1/$2');
+    cnpj = cnpj.replace(/(\d{4})(\d)/, '$1-$2');
+    return cnpj;
+  }
+</script>
+
+<script>
+  // 🧠 Bloqueia todos os campos do bloco de cliente
+  function bloquearCamposCliente() {
+    const blocoCliente = document.getElementById('bloco-cliente');
+    if (!blocoCliente) return;
+
+    const campos = blocoCliente.querySelectorAll('input, select, textarea');
+
+    campos.forEach((el) => {
+      if (el.id !== 'client_name' && el.type !== 'hidden') {
+        el.setAttribute('readonly', true);
+        el.setAttribute('disabled', true);
+      } else if (el.id === 'client_name') {
+        // Garante que client_name fique ativo
+        el.removeAttribute('readonly');
+        el.removeAttribute('disabled');
+      }
     });
   }
 
+  function desbloquearCamposCliente() {
+    const blocoCliente = document.getElementById('bloco-cliente');
+    if (!blocoCliente) return;
+
+    const campos = blocoCliente.querySelectorAll('input, select, textarea');
+    campos.forEach((el) => {
+      if (el.type !== 'hidden') {
+        el.removeAttribute('readonly');
+        el.removeAttribute('disabled');
+      }
+    });
+  }
+
+  // 🧠 Aplica máscaras específicas para CPF, CNPJ e telefone
+  function aplicarMascaraCliente(id, valor) {
+    if (!valor) return '';
+    if (id === 'client_phone') return maskPhone(valor);
+    if (id === 'client_cpf') return maskCPF(valor);
+    if (id === 'client_cnpj') return maskCNPJ(valor);
+    return valor;
+  }
+
+  // 🧠 Autocomplete de cliente
+  function autocompleteCliente() {
+    const clientInput = document.getElementById('client_name');
+    const statusMessage = document.getElementById('client-status-message');
+    const suggestionsBox = document.getElementById('client_suggestions');
+
+    let suggestionSelected = false;
+
+    if (!clientInput || !statusMessage || !suggestionsBox) return;
+
+    clientInput.addEventListener('input', async () => {
+      const term = clientInput.value.trim();
+      if (term.length < 1) {
+        suggestionsBox.innerHTML = '';
+        statusMessage.style.display = 'none';
+        return;
+      }
+
+      try {
+        const res = await fetch(`/autocomplete_clients?term=${encodeURIComponent(term)}`);
+        const clients = await res.json();
+
+        suggestionsBox.innerHTML = '';
+
+        clients.forEach((cli) => {
+          const div = document.createElement('div');
+          div.className = 'autocomplete-item';
+          div.innerHTML = `
+  <strong>${cli.client_name}</strong>
+  ${cli.client_phone ? `<div><small>📞 ${maskPhone(cli.client_phone)}</small></div>` : ''}
+  ${cli.client_email ? `<div><small>📧 ${cli.client_email}</small></div>` : ''}
+  ${cli.client_cpf ? `<div><small>🆔 CPF: ${maskCPF(cli.client_cpf)}</small></div>` : ''}
+  ${cli.client_cnpj ? `<div><small>🏢 CNPJ: ${maskCNPJ(cli.client_cnpj)}</small></div>` : ''}
+`;
+          div.addEventListener('click', () => {
+            // Preenche qualquer campo que existir com base nas chaves do JSON
+            for (const key in cli) {
+              const el = document.getElementById(key);
+              if (el) {
+                el.value = aplicarMascaraCliente(key, cli[key]);
+              }
+            }
+
+            suggestionSelected = true;
+            suggestionsBox.innerHTML = '';
+            statusMessage.className = 'status-message user-found';
+            const editarLink = `
+  <a href="/editar_cliente/${cli.client_id}?client_id=${cli.client_id}&next=${encodeURIComponent(window.location.pathname)}"
+     class="ms-2 text-decoration-underline text-warning">
+    Editar
+  </a>
+`;
+
+            statusMessage.innerHTML = 'Cliente encontrado ' + editarLink;
+            statusMessage.style.display = 'block';
+
+            bloquearCamposCliente();
+          });
+
+          suggestionsBox.appendChild(div);
+        });
+
+        const exactMatch = clients.find((client) => client.client_name.trim().toLowerCase() === term.toLowerCase());
+
+        if (exactMatch) {
+          statusMessage.className = 'status-message user-found';
+          statusMessage.innerHTML = 'Cliente encontrado';
+        } else {
+          statusMessage.className = 'status-message user-new';
+          statusMessage.innerHTML = 'Cliente novo será criado';
+          desbloquearCamposCliente();
+        }
+
+        statusMessage.style.display = 'block';
+      } catch (error) {
+        console.error('Erro ao buscar clientes:', error);
+      }
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!clientInput.contains(e.target) && !suggestionsBox.contains(e.target)) {
+        suggestionsBox.innerHTML = '';
+      }
+    });
+
+    clientInput.addEventListener('focus', () => {
+      suggestionSelected = false;
+    });
+  }
+
+  // 🔁 Inicializar ao carregar
+  autocompleteCliente();
+</script>
+
+<script>
+
+    // 📆 Datepicker com datas bloqueadas
+    function iniciarDatePicker() {
+      const DateTime = easepick.DateTime;
+      const rawDates = {{ reserved_ranges | tojson(indent=2) }};
+      const bookedDates = rawDates.map(d => {
+        if (d instanceof Array) {
+          const start = new DateTime(d[0], 'YYYY-MM-DD');
+          const end = new DateTime(d[1], 'YYYY-MM-DD');
+          return [start, end];
+        }
+        return new DateTime(d, 'YYYY-MM-DD');
+      });
+
+      new easepick.create({
+
+
+    element: document.getElementById('transaction_period_display'),
+    css: [
+      'https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.css',
+      'https://easepick.com/css/demo_hotelcal.css',
+    ],
+    lang: 'pt-BR',
+    autoApply: false,
+    plugins: ['RangePlugin', 'LockPlugin', 'AmpPlugin'],
+    AmpPlugin: {
+      resetButton: true,
+    },
+    RangePlugin: {
+      tooltipNumber(num) {
+        return num;
+      },
+      locale: {
+        one: 'dia',
+        other: 'dias',
+      },
+    },
+    LockPlugin: {
+      minDate: new Date(),
+      minDays: 1,
+      inseparable: true,
+      filter(date, picked) {
+        if (picked.length === 1) {
+          return !picked[0].isSame(date, 'day') && date.inArray(bookedDates, '[]');
+        }
+        return date.inArray(bookedDates, '[]');
+      },
+    },
+    locale: {
+      cancel: 'Cancelar',
+      apply: 'Aplicar',
+      reset: 'Limpar',
+      one: 'dia',
+      other: 'dias',
+    },
+    format: 'DD/MM/YYYY',
+    setup(picker) {
+      picker.on('select', () => {
+        const start = picker.getStartDate()?.format('DD/MM/YYYY');
+        const end = picker.getEndDate()?.format('DD/MM/YYYY');
+        const displayInput = document.getElementById('transaction_period_display');
+        const hiddenInput = document.getElementById('transaction_period');
+
+        if (start && end) {
+          const periodo = `${start} - ${end}`;
+          displayInput.value = periodo;
+          hiddenInput.value = periodo;
+        } else {
+          displayInput.value = '';
+          hiddenInput.value = '';
+        }
+      });
+    }
+  });
+
+    }
+</script>
+
+<script>
   // ✅ Validação do formulário + preenchimento dos campos ocultos
   function configurarValidacao() {
     document.getElementById('form-rent').addEventListener('submit', function (e) {
+      let formValido = true;
+
       const dp = document.getElementById('datepicker');
 
-
-      const telFormatted = document.getElementById('client_tel').value;
+      const telFormatted = document.getElementById('client_phone').value;
       const cpfFormatted = document.getElementById('client_cpf').value;
       const cnpjFormatted = document.getElementById('client_cnpj').value;
 
@@ -274,27 +713,49 @@
       const cpfDigits = cpfFormatted.replace(/\D/g, '');
       const cnpjDigits = cnpjFormatted.replace(/\D/g, '');
 
-      document.getElementById('client_tel_digits').value = telDigits;
-      document.getElementById('client_cpf_digits').value = cpfDigits;
-      document.getElementById('client_cnpj_digits').value = cnpjDigits;
+      document.getElementById('client_phone').value = telDigits;
+      document.getElementById('client_cpf').value = cpfDigits;
+      document.getElementById('client_cnpj').value = cnpjDigits;
 
       if (cpfDigits && !validaCPF(cpfDigits)) {
         e.preventDefault();
         alert('CPF inválido!');
-        return;
+        formValido = false;
       }
 
       if (cnpjDigits && !validaCNPJ(cnpjDigits)) {
         e.preventDefault();
         alert('CNPJ inválido!');
-        return;
+        formValido = false;
+      }
+
+      const periodo = document.getElementById('transaction_period');
+      if (!periodo || !periodo.value.trim()) {
+        e.preventDefault();
+        mostrarToast('Por favor, selecione um período de locação.', 'danger');
+        document.getElementById('transaction_period_display')?.focus();
+        formValido = false;
+      }
+
+      if (!formValido) {
+        const submitBtn = this.querySelector('button[type="submit"]');
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          const spinner = submitBtn.querySelector('.spinner-border');
+          const text = submitBtn.querySelector('span');
+          if (spinner) spinner.style.display = 'none';
+          if (text) text.textContent = 'Confirmar';
+        }
       }
     });
   }
+</script>
 
+<script>
   function validaCPF(cpf) {
     if (cpf.length !== 11 || /^(\d)\1+$/.test(cpf)) return false;
-    let soma = 0, resto;
+    let soma = 0,
+      resto;
     for (let i = 1; i <= 9; i++) soma += parseInt(cpf[i - 1]) * (11 - i);
     resto = (soma * 10) % 11;
     if (resto === 10 || resto === 11) resto = 0;
@@ -337,113 +798,84 @@
 
   // 🚀 Inicializar tudo quando a página carregar
   window.addEventListener('DOMContentLoaded', () => {
-    iniciarDatePicker();
     configurarValidacao();
 
     // 🧼 Aplicar máscara de telefone ao digitar
-  const telInput = document.getElementById('client_tel');
-  if (telInput) {
-    telInput.addEventListener('input', (e) => {
-      e.target.value = maskPhone(e.target.value);
-    });
-  }
+    const telInput = document.getElementById('client_phone');
+    if (telInput) {
+      telInput.addEventListener('input', (e) => {
+        e.target.value = maskPhone(e.target.value);
+      });
+    }
 
-  // 🧼 Aplicar máscara de CPF ao digitar
-  const cpfInput = document.getElementById('client_cpf');
-  if (cpfInput) {
-    cpfInput.addEventListener('input', (e) => {
-      e.target.value = maskCPF(e.target.value);
-    });
-  }
+    // 🧼 Aplicar máscara de CPF ao digitar
+    const cpfInput = document.getElementById('client_cpf');
+    if (cpfInput) {
+      cpfInput.addEventListener('input', (e) => {
+        e.target.value = maskCPF(e.target.value);
+      });
+    }
 
-  // 🧼 Aplicar máscara de CNPJ ao digitar
-  const cnpjInput = document.getElementById('client_cnpj');
-  if (cnpjInput) {
-    cnpjInput.addEventListener('input', (e) => {
-      e.target.value = maskCNPJ(e.target.value);
-    });
-  }
+    // 🧼 Aplicar máscara de CNPJ ao digitar
+    const cnpjInput = document.getElementById('client_cnpj');
+    if (cnpjInput) {
+      cnpjInput.addEventListener('input', (e) => {
+        e.target.value = maskCNPJ(e.target.value);
+      });
+    }
   });
 </script>
 
 {{ super() }}
-<script>
-  window.addEventListener('DOMContentLoaded', () => {
-    const form = document.getElementById('form-rent');
-
-    form.addEventListener('submit', function (e) {
-      const nomeCliente = document.getElementById('client_name');
-      const telCliente = document.getElementById('client_tel');
-      const dataPicker = document.getElementById('datepicker');
-      const statusTransacao = document.getElementById('transaction_status');
-      const valorItem = document.getElementById('valor');
-
-      if (!nomeCliente.value.trim()) {
-        e.preventDefault();
-        alert('Por favor, preencha o nome do cliente.');
-        nomeCliente.focus();
-        return;
-      }
-
-      if (!telCliente.value.trim()) {
-        e.preventDefault();
-        alert('Preencha o telefone do cliente na aba "Cliente".');
-        telCliente.focus();
-        return;
-      }
-
-      if (!dataPicker.value.trim()) {
-        e.preventDefault();
-        alert('Selecione o intervalo de datas na aba "Transação".');
-        dataPicker.focus();
-        return;
-      }
-
-      if (!statusTransacao.value) {
-        e.preventDefault();
-        alert('Selecione o status na aba Transação.');
-        statusTransacao.focus();
-        return;
-      }
-
-      if (!valorItem.value) {
-        e.preventDefault();
-        alert('Selecione o valor na aba Transação.');
-        valor.focus();
-        return;
-      }
-    });
-  });
-</script>
 
 <script>
-  function formatarCampoMonetario(input) {
+  function formatarCampoMonetario(input, forcarFormatacao = false) {
     input.addEventListener('input', function (e) {
       let value = e.target.value.replace(/\D/g, '');
-
       if (!value) {
         e.target.value = '';
         return;
       }
 
-      let intValue = parseInt(value, 10);
-      let floatValue = intValue / 100;
+      let floatValue = parseFloat(value) / 100;
+      if (floatValue > 1000000) floatValue = 1000000;
 
-      e.target.value = floatValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      e.target.value = floatValue.toLocaleString('pt-BR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
     });
+
+    // ⚠️ Executa imediatamente se chamado manualmente
+    if (forcarFormatacao && input.value) {
+      const raw = input.value.replace(/\D/g, '');
+      if (raw) {
+        const floatValue = parseFloat(raw);
+        input.value = floatValue.toLocaleString('pt-BR', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        });
+      }
+    }
   }
 
-  // Aplica em todos os campos que precisam
-  const campos = [document.getElementById('valor'), document.getElementById('pagamento')];
-
-  campos.forEach((campo) => {
-    if (campo) {
+  document.addEventListener('DOMContentLoaded', function () {
+    const campos = document.querySelectorAll('.campo-monetario');
+    console.log('Campos monetários:', campos);
+    campos.forEach((campo) => {
+      if (campo.value && !campo.value.includes(',')) {
+        const float = parseFloat(campo.value.replace(',', '.'));
+        if (!isNaN(float)) {
+          campo.value = float.toLocaleString('pt-BR', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          });
+        }
+      }
       formatarCampoMonetario(campo);
-    }
+    });
   });
 </script>
-
-
 
 <script>
   const clientNameInput = document.getElementById('client_name');
@@ -451,12 +883,242 @@
 
   // Sempre que digitar no nome do cliente, limpa o client_id
   clientNameInput.addEventListener('input', function () {
-    clientIdInput.value = "";
+    clientIdInput.value = '';
   });
-
-
-
 </script>
 
+<script>
+    // 🔁 Bloqueia novas transaçoes de acordo com o plano
+
+  document.addEventListener("DOMContentLoaded", function () {
+    const totalTransactions = {{ total_relevant_transactions | default(0) | tojson }};
+    const subscriptionStatus = {{ current_stripe_transaction.subscription_status | default('none') | tojson }};
+
+    const allowedStatuses = ["trialing", "active", "past_due"];
+    const maxLimit = allowedStatuses.includes(subscriptionStatus) ? 300 : 0;
+
+    const atingiuLimite = totalTransactions >= maxLimit;
+
+    if (atingiuLimite) {
+      const modal = new bootstrap.Modal(document.getElementById("limitModal"));
+      modal.show();
+    }
+  });
+</script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const tentarExibirClienteEncontrado = () => {
+      const clientId = document.getElementById('client_id')?.value;
+      const clientName = document.getElementById('client_name')?.value;
+      const statusMsg = document.getElementById('client-status-message');
+
+      if (clientId && clientName && statusMsg) {
+        const editarLink = `
+          <a href="/editar_cliente/${clientId}?client_id=${clientId}&next=${encodeURIComponent(window.location.pathname)}"
+             class="ms-2 text-decoration-underline text-warning">
+            Editar
+          </a>
+        `;
+        statusMsg.innerHTML = 'Cliente encontrado ' + editarLink;
+        statusMsg.className = 'status-message user-found mt-1';
+        statusMsg.style.display = 'block';
+      }
+    };
+
+    // Espera até o elemento existir no DOM
+    const interval = setInterval(() => {
+      const statusMsg = document.getElementById('client-status-message');
+      if (statusMsg) {
+        clearInterval(interval);
+        tentarExibirClienteEncontrado();
+      }
+    }, 100);
+  });
+</script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const urlParams = new URLSearchParams(window.location.search);
+    const clientId = urlParams.get('client_id');
+
+    const clientNameInput = document.getElementById('client_name');
+    const statusMsg = document.getElementById('client-status-message');
+
+    if (clientId && clientNameInput && statusMsg) {
+      const clientName = clientNameInput.value || 'Cliente';
+      const editarLink = `
+        <a href="/editar_cliente/${clientId}?client_id=${clientId}&next=${encodeURIComponent(window.location.pathname)}"
+           class="ms-2 text-decoration-underline text-warning">
+          Editar
+        </a>
+      `;
+
+      statusMsg.innerHTML = `Cliente encontrado: ${clientName} ${editarLink}`;
+      statusMsg.className = 'status-message user-found mt-1';
+      statusMsg.style.display = 'block';
+    }
+  });
+</script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    document.addEventListener('item-preenchido', function () {
+      const itemValueInput = document.getElementById('item_value');
+      const priceInput = document.getElementById('transaction_price');
+
+      console.log('Evento item-preenchido detectado!');
+      console.log('item_value:', itemValueInput?.value);
+      console.log('transaction_price (antes):', priceInput?.value);
+
+      if (itemValueInput && priceInput && !priceInput.value.trim()) {
+        priceInput.value = itemValueInput.value;
+        priceInput.dispatchEvent(new Event('input'));
+        console.log('transaction_price preenchido com:', priceInput.value);
+      } else {
+        console.log('transaction_price não foi preenchido automaticamente.');
+      }
+    });
+  });
+</script>
+
+<script>
+  function removeImage() {
+    document.getElementById('item-image').src = "{{ url_for('static', filename='item-placeholder.png') }}";
+    document.getElementById('image-url-input').value = '';
+    document.getElementById('remove-btn').style.display = 'none';
+  }
+</script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const fileInput = document.getElementById('image_file');
+    const imagePreview = document.getElementById('item-image');
+    const imageUrlInput = document.getElementById('image-url-input');
+    const removeBtn = document.getElementById('remove-btn');
+
+    if (fileInput) {
+      fileInput.addEventListener('change', function () {
+        const file = fileInput.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = function (e) {
+            if (imagePreview) imagePreview.src = e.target.result;
+            if (removeBtn) removeBtn.style.display = 'block';
+            if (imageUrlInput) imageUrlInput.value = ''; // limpa campo de URL antiga
+          };
+          reader.readAsDataURL(file);
+        }
+      });
+    }
+  });
+
+  function removeImage() {
+    const imagePreview = document.getElementById('item-image');
+    const imageUrlInput = document.getElementById('image-url-input');
+    const fileInput = document.getElementById('image_file');
+    const removeBtn = document.getElementById('remove-btn');
+
+    if (imagePreview) {
+      imagePreview.src = "{{ url_for('static', filename='item-placeholder.png') }}";
+    }
+    if (imageUrlInput) {
+      imageUrlInput.value = '';
+    }
+    if (fileInput) {
+      fileInput.value = '';
+    }
+    if (removeBtn) {
+      removeBtn.style.display = 'none';
+    }
+  }
+</script>
+
+<script>
+  function gerarCodigoItem() {
+    const campo = document.getElementById('item_custom_id');
+    if (campo) {
+      const uuid = crypto.randomUUID().replace(/-/g, '').substring(0, 12);
+      campo.value = uuid;
+
+      // Dispara input e blur para simular digitação e validação
+      campo.dispatchEvent(new Event('input'));
+      campo.dispatchEvent(new Event('blur'));
+    }
+  }
+</script>
+
+<script>
+  document.addEventListener('item-preenchido', function () {
+    const itemValueInput = document.getElementById('item_value');
+    const priceInput = document.getElementById('transaction_price');
+
+    // Só preenche se estiver criando (campo price vazio)
+    if (itemValueInput && priceInput && !priceInput.value.trim()) {
+      priceInput.value = itemValueInput.value;
+      priceInput.dispatchEvent(new Event('input')); // dispara formatação se houver
+    }
+  });
+</script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', async function () {
+    const itemId = document.getElementById('item_id')?.value;
+    const displayInput = document.getElementById('transaction_period_display');
+
+    // ⚠️ Evita erro se já tiver outro inicializador
+    if (itemId && displayInput && !window._reservedRangesCarregado) {
+      window._reservedRangesCarregado = true;
+      try {
+        const res = await fetch(`/item_reserved_ranges/${itemId}`);
+        const ranges = await res.json();
+        iniciarDatePickerComDatas(ranges);
+      } catch (err) {
+        console.error('Erro ao carregar datas reservadas iniciais:', err);
+      }
+    }
+  });
+</script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const statusField = document.getElementById('transaction_status');
+    const retDateWrapper = document.getElementById('ret_date_wrapper');
+    const retDateInput = retDateWrapper?.querySelector('input');
+
+    function atualizarVisibilidadeRetDate() {
+      const status = statusField?.value;
+      const deveExibir = status === 'rented';
+
+      if (retDateWrapper && retDateInput) {
+        retDateWrapper.style.display = deveExibir ? 'block' : 'none';
+        if (deveExibir) {
+          retDateInput.setAttribute('required', 'required');
+        } else {
+          retDateInput.removeAttribute('required');
+        }
+      }
+    }
+
+    // Executa ao carregar a página
+    atualizarVisibilidadeRetDate();
+
+    // Executa ao mudar o status
+    statusField?.addEventListener('change', atualizarVisibilidadeRetDate);
+  });
+</script>
+
+<script>
+  function mostrarToast(mensagem, cor = 'warning') {
+    const toastEl = document.getElementById('toastAlerta');
+    const toastTexto = document.getElementById('toastAlertaTexto');
+
+    toastTexto.textContent = mensagem;
+    toastEl.className = `toast align-items-center text-bg-${cor} border-0 shadow`;
+
+    const toast = new bootstrap.Toast(toastEl, { delay: 4000 });
+    toast.show();
+  }
+</script>
 
 {% endblock %}

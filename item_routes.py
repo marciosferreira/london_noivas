@@ -39,9 +39,9 @@ def allowed_file(filename):
 from utils import upload_image_to_s3, aplicar_filtro, copy_image_in_s3
 
 
+"""
 def get_all_fields(account_id, field_config_table):
 
-    print("ALLLLLLLLLLLLLLL")
     config_response = field_config_table.get_item(
         Key={"account_id": account_id, "entity": "item"}
     )
@@ -50,10 +50,6 @@ def get_all_fields(account_id, field_config_table):
     all_fields = []
     for field_id, cfg in fields_config.items():
         label = cfg.get("label", field_id.replace("_", " ").capitalize())
-        print(f"Field ID: {field_id}")
-        print(f"CFG: {cfg}")
-        print(f"Label: {cfg.get('label')}")
-        print(f"Title: {cfg.get('title')}")
 
         all_fields.append(
             {
@@ -67,12 +63,15 @@ def get_all_fields(account_id, field_config_table):
                 "filterable": cfg.get("filterable", False),
                 "order_sequence": int(cfg.get("order_sequence", 999)),
                 "options": (
-                    cfg.get("options", []) if cfg.get("type") == "dropdown" else []
+                    cfg.get("options", [])
+                    if cfg.get("type") in ["dropdown", "transaction_status"]
+                    else []
                 ),
                 "fixed": cfg.get("f_type", "custom") == "fixed",
             }
         )
     return sorted(all_fields, key=lambda x: x["order_sequence"])
+"""
 
 
 def init_item_routes(
@@ -99,6 +98,7 @@ def init_item_routes(
             itens_table,
             users_table,
             text_models_table,
+            field_config_table,
             page="rented",
         )
 
@@ -112,6 +112,7 @@ def init_item_routes(
             users_table,
             itens_table,
             text_models_table,
+            field_config_table,
             page="reserved",
         )
 
@@ -125,6 +126,7 @@ def init_item_routes(
             users_table,
             itens_table,
             text_models_table,
+            field_config_table,
             page="all_transactions",
         )
 
@@ -138,6 +140,7 @@ def init_item_routes(
             users_table,
             itens_table,
             text_models_table,
+            field_config_table,
             page="returned",
         )
 
@@ -177,6 +180,7 @@ def init_item_routes(
             users_table,
             itens_table,
             text_models_table,
+            field_config_table,
             page="trash_transactions",
         )
 
@@ -202,32 +206,64 @@ def init_item_routes(
         next_page = request.args.get("next", url_for("index"))
         origin = next_page.rstrip("/").split("/")[-1]
         origin_status = "available" if origin == "inventory" else "archive"
+        title = "Adicionar item em inventário" if origin_status == "available" else "Adicionar item em arquivo"
+
 
         user_id = session.get("user_id")
         account_id = session.get("account_id")
 
         # -------------------------- GET --------------------------
         if request.method == "GET":
+
+            #contar itens para limitar plano
+            total_itens = 0
+            exclusive_start_key = None
+            while True:
+              query_kwargs = {
+                  "IndexName": "account_id-created_at-index",
+                  "KeyConditionExpression": Key("account_id").eq(account_id),
+                  "FilterExpression": Attr("status").is_in(["available", "archive"]),
+                  "Select": "COUNT",
+              }
+
+              if exclusive_start_key:
+                  query_kwargs["ExclusiveStartKey"] = exclusive_start_key
+
+              response = itens_table.query(**query_kwargs)
+              total_itens += response.get("Count", 0)
+
+              exclusive_start_key = response.get("LastEvaluatedKey")
+              if not exclusive_start_key:
+                  break
+
+            user_id = session.get("user_id")
+            current_stripe_transaction = get_latest_transaction(user_id, users_table, payment_transactions_table)
+
+
+
+
             all_fields = get_all_fields(account_id, field_config_table, "item")
+
             return render_template(
-                "add_item.html", next=next_page, all_fields=all_fields, item={}
+                "add_item.html", next=next_page, all_fields=all_fields, total_itens=total_itens, current_stripe_transaction=current_stripe_transaction, title=title, item={}
             )
         # -------------------------- POST --------------------------
         if request.method == "POST":
             import json
             from decimal import Decimal, InvalidOperation
+            import re
 
             all_fields = get_all_fields(account_id, field_config_table, "item")
 
             item_data = {
                 "user_id": user_id,
                 "account_id": account_id,
-                "item_id": str(uuid.uuid4()),
+                "item_id": str(uuid.uuid4().hex[:12]),
                 "status": origin_status,
                 "previous_status": request.form.get("status"),
                 "created_at": datetime.datetime.now(
                     get_user_timezone(users_table, user_id)
-                ).strftime("%d/%m/%Y %H:%M:%S"),
+                ).strftime("%Y-%m-%d %H:%M:%S"),
             }
 
             image_file = request.files.get("image_file")
@@ -235,14 +271,17 @@ def init_item_routes(
 
             for field in all_fields:
                 field_id = field["id"]
+                field_type = field.get("type")
+                is_fixed = field.get("fixed", False)
                 raw_value = request.form.get(field_id, "").strip()
                 value = raw_value
 
-                if field_id == "image_url":
+                if field_id == "item_image_url":
                     value = handle_image_upload(image_file, "N/A")
 
                 elif value:
-                    if field["type"] == "number":
+                    # 🔸 Limpa número/monetário
+                    if field_type in ["value", "item_value"]:
                         try:
                             value = Decimal(value.replace(".", "").replace(",", "."))
                         except InvalidOperation:
@@ -251,13 +290,41 @@ def init_item_routes(
                                 "danger",
                             )
                             return redirect(request.url)
-                    # Outros tipos podem ser tratados aqui
 
-                key_values[field_id] = value
+                    # 🔸 Limpa CPF/CNPJ/Telefone
+                    elif field_type in ["cpf", "cnpj", "phone"]:
+                        value = re.sub(r"\D", "", value)
+
+                # Decide onde armazenar
+                if is_fixed:
+                    item_data[field_id] = value
+                else:
+                    key_values[field_id] = value
 
             item_data["key_values"] = key_values
 
+            # 🔒 Verifica se item_custom_id já existe **ANTES** de salvar
+            item_custom_id = item_data.get("item_custom_id")
+            if item_custom_id:
+                existing = itens_table.query(
+                    IndexName="account_id-item_custom_id-index",
+                    KeyConditionExpression=Key("account_id").eq(account_id) & Key("item_custom_id").eq(item_custom_id)
+                ).get("Items", [])
+
+                if existing:
+                    flash("Já existe um item com esse ID. Por favor, use um ID diferente.", "danger")
+                    return render_template(
+                        "add_item.html",
+                        next=next_page,
+                        all_fields=all_fields,
+                        current_stripe_transaction=get_latest_transaction(user_id, users_table, payment_transactions_table),
+                        title=title,
+                        item={**item_data, "key_values": key_values}
+                    )
+
+
             itens_table.put_item(Item=item_data)
+
 
             flash("Item adicionado com sucesso!", "success")
             if "image_not_allowed" in locals() and image_not_allowed:
@@ -277,7 +344,6 @@ def init_item_routes(
 
         next_page = request.args.get("next", url_for("index"))
 
-        # Buscar a transação atual
         response = transactions_table.get_item(Key={"transaction_id": transaction_id})
         transaction = response.get("Item")
 
@@ -285,9 +351,23 @@ def init_item_routes(
             flash("Transação não encontrada.", "danger")
             return redirect(next_page)
 
-        item_id = transaction.get("item_id")
+        account_id = session.get("account_id")
+        user_id = session.get("user_id")
+        user_utc = get_user_timezone(users_table, user_id)
 
-        # Obter todas as transações relacionadas ao item, exceto esta
+        item_id = transaction.get("item_id")
+        client_id = transaction.get("client_id")
+
+        item = itens_table.get_item(Key={"item_id": item_id}).get("Item", {})
+        client = clients_table.get_item(Key={"client_id": client_id}).get("Item", {})
+
+        fields_transaction = get_all_fields(account_id, field_config_table, entity="transaction")
+
+
+        print(fields_transaction)
+
+
+
         response = transactions_table.query(
             IndexName="item_id-index",
             KeyConditionExpression="item_id = :item_id_val",
@@ -297,75 +377,86 @@ def init_item_routes(
         reserved_ranges = [
             [tx["rental_date"], tx["return_date"]]
             for tx in response.get("Items", [])
-            if tx.get("status") == "rented"
+            if tx.get("transaction_status") in ["rented", "reserved"]
             and tx.get("transaction_id") != transaction_id
-            and tx.get("rental_date")
-            and tx.get("return_date")
+            and tx.get("rental_date") and tx.get("return_date")
         ]
 
         if request.method == "POST":
-            # Captura dos dados do formulário
-            valor_str = request.form.get("valor", "").replace(",", ".")
-            pagamento_str = request.form.get("pagamento", "").replace(",", ".")
-            ret_date = request.form.get("ret_date")
-            range_date = request.form.get("range_date")
-            rental_str, return_str = range_date.split(" - ")
+            import re
+            from decimal import Decimal, InvalidOperation
+            import json
 
-            rental_date = datetime.datetime.strptime(
-                rental_str.strip(), "%d/%m/%Y"
-            ).strftime("%Y-%m-%d")
-            return_date = datetime.datetime.strptime(
-                return_str.strip(), "%d/%m/%Y"
-            ).strftime("%Y-%m-%d")
+            fixed_fields = {}
+            key_values = {}
 
-            new_data = {
-                "rental_date": rental_date,
-                "return_date": return_date,
-                "dev_date": request.form.get("dev_date") or None,
-                "transaction_status": request.form.get("transaction_status") or "None",
-                "valor": Decimal(valor_str) if valor_str else Decimal("0.0"),
-                "transaction_obs": request.form.get("transaction_obs", "").strip(),
-                "pagamento": (
-                    Decimal(pagamento_str) if pagamento_str else Decimal("0.0")
-                ),
+            try:
+                rental_str, return_str = request.form.get("transaction_period", "").split(" - ")
+                rental_date = datetime.datetime.strptime(rental_str.strip(), "%d/%m/%Y").strftime("%Y-%m-%d")
+                return_date = datetime.datetime.strptime(return_str.strip(), "%d/%m/%Y").strftime("%Y-%m-%d")
+            except ValueError:
+                flash("Formato de data inválido. Use DD/MM/AAAA.", "danger")
+                return redirect(request.url)
+
+            fixed_fields["rental_date"] = rental_date
+            fixed_fields["return_date"] = return_date
+
+            for field in fields_transaction:
+                field_id = field["id"]
+                raw_value = request.form.get(field_id, "").strip()
+                if not raw_value:
+                    continue
+
+                if field.get("type") in ["value", "item_value", "transaction_value_paid", "transaction_price"]:
+                    raw_value = raw_value.replace(".", "").replace(",", ".")
+                    try:
+                        value = Decimal(raw_value)
+                    except InvalidOperation:
+                        flash(f"Valor inválido no campo {field.get('label', field_id)}.", "danger")
+                        return redirect(request.url)
+                else:
+                    value = raw_value
+
+                if field.get("fixed"):
+                    fixed_fields[field_id] = value
+                else:
+                    key_values[field_id] = value
+
+            # Monta a expressão de atualização
+            update_expr_parts = []
+            expr_attr_values = {}
+            expr_attr_names = {}
+
+            for key, val in fixed_fields.items():
+                update_expr_parts.append(f"{key} = :{key}")
+                expr_attr_values[f":{key}"] = val
+
+            # Atualiza o key_values como um todo
+            update_expr_parts.append("key_values = :kv")
+            expr_attr_values[":kv"] = key_values
+
+            update_args = {
+                "Key": {"transaction_id": transaction_id},
+                "UpdateExpression": "SET " + ", ".join(update_expr_parts),
+                "ExpressionAttributeValues": expr_attr_values,
             }
 
-            if new_data["transaction_status"] in ["reserved", "rented"]:
-                new_data["dev_date"] = None
+            # Corrigido aqui: expr_attr_names em vez de expr_names
+            if expr_attr_names:
+                update_args["ExpressionAttributeNames"] = expr_attr_names
 
-            if ret_date:
-                new_data["ret_date"] = ret_date
+            print("DEBUG update_args:", json.dumps(update_args, indent=2, default=str))
 
-            # Detectar alterações reais
-            changes = {
-                k: v
-                for k, v in new_data.items()
-                if transaction.get(k) != v
-                and not (transaction.get(k) == "" and v is None)
-            }
-
-            if not changes:
-                flash("Nenhuma alteração foi feita.", "warning")
+            try:
+                transactions_table.update_item(**update_args)
+                flash("Transação atualizada com sucesso.", "success")
                 return redirect(next_page)
+            except Exception as e:
+                flash("Erro ao atualizar transação.", "danger")
+                print("Erro DynamoDB:", e)
+                return redirect(request.url)
 
-            # Atualiza somente os campos alterados
-            update_expr = []
-            expr_values = {}
-
-            for k, v in changes.items():
-                update_expr.append(f"{k} = :{k}")
-                expr_values[f":{k}"] = v
-
-            transactions_table.update_item(
-                Key={"transaction_id": transaction_id},
-                UpdateExpression="SET " + ", ".join(update_expr),
-                ExpressionAttributeValues=expr_values,
-            )
-
-            flash("Transação atualizada com sucesso.", "success")
-            return redirect(next_page)
-
-        # GET: preparar os dados para o template
+        # Se GET, renderiza com dados existentes
         transaction["range_date"] = (
             f"{datetime.datetime.strptime(transaction['rental_date'], '%Y-%m-%d').strftime('%d/%m/%Y')} - "
             f"{datetime.datetime.strptime(transaction['return_date'], '%Y-%m-%d').strftime('%d/%m/%Y')}"
@@ -373,9 +464,16 @@ def init_item_routes(
 
         return render_template(
             "edit_transaction.html",
-            item=transaction,
+            item=item,
+            client=client,
+            transaction=transaction,
             reserved_ranges=reserved_ranges,
+            all_fields=fields_transaction,
+            item_editavel=False,
+            client_editavel=False,
         )
+
+
 
     ############################################################################################################
 
@@ -472,8 +570,7 @@ def init_item_routes(
 
         key_values = item.get("key_values", {})
 
-        # Carregar configurações dos campos
-        # Carrega configuração completa (fixos + custom)
+        # Carregar configuração dos campos
         config_response = field_config_table.get_item(
             Key={"account_id": account_id, "entity": "item"}
         )
@@ -481,11 +578,6 @@ def init_item_routes(
 
         all_fields = []
         for field_id, cfg in fields_config_map.items():
-            print(f"Field ID: {field_id}")
-            print(f"CFG: {cfg}")
-            print(f"Label: {cfg.get('label')}")
-            print(f"Title: {cfg.get('title')}")
-
             all_fields.append(
                 {
                     "id": field_id,
@@ -500,84 +592,97 @@ def init_item_routes(
                     ),
                 }
             )
-
         all_fields = sorted(all_fields, key=lambda x: x["order_sequence"])
 
-        # POST: Processa edição
+        # ---------------- POST ----------------
         if request.method == "POST":
             image_file = request.files.get("image_file")
-            image_url_field = request.form.get("image_url", "").strip()
-            old_image_url = key_values.get("image_url", "N/A")
+            image_url_field = request.form.get("item_image_url", "").strip()
+            old_image_url = item.get("item_image_url") or key_values.get("item_image_url", "N/A")
             new_image_url = (
-                "N/A"
-                if image_url_field == "DELETE_IMAGE"
-                else handle_image_upload(image_file, old_image_url)
+                "N/A" if image_url_field == "DELETE_IMAGE" else handle_image_upload(image_file, old_image_url)
             )
 
+            import re
             from decimal import Decimal, InvalidOperation
 
-            form_keys = set(request.form.keys())
             new_values = {}
+            fixed_updates = {}
+            form_keys = set(request.form.keys())
 
             for field in all_fields:
                 field_id = field["id"]
+                field_type = field["type"]
                 if field_id not in form_keys:
-                    continue  # 🛑 ignora campos que não foram enviados no formulário
+                    continue
 
                 raw_value = request.form.get(field_id, "").strip()
+                if not raw_value and field_type != "item_image_url":
+                    continue
+
                 value = raw_value
 
-                if field_id == "image_url":
+                if field_id == "item_image_url":
                     value = new_image_url
-                elif value and field["type"] == "number":
+                elif field_type in ["value", "item_value"]:
                     try:
                         value = Decimal(value.replace(".", "").replace(",", "."))
                     except InvalidOperation:
-                        flash(
-                            f"O campo {field.get('label') or field.get('title')} possui um número inválido.",
-                            "danger",
-                        )
+                        flash(f"O campo {field['label']} possui valor inválido.", "danger")
                         return redirect(request.url)
+                elif field_type in ["cpf", "cnpj", "phone"]:
+                    value = re.sub(r"\D", "", value)
 
-                new_values[field_id] = value
+                if field["fixed"]:
+                    fixed_updates[field_id] = value
+                else:
+                    new_values[field_id] = value
 
-            # Detecta alterações
-            old_values = item.get("key_values", {})
-            changes = {
-                f"key_values.{k}": v
-                for k, v in new_values.items()
-                if old_values.get(k) != v
-            }
+                # ✅ Agora sim, checagem de duplicidade com dados já preenchidos
+                custom_id = fixed_updates.get("item_custom_id")
+                if custom_id and custom_id != item.get("item_custom_id"):
+                    duplicate_check = itens_table.query(
+                        IndexName="account_id-item_custom_id-index",
+                        KeyConditionExpression=Key("account_id").eq(account_id) & Key("item_custom_id").eq(custom_id),
+                    )
+                    duplicates = duplicate_check.get("Items", [])
+                    if any(i["item_id"] != item_id for i in duplicates):
+                        flash("Já existe um item com este ID personalizado.", "danger")
+                        return render_template(
+                            "edit_item.html",
+                            item={**item, **fixed_updates, "key_values": {**key_values, **new_values}},
+                            all_fields=all_fields,
+                            next=next_page,
+                            title="Editar item",
+                        )
+
+            # Verifica alterações
+            # Verifica alterações
+            changes = {}
+            for k, v in new_values.items():
+                if key_values.get(k) != v:
+                    # Coletar tudo em um novo key_values completo
+                    pass  # nada aqui
+
+            for k, v in fixed_updates.items():
+                if item.get(k) != v:
+                    changes[k] = v
+
+            # Monta o novo key_values final (se tiver algum update)
+            if new_values:
+                key_values_updated = {**key_values, **new_values}
+                changes["key_values"] = key_values_updated
 
             if not changes:
                 flash("Nenhuma alteração foi feita.", "warning")
                 return redirect(next_page)
 
-            # Backup anterior
-            new_item_id = str(uuid.uuid4())
-            user_utc = get_user_timezone(users_table, session.get("user_id"))
-            edited_date = datetime.datetime.now(user_utc).strftime("%d/%m/%Y %H:%M:%S")
-            copied_item = {
-                k: v for k, v in item.items() if k != "item_id" and v not in [None, ""]
-            }
-            copied_item.update(
-                {
-                    "item_id": new_item_id,
-                    "previous_status": item.get("status"),
-                    "parent_item_id": item_id,
-                    "status": "version",
-                    "edited_date": edited_date,
-                    "deleted_by": session.get("username"),
-                }
-            )
-            itens_table.put_item(Item=copied_item)
-
-            # Atualiza principal
+            # Atualiza item no DynamoDB
             update_expression = []
             expression_values = {}
             for key, value in changes.items():
-                update_expression.append(f"{key} = :{key.replace('.', '_')}")
-                expression_values[f":{key.replace('.', '_')}"] = value
+                update_expression.append(f"{key} = :{key}")
+                expression_values[f":{key}"] = value
 
             itens_table.update_item(
                 Key={"item_id": item_id},
@@ -585,171 +690,364 @@ def init_item_routes(
                 ExpressionAttributeValues=expression_values,
             )
 
+
+            # Atualizar transações relacionadas, se marcado
+            if request.form.get("update_all_transactions"):
+                response = transactions_table.query(
+                    IndexName="item_id-index",
+                    KeyConditionExpression=Key("item_id").eq(item_id),
+                )
+                transacoes = response.get("Items", [])
+
+                for tx in transacoes:
+                    update_expression = []
+                    expression_values = {}
+                    expression_names = {}
+
+                    for key, value in changes.items():
+                        if key == "key_values" and isinstance(value, dict) and value:
+                            # Só adiciona se tiver dados
+                            update_expression.append("#ikv = :ikv")
+                            expression_values[":ikv"] = value
+                            expression_names["#ikv"] = "item_key_values"
+                        elif key != "key_values":
+                            update_expression.append(f"{key} = :{key}")
+                            expression_values[f":{key}"] = value
+
+                    if update_expression:  # Só faz update se houver algo
+                        update_kwargs = {
+                            "Key": {"transaction_id": tx["transaction_id"]},
+                            "UpdateExpression": "SET " + ", ".join(update_expression),
+                            "ExpressionAttributeValues": expression_values,
+                        }
+                        if expression_names:
+                            update_kwargs["ExpressionAttributeNames"] = expression_names
+
+                        transactions_table.update_item(**update_kwargs)
+
+
             flash("Item atualizado com sucesso.", "success")
             return redirect(next_page)
 
-        # GET: Prepara para o template
-        key_values = item.get("key_values", {})
-        prepared = {}
 
+        # ---------------- GET ----------------
+        # Prepara dados para o formulário
+        prepared = {}
         for f in all_fields:
             field_id = f["id"]
-            prepared[field_id] = key_values.get(field_id, "")
+            if f["fixed"]:
+                prepared[field_id] = item.get(field_id, "")
+            else:
+                prepared[field_id] = key_values.get(field_id, "")
 
-        prepared["item_id"] = item.get(
-            "item_id"
-        )  # sempre injeta item_id explicitamente
+        prepared["item_id"] = item["item_id"]
+        prepared["key_values"] = key_values  # ← isso garante que o template poderá usar item.key_values
+
+
+        origin = next_page.rstrip("/").split("/")[-1]
+        origin_status = "available" if origin == "inventory" else "archive"
+        title = "Editar item em inventário" if origin_status == "available" else "Editar item em arquivo"
 
         return render_template(
-            "edit_item.html", item=prepared, all_fields=all_fields, next=next_page
+            "edit_item.html", item=prepared, all_fields=all_fields, next=next_page, title=title,
         )
 
     ##################################################################################################
-    @app.route("/rent/<item_id>", methods=["GET", "POST"])
-    def rent(item_id):
+    @app.route("/rent", methods=["GET", "POST"])
+    def rent():
 
         if not session.get("logged_in"):
             return redirect(url_for("login"))
 
-        # 🔹 Buscar o item existente na tabela alugueqqc_itens
-        response = itens_table.get_item(Key={"item_id": item_id})
-        item = response.get("Item")
+        account_id = session.get("account_id")
+        user_id = session.get("user_id")
+        user_utc = get_user_timezone(users_table, user_id)
 
-        if not item:
-            flash("Item não encontrado.", "danger")
-            return redirect(url_for("inventory"))
+        cliente_vindo_da_query = bool(request.args.get("client_id"))
+        item_vindo_da_query = bool(request.args.get("item_id"))
 
-        # Consulta transações existentes para esse item com status "rented"
-        response = transactions_table.query(
-            IndexName="item_id-index",
-            KeyConditionExpression="item_id = :item_id_val",
-            ExpressionAttributeValues={":item_id_val": item_id},
-        )
+        # Exemplo simplificado
+        ordem = []
+        if item_vindo_da_query and not cliente_vindo_da_query:
+            ordem = ["bloco-item", "bloco-cliente", "bloco-transacao"]
+        elif cliente_vindo_da_query and not item_vindo_da_query:
+            ordem = ["bloco-cliente", "bloco-item", "bloco-transacao"]
+        else:
+            ordem = ["bloco-cliente", "bloco-item", "bloco-transacao"]
 
-        transaction = response.get("Items", [])
-        reserved_ranges = []
+        current_transaction = get_latest_transaction(user_id, users_table, payment_transactions_table)
 
-        for tx in transaction:
-            if (
-                tx.get("transaction_status") in ["reserved", "rented"]
-                and tx.get("rental_date")
-                and tx.get("return_date")
-            ):
-                reserved_ranges.append([tx["rental_date"], tx["return_date"]])
 
-        if request.method == "POST":
-            range_date = request.form.get("range_date")
-            client_name = request.form.get("client_name").strip()
+        def processar_transacao(account_id, user_id, user_utc, ordem, current_transaction):
+            import re
+            from decimal import Decimal, InvalidOperation
+            import datetime
+            import uuid
+
+            # Campos configuráveis de todas as entidades
+            # Carrega e filtra campos
+            transaction_fields = [
+                field for field in get_all_fields(account_id, field_config_table, entity="transaction")
+                if field.get("f_type") != "visual"
+            ]
+            client_fields = get_all_fields(account_id, field_config_table, entity="client")
+            item_fields = get_all_fields(account_id, field_config_table, entity="item")
+
+            # Junta tudo (sem deduplicação)
+            all_fields = transaction_fields + client_fields + item_fields
+
+
+            form_data = {}
+            transaction_fixed_fields = {}
+            key_values = {}
+
+            item_id = request.form.get("item_id")
             client_id = request.form.get("client_id")
-            client_tel = request.form.get("client_tel").strip()
-            client_email = request.form.get("client_email", "").strip()
-            client_address = request.form.get("client_address", "").strip()
-            client_cpf = request.form.get("client_cpf", "").strip()
-            client_cnpj = request.form.get("client_cnpj", "").strip()
-            client_obs = request.form.get("client_obs", "").strip()
-            transaction_status = request.form.get("transaction_status", "").strip()
-            transaction_obs = request.form.get("transaction_obs", "").strip()
-            valor_str = request.form.get("valor", "").replace(",", ".")
-            pagamento_str = request.form.get("pagamento", "").replace(",", ".")
-            # Transforma em float ou 0.0 se vier vazio
-            # Usa Decimal
-            valor = Decimal(valor_str) if valor_str else Decimal("0.0")
-            pagamento = Decimal(pagamento_str) if pagamento_str else Decimal("0.0")
-            item_obs = request.form.get("item_obs")
 
+            # 🔄 Extrai os dados do formulário
+            for field in all_fields:
+                field_id = field["id"]
+                field_type = field.get("type")
+                value = request.form.get(field_id, "").strip()
+
+                if not value:
+                    continue
+
+                if field_type in ["cpf", "cnpj", "phone"]:
+                    value = re.sub(r"\D", "", value)
+                elif field_type in ["item_value", "value", "transaction_value_paid", "transaction_price"]:
+                    value = value.replace(".", "").replace(",", ".")
+                    try:
+                        value = Decimal(value)
+                    except InvalidOperation:
+                        flash(f"Valor inválido no campo {field.get('label', field_id)}.", "error")
+
+                        return render_template(
+                            "rent.html",
+                            item={},
+                            client={},
+                            reserved_ranges=[],
+                            all_fields=all_fields,
+                            cliente_editavel=True,
+                            item_editavel=True,
+                            ordem=ordem,
+                            current_stripe_transaction=current_transaction,
+                            total_relevant_transactions=0,
+                            total_itens=0,
+                            next = request.args.get("next") or request.referrer or url_for("rent"),
+
+                        )
+
+                form_data[field_id] = value
+
+                # 👇 Lógica para diferenciar campos de transação
+                if field_id.startswith("transaction_"):
+                    if field.get("fixed"):
+                        transaction_fixed_fields[field_id] = value
+                    else:
+                        # novo padrão: usar key_values diretamente
+                        form_data.setdefault("key_values", {})[field_id] = value
+
+
+            # 📅 Validação do período
             try:
-                rental_str, return_str = range_date.split(" - ")
-                rental_date = datetime.datetime.strptime(
-                    rental_str.strip(), "%d/%m/%Y"
-                ).strftime("%Y-%m-%d")
-                return_date = datetime.datetime.strptime(
-                    return_str.strip(), "%d/%m/%Y"
-                ).strftime("%Y-%m-%d")
+                rental_str, return_str = request.form.get("transaction_period", "").split(" - ")
+                rental_date = datetime.datetime.strptime(rental_str.strip(), "%d/%m/%Y").strftime("%Y-%m-%d")
+                return_date = datetime.datetime.strptime(return_str.strip(), "%d/%m/%Y").strftime("%Y-%m-%d")
             except ValueError:
                 flash("Formato de data inválido. Use DD/MM/AAAA.", "danger")
-                return render_template(
-                    "rent.html", item=item, reserved_ranges=reserved_ranges
-                )
+                return render_template("rent.html", item={}, client={}, reserved_ranges=[], all_fields=all_fields, cliente_editavel=True, item_editavel=True, ordem=ordem)
 
-            # Criar client_id se necessário
-            user_id = session.get("user_id") if "user_id" in session else None
-            user_utc = get_user_timezone(users_table, user_id)
+            # 👤 Criar ou atualizar cliente
             if not client_id:
-                response = clients_table.query(
-                    IndexName="client_name-index",
-                    KeyConditionExpression="#cn = :client_name_val",
-                    ExpressionAttributeNames={"#cn": "client_name"},
-                    ExpressionAttributeValues={":client_name_val": client_name},
+                client_id = str(uuid.uuid4().hex[:12])
+                clients_table.put_item(
+                    Item={
+                        "client_id": client_id,
+                        "account_id": account_id,
+                        "client_name": request.form.get("client_name", "").strip(),
+                        "created_at": datetime.datetime.now(user_utc).strftime("%Y-%m-%d %H:%M:%S"),
+                        **{k: v for k, v in form_data.items() if k.startswith("client_")},
+                    }
                 )
-                existing_clients = response.get("Items", [])
-
-                if existing_clients:
-                    client_id = existing_clients[0]["client_id"]
-                else:
-                    client_id = str(uuid.uuid4())
-                    clients_table.put_item(
-                        Item={
-                            "client_id": client_id,
-                            "account_id": session.get("account_id"),
-                            "client_name": client_name,
-                            "client_tel": client_tel,
-                            "client_email": client_email,
-                            "client_address": client_address,
-                            "client_cpf": client_cpf,
-                            "client_cnpj": client_cnpj,
-                            "client_obs": client_obs,
-                            "created_at": datetime.datetime.now(user_utc).strftime(
-                                "%Y-%m-%d %H:%M:%S"
-                            ),
-                        }
+            else:
+                update_data = {k: v for k, v in form_data.items() if k.startswith("client_")}
+                if update_data:
+                    clients_table.update_item(
+                        Key={"client_id": client_id},
+                        UpdateExpression="SET " + ", ".join(f"#{k}=:{k}" for k in update_data),
+                        ExpressionAttributeNames={f"#{k}": k for k in update_data},
+                        ExpressionAttributeValues={f":{k}": v for k, v in update_data.items()},
                     )
 
-            # Obter o item_custom_id do item original
-            item_custom_id = item.get("item_custom_id", "")
-            image_url = item.get("image_url", "")
-            item_obs = item.get("item_obs", "")
-            description = item.get("description", "")
-
-            # Criar transação
-            transaction_id = str(uuid.uuid4())
-            transactions_table.put_item(
-                Item={
-                    "transaction_id": transaction_id,
-                    "account_id": session.get("account_id"),
+            # 📦 Criar ou atualizar item
+            if not item_id or item_id == "new":
+                item_id = str(uuid.uuid4().hex[:12])
+                item = {
                     "item_id": item_id,
-                    "item_custom_id": item_custom_id,  # ✅ incluído
-                    "item_obs": item_obs,  # ✅ incluído
-                    "description": description,  # ✅ incluído
-                    "client_id": client_id,
-                    "client_name": client_name,
-                    "client_tel": client_tel,
-                    "client_email": client_email,
-                    "client_address": client_address,
-                    "client_cpf": client_cpf,
-                    "client_cnpj": client_cnpj,
-                    "client_obs": client_obs,
-                    "item_obs": item_obs,
-                    "valor": valor,
-                    "pagamento": pagamento,
-                    "rental_date": rental_date,
-                    "return_date": return_date,
-                    "transaction_status": transaction_status,
-                    "image_url": image_url,
-                    "transaction_obs": transaction_obs,
-                    "created_at": datetime.datetime.now(user_utc).strftime(
-                        "%Y-%m-%d %H:%M:%S"
-                    ),
+                    "account_id": account_id,
+                    "status": "available",
+                    "created_at": datetime.datetime.now(user_utc).strftime("%Y-%m-%d %H:%M:%S"),
+                    **{k: v for k, v in form_data.items() if k.startswith("item_")},
                 }
-            )
-
-            if transaction_status == "reserved":
-                flash("Item <a href='/reserved'>reservado</a> com sucesso!", "success")
+                itens_table.put_item(Item=item)
             else:
-                flash("Item <a href='/rented'>retirado</a> com sucesso!", "success")
+                update_data = {k: v for k, v in form_data.items() if k.startswith("item_")}
+                if update_data:
+                    itens_table.update_item(
+                        Key={"item_id": item_id},
+                        UpdateExpression="SET " + ", ".join(f"#{k}=:{k}" for k in update_data),
+                        ExpressionAttributeNames={f"#{k}": k for k in update_data},
+                        ExpressionAttributeValues={f":{k}": v for k, v in update_data.items()},
+                    )
+                response = itens_table.get_item(Key={"item_id": item_id})
+                item = response.get("Item") or {}
 
-            return redirect(url_for("all_transactions"))
+            # 📥 Carregar cliente para snapshot
+            response = clients_table.get_item(Key={"client_id": client_id})
+            client = response.get("Item") or {}
 
-        return render_template("rent.html", item=item, reserved_ranges=reserved_ranges)
+            # 🧾 Montar transação
+            transaction_id = str(uuid.uuid4().hex[:12])
+            transaction_item = {
+                "transaction_id": transaction_id,
+                "account_id": account_id,
+                "item_id": item_id,
+                "client_id": client_id,
+                "rental_date": rental_date,
+                "return_date": return_date,
+                "created_at": datetime.datetime.now(user_utc).strftime("%Y-%m-%d %H:%M:%S"),
+                **transaction_fixed_fields,
+                "key_values": key_values,
+                "client_key_values": client.get("key_values", {}),
+                "item_key_values": item.get("key_values", {}),
+            }
+
+            # Snapshot dos campos fixos de cliente/item
+            transaction_item.update({k: v for k, v in client.items() if k not in ["key_values", "created_at"]})
+            transaction_item.update({k: v for k, v in item.items() if k not in ["key_values", "created_at"]})
+
+            # 🔐 Salvar
+            try:
+                transactions_table.put_item(Item=transaction_item)
+                if transaction_item.get("transaction_status") == "reserved":
+                    flash("Item <a href='/reserved'>reservado</a> com sucesso!", "success")
+                else:
+                    flash("Item <a href='/rented'>retirado</a> com sucesso!", "success")
+                return redirect(url_for("all_transactions"))
+            except Exception as e:
+                flash("Erro ao salvar transação. Tente novamente.", "danger")
+                print("Erro ao salvar transação:", e)
+                return render_template("rent.html", item=item, client=client, reserved_ranges=[], all_fields=all_fields, cliente_editavel=True, item_editavel=True, ordem=ordem, next = request.args.get("next") or request.referrer or url_for("rent"))
+
+                ################################################################################################################
+
+        if request.method == "POST":
+            return processar_transacao(account_id, user_id, user_utc, ordem, current_transaction)
+
+
+
+        # --- GET: renderiza a tela de nova transação ---
+        item_id = request.args.get("item_id")
+        client_id = request.args.get("client_id")
+
+        client = {}
+        item = {}
+        reserved_ranges = []
+
+        if item_id:
+            response = itens_table.get_item(Key={"item_id": item_id})
+            item = response.get("Item") or {}
+
+            # Buscar períodos reservados
+            response = transactions_table.query(
+                IndexName="item_id-index",
+                KeyConditionExpression=Key("item_id").eq(item_id),
+            )
+            transaction = response.get("Items", [])
+            reserved_ranges = [
+                [tx["rental_date"], tx["return_date"]]
+                for tx in transaction
+                if tx.get("transaction_status") in ["reserved", "rented"]
+                and tx.get("rental_date") and tx.get("return_date")
+            ]
+
+        if client_id:
+            response = clients_table.get_item(Key={"client_id": client_id})
+            client = response.get("Item") or {}
+
+        test = get_all_fields(account_id, field_config_table, entity="transaction")
+        print("uuuuuuuu")
+        print(test)
+        print("xxxxxxxx")
+
+
+        # Carrega todos os campos das três entidades, exceto os campos de visualização de transaction
+        transaction_fields = [
+            field for field in get_all_fields(account_id, field_config_table, entity="transaction")
+            if field.get("f_type") != "visual"
+        ]
+        client_fields = get_all_fields(account_id, field_config_table, entity="client")
+        item_fields = get_all_fields(account_id, field_config_table, entity="item")
+
+        # Junta tudo (sem deduplicação)
+        all_fields = transaction_fields + client_fields + item_fields
+
+        print(all_fields)
+
+
+        # Totais para controle de plano
+        total_relevant_transactions = 0
+        exclusive_start_key = None
+        while True:
+            query_params = {
+                "IndexName": "account_id-index",
+                "KeyConditionExpression": Key("account_id").eq(account_id),
+                "FilterExpression": Attr("transaction_status").is_in(["rented", "reserved"]),
+                "Select": "COUNT",
+            }
+            if exclusive_start_key:
+                query_params["ExclusiveStartKey"] = exclusive_start_key
+            response = transactions_table.query(**query_params)
+            total_relevant_transactions += response.get("Count", 0)
+            exclusive_start_key = response.get("LastEvaluatedKey")
+            if not exclusive_start_key:
+                break
+
+        total_itens = 0
+        exclusive_start_key = None
+        while True:
+            query_kwargs = {
+                "IndexName": "account_id-created_at-index",
+                "KeyConditionExpression": Key("account_id").eq(account_id),
+                "FilterExpression": Attr("status").is_in(["available", "archive"]),
+                "Select": "COUNT",
+            }
+            if exclusive_start_key:
+                query_kwargs["ExclusiveStartKey"] = exclusive_start_key
+            response = itens_table.query(**query_kwargs)
+            total_itens += response.get("Count", 0)
+            exclusive_start_key = response.get("LastEvaluatedKey")
+            if not exclusive_start_key:
+                break
+
+
+        return render_template(
+            "rent.html",
+            item=item,
+            client=client,
+            reserved_ranges=reserved_ranges,
+            all_fields=all_fields,
+            item_editavel=not bool(item_id),
+            client_editavel=not bool(client_id),
+            current_stripe_transaction=current_transaction,
+            total_relevant_transactions=total_relevant_transactions,
+            total_itens=total_itens,
+            cliente_vindo_da_query=cliente_vindo_da_query,
+            item_vindo_da_query=item_vindo_da_query,
+            next = request.args.get("next") or request.referrer or url_for("rent"),
+            ordem=ordem,
+        )
 
     ###########################################################################################################
     @app.route("/view_calendar/<item_id>")
@@ -811,7 +1109,7 @@ def init_item_routes(
             if item:
                 # Obter data e hora atuais no formato brasileiro
                 deleted_date = datetime.datetime.now(user_utc).strftime(
-                    "%d/%m/%Y %H:%M:%S"
+                    "%Y-%m-%d %H:%M:%S"
                 )
 
                 # Atualizar o status do item para "deleted"
@@ -829,7 +1127,7 @@ def init_item_routes(
                 )
 
                 flash(
-                    "Item marcado deletado!",
+                    "Item marcado como deletado!",
                     "success",
                 )
 
@@ -871,7 +1169,7 @@ def init_item_routes(
                     try:
                         # Converter string de data para objeto datetime
                         deleted_date = datetime.datetime.strptime(
-                            deleted_date_str, "%d/%m/%Y %H:%M:%S"
+                            deleted_date_str, "%Y-%m-%d %H:%M:%S"
                         )
 
                         # Verificar se passou dos 30 dias
@@ -1464,19 +1762,27 @@ def init_item_routes(
         status_counter = {"rented": 0, "returned": 0, "reserved": 0}
 
         event_counts = defaultdict(
-            lambda: {"created": 0, "devolvido": 0, "retirado": 0, "pagamento": 0}
+            lambda: {"created": 0, "devolvido": 0, "retirado": 0, "transaction_value_paid": 0}
         )
 
         for transaction in transactions:
-            try:
+            #print(transaction)
+
+            if 1==1: #try:
+                print("stttt")
                 transaction_date = datetime.datetime.strptime(
                     transaction.get("created_at"), "%Y-%m-%d %H:%M:%S"
                 ).date()
 
+                print(start_date)
+                print(transaction_date)
+                print(end_date)
+
                 if start_date <= transaction_date <= end_date:
                     num_transactions += 1
-                    valor = float(transaction.get("valor", 0))
-                    pagamento = float(transaction.get("pagamento", 0))
+                    valor = float(transaction.get("transaction_price", 0))
+
+                    pagamento = float(transaction.get("transaction_value_paid", 0))
 
                     total_paid += pagamento
                     total_due += max(0, valor - pagamento)
@@ -1491,7 +1797,7 @@ def init_item_routes(
 
                     event_counts[transaction_date]["created"] += 1
                     if pagamento > 0:
-                        event_counts[transaction_date]["pagamento"] += pagamento
+                        event_counts[transaction_date]["transaction_value_paid"] += pagamento
 
                     if transaction.get("dev_date"):
                         dev_date = datetime.datetime.strptime(
@@ -1501,14 +1807,17 @@ def init_item_routes(
                             status_counter["returned"] += 1  # ✅ Devolvido
                             event_counts[dev_date]["devolvido"] += 1
 
-                    if transaction.get("ret_date"):
-                        ret_date = datetime.datetime.strptime(
-                            transaction.get("ret_date"), "%Y-%m-%d"
+                    if transaction.get("transaction_ret_date"):
+                        transaction_ret_date = datetime.datetime.strptime(
+                            transaction.get("transaction_ret_date"), "%Y-%m-%d"
                         ).date()
-                        if start_date <= ret_date <= end_date:
+                        if start_date <= transaction_ret_date <= end_date:
                             status_counter["rented"] += 1  # ✅ Retirado
-                            event_counts[ret_date]["retirado"] += 1
-            except (ValueError, TypeError):
+                            event_counts[transaction_ret_date]["retirado"] += 1
+
+                else:
+                    print("no itens betwen dates")
+            #except (ValueError, TypeError):
                 continue
 
         preco_medio = sum_valor / num_transactions if num_transactions else 0
@@ -1527,11 +1836,65 @@ def init_item_routes(
             created_list.append(daily["created"])
             dev_list.append(daily["devolvido"])
             ret_list.append(daily["retirado"])
-            pagamento_list.append(daily["pagamento"])
+            pagamento_list.append(daily["transaction_value_paid"])
             current_date += datetime.timedelta(days=1)
 
         if request.method == "POST":
             flash("Relatório atualizado com sucesso!", "success")
+
+        # 🔄 Total de transações ativas (rented + reserved)
+        current_stripe_transaction = get_latest_transaction(user_id, users_table, payment_transactions_table)
+
+
+        # 🔄 Total de transações ativas (rented + reserved)
+        total_relevant_transactions = 0
+        exclusive_start_key = None
+
+        try:
+            while True:
+                query_params = {
+                    "IndexName": "account_id-index",
+                    "KeyConditionExpression": Key("account_id").eq(account_id),
+                    "FilterExpression": Attr("transaction_status").is_in(["rented", "reserved"]),
+                    "Select": "COUNT",
+                }
+
+                if exclusive_start_key:
+                    query_params["ExclusiveStartKey"] = exclusive_start_key
+
+                response = transactions_table.query(**query_params)
+                total_relevant_transactions += response.get("Count", 0)
+
+                exclusive_start_key = response.get("LastEvaluatedKey")
+                if not exclusive_start_key:
+                    break
+        except Exception as e:
+            print(f"Erro ao contar transações ativas: {e}")
+
+        # 🔄 Total de itens ativos (available + archive)
+        total_itens = 0
+        exclusive_start_key = None
+
+        try:
+            while True:
+                query_kwargs = {
+                    "IndexName": "account_id-created_at-index",
+                    "KeyConditionExpression": Key("account_id").eq(account_id),
+                    "FilterExpression": Attr("status").is_in(["available", "archive"]),
+                    "Select": "COUNT",
+                }
+
+                if exclusive_start_key:
+                    query_kwargs["ExclusiveStartKey"] = exclusive_start_key
+
+                response = itens_table.query(**query_kwargs)
+                total_itens += response.get("Count", 0)
+
+                exclusive_start_key = response.get("LastEvaluatedKey")
+                if not exclusive_start_key:
+                    break
+        except Exception as e:
+            print(f"Erro ao contar itens ativos: {e}")
 
         return render_template(
             "reports.html",
@@ -1552,6 +1915,10 @@ def init_item_routes(
             dev_list=dev_list,
             ret_list=ret_list,
             pagamento_list=pagamento_list,
+            total_relevant_transactions=total_relevant_transactions,
+            total_itens=total_itens,
+            current_transaction=current_stripe_transaction,
+
         )
 
     @app.route("/query", methods=["POST"])
@@ -1641,6 +2008,14 @@ def init_item_routes(
             flash("Sessão expirada. Faça login novamente.", "danger")
             return redirect(url_for("login"))
 
+        table_mapping = {
+            "client": clients_table,
+            "transaction": transactions_table,
+            "item": itens_table,
+        }
+
+        data_table = table_mapping.get(entity)
+
         if request.method == "POST":
             fields_config_map = {}
 
@@ -1648,10 +2023,18 @@ def init_item_routes(
             fields = []
             i = 0
             while f"fields[{i}][id]" in request.form:
+                f_type = request.form.get(f"fields[{i}][kind]", "custom")
+                if f_type not in ["fixed", "custom", "visual"]:
+                    f_type = "custom"
+
                 fields.append(
                     {
                         "field_id": request.form.get(f"fields[{i}][id]"),
-                        "f_type": request.form.get(f"fields[{i}][kind]", "custom"),
+"f_type": request.form[f"fields[{i}][kind]"] if f"fields[{i}][kind]" in request.form else "custom",
+                        "label": request.form.get(f"fields[{i}][label]"),
+                        "label_original": request.form.get(
+                            f"fields[{i}][label_original]"
+                        ),
                         "title": request.form.get(f"fields[{i}][title]"),
                         "type": request.form.get(f"fields[{i}][type]"),
                         "required": f"fields[{i}][required]" in request.form,
@@ -1661,9 +2044,18 @@ def init_item_routes(
                         "options": request.form.get(f"fields[{i}][options]", "").split(
                             ","
                         ),
+                        # Adiciona os metadados se forem enviados no form
+                        "source_entity": request.form.get(f"fields[{i}][source_entity]", None),
+                        "source_field_id": request.form.get(f"fields[{i}][source_field_id]", None),
+
                     }
                 )
+
                 i += 1
+
+            print("#########################")
+            print(fields)
+            print("#########################")
 
             # IDs ordenados
             ordered_ids = request.form.get("ordered_ids", "[]")
@@ -1672,11 +2064,68 @@ def init_item_routes(
             except Exception:
                 ordered_ids = []
 
+            # 🛑 Verifica campos custom antigos que ainda existem no banco
+            used_custom_fields = set()
+
+            if data_table:
+                if entity == "item":
+                    # Usa o índice com partition + sort key
+                    response = data_table.query(
+                        IndexName="account_id-status-index",
+                        KeyConditionExpression=Key("account_id").eq(account_id)
+                        & Key("status").eq("available"),
+                        ProjectionExpression="key_values",
+                    )
+                elif entity == "client":
+                    # Usa GSI apenas com partition key
+                    response = data_table.query(
+                        IndexName="account_id-index",
+                        KeyConditionExpression=Key("account_id").eq(account_id),
+                        ProjectionExpression="key_values",
+                    )
+                elif entity == "transaction":
+                    # Exemplo genérico, ajuste conforme o GSI usado na tabela de transações
+                    response = data_table.query(
+                        IndexName="account_id-index",
+                        KeyConditionExpression=Key("account_id").eq(account_id),
+                        ProjectionExpression="key_values",
+                    )
+                else:
+                    response = {"Items": []}
+
+                items = response.get("Items", [])
+
+                import re
+
+                for item in items:
+                    key_values = item.get("key_values", {})
+                    if isinstance(key_values, dict):
+                        pattern = re.compile(
+                            r"^\d{10,}$"
+                        )  # apenas dígitos, com no mínimo 10 caracteres
+                        for key, value in key_values.items():
+                            if pattern.match(key) and value:
+                                used_custom_fields.add(key)
+
             # ➕ Processa os campos fixos e custom existentes
             for idx, field in enumerate(fields):
                 field_id = field["field_id"]
-                f_type = field["f_type"]
-                title = field["title"].strip()
+
+                # Corrige f_type apenas se não for um campo visual
+                if field.get("f_type") != "visual" and field_id in [
+                    "client_name", "client_phone", "client_cpf", "client_email", "client_address", "client_notes",
+                    "item_custom_id", "item_description", "item_value",
+                    "transaction_status", "transaction_period", "transaction_price", "transaction_value_paid"
+                ]:
+                    f_type = "fixed"
+                else:
+                    f_type = field["f_type"]  # mantém original se for visual
+
+
+                label = field.get("label", "").strip() or field.get(
+                    "label_original", field.get("title", "")
+                )
+                label_original = field.get("label_original", label)
                 type_ = field["type"]
                 required = field["required"]
                 visible = field["visible"]
@@ -1686,16 +2135,27 @@ def init_item_routes(
                 order = ordered_ids.index(field_id) if field_id in ordered_ids else idx
 
                 fields_config_map[field_id] = {
-                    "label": title,
+                    "label": label,
+                    "label_original": label_original,
                     "type": type_,
                     "visible": visible,
                     "required": required,
                     "filterable": filterable,
                     "preview": preview,
                     "f_type": f_type,
-                    "options": options if type_ == "dropdown" else [],
+                    "options": (
+                        options if type_ in ["dropdown", "transaction_status"] else []
+                    ),
                     "order_sequence": order,
+                    "source_entity": field.get("source_entity"),
+                    "source_field_id": field.get("source_field_id"),
                 }
+
+
+            # ⬇️ Aqui está o lugar ideal para inserir a checagem
+            if f_type == "visual":
+                if not field.get("source_entity") or not field.get("source_field_id"):
+                    print(f"[Aviso] Campo visual '{field_id}' está sem origem definida.")
 
             # ➕ Processa os novos campos criados dinamicamente
             combined_ids = request.form.getlist("combined_id[]")
@@ -1706,6 +2166,30 @@ def init_item_routes(
             combined_filterable = request.form.getlist("combined_filterable[]")
             combined_preview = request.form.getlist("combined_preview[]")
             combined_options = request.form.getlist("combined_options[]")
+            combined_kinds = request.form.getlist("combined_kind[]")
+            combined_sources_entity = request.form.getlist("combined_source_entity[]")
+            combined_sources_field_id = request.form.getlist("combined_source_field_id[]")
+
+
+
+            # checa se o usuario esta tentando deletar um campo que ja foi preecnido
+            # Lista de IDs de campos que vieram do form
+            remaining_field_ids = [f["field_id"] for f in fields] + combined_ids
+
+            print("fcm")
+            print(fields_config_map)
+
+            # Descobre quais campos usados foram deletados
+            for used_field in used_custom_fields:
+                if used_field not in remaining_field_ids:
+                    label = fields_config_map.get(used_field, {}).get(
+                        "label", used_field
+                    )
+                    flash(
+                        f"Antes de deletar o campo de ID: '{label}' é necessário apagar seu conteúdo em todos os itens ou apagar os itens. Se preferir, apenas desabilite o campo.",
+                        "danger",
+                    )
+                    return redirect(request.url)
 
             for idx, field_id in enumerate(combined_ids):
                 title = combined_titles[idx].strip()
@@ -1723,6 +2207,7 @@ def init_item_routes(
 
                 fields_config_map[field_id] = {
                     "label": title,
+                    "label_original": title,
                     "type": type_,
                     "visible": idx < len(combined_visible)
                     and combined_visible[idx] == "true",
@@ -1732,10 +2217,17 @@ def init_item_routes(
                     and combined_filterable[idx] == "true",
                     "preview": idx < len(combined_preview)
                     and combined_preview[idx] == "true",
-                    "f_type": "custom",
+                    "f_type": combined_kinds[idx] if idx < len(combined_kinds) else "custom",
                     "options": options if type_ == "dropdown" else [],
                     "order_sequence": order,
+                    "source_entity": combined_sources_entity[idx] if idx < len(combined_sources_entity) else None,
+                    "source_field_id": combined_sources_field_id[idx] if idx < len(combined_sources_field_id) else None,
+
                 }
+
+                if fields_config_map[field_id]["f_type"] == "visual":
+                    if not fields_config_map[field_id]["source_entity"] or not fields_config_map[field_id]["source_field_id"]:
+                        print(f"[Aviso] Campo visual '{field_id}' criado dinamicamente está sem origem definida.")
 
             # 🔄 Atualiza o item completo na tabela
             field_config_table.put_item(
@@ -1755,8 +2247,6 @@ def init_item_routes(
             Key={"account_id": account_id, "entity": entity}
         )
 
-        print(config_response)
-
         fields_config_map = config_response.get("Item", {}).get("fields_config", {})
         fields_to_show = []
 
@@ -1767,6 +2257,7 @@ def init_item_routes(
                     "label": cfg.get("label")
                     or cfg.get("title")
                     or field_id.replace("_", " ").capitalize(),
+                    "label_original": cfg.get("label_original", cfg.get("label")),
                     "title": cfg.get("label", field_id.replace("_", " ").capitalize()),
                     "type": cfg.get("type", "string"),
                     "visible": cfg.get("visible", False),
@@ -1776,15 +2267,19 @@ def init_item_routes(
                     "preview": cfg.get("preview", False),
                     "f_type": cfg.get("f_type", "custom"),
                     "fixed": cfg.get("f_type") == "fixed",
+                    "source_entity": cfg.get("source_entity"),
+                    "source_field_id": cfg.get("source_field_id"),
                     "options": (
-                        cfg.get("options", []) if cfg.get("type") == "dropdown" else []
+                        cfg.get("options", [])
+                        if cfg.get("type") in ["dropdown", "transaction_status"]
+                        else []
                     ),
                 }
             )
 
         all_fields = sorted(fields_to_show, key=lambda x: x["order_sequence"])
         return render_template(
-            f"custom_{entity}.html", entity=entity, all_fields=all_fields
+            f"custom_fields.html", entity=entity, all_fields=all_fields
         )
 
 
@@ -1801,6 +2296,7 @@ def decode_dynamo_key(encoded_str):
     return json.loads(json_str)
 
 
+
 def list_transactions(
     status_list,
     template,
@@ -1809,9 +2305,11 @@ def list_transactions(
     users_table,
     itens_table,
     text_models_table,
-    client_id=None,
+    field_config_table,
+    client_id= None,
+    item_id = None,
     page=None,
-    limit=5,
+    limit=6,
 ):
     if not session.get("logged_in"):
         return redirect(url_for("login"))
@@ -1822,9 +2320,50 @@ def list_transactions(
         flash("Erro: Usuário não autenticado corretamente.", "danger")
         return redirect(url_for("login"))
 
-    force_no_next = request.args.get("force_no_next")
+    # 🔥 Carrega configuração de campos
+    fields_all_entities = {}
+    for ent in ["item", "client", "transaction"]:
+        response = field_config_table.get_item(Key={"account_id": account_id, "entity": ent})
+        config_map = response.get("Item", {}).get("fields_config", {})
 
-    # 🕐 Pega o fuso horário do usuário
+        fields = []
+        for field_id, cfg in config_map.items():
+            fields.append({
+                "id": field_id,
+                "label": cfg.get("label", field_id.replace("_", " ").capitalize()),
+                "type": cfg.get("type"),
+                "f_type": cfg.get("f_type"),
+                "preview": cfg.get("preview", False),
+                "visible": cfg.get("visible", True),
+                "required": cfg.get("required", False),
+                "order_sequence": cfg.get("order_sequence", 0),
+                "filterable": cfg.get("filterable", False),
+                "options": cfg.get("options", []),
+                "fixed": cfg.get("f_type", "") == "fixed",  # útil para lógica de filtros
+            })
+
+        # Ordena a lista da entidade atual
+        fields = sorted(fields, key=lambda x: x["order_sequence"])
+
+        # Associa a lista ao nome da entidade (ESSA LINHA PRECISA FICAR AQUI)
+        fields_all_entities[ent] = fields
+
+    #cria um lista unica para filtros
+    fields_config = (
+        fields_all_entities.get("transaction", []) +
+        fields_all_entities.get("client", []) +
+        fields_all_entities.get("item", [])
+    )
+
+    seen_ids = set()
+    fields_config_init = []
+
+    for item in fields_config:
+        if item['id'] not in seen_ids:
+            fields_config_init.append(item)
+            seen_ids.add(item['id'])
+    fields_config = fields_config_init
+
     user_utc = get_user_timezone(users_table, user_id)
     today = datetime.datetime.now(user_utc).date()
 
@@ -1834,15 +2373,11 @@ def list_transactions(
                 date_str = item[key]
                 if date_str and isinstance(date_str, str):
                     try:
-                        date_obj = datetime.datetime.strptime(
-                            date_str, "%Y-%m-%d"
-                        ).date()
+                        date_obj = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
                         item[f"{key}_formatted"] = date_obj.strftime("%d-%m-%Y")
                         item[f"{key}_obj"] = date_obj
                     except ValueError:
-                        # Se a string existe mas não é válida, ignora: não adiciona nada
                         pass
-                # Se date_str for vazio ou não string válida, também ignora
 
         if item.get("dev_date_obj") and item["dev_date_obj"] != "N/A":
             item["overdue"] = False
@@ -1860,9 +2395,7 @@ def list_transactions(
                 item["rental_message_color"] = "orange"
             elif rental_date > today:
                 dias = (rental_date - today).days
-                item["rental_message"] = (
-                    "Falta 1 dia" if dias == 1 else f"Faltam {dias} dias"
-                )
+                item["rental_message"] = "Falta 1 dia" if dias == 1 else f"Faltam {dias} dias"
                 item["rental_message_color"] = "blue" if dias > 1 else "yellow"
             else:
                 item["rental_message"] = "Não retirado"
@@ -1871,15 +2404,68 @@ def list_transactions(
             item["rental_message"] = ""
             item["rental_message_color"] = ""
 
-        # -- Parte 2: Calcular dias de atraso (NOVO) --
         if item.get("overdue") and return_date:
             overdue_days = (today - return_date).days
             item["overdue_days"] = overdue_days if overdue_days > 0 else 0
 
         return item
 
-    # --- Pegando parâmetros ---
+    if not item_id:
+        item_id = request.args.get("item_id")
+
+    if not client_id:
+        client_id = request.args.get("client_id")
+
+    # 🔍 Exibe apenas transações específicas, se item_id ou client_id estiverem definidos
+    if item_id or client_id:
+        query_kwargs = {
+            "IndexName": "account_id-created_at-index",
+            "KeyConditionExpression": Key("account_id").eq(account_id),
+            "ScanIndexForward": False,
+        }
+
+        transacoes = transactions_table.query(**query_kwargs).get("Items", [])
+
+        transacoes_filtradas = []
+        for txn in transacoes:
+            if status_list and txn.get("transaction_status") not in status_list:
+                continue
+            if item_id and txn.get("item_id") != item_id:
+                continue
+            if client_id and txn.get("client_id") != client_id:
+                continue
+            transacoes_filtradas.append(process_dates(txn))
+
+        return render_template(
+            template,
+            itens=transacoes_filtradas,
+            title=title,
+            current_page=1,
+            has_next=False,
+            has_prev=False,
+            itens_count=len(transacoes_filtradas),
+            next_cursor=None,
+            last_page=True,
+            add_route=url_for("trash_transactions"),
+            next_url=request.url,
+            saved_models=[],
+            fields_config=fields_config,
+            fields_all_entities=fields_all_entities,
+            ns={"filtro_relevante": False},
+        )
+
+
+    force_no_next = request.args.get("force_no_next")
+
+    image_url_filter = request.args.get("item_image_url") or None
+    image_url_required = image_url_filter.lower() == "true" if image_url_filter is not None else None
+
     filtros = request.args.to_dict()
+
+    converter_intervalo_data_br_para_iso(filtros, "rental_period", "start_rental_date", "end_rental_date")
+    converter_intervalo_data_br_para_iso(filtros, "return_period", "start_return_date", "end_return_date")
+
+
     page = int(filtros.pop("page", 1))
 
     current_path = request.path
@@ -1901,11 +2487,11 @@ def list_transactions(
     if str(page) in cursor_pages and cursor_pages[str(page)]:
         exclusive_start_key = decode_dynamo_key(cursor_pages[str(page)])
 
-    # --- Query no banco ---
     valid_itens = []
     batch_size = 10
     last_valid_item = None
     raw_last_evaluated_key = None
+
 
     while len(valid_itens) < limit:
         query_kwargs = {
@@ -1926,8 +2512,12 @@ def list_transactions(
             break
 
         for txn in transacoes:
-            if not filtra_transacao(txn, filtros, client_id, status_list):
+            if status_list and txn.get("transaction_status") not in status_list:
                 continue
+            # filtro dinâmico geral
+            if not entidade_atende_filtros_dinamico(txn, filtros, fields_config, image_url_required):
+                continue
+
 
             valid_itens.append(process_dates(txn))
             last_valid_item = txn
@@ -1941,23 +2531,19 @@ def list_transactions(
             else:
                 break
 
-    # 🔥 Atualiza next_cursor
     next_cursor_token = None
     if last_valid_item:
-        next_cursor_token = encode_dynamo_key(
-            {
-                "account_id": last_valid_item["account_id"],
-                "created_at": last_valid_item["created_at"],
-                "transaction_id": last_valid_item["transaction_id"],
-            }
-        )
+        next_cursor_token = encode_dynamo_key({
+            "account_id": last_valid_item["account_id"],
+            "created_at": last_valid_item["created_at"],
+            "transaction_id": last_valid_item["transaction_id"],
+        })
 
     if next_cursor_token:
         session["cursor_pages_transactions"][str(page + 1)] = next_cursor_token
     else:
         session["cursor_pages_transactions"].pop(str(page + 1), None)
 
-    # 🔥 Consulta os modelos salvos
     response = text_models_table.query(
         IndexName="account_id-index",
         KeyConditionExpression="account_id = :account_id",
@@ -1965,35 +2551,26 @@ def list_transactions(
     )
     saved_models = response.get("Items", [])
 
-    # 🔥 Controle de botão next
     last_page_transactions = session.get("last_page_transactions")
     current_page = session.get("current_page_transactions", 1)
 
     if force_no_next:
         has_next = False
     else:
-        if len(valid_itens) < limit or (
-            last_page_transactions is not None
-            and current_page >= last_page_transactions
-        ):
+        if len(valid_itens) < limit or (last_page_transactions is not None and current_page >= last_page_transactions):
             has_next = False
         else:
             has_next = True
 
-    # ⚡ Caso tente avançar sem sucesso
     if not valid_itens and page > 1:
         flash("Não há mais transações para exibir.", "info")
         last_valid_page = page - 1
         session["current_page_transactions"] = last_valid_page
         session["last_page_transactions"] = last_valid_page
-        return redirect(
-            url_for(
-                "all_transactions",
-                page=last_valid_page,
-                has_next=has_next,
-                force_no_next=1,
-            )
-        )
+        return redirect(url_for("all_transactions", page=last_valid_page, has_next=has_next, force_no_next=1))
+
+
+
     return render_template(
         template,
         itens=valid_itens,
@@ -2007,7 +2584,12 @@ def list_transactions(
         itens_count=len(valid_itens),
         has_next=has_next,
         has_prev=current_page > 1,
+        fields_config=fields_config,  # todas as 3 entidades na mesma  lista
+        fields_all_entities=fields_all_entities, # todas as e entidades em listas separadas
+        ns={"filtro_relevante": False}  # para exibir filtros normalmente
+
     )
+
 
 
 def get_latest_transaction(user_id, users_table, payment_transactions_table):
@@ -2044,6 +2626,17 @@ def get_latest_transaction(user_id, users_table, payment_transactions_table):
 
     return None
 
+def get_valor_item(item, field):
+
+    field_id = field["id"]
+    if field.get("fixed") == True:
+        return item.get(field_id, "")
+    else:
+        return (item.get("key_values") or {}).get(field_id, "")
+
+from utils import entidade_atende_filtros_dinamico  # certifique-se de importar isso corretamente
+from utils import converter_intervalo_data_br_para_iso  # certifique-se de importar isso corretamente
+
 
 def list_raw_itens(
     status_list,
@@ -2054,7 +2647,7 @@ def list_raw_itens(
     users_table,
     payment_transactions_table,
     field_config_table,
-    limit=5,
+    limit=6,
     entity="item",
 ):
     if not session.get("logged_in"):
@@ -2068,27 +2661,16 @@ def list_raw_itens(
     fields_config = get_all_fields(account_id, field_config_table, entity)
 
     force_no_next = request.args.get("force_no_next")
-
-    # isso será usado para limitar o plano teste
-    user_id = session.get("user_id")
-    current_transaction = get_latest_transaction(
-        user_id, users_table, payment_transactions_table
-    )
-
     current_path = request.path
-    session["previous_path_itens"] = current_path  # 🔥 Marcar o path atual
+    session["previous_path_itens"] = current_path
 
-    # 🔍 Parâmetros de busca
     filtros = request.args.to_dict()
     item_id = filtros.pop("item_id", None)
     page = int(filtros.pop("page", 1))
 
-    # ⚡ Filtro especial para image_url (se tem imagem ou não)
-    image_url_filter = request.args.get("image_url")
+    image_url_filter = request.args.get("item_image_url") or None
+    image_url_required = image_url_filter.lower() == "true" if image_url_filter is not None else None
 
-    image_url_required = None
-    if image_url_filter is not None:
-        image_url_required = image_url_filter.lower() == "true"
 
     if page == 1:
         session.pop("current_page_itens", None)
@@ -2102,7 +2684,6 @@ def list_raw_itens(
 
     session["current_page_itens"] = page
 
-    # 🔍 Se buscar direto por item_id
     if item_id:
         try:
             response = itens_table.get_item(Key={"item_id": item_id})
@@ -2124,10 +2705,9 @@ def list_raw_itens(
                     title=title,
                     add_route=url_for("add_item"),
                     next_url=request.url,
-                    total_relevant_transactions=0,
-                    total_items=1,
                     itens_count=1,
                     current_page=1,
+                    fields_config=fields_config,
                 )
             else:
                 flash("Item não encontrado ou já deletado.", "warning")
@@ -2137,12 +2717,10 @@ def list_raw_itens(
             flash("Erro ao buscar item.", "danger")
             return redirect(request.referrer or url_for("inventory"))
 
-    # 🧹 Definindo ExclusiveStartKey
     exclusive_start_key = None
     if str(page) in cursor_pages and cursor_pages[str(page)]:
         exclusive_start_key = decode_dynamo_key(cursor_pages[str(page)])
 
-    # 🔥 Busca no banco com múltiplos ciclos
     valid_itens = []
     batch_size = 10
     last_valid_item = None
@@ -2166,162 +2744,16 @@ def list_raw_itens(
         if not itens_batch:
             break
 
-        from decimal import Decimal, InvalidOperation
-
         for item in itens_batch:
             if item.get("status") not in status_list:
                 continue
 
-            # Filtro especial para image_url (N/A ou não)
-            if image_url_required is not None:
-                item_image = (item.get("key_values", {}) or {}).get(
-                    "image_url", ""
-                ) or ""
-                item_image = item_image.strip().lower()
+            if entidade_atende_filtros_dinamico(item, filtros, fields_config, image_url_required):
+                valid_itens.append(item)
+                last_valid_item = item
 
-                has_image = bool(item_image) and item_image != "n/a"
-
-                print(
-                    f"🔍 Avaliando imagem: '{item_image}', has_image: {has_image}, filtro exige: {image_url_required}"
-                )
-
-                if image_url_required != has_image:
-                    print("❌ Filtro de imagem rejeitou o item.")
-                    continue
-                else:
-                    print("✅ Filtro de imagem passou.")
-
-            skip = False
-
-            for field in fields_config:
-                field_id = field["id"]
-                field_type = field.get("type")
-
-                if field_type == "number":
-                    min_val = request.args.get(f"min_{field_id}")
-                    max_val = request.args.get(f"max_{field_id}")
-
-                    raw_val = item.get("key_values", {}).get(field_id) or item.get(
-                        field_id
-                    )
-
-                    try:
-                        item_val = Decimal(str(raw_val))
-                    except (InvalidOperation, TypeError, ValueError):
-                        item_val = None
-
-                    if min_val:
-                        try:
-                            if item_val is None or item_val < Decimal(min_val):
-                                print(
-                                    f"❌ Campo numérico '{field_id}' rejeitou: {item_val} < min {min_val}"
-                                )
-                                skip = True
-                                break
-                        except InvalidOperation:
-                            pass
-
-                    if max_val:
-                        try:
-                            if item_val is None or item_val > Decimal(max_val):
-                                print(
-                                    f"❌ Campo numérico '{field_id}' rejeitou: {item_val} > max {max_val}"
-                                )
-                                skip = True
-                                break
-                        except InvalidOperation:
-                            pass
-
-                elif field_type == "string":
-                    if field_id == "image_url":
-                        # já foi tratado como filtro especial antes
-                        continue
-
-                    filtro = request.args.get(field_id)
-                    valor_item = item.get("key_values", {}).get(
-                        field_id, ""
-                    ) or item.get(field_id, "")
-                    if filtro and filtro.lower() not in valor_item.lower():
-                        print(
-                            f"❌ Campo '{field_id}' rejeitou o item. Filtro: '{filtro}', Valor no item: '{valor_item}'"
-                        )
-                        skip = True
-                        break
-
-                elif field_type == "dropdown":
-                    selected = request.args.get(field_id)
-                    valor_item = item.get("key_values", {}).get(
-                        field_id, ""
-                    ) or item.get(field_id, "")
-                    if selected and selected != valor_item:
-                        print(
-                            f"❌ Dropdown '{field_id}' rejeitou o item. Selecionado: '{selected}', Valor no item: '{valor_item}'"
-                        )
-                        skip = True
-                        break
-
-                elif field_type == "date":
-                    start_date = request.args.get(f"start_{field_id}")
-                    end_date = request.args.get(f"end_{field_id}")
-                    valor_item = item.get("key_values", {}).get(
-                        field_id, ""
-                    ) or item.get(field_id, "")
-
-                    if valor_item:
-                        try:
-                            item_date = datetime.datetime.strptime(
-                                valor_item, "%Y-%m-%d"
-                            ).date()
-                        except (ValueError, TypeError):
-                            item_date = None
-
-                        if item_date:
-                            if start_date:
-                                try:
-                                    start_date_parsed = datetime.datetime.strptime(
-                                        start_date, "%Y-%m-%d"
-                                    ).date()
-                                    if item_date < start_date_parsed:
-                                        print(
-                                            f"❌ Data '{field_id}' rejeitada (antes de início)."
-                                        )
-                                        skip = True
-                                        break
-                                except ValueError:
-                                    pass
-
-                            if end_date:
-                                try:
-                                    end_date_parsed = datetime.datetime.strptime(
-                                        end_date, "%Y-%m-%d"
-                                    ).date()
-                                    if item_date > end_date_parsed:
-                                        print(
-                                            f"❌ Data '{field_id}' rejeitada (após fim)."
-                                        )
-                                        skip = True
-                                        break
-                                except ValueError:
-                                    pass
-                    else:
-                        if start_date or end_date:
-                            print(
-                                f"❌ Item rejeitado: campo de data '{field_id}' está vazio mas filtro foi aplicado."
-                            )
-                            skip = True
-                            break
-
-            if skip:
-                print("❌ Item rejeitado após filtros de campos personalizados.")
-
-                continue
-            print("✅ Item incluído:", item.get("item_id"))
-
-            valid_itens.append(item)
-            last_valid_item = item
-
-            if len(valid_itens) == limit:
-                break
+                if len(valid_itens) == limit:
+                    break
 
         if len(valid_itens) < limit:
             if raw_last_evaluated_key:
@@ -2329,93 +2761,26 @@ def list_raw_itens(
             else:
                 break
 
-    # 🔥 Atualiza next_cursor
     next_cursor_token = None
     if last_valid_item:
-        next_cursor_token = encode_dynamo_key(
-            {
-                "account_id": last_valid_item["account_id"],
-                "created_at": last_valid_item["created_at"],
-                "item_id": last_valid_item["item_id"],
-            }
-        )
+        next_cursor_token = encode_dynamo_key({
+            "account_id": last_valid_item["account_id"],
+            "created_at": last_valid_item["created_at"],
+            "item_id": last_valid_item["item_id"],
+        })
 
     if next_cursor_token:
         session["cursor_pages_itens"][str(page + 1)] = next_cursor_token
     else:
         session["cursor_pages_itens"].pop(str(page + 1), None)
 
-    # 🔥 Total de transações alugadas/reservadas
-
-    # conta total de transaçoes pra retornar ao template:
-    total_relevant_transactions = 0
-    exclusive_start_key = None
-
-    try:
-        while True:
-            query_params = {
-                "IndexName": "account_id-index",
-                "KeyConditionExpression": "account_id = :account_id",
-                "FilterExpression": Attr("transaction_status").is_in(
-                    ["rented", "reserved"]
-                ),
-                "ExpressionAttributeValues": {":account_id": account_id},
-                "Select": "COUNT",
-            }
-
-            if exclusive_start_key:
-                query_params["ExclusiveStartKey"] = exclusive_start_key
-
-            response = transactions_table.query(**query_params)
-            total_relevant_transactions += response.get("Count", 0)
-
-            exclusive_start_key = response.get("LastEvaluatedKey")
-            if not exclusive_start_key:
-                break
-    except Exception as e:
-        print(f"Erro ao consultar transações: {e}")
-
-    # conta total de itens para retornar ao template
-    total_itens = 0
-    exclusive_start_key = None
-
-    try:
-        while True:
-            query_kwargs = {
-                "IndexName": "account_id-created_at-index",
-                "KeyConditionExpression": Key("account_id").eq(account_id),
-                "FilterExpression": Attr("status").is_in(["available", "archive"]),
-                "Select": "COUNT",
-            }
-
-            if exclusive_start_key:
-                query_kwargs["ExclusiveStartKey"] = exclusive_start_key
-
-            response = itens_table.query(**query_kwargs)
-            total_itens += response.get("Count", 0)
-
-            exclusive_start_key = response.get("LastEvaluatedKey")
-            if not exclusive_start_key:
-                break
-
-    except Exception as e:
-        print(f"Erro ao contar itens: {e}")
-
-    # 🔥 Controle de botão next
     last_page_itens = session.get("last_page_itens")
     current_page = session.get("current_page_itens", 1)
 
+    has_next = not (len(valid_itens) < limit or (last_page_itens is not None and current_page >= last_page_itens))
     if force_no_next:
         has_next = False
-    else:
-        if len(valid_itens) < limit or (
-            last_page_itens is not None and current_page >= last_page_itens
-        ):
-            has_next = False
-        else:
-            has_next = True
 
-    # ⚡ Caso tenha tentado avançar sem sucesso
     if not valid_itens and page > 1:
         flash("Não há mais itens para exibir.", "info")
         last_valid_page = page - 1
@@ -2423,10 +2788,8 @@ def list_raw_itens(
         session["last_page_itens"] = last_valid_page
         return redirect(url_for("inventory", page=last_valid_page, force_no_next=1))
 
-    # ordenar fields_config para o filtro mostrar na mesma ordem.
     fields_config = sorted(fields_config, key=lambda x: x["order_sequence"])
 
-    # ⚡ Extrair apenas os campos com preview=True
     custom_fields_preview = [
         {"field_id": field["id"], "title": field["label"]}
         for field in fields_config
@@ -2442,17 +2805,17 @@ def list_raw_itens(
         add_route=url_for("add_item"),
         next_url=request.url,
         current_page=current_page,
-        total_relevant_transactions=total_relevant_transactions,
-        total_itens=total_itens,
-        has_next=has_next,
-        has_prev=current_page > 1,
-        current_transaction=current_transaction,
         fields_config=fields_config,
         custom_fields_preview=custom_fields_preview,
+        has_next=has_next,
+        has_prev=current_page > 1,
     )
 
 
-def filtra_transacao(txn, filtros, client_id, status_list):
+
+
+
+def XXXXXfiltra_transacao(txn, filtros, client_id, status_list):
     # 1. Filtro obrigatório: status da transação
     if txn.get("transaction_status") not in status_list:
         return False
@@ -2579,10 +2942,6 @@ def get_all_fields(account_id, field_config_table, entity):
     all_fields = []
     for field_id, cfg in fields_config.items():
         label = cfg.get("label", field_id.replace("_", " ").capitalize())
-        print(f"Field ID: {field_id}")
-        print(f"CFG: {cfg}")
-        print(f"Label: {cfg.get('label')}")
-        print(f"Title: {cfg.get('title')}")
 
         all_fields.append(
             {
@@ -2596,9 +2955,12 @@ def get_all_fields(account_id, field_config_table, entity):
                 "filterable": cfg.get("filterable", False),
                 "order_sequence": int(cfg.get("order_sequence", 999)),
                 "options": (
-                    cfg.get("options", []) if cfg.get("type") == "dropdown" else []
+                    cfg.get("options", [])
+                    if cfg.get("type") in ["dropdown", "transaction_status"]
+                    else []
                 ),
                 "fixed": cfg.get("f_type", "custom") == "fixed",
+                "f_type": cfg.get("f_type", "custom"),
             }
         )
     return sorted(all_fields, key=lambda x: x["order_sequence"])

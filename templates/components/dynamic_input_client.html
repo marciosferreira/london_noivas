@@ -1,0 +1,85 @@
+
+<div class="row row-cols-1 row-cols-md-3 g-4">
+  {% for field in all_fields if field.id.startswith("client_") and field.visible %}
+
+  {% set is_readonly = not client_editavel %}
+
+
+    <input type="hidden" id="client_id" name="client_id" value="{{ client.get('client_id', '') }}">
+
+
+  <div class="col d-flex">
+    <div class="bg-light shadow-sm rounded p-3 border w-100 h-100 d-flex flex-column justify-content-center">
+      <label for="{{ field.id }}" class="form-label fw-semibold">
+        {{ field.label if field.fixed else field.title }}{% if field.required %} *{% endif %}
+      </label>
+
+      {% set value = client.get(field.id, '') %}
+
+      {% if field.type == 'client_phone' %}
+  <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+    value="{{ value | format_phone }}" {% if field.required %}required{% endif %} {% if is_readonly %}readonly{% endif %} />
+
+
+      {% elif field.type == 'client_name' %}
+        <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+          value="{{ value }}" {% if field.required %}required{% endif %} {% if is_readonly %}readonly{% endif %} />
+          <small class="text-muted ms-1">campo de busca</small>
+        <div id="client-suggestions-title" style="display: none;">Clientes encontrados:</div>
+<div id="client_suggestions" class="autocomplete-box" style="margin-top: -7px;"></div>
+<div id="client-status-message" class="status-message" style="margin-top: -7px; display: none;"></div>
+
+
+
+      {% elif field.type == 'client_email' %}
+        <input type="email" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+          value="{{ value }}" {% if field.required %}required{% endif %} {% if is_readonly %}readonly{% endif %} />
+
+      {% elif field.type == 'client_address' %}
+        <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+          value="{{ value }}" {% if field.required %}required{% endif %} {% if is_readonly %}readonly{% endif %} />
+
+      {% elif field.type == 'client_cpf' %}
+        <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+          value="{{ value | format_cpf}}" {% if field.required %}required{% endif %} {% if is_readonly %}readonly{% endif %} />
+
+      {% elif field.type == 'client_cnpj' %}
+        <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+          value="{{ value | format_cnpj}}" {% if field.required %}required{% endif %} {% if is_readonly %}readonly{% endif %} />
+
+      {% elif field.type == 'client_notes' %}
+        <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+          value="{{ value }}" {% if field.required %}required{% endif %} {% if is_readonly %}readonly{% endif %} />
+
+          {% elif field.type == 'text' %}
+          <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+            value="{{ value }}" {% if field.required %}required{% endif %} {% if is_readonly %}readonly{% endif %} />
+
+            {% elif field.type == 'value' %}
+            <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+              value="{{ value }}" {% if field.required %}required{% endif %} {% if is_readonly %}readonly{% endif %} />
+
+              {% elif field.type == 'number' %}
+              <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+                value="{{ value }}" {% if field.required %}required{% endif %} {% if is_readonly %}readonly{% endif %} />
+
+                  {% elif field.type == 'date' %}
+                  <input type="date" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+                    value="{{ value }}" {% if field.required %}required{% endif %} {% if is_readonly %}readonly{% endif %} />
+
+ {% elif field.type == 'dropdown' %}
+  {% set is_readonly = not client_editavel and field.id != 'client_name' %}
+  <select class="form-select" id="{{ field.id }}" name="{{ field.id }}"
+    {% if field.required %}required{% endif %} {% if is_readonly %}disabled{% endif %}>
+    <option value="">Selecione</option>
+    {% for option in field.options %}
+      <option value="{{ option }}" {% if value == option %}selected{% endif %}>{{ option }}</option>
+    {% endfor %}
+  </select>
+
+
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>

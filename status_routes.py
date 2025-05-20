@@ -57,20 +57,24 @@ def init_status_routes(app, itens_table, transactions_table, users_table):
         # Obtém data atual formatada
         user_id = session.get("user_id") if "user_id" in session else None
         user_utc = get_user_timezone(users_table, user_id)
-        ret_date = datetime.datetime.now(user_utc).strftime("%Y-%m-%d %H:%M:%S")
+        transaction_ret_date = datetime.datetime.now(user_utc).strftime("%Y-%m-%d %H:%M:%S")
 
         # Busca transação atual
         response = transactions_table.get_item(Key={"transaction_id": transaction_id})
         transaction = response.get("Item")
 
+
+        print("value paid")
+        print(transaction)
+
         if not transaction:
             flash("Transação não encontrada.", "danger")
             return redirect(next_page)
 
-        update_expression = "SET #transaction_status = :s, ret_date = :d"
+        update_expression = "SET #transaction_status = :s, transaction_ret_date = :d"
         expression_values = {
             ":s": "rented",
-            ":d": ret_date,
+            ":d": transaction_ret_date,
         }
         expression_names = {
             "#transaction_status": "transaction_status",
@@ -78,8 +82,10 @@ def init_status_routes(app, itens_table, transactions_table, users_table):
 
         # Se foi marcado como Pago Total
         if pago_total == "1":
-            valor = transaction.get("valor", Decimal("0.0"))
-            update_expression += ", pagamento = :p"
+            valor = transaction.get("transaction_price", Decimal("0.0"))
+            print("the value")
+            print(valor)
+            update_expression += ", transaction_value_paid = :p"
             expression_values[":p"] = valor
 
         # Atualiza no DynamoDB

@@ -49,12 +49,17 @@ def init_auth_routes(
             password = request.form.get("password")
             confirm_password = request.form.get("confirm_password")
 
-            if len(password) < 8 or len(password) > 64:
+            if len(password) < 6 or len(password) > 64:
                 flash(
                     "A nova senha deve ter mais que 8 e menos que 64 caracteres.",
                     "danger",
                 )
-                return redirect(url_for("adjustments"))
+                return redirect(url_for("register"))
+
+            if not re.search(r"[A-Za-z]", password) or not re.search(r"\d", password):
+                flash("A senha deve conter ao menos uma letra e um número.", "danger")
+                return redirect("/register")
+
 
             if password != confirm_password:
                 flash("As senhas não coincidem.", "danger")
@@ -1101,7 +1106,7 @@ def create_user(
             )
 
             # ✅ Campos default para item e client
-            for entity in ["item", "client"]:
+            for entity in ["item", "client", "transaction"]:
                 fields_config = get_default_fields_and_slugs(entity)
                 field_config_table.put_item(
                     Item={
@@ -1227,198 +1232,354 @@ def get_user_stats(
 import re
 import unicodedata
 
-import re
-import unicodedata
-
-
-def slugify(text):
-    text = unicodedata.normalize("NFKD", text).encode("ASCII", "ignore").decode("ASCII")
-    text = text.strip().lower()
-    return re.sub(r"[^\w\s-]", "", text).replace(" ", "_")
-
 
 def get_default_fields_and_slugs(entity):
     if entity == "item":
-        DEFAULT_FIELDS = [
-            {
+        DEFAULT_FIELDS = {
+            "item_custom_id": {
                 "label": "Item Custom ID#",
-                "type": "string",
+                "label_original": "Item Custom ID#",
+                "type": "item_custom_id",
                 "order_sequence": 1,
                 "filterable": True,
                 "preview": True,
                 "f_type": "fixed",
                 "required": True,
             },
-            {
-                "label": "Descrição",
-                "type": "string",
+            "item_description": {
+                "label": "Descrição do Item",
+                "label_original": "Descrição do Item",
+                "type": "item_description",
                 "order_sequence": 2,
                 "filterable": True,
                 "preview": True,
                 "f_type": "fixed",
                 "required": True,
             },
-            {
-                "label": "Observações",
-                "type": "string",
+            "item_obs": {
+                "label": "Observações do Item",
+                "label_original": "Observações do Item",
+                "type": "item_obs",
                 "order_sequence": 3,
                 "filterable": True,
-                "preview": True,
+                "preview": False,
                 "f_type": "fixed",
             },
-            {
+            "item_value": {
                 "label": "Preço do aluguel",
-                "type": "number",
+                "label_original": "Preço do aluguel",
+                "type": "item_value",
                 "order_sequence": 4,
                 "filterable": True,
                 "preview": True,
                 "f_type": "fixed",
                 "required": True,
             },
-            {
-                "label": "Imagem",
-                "type": "string",
+            "item_image_url": {
+                "label": "Imagem do Item",
+                "label_original": "Imagem do Item",
+                "type": "item_image_url",
                 "order_sequence": 5,
-                "filterable": False,
-                "preview": True,
-                "f_type": "fixed",
-            },
-        ]
-        slug_overrides = {
-            "Item Custom ID#": "item_custom_id",
-            "Descrição": "descricao",
-            "Observações": "observacoes",
-            "Preço do aluguel": "valor",
-            "Imagem": "image_url",
-        }
-    elif entity == "client":
-        DEFAULT_FIELDS = [
-            {
-                "label": "Nome",
-                "type": "string",
-                "order_sequence": 1,
                 "filterable": True,
                 "preview": True,
                 "f_type": "fixed",
             },
-            {
-                "label": "Telefone",
-                "type": "string",
+        }
+
+    elif entity == "client":
+        DEFAULT_FIELDS = {
+            "client_name": {
+                "label": "Nome do Cliente",
+                "label_original": "Nome do Cliente",
+                "type": "client_name",
+                "order_sequence": 1,
+                "filterable": True,
+                "preview": True,
+                "f_type": "fixed",
+                "required": True,
+            },
+            "client_phone": {
+                "label": "Telefone do Cliente",
+                "label_original": "Telefone do Cliente",
+                "type": "client_phone",
                 "order_sequence": 2,
                 "filterable": True,
                 "preview": True,
                 "f_type": "fixed",
             },
-            {
-                "label": "E-mail",
-                "type": "string",
+            "client_email": {
+                "label": "E-mail do Cliente",
+                "label_original": "E-mail do Cliente",
+                "type": "client_email",
                 "order_sequence": 3,
                 "filterable": True,
                 "preview": True,
                 "f_type": "fixed",
             },
-            {
-                "label": "Endereço",
-                "type": "string",
+            "client_address": {
+                "label": "Endereço do Cliente",
+                "label_original": "Endereço do Cliente",
+                "type": "client_address",
                 "order_sequence": 4,
                 "filterable": True,
                 "preview": True,
                 "f_type": "fixed",
             },
-            {
-                "label": "CPF",
-                "type": "string",
+            "client_cpf": {
+                "label": "CPF do Cliente",
+                "label_original": "CPF do Cliente",
+                "type": "client_cpf",
                 "order_sequence": 5,
-                "filterable": False,
+                "filterable": True,
                 "preview": True,
                 "f_type": "fixed",
             },
-            {
-                "label": "CNPJ",
-                "type": "string",
+            "client_cnpj": {
+                "label": "CNPJ do Cliente",
+                "label_original": "CNPJ do Cliente",
+                "type": "client_cnpj",
                 "order_sequence": 6,
-                "filterable": False,
+                "filterable": True,
                 "preview": True,
                 "f_type": "fixed",
             },
-            {
-                "label": "Observações do cliente",
-                "type": "string",
+            "client_notes": {
+                "label": "Observações do Cliente",
+                "label_original": "Observações do Cliente",
+                "type": "client_notes",
                 "order_sequence": 7,
-                "filterable": False,
-                "preview": True,
+                "filterable": True,
+                "preview": False,
                 "f_type": "fixed",
             },
-        ]
+        }
 
     elif entity == "transaction":
-        DEFAULT_FIELDS = [
-            {
+        DEFAULT_FIELDS = {
+            "transaction_status": {
                 "label": "Status da Transação",
-                "type": "string",
+                "label_original": "Status da Transação",
+                "type": "transaction_status",
                 "order_sequence": 1,
                 "filterable": True,
                 "preview": True,
                 "f_type": "fixed",
+                "options": ["reserved", "rented"],
+                "required": True,
             },
-            {
-                "label": "Preço do aluguel (R$)",
-                "type": "number",
+            "transaction_price": {
+                "label": "Preço final (R$)",
+                "label_original": "Preço aplicado (R$)",
+                "type": "transaction_price",
                 "order_sequence": 2,
                 "filterable": True,
                 "preview": True,
                 "f_type": "fixed",
+                "required": True,
             },
-            {
+            "transaction_obs": {
                 "label": "Observações da Transação",
-                "type": "string",
+                "label_original": "Observações da Transação",
+                "type": "transaction_obs",
                 "order_sequence": 3,
                 "filterable": True,
-                "preview": True,
+                "preview": False,
                 "f_type": "fixed",
+                "required": False,
             },
-            {
+            "transaction_value_paid": {
                 "label": "Valor já pago (R$)",
-                "type": "number",
-                "order_sequence": 3,
+                "label_original": "Valor já pago (R$)",
+                "type": "transaction_value_paid",
+                "order_sequence": 4,
                 "filterable": True,
                 "preview": True,
                 "f_type": "fixed",
+                "required": True,
             },
-            {
-                "label": "Defina as datas",
-                "type": "string",
-                "order_sequence": 3,
+            "transaction_period": {
+                "label": "Período do aluguel",
+                "label_original": "Período do aluguel",
+                "type": "transaction_period",
+                "order_sequence": 5,
                 "filterable": True,
                 "preview": True,
                 "f_type": "fixed",
+                "required": True,
             },
-        ]
-
-        slug_overrides = {
-            "Status da Transação": "transactionstatus",
-            "Preço do aluguel (R$)": "precodoaluguel",
-            "Observações da Transação": "obstransaction",
-            "Valor já pago (R$)": "valorpago",
-            "Defina as datas": "definaasdatas",
+             "transaction_ret_date": {
+                "label": "Retirado em",
+                "label_original": "Retirado em",
+                "type": "transaction_ret_date",
+                "order_sequence": 6,
+                "filterable": True,
+                "preview": True,
+                "f_type": "fixed",
+                "required": True,
+            },
+            # Campos VISUAIS (item)
+            "item_custom_id": {
+                "label": "Item Custom ID#",
+                "label_original": "Item Custom ID#",
+                "type": "item_custom_id",
+                "order_sequence": 7,
+                "filterable": True,
+                "preview": True,
+                "f_type": "visual",
+                "required": False,
+                "source_entity": "item",
+                "source_field_id": "item_custom_id",
+            },
+            "item_description": {
+                "label": "Descrição do Item",
+                "label_original": "Descrição do Item",
+                "type": "item_description",
+                "order_sequence": 8,
+                "filterable": True,
+                "preview": True,
+                "f_type": "visual",
+                "required": False,
+                "source_entity": "item",
+                "source_field_id": "item_description",
+            },
+            "item_obs": {
+                "label": "Observações do Item",
+                "label_original": "Observações do Item",
+                "type": "item_obs",
+                "order_sequence": 9,
+                "filterable": True,
+                "preview": False,
+                "f_type": "visual",
+                "required": False,
+                "source_entity": "item",
+                "source_field_id": "item_obs",
+            },
+            "item_value": {
+                "label": "Preço do aluguel",
+                "label_original": "Preço do aluguel",
+                "type": "item_value",
+                "order_sequence": 10,
+                "filterable": True,
+                "preview": True,
+                "f_type": "visual",
+                "required": False,
+                "source_entity": "item",
+                "source_field_id": "item_value",
+            },
+            "item_image_url": {
+                "label": "Imagem do Item",
+                "label_original": "Imagem do Item",
+                "type": "item_image_url",
+                "order_sequence": 11,
+                "filterable": True,
+                "preview": True,
+                "f_type": "visual",
+                "source_entity": "item",
+                "source_field_id": "item_image_url",
+                "required": False,
+            },
+            # Campos VISUAIS (client)
+            "client_name": {
+                "label": "Nome do Cliente",
+                "label_original": "Nome do Cliente",
+                "type": "client_name",
+                "order_sequence": 12,
+                "filterable": True,
+                "preview": True,
+                "f_type": "visual",
+                "required": False,
+                "source_entity": "client",
+                "source_field_id": "client_name",
+            },
+            "client_phone": {
+                "label": "Telefone do Cliente",
+                "label_original": "Telefone do Cliente",
+                "type": "client_phone",
+                "order_sequence": 13,
+                "filterable": True,
+                "preview": True,
+                "f_type": "visual",
+                "source_entity": "client",
+                "source_field_id": "client_phone",
+                "required": False,
+            },
+            "client_email": {
+                "label": "E-mail do Cliente",
+                "label_original": "E-mail do Cliente",
+                "type": "client_email",
+                "order_sequence": 14,
+                "filterable": True,
+                "preview": False,
+                "f_type": "visual",
+                "source_entity": "client",
+                "source_field_id": "client_email",
+                "required": False,
+            },
+            "client_address": {
+                "label": "Endereço do Cliente",
+                "label_original": "Endereço do Cliente",
+                "type": "client_address",
+                "order_sequence": 15,
+                "filterable": True,
+                "preview": False,
+                "f_type": "visual",
+                "source_entity": "client",
+                "source_field_id": "client_address",
+                "required": False,
+            },
+            "client_cpf": {
+                "label": "CPF do Cliente",
+                "label_original": "CPF do Cliente",
+                "type": "client_cpf",
+                "order_sequence": 16,
+                "filterable": True,
+                "preview": False,
+                "f_type": "visual",
+                "source_entity": "client",
+                "source_field_id": "client_cpf",
+                "required": False,
+            },
+            "client_cnpj": {
+                "label": "CNPJ do Cliente",
+                "label_original": "CNPJ do Cliente",
+                "type": "client_cnpj",
+                "order_sequence": 17,
+                "filterable": True,
+                "preview": False,
+                "f_type": "visual",
+                "source_entity": "client",
+                "source_field_id": "client_cnpj",
+                "required": False,
+            },
+            "client_notes": {
+                "label": "Observações do cliente",
+                "label_original": "Observações do cliente",
+                "type": "client_notes",
+                "order_sequence": 18,
+                "filterable": True,
+                "preview": False,
+                "f_type": "visual",
+                "source_entity": "client",
+                "source_field_id": "client_notes",
+                "required": False,
+            },
         }
+
+
     else:
         raise ValueError(f"Entidade desconhecida: {entity}")
 
-    fields_config = {}
-    for field in DEFAULT_FIELDS:
-        label = field["label"]
-        slug = slug_overrides.get(label, slugify(label))
-        fields_config[slug] = {
-            "label": label,
-            "type": field["type"],
+    # Finaliza os campos para persistência, adicionando garantias padrões
+    finalized_fields_config = {
+        field_id: {
+            **field_data,
             "visible": True,
-            "required": field.get("required", False),
-            "order_sequence": field["order_sequence"],
-            "filterable": field["filterable"],
-            "preview": field["preview"],
-            "f_type": field["f_type"],
-            "options": [],
+            "required": field_data.get("required", False),
+            "options": field_data.get(
+                "options", []
+            ),  # Garante compatibilidade futura com dropdowns
         }
+        for field_id, field_data in DEFAULT_FIELDS.items()
+    }
 
-    return fields_config
+    return finalized_fields_config

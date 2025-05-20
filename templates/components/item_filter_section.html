@@ -5,35 +5,20 @@
     {% if show_item_filter %}
     <!-- Botão de Filtros -->
     <a href="#" class="btn btn-outline-secondary" id="filter-toggle" onclick="toggleFilters(event)">Filtros</a>
-    {% endif %} {% if show_add_item %} {% if itens == [] and not request.args and request.path == '/inventory'%}
+    {% endif %} {% if show_add_item %}
 
-    <div
-      style="
-        background-color: rgba(255, 193, 7, 0.3);
-        border: 1px solid #ffc107;
-        padding: 1rem;
-        border-radius: 0.5rem;
-        display: inline-flex;
-        align-items: center;
-        gap: 1rem;
-        margin-bottom: 1rem;
-        position: relative;
-      "
-    >
-      <span style="color: #664d03; font-weight: 500">Adicione um item antes de iniciar uma transação.</span>
 
-      <!-- Botão de adicionar item -->
-      <a href="#" class="btn btn-primary btn-sm" id="add-item-btn" data-add-url="{{ add_route }}?next={{ request.url }}">Adicionar item</a>
-    </div>
 
-    {% else %}
     <!-- Botão sem tooltip -->
-    <a href="#" class="btn btn-primary" id="add-item-btn" data-add-url="{{ add_route }}?next={{ request.url }}">Adicionar item</a>
-    {% endif %} {% endif %}
+<a href="{{ add_route }}?next={{ request.url }}" class="btn btn-primary">
+  <i class="fas fa-plus me-1"></i> Adicionar item
+</a>
+
+
+
+    {% endif %}
   </div>
 </div>
-
-<!-- Bloco: Seção de filtros -->
 <!-- Bloco: Seção de filtros -->
 <div id="filter-section" class="d-none">
   <form method="get" class="mb-4 p-3 bg-light rounded shadow-sm">
@@ -41,23 +26,39 @@
       {% for field in fields_config %}
   {% if field.filterable %}
     <div class="col-12 col-md-4">
+
+      {% if field.type != "item_image_url" %}
       <label class="form-label">{{ field.label }}</label>
+      {% endif %}
 
-      {% if field.id == "image_url" %}
-      <div class="form-check">
-        <input class="form-check-input" type="radio" name="image_url" value="True" id="filter_image_yes"
-               {% if request.args.get('image_url') == 'True' %}checked{% endif %}>
-        <label class="form-check-label" for="filter_image_yes">Com imagem</label>
-      </div>
-      <div class="form-check">
-        <input class="form-check-input" type="radio" name="image_url" value="False" id="filter_image_no"
-               {% if request.args.get('image_url') == 'False' %}checked{% endif %}>
-        <label class="form-check-label" for="filter_image_no">Sem imagem</label>
-      </div>
+      {% if field.id == "item_image_url" %}
+  <div class="col-md-6 mb-3">
+    <label class="form-label d-block">Imagem:</label>
+
+    <div class="form-check">
+      <input class="form-check-input" type="radio" name="item_image_url" value="" id="filter_image_any"
+             {% if request.args.get('item_image_url') in [None, ''] %}checked{% endif %}>
+      <label class="form-check-label" for="filter_image_any">Qualquer</label>
+    </div>
+
+    <div class="form-check">
+      <input class="form-check-input" type="radio" name="item_image_url" value="True" id="filter_image_yes"
+             {% if request.args.get('item_image_url') == 'True' %}checked{% endif %}>
+      <label class="form-check-label" for="filter_image_yes">Com imagem</label>
+    </div>
+
+    <div class="form-check">
+      <input class="form-check-input" type="radio" name="item_image_url" value="False" id="filter_image_no"
+             {% if request.args.get('item_image_url') == 'False' %}checked{% endif %}>
+      <label class="form-check-label" for="filter_image_no">Sem imagem</label>
+    </div>
+  </div>
 
 
 
-      {% elif field.type == "string" %}
+
+
+      {% elif field.type in ["text", "item_custom_id", "item_description", "item_obs"] %}
         <input type="text" name="{{ field['id'] }}" class="form-control"
                value="{{ request.args.get(field['id'], '') }}" placeholder="Buscar {{ field.label }}">
 
@@ -68,6 +69,26 @@
           <input type="number" step="0.01" name="max_{{ field['id'] }}" class="form-control"
                  value="{{ request.args.get('max_' + field['id'], '') }}" placeholder="Máx.">
         </div>
+        <p>Min. e Max.</p>
+
+        {% elif field.type == "item_value" %}
+        <div class="input-group">
+          <input type="number" step="0.01" name="min_{{ field['id'] }}" class="form-control"
+                 value="{{ request.args.get('min_' + field['id'], '') }}" placeholder="Mín.">
+          <input type="number" step="0.01" name="max_{{ field['id'] }}" class="form-control"
+                 value="{{ request.args.get('max_' + field['id'], '') }}" placeholder="Máx.">
+        </div>
+        <p>Min. e Max.</p>
+
+        {% elif field.type == "value" %}
+        <div class="input-group">
+          <input type="number" step="0.01" name="min_{{ field['id'] }}" class="form-control"
+                 value="{{ request.args.get('min_' + field['id'], '') }}" placeholder="Mín.">
+          <input type="number" step="0.01" name="max_{{ field['id'] }}" class="form-control"
+                 value="{{ request.args.get('max_' + field['id'], '') }}" placeholder="Máx.">
+        </div>
+        <p>Min. e Max.</p>
+
 
       {% elif field.type == "date" %}
         <div class="input-group">

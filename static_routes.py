@@ -170,7 +170,7 @@ def init_static_routes(
             return redirect(url_for("login"))
         account_id = session.get("account_id")
         if request.method == "POST":
-            text_id = str(uuid.uuid4())
+            text_id = str(uuid.uuid4().hex[:12])
             nome = request.form["nome"]
             conteudo = request.form["conteudo"]
 
@@ -570,14 +570,12 @@ def init_static_routes(
 
             try:
                 stripe_subscription_id = subscription_data.get("id")
-                status = subscription_data.get(
-                    "status"
-                )  # ex: "active", "trialing", etc.
+                status = subscription_data.get("status")
+                current_period_end = subscription_data.get("current_period_end")
 
                 if not stripe_subscription_id:
                     raise ValueError("subscription_id não encontrado no evento.")
 
-                # Recupera a transação correspondente já registrada no checkout
                 response = payment_transactions_table.get_item(
                     Key={"stripe_subscription_id": stripe_subscription_id}
                 )
@@ -592,19 +590,21 @@ def init_static_routes(
                         "subscription_status": status,
                         "created_at": subscription_data.get("created"),
                         "customer_id": subscription_data.get("customer"),
+                        "current_period_end": current_period_end,
                         "updated_at": int(time.time()),
                     }
                     payment_transactions_table.put_item(Item=item)
                 else:
-                    # Atualiza apenas o campo de status
                     payment_transactions_table.update_item(
                         Key={"stripe_subscription_id": stripe_subscription_id},
                         UpdateExpression="""
                             SET subscription_status = :status,
+                                current_period_end = :current_period_end,
                                 updated_at = :updated_at
                         """,
                         ExpressionAttributeValues={
                             ":status": status,
+                            ":current_period_end": current_period_end,
                             ":updated_at": int(time.time()),
                         },
                     )
@@ -613,6 +613,7 @@ def init_static_routes(
             except Exception as e:
                 print(f"🔴 Erro ao processar subscription.created: {str(e)}")
 
+        #
         elif event_type == "customer.subscription.updated":
             print("🟡 Assinatura atualizada!")
             subscription_data = event["data"]["object"]
@@ -629,13 +630,13 @@ def init_static_routes(
 
                 if item_existente:
                     status = subscription_data.get("status", "unknown")
+                    current_period_end = subscription_data.get("current_period_end")
 
                     expression_values = {
                         ":subscription_status": status,
                         ":cancel_at": subscription_data.get("cancel_at"),
-                        ":cancel_at_period_end": subscription_data.get(
-                            "cancel_at_period_end", False
-                        ),
+                        ":cancel_at_period_end": subscription_data.get("cancel_at_period_end", False),
+                        ":current_period_end": current_period_end,
                         ":updated_at": int(time.time()),
                     }
 
@@ -643,10 +644,10 @@ def init_static_routes(
                         SET subscription_status = :subscription_status,
                             cancel_at = :cancel_at,
                             cancel_at_period_end = :cancel_at_period_end,
+                            current_period_end = :current_period_end,
                             updated_at = :updated_at
                     """
 
-                    # Se status da assinatura indicar falha, marque como 'failed'
                     if status in ["past_due", "unpaid"]:
                         update_expr += ", payment_status = :payment_status"
                         expression_values[":payment_status"] = "failed"
@@ -659,12 +660,11 @@ def init_static_routes(
 
                     print(f"🟡 Transação {stripe_subscription_id} atualizada.")
                 else:
-                    print(
-                        f"🔴 Nenhuma transação encontrada para {stripe_subscription_id}"
-                    )
+                    print(f"🔴 Nenhuma transação encontrada para {stripe_subscription_id}")
 
             except Exception as e:
                 print(f"🔴 Erro ao atualizar transação: {str(e)}")
+
 
         elif event_type == "invoice.payment_failed":
             print("🔴 Falha ao cobrar fatura!")
@@ -868,3 +868,66 @@ def init_static_routes(
             traceback.print_exc()
             flash("Erro ao abrir o portal de pagamento. Tente novamente.", "danger")
             return redirect(url_for("adjustments"))
+
+    @app.route("/autocomplete_items")
+    def autocomplete_items():
+        from boto3.dynamodb.conditions import Key, Attr
+
+        account_id = session.get("account_id")
+        term = request.args.get("term", "").strip().lower()
+
+        if not term:
+            return jsonify([])
+
+        try:
+            response = itens_table.query(
+                IndexName="account_id-index",
+                KeyConditionExpression=Key("account_id").eq(account_id),
+                FilterExpression=Attr("status").is_in(["available", "archive"]),
+                Limit=1000
+            )
+            all_items = response.get("Items", [])
+        except Exception as e:
+            print("Erro ao buscar itens:", e)
+            return jsonify([])
+
+        suggestions = []
+        for item in all_items:
+            custom_id = (item.get("item_custom_id") or "").lower()
+            description = (item.get("item_description") or "").lower()
+            if term in custom_id or term in description:
+                suggestions.append(item)
+
+        return jsonify([
+            {
+                "item_id": item["item_id"],
+                "item_custom_id": item.get("item_custom_id", ""),
+                "item_description": item.get("item_description", ""),
+                "item_value": item.get("item_value", ""),
+                "item_obs": item.get("item_obs", ""),
+                "item_image_url": item.get("item_image_url", ""),
+            }
+            for item in suggestions[:10]
+        ])
+
+
+    @app.route("/item_reserved_ranges/<item_id>")
+    def item_reserved_ranges(item_id):
+        try:
+            response = transactions_table.query(
+                IndexName="item_id-index",
+                KeyConditionExpression=Key("item_id").eq(item_id),
+            )
+            items = response.get("Items", [])
+            reserved_ranges = [
+                [tx["rental_date"], tx["return_date"]]
+                for tx in items
+                if tx.get("transaction_status") in ["reserved", "rented"]
+                and tx.get("rental_date")
+                and tx.get("return_date")
+            ]
+
+            return jsonify(reserved_ranges)
+        except Exception as e:
+            print("Erro ao buscar reservas:", e)
+            return jsonify([]), 500

@@ -1,0 +1,136 @@
+
+<div id="tab-cliente" class="tab-content active">
+    <div class="row row-cols-1 row-cols-md-3 g-4">
+      {% set status_map = {
+  'reserved': 'Reservado',
+  'rented': 'Retirado',
+  'returned': 'Devolvido'
+} %}
+
+
+      {% for field in all_fields if field.id.startswith("transaction_") and field.visible %}
+
+      <div class="col d-flex">
+        <div class="bg-light shadow-sm rounded p-3 border w-100 h-100 d-flex flex-column justify-content-center">
+          <label for="{{ field.id }}" class="form-label fw-semibold">
+            {{ field.label if field.fixed else field.title }}{% if field.required %} *{% endif %}
+          </label>
+{% if field.id == "transaction_price" %}
+  {% if request.method == 'POST' %}
+    {% set value = request.form.get(field.id, '') %}
+  {% elif transaction is defined and transaction.get(field.id) %}
+    {% set value = transaction.get(field.id) %}
+  {% elif item is defined %}
+    {% set value = item.get("item_value", '') %}
+  {% else %}
+    {% set value = '' %}
+  {% endif %}
+{% else %}
+  {% if request.method == 'POST' %}
+    {% set value = request.form.get(field.id, '') %}
+  {% elif transaction is defined %}
+    {% set value = transaction.get(field.id, '') %}
+  {% else %}
+    {% set value = '' %}
+  {% endif %}
+{% endif %}
+
+          <input type="hidden" id="client_id" name="client_id" />
+
+
+          {% if field.type == "text" %}
+            <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+              value="{{ value }}" {% if field.required %}required{% endif %} />
+
+              {% elif field.type == "transaction_obs" %}
+              <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+                value="{{ value }}" {% if field.required %}required{% endif %} />
+
+
+
+
+          {% elif field.type == 'number' %}
+            <input type="number" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+              value="{{ value }}" {% if field.required %}required{% endif %} />
+
+
+                {% elif field.type in ['transaction_value_paid', 'value', 'transaction_price'] %}
+  <input type="text" class="form-control campo-monetario" id="{{ field.id }}" name="{{ field.id }}"
+         value="{{ value|format_currency }}" {% if field.required %}required{% endif %} />
+
+
+
+      {% elif field.type == 'transaction_period' %}
+  <div class="position-relative">
+    <!-- Campo visível com picker -->
+    <input
+      type="text"
+      class="form-control"
+      id="{{ field.id }}_display"
+      value="{{ value }}"
+      placeholder="Selecione período"
+      style="cursor: pointer;"
+      readonly
+    />
+
+    <!-- Campo real, enviado no POST -->
+    <input
+      type="hidden"
+      id="{{ field.id }}"
+      name="{{ field.id }}"
+      value="{{ value }}"
+      {% if field.required %}required{% endif %}
+    />
+  </div>
+
+
+
+
+
+
+
+
+
+
+
+{% elif field.type == 'transaction_status' %}
+  <select class="form-select" id="{{ field.id }}" name="{{ field.id }}" {% if field.required %}required{% endif %}>
+    <option value="">Selecione</option>
+    {% for option in field.options %}
+      {% set label = status_map.get(option, option) %}
+      <option value="{{ option }}" {% if value == option %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+
+              {% elif field.type == 'date' %}
+            <input type="date" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
+              value="{{ value }}" {% if field.required %}required{% endif %} />
+
+
+{% elif field.type == 'transaction_ret_date' %}
+ <div id="ret_date_hint" class="form-text text-muted mt-1">
+        Obrigatório quando o status for <strong>Retirado</strong>.
+
+  </div>
+
+<div id="ret_date_wrapper" class="mb-3">
+  {% set hoje = now().strftime("%Y-%m-%d") %}
+  {% set valor_final = value if value else hoje %}
+  <input type="date" class="form-control" id="transaction_ret_date" name="transaction_ret_date" value="{{ valor_final }}" />
+</div>
+
+
+
+          {% elif field.type == 'dropdown' %}
+            <select class="form-select" id="{{ field.id }}" name="{{ field.id }}" {% if field.required %}required{% endif %}>
+              <option value="">Selecione</option>
+              {% for option in field.options %}
+                <option value="{{ option }}" {% if value == option %}selected{% endif %}>{{ option }}</option>
+              {% endfor %}
+            </select>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+</div>

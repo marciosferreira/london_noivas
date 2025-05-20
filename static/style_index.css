@@ -181,3 +181,17 @@ body {
   border-radius: 8px;
   cursor: pointer; /* 👈 isso garante a mãozinha */
 }
+
+.destacado {
+  border: 1px solid #0d6efd; /* azul Bootstrap */
+  border-radius: 12px;
+  box-shadow: 0 0 12px rgba(13, 110, 253, 0.4); /* sombra suave */
+  padding: 4px;
+  background-color: #f8f9fa; /* fundo claro */
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.destacado:hover {
+  transform: scale(1.02);
+  box-shadow: 0 0 18px rgba(13, 110, 253, 0.6);
+}
