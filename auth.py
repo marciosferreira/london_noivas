@@ -49,12 +49,17 @@ def init_auth_routes(
             password = request.form.get("password")
             confirm_password = request.form.get("confirm_password")
 
-            if len(password) < 8 or len(password) > 64:
+            if len(password) < 6 or len(password) > 64:
                 flash(
                     "A nova senha deve ter mais que 8 e menos que 64 caracteres.",
                     "danger",
                 )
-                return redirect(url_for("adjustments"))
+                return redirect(url_for("register"))
+
+            if not re.search(r"[A-Za-z]", password) or not re.search(r"\d", password):
+                flash("A senha deve conter ao menos uma letra e um número.", "danger")
+                return redirect("/register")
+
 
             if password != confirm_password:
                 flash("As senhas não coincidem.", "danger")
