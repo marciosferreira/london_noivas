@@ -1,50 +1,33 @@
 
 
 
-<!-- Linha com alerta à esquerda e botões à direita -->
-<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
 
 
-
-
-
-
-
-  <!-- Alerta à esquerda -->
-  <div class="alert alert-info mb-0 py-2 px-3">
-
-{% set filtros_validos = request.args.items() | rejectattr("0", "in", ["item_id", "client_id"]) | list %}
+<!-- Alerta com botão de abrir/fechar filtros -->
+<div class="alert alert-info d-flex justify-content-between align-items-center">
+{% set filtros_validos = request.args.items() | rejectattr("0", "in", ["start_date", "end_date", "item_id", "client_id"]) | list %}
 {% set tem_filtros = filtros_validos | length > 0 %}
-    <span>
-      {% if tem_filtros %}
-        <i class="fas fa-filter me-2"></i>
-        <strong>Filtros aplicados:</strong>
-        {{ request.args | length }} campo{{ 's' if request.args|length > 1 else '' }}.
-      {% else %}
-        Nenhum filtro aplicado.
-      {% endif %}
-    </span>
-  </div>
 
-  <!-- Botões à direita -->
-  <div class="d-flex flex-wrap gap-2 align-items-center justify-content-end">
-    <button type="button" class="btn btn-outline-secondary" id="filter-toggle">Filtros</button>
-    {% if show_add_button %}
-      <a href="{{ add_route }}?next={{ request.url }}" class="btn btn-primary">Adicionar</a>
+    {% if tem_filtros %}
+      <i class="fas fa-filter me-2"></i>
+<strong>Filtros detalhados aplicados:</strong> {{ filtros_validos | length }} campo{{ 's' if filtros_validos | length != 1 else '' }}.
+    {% else %}
+      Nenhum filtro detalhado aplicado.
     {% endif %}
-  </div>
+  </span>
+  <button id="toggle-filtros-btn" class="btn btn-sm btn-outline-secondary">Filtro detalhado</button>
 </div>
 
-
-<!-- Seção de Filtros -->
-<div id="filter-section" class="mt-3 mb-4 {% if not ns.filtro_relevante %}d-none{% endif %}">
-  <form method="GET" action="" id="form-filtros" onsubmit="removeCamposVazios()">
+<!-- Seção dos Filtros -->
+<div id="filter-section" class="mt-4 mb-4 d-none">
+  <form method="GET" action="{{ request.path }}" id="form-filtros">
     <div class="card shadow-sm">
       <div class="card-header bg-light">
-        <h5 class="m-0">Filtros</h5>
+        <h5 class="m-0">Filtro detalhado do Relatório</h5>
       </div>
 
       <div class="card-body">
+        <!-- Tabs -->
         <ul class="nav nav-tabs mb-3" id="filterTabs" role="tablist">
           <li class="nav-item" role="presentation">
             <button class="nav-link active" id="item-tab" data-bs-toggle="tab" data-bs-target="#item" type="button" role="tab">Item</button>
@@ -56,8 +39,7 @@
             <button class="nav-link" id="transaction-tab" data-bs-toggle="tab" data-bs-target="#transaction" type="button" role="tab">Transação</button>
           </li>
         </ul>
-        <div class="tab-content" id="filterTabsContent">
-
+        <div class="tab-content">
           <!-- Aba Item -->
           <div class="tab-pane fade show active" id="item" role="tabpanel">
             <div class="row mb-3">
@@ -109,7 +91,7 @@
             </div>
           </div>
 
-          <!-- Aba Cliente -->
+           <!-- Aba Cliente -->
           <div class="tab-pane fade" id="client" role="tabpanel">
             <div class="row mb-3">
               {% for field in fields_all_entities.client if field.filterable %}
@@ -130,7 +112,7 @@
             </div>
           </div>
 
-          <!-- Aba Transação -->
+           <!-- Aba Transação -->
           <div class="tab-pane fade" id="transaction" role="tabpanel">
             <div class="row mb-3">
               {% for field in fields_all_entities.transaction if field.filterable and field.f_type != "visual" %}
@@ -181,88 +163,81 @@
         </div>
       </div>
 
-      <div class="d-flex card-footer justify-content-between mt-3">
-        <button type="submit" class="btn btn-primary">Aplicar Filtros</button>
-        <a href="{{ request.path }}" class="btn btn-secondary">Limpar Filtros</a>
+      <div class="card-footer d-flex justify-content-between">
+        <a href="{{ request.path }}" class="btn btn-secondary">Limpar Filtro</a>
       </div>
     </div>
   </form>
 </div>
 
 
-<script>
-  function removeCamposVazios() {
-    const form = document.getElementById('form-filtros');
-    const inputs = form.querySelectorAll('input, select, textarea');
-    inputs.forEach(input => {
-      if (!input.value.trim()) {
-        input.removeAttribute('name');
-      }
-    });
-  }
 
+<form method="GET" class="mb-4" id="form-datas">
+  <div class="row">
+    <div class="col-md-5">
+      <label for="start_date" class="form-label text-dark-blue">Data Inicial</label>
+      <small class="text-muted d-block mb-1">Criação da transação</small>
+      <input type="date" id="start_date" name="start_date" class="form-control" value="{{ request.args.get('start_date', start_date.strftime('%Y-%m-%d')) }}" />
+    </div>
+    <div class="col-md-5">
+      <label for="end_date" class="form-label text-dark-blue">Data Final</label>
+      <small class="text-muted d-block mb-1">Criação da transação</small>
+      <input type="date" id="end_date" name="end_date" class="form-control" value="{{ request.args.get('end_date', end_date.strftime('%Y-%m-%d')) }}" />
+    </div>
+    <div class="col-md-2 d-flex align-items-end mt-2 mt-md-0">
+      <button id="submitBtn" type="submit" class="btn btn-primary w-100">Filtrar</button>
+    </div>
+  </div>
+</form>
+
+
+<!-- JS -->
+<!-- 🔹 SCRIPT UNIFICADO -->
+<script>
   document.addEventListener('DOMContentLoaded', function () {
-    const btn = document.getElementById('filter-toggle');
     const section = document.getElementById('filter-section');
-    if (btn && section) {
-      btn.addEventListener('click', function (e) {
-        e.preventDefault();
+    const toggleBtn = document.getElementById('toggle-filtros-btn');
+    const filtrosForm = document.getElementById('form-filtros');
+    const datasForm = document.getElementById('form-datas');
+
+    // Mostrar filtros se houver query strings (mas não forçar)
+    if (toggleBtn && section) {
+      toggleBtn.addEventListener('click', function () {
         section.classList.toggle('d-none');
+        toggleBtn.textContent = section.classList.contains('d-none') ? 'Filtro detalhado' : 'Ocultar Filtros';
       });
     }
-  });
-</script>
 
+    // Unifica os filtros e datas ao submeter
+    filtrosForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      const params = new URLSearchParams();
 
+      // Campos do form de filtros
+      filtrosForm.querySelectorAll('input, select, textarea').forEach(input => {
+        const name = input.name;
+        const type = input.type;
+        const value = input.value.trim();
+        if (type === 'radio' && !input.checked) return;
+        if (name === 'item_image_url' && value === '') return;
+        if (name && value) params.append(name, value);
+      });
 
+      // Campos do form de datas
+      datasForm.querySelectorAll('input[type="date"]').forEach(input => {
+        const name = input.name;
+        const value = input.value.trim();
+        if (name && value) params.append(name, value);
+      });
 
-
-<!-- Easepick bundle -->
-<script src="https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.umd.min.js"></script>
-
-<script>
-  function initRangePicker(idDisplay, idHidden) {
-    const elDisplay = document.getElementById(idDisplay);
-    const elHidden = document.getElementById(idHidden);
-
-    const picker = new easepick.create({
-      element: elDisplay,
-      css: ['https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.css'],
-      plugins: ['RangePlugin'],
-      format: 'DD/MM/YYYY',
-      RangePlugin: {
-        tooltipNumber(num) {
-          return `${num} dias`;
-        },
-        locale: {
-          one: 'dia',
-          other: 'dias',
-        },
-      },
-      setup(picker) {
-        picker.on('select', () => {
-          const start = picker.getStartDate()?.format('DD/MM/YYYY');
-          const end = picker.getEndDate()?.format('DD/MM/YYYY');
-          if (start && end) {
-            elDisplay.value = `${start} - ${end}`;
-            elHidden.value = `${start} - ${end}`;
-          } else {
-            elDisplay.value = '';
-            elHidden.value = '';
-          }
-        });
-      },
+      const baseUrl = filtrosForm.getAttribute('action') || window.location.pathname;
+      window.location.href = `${baseUrl}?${params.toString()}`;
     });
 
-    // Restaura valores da querystring (se houver)
-    const val = elHidden.value;
-    if (val && val.includes(' - ')) {
-      elDisplay.value = val;
-    }
-  }
-
-  document.addEventListener('DOMContentLoaded', () => {
-    initRangePicker('rental_period_display', 'rental_period');
-    initRangePicker('return_period_display', 'return_period');
+    // Form de datas também envia tudo se for usado
+    datasForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      filtrosForm.dispatchEvent(new Event('submit'));
+    });
   });
 </script>

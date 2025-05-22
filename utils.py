@@ -487,6 +487,23 @@ def entidade_atende_filtros_dinamico(entidade, filtros, fields_config, image_url
         if rental_start or rental_end or return_start or return_end:
             return False
 
+    # 🔹 Filtro por created_at (start_date e end_date)
+    created_start = filtros.get("start_date")
+    created_end = filtros.get("end_date")
+
+    try:
+        if created_start:
+            date_val = datetime.datetime.strptime(entidade.get("created_at", ""), "%Y-%m-%d").date()
+            if date_val < datetime.datetime.strptime(created_start, "%Y-%m-%d").date():
+                return False
+        if created_end:
+            date_val = datetime.datetime.strptime(entidade.get("created_at", ""), "%Y-%m-%d").date()
+            if date_val > datetime.datetime.strptime(created_end, "%Y-%m-%d").date():
+                return False
+    except Exception:
+        if created_start or created_end:
+            return False
+
     # Filtros dinâmicos baseados em fields_config
     for field in fields_config:
         field_id = field["id"]
@@ -518,6 +535,7 @@ def entidade_atende_filtros_dinamico(entidade, filtros, fields_config, image_url
         # OPÇÕES
         elif field_type in ["dropdown", "transaction_status"]:
             selected = filtros.get(field_id)
+
             if selected and selected != valor:
                 return False
 

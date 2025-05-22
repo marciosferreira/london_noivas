@@ -9,7 +9,6 @@
   not itens %}
   <div class="alert alert-info mt-3">Não há itens que satisfazem os critérios selecionados.</div>
   {% endif %} {% if itens %} {% set status_map = { 'reserved': 'Reservado', 'rented': 'Retirado', 'returned': 'Retornado', 'overdue': 'Atrasado' } %}
-  {{itens}}
   <div class="row g-3">
     {% for item in itens %}
     <div class="col-12 col-md-6 col-lg-4">

@@ -1,9 +1,24 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='style_filters.css') }}">
 
-<!-- Botões superiores -->
-<div class="d-flex justify-content-between align-items-center mb-3">
-  <div class="d-flex flex-wrap gap-2 align-items-center justify-content-end w-100 w-sm-auto">
-    <a href="#" class="btn btn-outline-secondary" id="filter-toggle" onclick="toggleFilters(event)">Filtros</a>
+<!-- Linha com alerta à esquerda e botões à direita -->
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+  <!-- Alerta à esquerda -->
+  <div class="alert alert-info mb-0 py-2 px-3 d-flex align-items-center">
+    {% set tem_filtros = request.args | length > 0 %}
+    <span class="m-0" style="font-size: 1.05rem;">
+      {% if tem_filtros %}
+        <i class="fas fa-filter me-2"></i>
+        <strong>Filtros aplicados:</strong>
+        {{ request.args | length }} campo{{ 's' if request.args|length > 1 else '' }}.
+      {% else %}
+        Nenhum filtro aplicado.
+      {% endif %}
+    </span>
+  </div>
+
+  <!-- Botões à direita -->
+  <div class="d-flex flex-wrap gap-2 align-items-center justify-content-end">
+    <a href="#" class="btn btn-outline-secondary" id="filter-toggle">Filtros</a>
 
     {% if show_add_button %}
       <a href="{{ url_for('adicionar_cliente') }}?next={{ request.url }}" class="btn btn-primary">
@@ -13,9 +28,9 @@
   </div>
 </div>
 
-
+<!-- Seção de Filtros -->
 <div id="filter-section" class="{% if not ns.filtro_relevante %}d-none{% endif %} mb-4">
-  <form method="GET" action="{{ url_for('listar_clientes') }}">
+  <form method="GET" action="{{ url_for('listar_clientes') }}" id="form-filtros" onsubmit="return removeCamposVazios()">
     <div class="card shadow-sm">
       <div class="card-header bg-light">
         <h5 class="m-0">Filtrar Clientes</h5>
@@ -71,22 +86,36 @@
   </form>
 </div>
 
+<!-- Scripts -->
 <script>
-  function toggleFilters(event) {
-    event.preventDefault();
-    const section = document.getElementById('filter-section');
-    section.classList.toggle('d-none');
+  function removeCamposVazios() {
+    const form = document.getElementById('form-filtros');
+    const inputs = form.querySelectorAll('input, select, textarea');
+    inputs.forEach(input => {
+      if (!input.value.trim()) {
+        input.removeAttribute('name');
+      }
+    });
+    return true;
   }
 
   document.addEventListener('DOMContentLoaded', function () {
-    const telInput = document.getElementById('client_tel');
-    const cpfInput = document.getElementById('client_cpf');
-    const cnpjInput = document.getElementById('client_cnpj');
+    // Toggle manual
+    const btn = document.getElementById('filter-toggle');
+    const section = document.getElementById('filter-section');
+    if (btn && section) {
+      btn.addEventListener('click', function (e) {
+        e.preventDefault();
+        section.classList.toggle('d-none');
+      });
+    }
 
-    document.querySelector('form')?.addEventListener('submit', function () {
-      if (telInput) telInput.value = telInput.value.replace(/\D/g, '');
-      if (cpfInput) cpfInput.value = cpfInput.value.replace(/\D/g, '');
-      if (cnpjInput) cnpjInput.value = cnpjInput.value.replace(/\D/g, '');
-    });
+    // Esconde após recarregar com filtros
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasFilters = Array.from(urlParams.entries()).some(([k, v]) => v.trim() !== "");
+    if (hasFilters) {
+      const section = document.getElementById('filter-section');
+      if (section) section.classList.add('d-none');
+    }
   });
 </script>
