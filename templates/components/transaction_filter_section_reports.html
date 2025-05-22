@@ -241,3 +241,54 @@
     });
   });
 </script>
+
+
+<!-- Easepick bundle -->
+<script src="https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.umd.min.js"></script>
+
+<script>
+  function initRangePicker(idDisplay, idHidden) {
+    const elDisplay = document.getElementById(idDisplay);
+    const elHidden = document.getElementById(idHidden);
+
+    const picker = new easepick.create({
+      element: elDisplay,
+      css: ['https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.css'],
+      plugins: ['RangePlugin'],
+      format: 'DD/MM/YYYY',
+      RangePlugin: {
+        tooltipNumber(num) {
+          return `${num} dias`;
+        },
+        locale: {
+          one: 'dia',
+          other: 'dias',
+        },
+      },
+      setup(picker) {
+        picker.on('select', () => {
+          const start = picker.getStartDate()?.format('DD/MM/YYYY');
+          const end = picker.getEndDate()?.format('DD/MM/YYYY');
+          if (start && end) {
+            elDisplay.value = `${start} - ${end}`;
+            elHidden.value = `${start} - ${end}`;
+          } else {
+            elDisplay.value = '';
+            elHidden.value = '';
+          }
+        });
+      },
+    });
+
+    // Restaura valores da querystring (se houver)
+    const val = elHidden.value;
+    if (val && val.includes(' - ')) {
+      elDisplay.value = val;
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    initRangePicker('rental_period_display', 'rental_period');
+    initRangePicker('return_period_display', 'return_period');
+  });
+</script>
