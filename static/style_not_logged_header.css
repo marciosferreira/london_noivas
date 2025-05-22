@@ -6,11 +6,6 @@
   z-index: 1000;
 }
 
-/* Estilo geral da navbar */
-.navbar {
-  background-color: #003366 !important; /* Azul corporativo */
-}
-
 /* Estiliza a logo */
 .logo {
   height: 80px; /* Mantém o tamanho grande */
@@ -161,4 +156,16 @@ body {
   background-color: #218838;
   border-color: #1e7e34;
   transform: scale(1.02);
+}
+
+/* Estilo geral da navbar */
+/* Estilo geral da navbar */
+.navbar {
+  background-color: #003366 !important;
+  padding-left: 0;
+  padding-right: 0;
+  max-width: 1200px;
+  margin: 10px auto 0 auto; /* ← top 10px */
+  width: 90%;
+  border-radius: 12px;
 }

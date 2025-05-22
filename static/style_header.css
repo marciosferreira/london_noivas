@@ -8,7 +8,15 @@
 
 /* Estilo geral da navbar */
 .navbar {
-  background-color: #003366 !important; /* Azul corporativo */
+  background-color: #003366 !important;
+  padding-left: 0;
+  padding-right: 0;
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+  max-width: 1200px;
+  margin: 10px auto 0 auto; /* ← top 10px */
+  width: 90%;
+  border-radius: 12px;
 }
 
 /* Estiliza a logo */
@@ -96,4 +104,24 @@ body {
   margin: 0;
   border-top-left-radius: 12px;
   border-top-right-radius: 12px;
+}
+.custom-header-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 20px;
+  background-color: #ffffff;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+/* Certifique-se de que a navbar não tenha padding ou margin extra */
+.navbar {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.custom-header-container {
+  max-width: 800px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 0 15px;
 }

@@ -1588,6 +1588,63 @@ def init_item_routes(
             print("Erro: Usuário não autenticado corretamente.")
             return redirect(url_for("login"))
 
+        # 🔥 Carrega configuração de campos
+        fields_all_entities = {}
+        for ent in ["item", "client", "transaction"]:
+            response = field_config_table.get_item(Key={"account_id": account_id, "entity": ent})
+            config_map = response.get("Item", {}).get("fields_config", {})
+
+            fields = []
+            for field_id, cfg in config_map.items():
+                fields.append({
+                    "id": field_id,
+                    "label": cfg.get("label", field_id.replace("_", " ").capitalize()),
+                    "type": cfg.get("type"),
+                    "f_type": cfg.get("f_type"),
+                    "preview": cfg.get("preview", False),
+                    "visible": cfg.get("visible", True),
+                    "required": cfg.get("required", False),
+                    "order_sequence": cfg.get("order_sequence", 0),
+                    "filterable": cfg.get("filterable", False),
+                    "options": cfg.get("options", []),
+                    "fixed": cfg.get("f_type", "") == "fixed",  # útil para lógica de filtros
+                })
+
+            # Ordena a lista da entidade atual
+            fields = sorted(fields, key=lambda x: x["order_sequence"])
+
+            # Associa a lista ao nome da entidade (ESSA LINHA PRECISA FICAR AQUI)
+            fields_all_entities[ent] = fields
+
+
+        # Coletar todos os IDs já usados em client e item
+        ids_client_item = {
+            field["id"]
+            for field in fields_all_entities.get("client", [])
+            + fields_all_entities.get("item", [])
+        }
+
+        # Filtrar transaction para remover duplicados com client/item
+        filtered_transaction = [
+            field for field in fields_all_entities.get("transaction", [])
+            if field["id"] not in ids_client_item
+        ]
+
+        # Atualizar o dicionário
+        fields_all_entities["transaction"] = filtered_transaction
+
+
+        seen_ids = set()
+        fields_config = []
+
+        # Ordem de prioridade: transaction > client > item
+        for entity in ["transaction", "client", "item"]:
+            for field in fields_all_entities.get(entity, []):
+                if field["id"] not in seen_ids:
+                    fields_config.append(field)
+                    seen_ids.add(field["id"])
+
+
         user_id = session.get("user_id") if "user_id" in session else None
         user_utc = get_user_timezone(users_table, user_id)
         username = session.get("username", None)
@@ -1678,27 +1735,6 @@ def init_item_routes(
         end_date = datetime.datetime.now(user_utc).date()
         start_date = end_date - datetime.timedelta(days=30)
 
-        if request.method == "POST":
-            try:
-                start_date = datetime.datetime.strptime(
-                    request.form.get("start_date"), "%Y-%m-%d"
-                ).date()
-                end_date = datetime.datetime.strptime(
-                    request.form.get("end_date"), "%Y-%m-%d"
-                ).date()
-            except ValueError:
-                flash("Formato de data inválido. Use AAAA-MM-DD.", "danger")
-                return render_template(
-                    "reports.html",
-                    total_paid=0,
-                    total_due=0,
-                    total_general=0,
-                    start_date=start_date,
-                    end_date=end_date,
-                    stats=stats,
-                    username=username,
-                )
-
         # conta novos clientes dentro de um tiemframe
         num_new_clients = 0
         last_evaluated_key = None
@@ -1732,16 +1768,20 @@ def init_item_routes(
             if not last_evaluated_key:
                 break
 
-        # pega as transações
+        image_url_filter = request.args.get("item_image_url") or None
+        image_url_required = image_url_filter.lower() == "true" if image_url_filter is not None else None
+
+        # 📥 Recolhe filtros do formulário POST
+        filtros = request.args.to_dict()
+
+        # 🔄 Coleta transações com status relevante
         transactions = []
         last_evaluated_key = None
         while True:
             query_params = {
                 "IndexName": "account_id-index",
                 "KeyConditionExpression": Key("account_id").eq(account_id),
-                "FilterExpression": Attr("transaction_status").is_in(
-                    ["rented", "returned", "reserved"]
-                ),
+                "FilterExpression": Attr("transaction_status").is_in(["rented", "returned", "reserved"]),
             }
             if last_evaluated_key:
                 query_params["ExclusiveStartKey"] = last_evaluated_key
@@ -1751,6 +1791,7 @@ def init_item_routes(
             if not last_evaluated_key:
                 break
 
+        # 🔢 Inicializa contadores
         from collections import defaultdict
 
         total_paid = 0
@@ -1758,71 +1799,68 @@ def init_item_routes(
         num_transactions = 0
         sum_valor = 0
         item_counter = {}
-
         status_counter = {"rented": 0, "returned": 0, "reserved": 0}
+        event_counts = defaultdict(lambda: {"created": 0, "devolvido": 0, "retirado": 0, "transaction_value_paid": 0})
 
-        event_counts = defaultdict(
-            lambda: {"created": 0, "devolvido": 0, "retirado": 0, "transaction_value_paid": 0}
-        )
-
+        # 🧠 Filtragem por data + filtros extras
+        filtered_transactions = []
         for transaction in transactions:
-            #print(transaction)
-
-            if 1==1: #try:
-                print("stttt")
+            try:
                 transaction_date = datetime.datetime.strptime(
-                    transaction.get("created_at"), "%Y-%m-%d %H:%M:%S"
+                    transaction.get("created_at", ""), "%Y-%m-%d %H:%M:%S"
                 ).date()
 
-                print(start_date)
-                print(transaction_date)
-                print(end_date)
-
-                if start_date <= transaction_date <= end_date:
-                    num_transactions += 1
-                    valor = float(transaction.get("transaction_price", 0))
-
-                    pagamento = float(transaction.get("transaction_value_paid", 0))
-
-                    total_paid += pagamento
-                    total_due += max(0, valor - pagamento)
-                    sum_valor += valor
-
-                    # ✅ Contador de reservados: toda transação criada é considerada um "reserved"
-                    status_counter["reserved"] += 1
-
-                    item_id = transaction.get("item_id")
-                    if item_id:
-                        item_counter[item_id] = item_counter.get(item_id, 0) + 1
-
-                    event_counts[transaction_date]["created"] += 1
-                    if pagamento > 0:
-                        event_counts[transaction_date]["transaction_value_paid"] += pagamento
-
-                    if transaction.get("dev_date"):
-                        dev_date = datetime.datetime.strptime(
-                            transaction.get("dev_date"), "%Y-%m-%d"
-                        ).date()
-                        if start_date <= dev_date <= end_date:
-                            status_counter["returned"] += 1  # ✅ Devolvido
-                            event_counts[dev_date]["devolvido"] += 1
-
-                    if transaction.get("transaction_ret_date"):
-                        transaction_ret_date = datetime.datetime.strptime(
-                            transaction.get("transaction_ret_date"), "%Y-%m-%d"
-                        ).date()
-                        if start_date <= transaction_ret_date <= end_date:
-                            status_counter["rented"] += 1  # ✅ Retirado
-                            event_counts[transaction_ret_date]["retirado"] += 1
-
-                else:
-                    print("no itens betwen dates")
-            #except (ValueError, TypeError):
+                if not (start_date <= transaction_date <= end_date):
+                    continue
+            except Exception:
                 continue
 
+            if not entidade_atende_filtros_dinamico(transaction, filtros, fields_config, image_url_required):
+                continue
+
+            filtered_transactions.append(transaction)
+
+            # 📊 Cálculos principais
+            num_transactions += 1
+            valor = float(transaction.get("transaction_price", 0))
+            pagamento = float(transaction.get("transaction_value_paid", 0))
+            total_paid += pagamento
+            total_due += max(0, valor - pagamento)
+            sum_valor += valor
+
+            status_counter["reserved"] += 1  # todas criadas são consideradas reservadas
+
+            item_id = transaction.get("item_id")
+            if item_id:
+                item_counter[item_id] = item_counter.get(item_id, 0) + 1
+
+            event_counts[transaction_date]["created"] += 1
+            if pagamento > 0:
+                event_counts[transaction_date]["transaction_value_paid"] += pagamento
+
+            if transaction.get("dev_date"):
+                try:
+                    dev_date = datetime.datetime.strptime(transaction["dev_date"], "%Y-%m-%d").date()
+                    if start_date <= dev_date <= end_date:
+                        status_counter["returned"] += 1
+                        event_counts[dev_date]["devolvido"] += 1
+                except:
+                    pass
+
+            if transaction.get("transaction_ret_date"):
+                try:
+                    ret_date = datetime.datetime.strptime(transaction["transaction_ret_date"], "%Y-%m-%d").date()
+                    if start_date <= ret_date <= end_date:
+                        status_counter["rented"] += 1
+                        event_counts[ret_date]["retirado"] += 1
+                except:
+                    pass
+
+        # 🧮 Resultados finais
         preco_medio = sum_valor / num_transactions if num_transactions else 0
         total_general = total_paid + total_due
 
+        # 📅 Dados diários para gráfico
         date_labels = []
         created_list = []
         dev_list = []
@@ -1839,17 +1877,14 @@ def init_item_routes(
             pagamento_list.append(daily["transaction_value_paid"])
             current_date += datetime.timedelta(days=1)
 
+        # ✔️ Feedback
         if request.method == "POST":
             flash("Relatório atualizado com sucesso!", "success")
 
         # 🔄 Total de transações ativas (rented + reserved)
         current_stripe_transaction = get_latest_transaction(user_id, users_table, payment_transactions_table)
-
-
-        # 🔄 Total de transações ativas (rented + reserved)
         total_relevant_transactions = 0
         exclusive_start_key = None
-
         try:
             while True:
                 query_params = {
@@ -1858,13 +1893,10 @@ def init_item_routes(
                     "FilterExpression": Attr("transaction_status").is_in(["rented", "reserved"]),
                     "Select": "COUNT",
                 }
-
                 if exclusive_start_key:
                     query_params["ExclusiveStartKey"] = exclusive_start_key
-
                 response = transactions_table.query(**query_params)
                 total_relevant_transactions += response.get("Count", 0)
-
                 exclusive_start_key = response.get("LastEvaluatedKey")
                 if not exclusive_start_key:
                     break
@@ -1874,7 +1906,6 @@ def init_item_routes(
         # 🔄 Total de itens ativos (available + archive)
         total_itens = 0
         exclusive_start_key = None
-
         try:
             while True:
                 query_kwargs = {
@@ -1883,13 +1914,10 @@ def init_item_routes(
                     "FilterExpression": Attr("status").is_in(["available", "archive"]),
                     "Select": "COUNT",
                 }
-
                 if exclusive_start_key:
                     query_kwargs["ExclusiveStartKey"] = exclusive_start_key
-
                 response = itens_table.query(**query_kwargs)
                 total_itens += response.get("Count", 0)
-
                 exclusive_start_key = response.get("LastEvaluatedKey")
                 if not exclusive_start_key:
                     break
@@ -1918,6 +1946,7 @@ def init_item_routes(
             total_relevant_transactions=total_relevant_transactions,
             total_itens=total_itens,
             current_transaction=current_stripe_transaction,
+            fields_all_entities=fields_all_entities,
 
         )
 

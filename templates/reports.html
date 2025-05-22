@@ -16,28 +16,12 @@
     cursor: pointer;
   }
 </style>
-{% endblock %} {% block content %} {% set active_statuses = ["trialing", "active", "past_due"] %} {% set max_limit = 300 if current_transaction and
-current_transaction.subscription_status in active_statuses else 0 %}
+{% endblock %} {% block content %}
 
 <div class="container my-3">
   <h2 class="mb-4">Relatórios</h2>
 
-  <!-- Formulário para seleção de datas -->
-  <form method="POST" class="my-4">
-    <div class="row">
-      <div class="col-md-5">
-        <label for="start_date" class="form-label text-dark-blue">Data Inicial (criação da transação)</label>
-        <input type="date" id="start_date" name="start_date" class="form-control" value="{{ start_date }}" />
-      </div>
-      <div class="col-md-5">
-        <label for="end_date" class="form-label text-dark-blue">Data Final (criação da transação)</label>
-        <input type="date" id="end_date" name="end_date" class="form-control" value="{{ end_date }}" />
-      </div>
-      <div class="col-md-2 d-flex align-items-end mt-2 mt-md-0">
-        <button id="submitBtn" type="submit" class="btn btn-primary w-100">Atualizar</button>
-      </div>
-    </div>
-  </form>
+  {% include "components/transaction_filter_section_reports.html" %}
 
   <!-- Período da Pesquisa -->
   <div class="text-center mt-3 text-muted">
@@ -46,7 +30,7 @@ current_transaction.subscription_status in active_statuses else 0 %}
   <br />
   <br />
   <h3 class="mb-1 text-center">Resumo do Período</h3>
-  <p class="text-muted text-center mb-4" style="font-size: 0.95rem">(dados filtrados pela data selecionada)</p>
+  <p class="text-muted text-center mb-4" style="font-size: 0.95rem">(dados filtrados pela data selecionada e pelos detalhes)</p>
 
   <section class="container mt-4">
     <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-3">
