@@ -1,19 +1,41 @@
-<!-- Importando a folha de estilo do rodapé -->
 <link rel="stylesheet" href="{{ url_for('static', filename='style_footer.css') }}" />
 
-<footer class="footer">
-  <div class="container text-center py-4">
-    <div class="footer-links mb-2">
-      <a href="/terms">Termos de Uso</a>
-      <span class="separator">|</span>
-      <a href="/contato">Contato</a>
-      <span class="separator">|</span>
-      <a href="/fees">Planos</a>
-      <span class="separator">|</span>
-      <a href="/how_to">Como usar</a>
+<!-- footer.html -->
+<div class="footer-wrapper">
+  <footer class="footer text-light">
+    <div class="container py-4">
+      <div class="row justify-content-center text-center g-3 footer-links">
+        <div class="col-6 col-sm-4 col-md-2">
+          <a href="/terms">
+            <i class="bi bi-file-earmark-text me-1"></i>
+            Termos de Uso
+          </a>
+        </div>
+        <div class="col-6 col-sm-4 col-md-2">
+          <a href="/contato">
+            <i class="bi bi-envelope me-1"></i>
+            Contato
+          </a>
+        </div>
+        <div class="col-6 col-sm-4 col-md-2">
+          <a href="/fees">
+            <i class="bi bi-currency-dollar me-1"></i>
+            Planos
+          </a>
+        </div>
+        <div class="col-6 col-sm-4 col-md-2">
+          <a href="/how_to">
+            <i class="bi bi-question-circle me-1"></i>
+            Como usar
+          </a>
+        </div>
+        <div class="col-6 col-sm-4 col-md-2">
+          <a href="/reportar-bug?url={{ request.url }}">
+            <i class="bi bi-bug me-1"></i>
+            Reportar um Bug
+          </a>
+        </div>
+      </div>
     </div>
-    <div class="testing-notice">
-      <a href="/reportar-bug?url={{ request.url }}">Reportar um Bug</a>
-    </div>
-  </div>
-</footer>
+  </footer>
+</div>
