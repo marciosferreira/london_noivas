@@ -3,13 +3,13 @@
   "name": "Alugue QQC - Alugue Qualquer Coisa",
   "icons": [
     {
-      "src": "/static/icons/icon-192x192.png",
+      "src": "/static/icons/icon-192x192-w.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/static/icons/icon-512x512.png",
+      "src": "/static/icons/icon-512x512-w.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
