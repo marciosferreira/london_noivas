@@ -1,50 +1,42 @@
+.footer-wrapper {
+  background-color: #002b55;
+  margin-top: 40px;
+  padding-top: 20px;
+  padding-bottom: 20px;
+  border-radius: 24px;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.2);
+  width: 100%;
+}
+
 .footer {
-  background-color: #003366; /* Azul escuro profissional */
-  color: var(--bs-light, #f8f9fa); /* Mantém o texto claro */
+  background-color: transparent;
   font-size: 0.9rem;
-  padding-top: 1rem;
-  padding-bottom: 1rem;
-  margin-top: 2rem;
-  border-top: 1px solid #084298; /* Um azul ainda mais escuro para a borda */
 }
 
 .footer a {
-  color: #f8f9fa; /* Links claros */
+  color: #f8f9fa;
   text-decoration: none;
-  margin: 0 8px;
   font-weight: 500;
-  transition: color 0.3s ease;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .footer a:hover {
-  color: #ffc107; /* Amarelo Bootstrap no hover (dá ótimo contraste) */
+  color: #ffc107;
+  transform: translateY(-2px);
   text-decoration: underline;
 }
 
-.footer-links {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 8px;
-  align-items: center;
+.footer-links .col-6 {
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
 }
 
-.separator {
-  color: #f8f9fa;
-}
-
-.testing-notice {
-  margin-top: 0.5rem;
-  font-size: 0.8rem;
-  color: #f8f9fa;
-}
-
-.testing-notice a {
-  color: #ffc107; /* Amarelo para destaque */
-  font-weight: bold;
-  text-decoration: underline;
-}
-
-.testing-notice a:hover {
-  color: #ffffff;
+@media (max-width: 576px) {
+  .footer-links .col-6 {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
 }
