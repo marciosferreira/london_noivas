@@ -442,19 +442,29 @@ def get_account_plan(account_id):
         return "free"
 
 
-def entidade_atende_filtros_dinamico(entidade, filtros, fields_config, image_url_required=None):
+def entidade_atende_filtros_dinamico(item, filtros, fields_config, image_url_required=None):
+    print("entidade recebida")
+    print(item)
     from decimal import Decimal, InvalidOperation
     import datetime
 
-    def get_valor(entidade, field):
+    def get_valor(item, field):
+        print( "*****************###")
+        print(item)
+        print("field")
+        print(field)
+        print("*******************")
         field_id = field["id"]
         if field.get("fixed"):
-            return entidade.get(field_id, "")
-        return (entidade.get("key_values", {}) or {}).get(field_id, "")
+            print("é fixed")
+
+            return item.get(field_id, "")
+        print("nao fixed")
+        return (item.get("key_values", {}) or {}).get(field_id, "")
 
     # Lógica especial para imagem (usado apenas em itens, mas é seguro ignorar para outros)
     if image_url_required is not None:
-        imagem = entidade.get("item_image_url", "")
+        imagem = item.get("item_image_url", "")
         imagem = str(imagem).strip().lower()
         tem_imagem = bool(imagem) and imagem != "n/a"
         if image_url_required != tem_imagem:
@@ -468,19 +478,19 @@ def entidade_atende_filtros_dinamico(entidade, filtros, fields_config, image_url
 
     try:
         if rental_start:
-            date_val = datetime.datetime.strptime(entidade.get("rental_date", ""), "%Y-%m-%d").date()
+            date_val = datetime.datetime.strptime(item.get("rental_date", ""), "%Y-%m-%d").date()
             if date_val < datetime.datetime.strptime(rental_start, "%Y-%m-%d").date():
                 return False
         if rental_end:
-            date_val = datetime.datetime.strptime(entidade.get("rental_date", ""), "%Y-%m-%d").date()
+            date_val = datetime.datetime.strptime(item.get("rental_date", ""), "%Y-%m-%d").date()
             if date_val > datetime.datetime.strptime(rental_end, "%Y-%m-%d").date():
                 return False
         if return_start:
-            date_val = datetime.datetime.strptime(entidade.get("return_date", ""), "%Y-%m-%d").date()
+            date_val = datetime.datetime.strptime(item.get("return_date", ""), "%Y-%m-%d").date()
             if date_val < datetime.datetime.strptime(return_start, "%Y-%m-%d").date():
                 return False
         if return_end:
-            date_val = datetime.datetime.strptime(entidade.get("return_date", ""), "%Y-%m-%d").date()
+            date_val = datetime.datetime.strptime(item.get("return_date", ""), "%Y-%m-%d").date()
             if date_val > datetime.datetime.strptime(return_end, "%Y-%m-%d").date():
                 return False
     except Exception:
@@ -493,11 +503,11 @@ def entidade_atende_filtros_dinamico(entidade, filtros, fields_config, image_url
 
     try:
         if created_start:
-            date_val = datetime.datetime.strptime(entidade.get("created_at", ""), "%Y-%m-%d").date()
+            date_val = datetime.datetime.strptime(item.get("created_at", ""), "%Y-%m-%d").date()
             if date_val < datetime.datetime.strptime(created_start, "%Y-%m-%d").date():
                 return False
         if created_end:
-            date_val = datetime.datetime.strptime(entidade.get("created_at", ""), "%Y-%m-%d").date()
+            date_val = datetime.datetime.strptime(item.get("created_at", ""), "%Y-%m-%d").date()
             if date_val > datetime.datetime.strptime(created_end, "%Y-%m-%d").date():
                 return False
     except Exception:
@@ -508,14 +518,24 @@ def entidade_atende_filtros_dinamico(entidade, filtros, fields_config, image_url
     for field in fields_config:
         field_id = field["id"]
         field_type = field.get("type")
-        valor = get_valor(entidade, field)
+        print('item')
+        print(item)
+        valor = get_valor(item, field)
+
 
         # TEXTOS
         if field_type in ["text", "client_name", "client_phone", "client_email", "client_address",
                           "client_cpf", "client_cnpj", "client_notes",
                           "item_custom_id", "item_description", "item_obs"]:
             filtro = filtros.get(field_id)
+            print("ft")
+            print(field_type)
+            print(filtro)
+            print("valor")
+            print(valor)
+
             if filtro and filtro.lower() not in str(valor).lower():
+                print("false")
                 return False
 
         # NÚMEROS E VALORES

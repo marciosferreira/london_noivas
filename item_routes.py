@@ -2368,7 +2368,8 @@ def list_transactions(
                 "order_sequence": cfg.get("order_sequence", 0),
                 "filterable": cfg.get("filterable", False),
                 "options": cfg.get("options", []),
-                "fixed": cfg.get("f_type", "") == "fixed",  # útil para lógica de filtros
+                "fixed": cfg.get("f_type", "") in ("fixed", "visual"),
+                # útil para lógica de filtros
             })
 
         # Ordena a lista da entidade atual
@@ -2545,6 +2546,7 @@ def list_transactions(
                 continue
             # filtro dinâmico geral
             if not entidade_atende_filtros_dinamico(txn, filtros, fields_config, image_url_required):
+
                 continue
 
 

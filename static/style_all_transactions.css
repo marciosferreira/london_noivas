@@ -28,10 +28,3 @@
   margin-top: 1rem; /* ou 1.5rem se quiser mais espaço */
   border-radius: 0.25rem;
 }
-
-.card:hover,
-.card:has(.dropdown-menu.show) {
-  transform: translateY(-4px);
-  box-shadow: 0 0.75rem 1.25rem rgba(0, 0, 0, 0.1);
-  z-index: 2;
-}
