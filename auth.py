@@ -1418,8 +1418,8 @@ def get_default_fields_and_slugs(entity):
                 "required": True,
             },
             "created_at": {
-                "label": "Criado em",
-                "label_original": "Criado em",
+                "label": "Criada em",
+                "label_original": "Criada em",
                 "type": "created_at",
                 "order_sequence": 7,
                 "filterable": True,
