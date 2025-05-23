@@ -20,7 +20,7 @@ body {
   background: #fff;
   border-radius: 16px;
   padding: 40px 30px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 10px 30px rgba(20, 20, 20, 0.08);
 }
 
 /* === CABEÇALHO === */
@@ -201,11 +201,10 @@ input:focus {
 .back-button a:hover {
   text-decoration: underline;
 }
-
 .page-container {
   max-width: 1200px;
   width: 90%;
-  margin: 70px auto;
+  margin: 30px auto; /* 🔄 agora com top e bottom iguais */
   background: #ffffff;
   border-radius: 16px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
@@ -276,4 +275,15 @@ input:focus {
   .captcha-wrapper .g-recaptcha {
     transform: scale(0.75);
   }
+}
+
+.footer {
+  margin: 0 auto 30px auto; /* cola no container acima, mas dá espaço embaixo */
+  max-width: 1200px;
+  width: 90%;
+  background-color: #003366;
+  color: #fff;
+  padding: 1rem 2rem;
+  border-radius: 12px;
+  text-align: center;
 }
