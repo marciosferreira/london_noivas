@@ -443,23 +443,14 @@ def get_account_plan(account_id):
 
 
 def entidade_atende_filtros_dinamico(item, filtros, fields_config, image_url_required=None):
-    print("entidade recebida")
-    print(item)
     from decimal import Decimal, InvalidOperation
     import datetime
 
     def get_valor(item, field):
-        print( "*****************###")
-        print(item)
-        print("field")
-        print(field)
-        print("*******************")
         field_id = field["id"]
         if field.get("fixed"):
-            print("é fixed")
 
             return item.get(field_id, "")
-        print("nao fixed")
         return (item.get("key_values", {}) or {}).get(field_id, "")
 
     # Lógica especial para imagem (usado apenas em itens, mas é seguro ignorar para outros)
@@ -469,7 +460,6 @@ def entidade_atende_filtros_dinamico(item, filtros, fields_config, image_url_req
         tem_imagem = bool(imagem) and imagem != "n/a"
         if image_url_required != tem_imagem:
             return False
-
     # Filtros manuais para datas fixas da transação (rental_date e return_date)
     rental_start = filtros.get("start_rental_date")
     rental_end = filtros.get("end_rental_date")
@@ -498,28 +488,30 @@ def entidade_atende_filtros_dinamico(item, filtros, fields_config, image_url_req
             return False
 
     # 🔹 Filtro por created_at (start_date e end_date)
-    created_start = filtros.get("start_date")
-    created_end = filtros.get("end_date")
+    created_start = filtros.get("start_created_at")
+    created_end = filtros.get("end_created_at")
 
-    try:
-        if created_start:
-            date_val = datetime.datetime.strptime(item.get("created_at", ""), "%Y-%m-%d").date()
-            if date_val < datetime.datetime.strptime(created_start, "%Y-%m-%d").date():
+    if created_start:
+        created_at_str = item.get("created_at", "")
+        if created_at_str:
+            try:
+                date_val = datetime.datetime.fromisoformat(created_at_str).date()
+
+                if created_start:
+                    if date_val < datetime.datetime.strptime(created_start, "%Y-%m-%d").date():
+                        return False
+
+                if created_end:
+                    if date_val > datetime.datetime.strptime(created_end, "%Y-%m-%d").date():
+                        return False
+            except ValueError:
+                print("Erro ao converter created_at:", created_at_str)
                 return False
-        if created_end:
-            date_val = datetime.datetime.strptime(item.get("created_at", ""), "%Y-%m-%d").date()
-            if date_val > datetime.datetime.strptime(created_end, "%Y-%m-%d").date():
-                return False
-    except Exception:
-        if created_start or created_end:
-            return False
 
     # Filtros dinâmicos baseados em fields_config
     for field in fields_config:
         field_id = field["id"]
         field_type = field.get("type")
-        print('item')
-        print(item)
         valor = get_valor(item, field)
 
 
@@ -528,11 +520,6 @@ def entidade_atende_filtros_dinamico(item, filtros, fields_config, image_url_req
                           "client_cpf", "client_cnpj", "client_notes",
                           "item_custom_id", "item_description", "item_obs"]:
             filtro = filtros.get(field_id)
-            print("ft")
-            print(field_type)
-            print(filtro)
-            print("valor")
-            print(valor)
 
             if filtro and filtro.lower() not in str(valor).lower():
                 print("false")

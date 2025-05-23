@@ -3,7 +3,6 @@
 {% endblock %} {% block content %}
 <div class="container my-3">
   {% set status_color_map = { 'reserved': 'warning', 'rented': 'primary', 'returned': 'success', 'overdue': 'danger' } %}
-
   <h2 class="mb-4">{{ title }}</h2>
   {% set show_add_button = True %} {% set add_route = url_for('rent') %} {% include "components/transaction_filter_section.html" with context %} {% if
   not itens %}
@@ -82,9 +81,9 @@
                 in item else '' %} {% if value == 'None' or value is none %}
                 <span class="text-muted">-</span>
                 {% else %} {% if field.type in ["phone", "client_phone"] %} {{ value | format_phone }} {% elif field.type == "date" %} {{ value |
-                format_date }} {% elif field.type == "transaction_ret_date" %} {{ value | formatar_data_br }} {% elif field.type in ["value",
-                "item_value", "transaction_price", "transaction_value_paid"] %} {{ value | format_currency }} {% elif field.type == "cpf" %} {{ value
-                | format_cpf }} {% elif field.type == "cnpj" %} {{ value | format_cnpj }} {% elif field.id == "transaction_status" %} {{
+                format_date }} {% elif field.type in ["transaction_ret_date", "created_at"] %} {{ value | formatar_data_br }} {% elif field.type in
+                ["value", "item_value", "transaction_price", "transaction_value_paid"] %} {{ value | format_currency }} {% elif field.type == "cpf" %}
+                {{ value | format_cpf }} {% elif field.type == "cnpj" %} {{ value | format_cnpj }} {% elif field.id == "transaction_status" %} {{
                 status_map.get(value, value) }} {% else %} {{ value | string | truncate(30, True) }} {% endif %} {% endif %}
               </span>
             </div>

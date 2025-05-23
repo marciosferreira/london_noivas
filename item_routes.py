@@ -1732,9 +1732,26 @@ def init_item_routes(
         stats["total_returned"] = count_transactions_by_status(account_id, "returned")
         stats["total_reserved"] = count_transactions_by_status(account_id, "reserved")
 
-        end_date = datetime.datetime.now(user_utc).date()
-        start_date = end_date - datetime.timedelta(days=30)
+        # Define os valores padrão
+        end_date_default = datetime.datetime.now(user_utc).date()
+        start_date_default = end_date_default - datetime.timedelta(days=30)
 
+        # 📥 Recolhe filtros do formulário (GET)
+        filtros = request.args.to_dict()
+
+        # Usa os valores do formulário se existirem, senão usa os defaults
+        start_date_str = filtros.get("start_date")
+        end_date_str = filtros.get("end_date")
+
+        try:
+            start_date = datetime.datetime.strptime(start_date_str, "%Y-%m-%d").date() if start_date_str else start_date_default
+        except ValueError:
+            start_date = start_date_default
+
+        try:
+            end_date = datetime.datetime.strptime(end_date_str, "%Y-%m-%d").date() if end_date_str else end_date_default
+        except ValueError:
+            end_date = end_date_default
         # conta novos clientes dentro de um tiemframe
         num_new_clients = 0
         last_evaluated_key = None
@@ -1771,9 +1788,6 @@ def init_item_routes(
         image_url_filter = request.args.get("item_image_url") or None
         image_url_required = image_url_filter.lower() == "true" if image_url_filter is not None else None
 
-        # 📥 Recolhe filtros do formulário POST
-        filtros = request.args.to_dict()
-
         # 🔄 Coleta transações com status relevante
         transactions = []
         last_evaluated_key = None
@@ -1803,6 +1817,7 @@ def init_item_routes(
         event_counts = defaultdict(lambda: {"created": 0, "devolvido": 0, "retirado": 0, "transaction_value_paid": 0})
 
         # 🧠 Filtragem por data + filtros extras
+
         filtered_transactions = []
         for transaction in transactions:
             try:
@@ -1811,8 +1826,9 @@ def init_item_routes(
                 ).date()
 
                 if not (start_date <= transaction_date <= end_date):
+
                     continue
-            except Exception:
+            except Exception as e:
                 continue
 
             if not entidade_atende_filtros_dinamico(transaction, filtros, fields_config, image_url_required):
@@ -1945,7 +1961,7 @@ def init_item_routes(
             pagamento_list=pagamento_list,
             total_relevant_transactions=total_relevant_transactions,
             total_itens=total_itens,
-            current_transaction=current_stripe_transaction,
+            current_stripe_transaction=current_stripe_transaction,
             fields_all_entities=fields_all_entities,
 
         )
@@ -2375,12 +2391,12 @@ def list_transactions(
         # Ordena a lista da entidade atual
         fields = sorted(fields, key=lambda x: x["order_sequence"])
 
-        # Associa a lista ao nome da entidade (ESSA LINHA PRECISA FICAR AQUI)
+        # Associa a lista ao nome da entidade
         fields_all_entities[ent] = fields
 
     #cria um lista unica para filtros
     fields_config = (
-        fields_all_entities.get("transaction", []) +
+        fields_all_entities.get("transaction", []) +   #transaçao tem priridade no filtro de campos repetidos, pois vem primeiro
         fields_all_entities.get("client", []) +
         fields_all_entities.get("item", [])
     )
