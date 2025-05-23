@@ -8,8 +8,10 @@
       <a class="navbar-brand d-flex align-items-center" href="{{ url_for('index') }}">
         <img src="{{ url_for('static', filename='icons/logo.png') }}" alt="Logo" class="logo" />
         <span class="ms-2 d-flex flex-column" style="line-height: 0.9">
-          <span style="font-weight: bold; color: white">Alugue QQC</span>
-          <small style="font-size: 12px; color: #c5bebe">gestor de aluguéis</small>
+          <span style="font-weight: bold; color: white">
+            Alugue
+            <span class="d-block text-warning mt-1">QQC</span>
+          </span>
         </span>
       </a>
 
@@ -17,7 +19,7 @@
       {% if request.endpoint == 'index' %}
       <a class="btn-header-login" href="{{ url_for('login') }}">Login</a>
       {% elif request.endpoint == 'login'%}
-      <a class="btn-index-register" href="{{ url_for('register') }}">Cadastre-se</a>
+      <a class="btn-index-register" href="{{ url_for('register') }}">Cadastro</a>
       {% else %}
       <a class="btn-header-login-outline" href="{{ url_for('login') }}">Login</a>
       {% endif %}

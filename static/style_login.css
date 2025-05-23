@@ -1,28 +1,3 @@
-/* === RESET E BASE === */
-* {
-  box-sizing: border-box;
-}
-
-html,
-body {
-  margin: 0;
-  padding: 0;
-  background: linear-gradient(120deg, #e5ebf0 0%, #f4f7f9 100%);
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  color: #333;
-}
-
-/* === CONTAINER CENTRAL === */
-.login-container {
-  width: 90%;
-  max-width: 500px;
-  margin: 60px auto;
-  background: #fff;
-  border-radius: 16px;
-  padding: 40px 30px;
-  box-shadow: 0 10px 30px rgba(20, 20, 20, 0.08);
-}
-
 /* === CABEÇALHO === */
 .login-header {
   text-align: center;
@@ -201,15 +176,6 @@ input:focus {
 .back-button a:hover {
   text-decoration: underline;
 }
-.page-container {
-  max-width: 1200px;
-  width: 90%;
-  margin: 30px auto; /* 🔄 agora com top e bottom iguais */
-  background: #ffffff;
-  border-radius: 16px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-  padding: 40px 30px;
-}
 
 .email-warning-container {
   margin: 20px auto;
@@ -277,13 +243,25 @@ input:focus {
   }
 }
 
-.footer {
-  margin: 0 auto 30px auto; /* cola no container acima, mas dá espaço embaixo */
-  max-width: 1200px;
-  width: 90%;
-  background-color: #003366;
-  color: #fff;
-  padding: 1rem 2rem;
-  border-radius: 12px;
-  text-align: center;
+.page-container {
+  min-height: 50vh; /* altura total da tela */
+  display: flex;
+  flex-direction: column;
+}
+
+main {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  padding: 2rem 1rem; /* espaçamento lateral para telas pequenas */
+}
+
+.login-container {
+  width: 100%;
+  max-width: 500px;
+  background: #fff;
+  border-radius: 16px;
+  padding: 40px 30px;
+  box-shadow: 0 10px 30px rgba(20, 20, 20, 0.08);
+  margin: auto; /* centraliza verticalmente dentro do main com flex */
 }
