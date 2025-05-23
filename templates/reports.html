@@ -233,7 +233,8 @@
     </div>
   </section>
 </div>
-
+{% set status = current_stripe_transaction.subscription_status | default('') %} {% set max_limit = 300 if status in ["trialing", "active", "past_due"]
+else 0 %}
 <br />
 <div class="container mt-4">
   <div class="row justify-content-center">

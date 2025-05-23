@@ -163,15 +163,25 @@ def datetimeformat(value):
 
 
 
+from datetime import datetime
+
 @app.template_filter("formatar_data_br")
 def formatar_data_br(data_iso):
+    print('data iso')
+    print(data_iso)
     if not data_iso:
+        print("no iso")
         return "-"
     try:
-        dt = datetime.strptime(data_iso, "%Y-%m-%d")
-        return dt.strftime("%d/%m/%Y")
+        # Primeiro tenta como data completa com hora
+        dt = datetime.strptime(data_iso, "%Y-%m-%d %H:%M:%S")
     except ValueError:
-        return data_iso  # retorna como está, se não seguir o formato esperado
+        try:
+            # Depois tenta só a parte da data
+            dt = datetime.strptime(data_iso, "%Y-%m-%d")
+        except ValueError:
+            return data_iso  # formato inesperado, retorna como está
+    return dt.strftime("%d/%m/%Y")
 
 
 @app.template_filter("format_brl")

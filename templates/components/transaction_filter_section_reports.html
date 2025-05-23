@@ -149,8 +149,10 @@
                         <input type="date" class="form-control" name="start_{{ field.id }}" value="{{ request.args.get('start_' ~ field.id, '') }}">
                         <input type="date" class="form-control" name="end_{{ field.id }}" value="{{ request.args.get('end_' ~ field.id, '') }}">
 
-                    {% elif field.type == "transaction_ret_date" %}
+                    {% elif field.type in ["transaction_ret_date", "created_at"] %}
                       <div class="d-flex gap-2">
+                            <small class="text-muted">Selecione o intervalo: data inicial acima, data final abaixo.</small>
+
                         <input type="date" class="form-control" name="start_{{ field.id }}" value="{{ request.args.get('start_' ~ field.id, '') }}">
                         <input type="date" class="form-control" name="end_{{ field.id }}" value="{{ request.args.get('end_' ~ field.id, '') }}">
                       </div>
