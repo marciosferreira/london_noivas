@@ -1,7 +1,10 @@
-{% extends "base.html" %} {% block title %}Sistema de Gestão para Locadoras{% endblock %} {% block styles %}
+{% extends "base.html" %}
+
+
+{% block title %}Sistema de Gestão para Locadoras{% endblock %} {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='style_index.css') }}" />
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-{% endblock %} {% block content %} {% include 'not_logged_header.html' %}
+{% endblock %} {% block content %}
 
 <div class="container py-4">
   <!-- HERO HEADER -->
@@ -117,7 +120,7 @@
     </div>
   </div>
 </div>
-
+</div>
 {% endblock %} {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
@@ -134,3 +137,4 @@
   gtag('event', 'conversion', { send_to: 'AW-1051093117/6kftCNiL_GUQ_dCZ9QM' });
 </script>
 {% endif %} {% endblock %}
+
