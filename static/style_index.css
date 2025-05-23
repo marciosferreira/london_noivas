@@ -175,11 +175,12 @@ body {
 }
 
 .fixed-height-img {
-  height: 200px;
+  aspect-ratio: 4 / 3; /* ou 16 / 9 */
   width: 100%;
-  object-fit: cover; /* ou "contain" se quiser mostrar a imagem toda */
+  object-fit: cover;
   border-radius: 8px;
-  cursor: pointer; /* 👈 isso garante a mãozinha */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
 }
 
 .destacado {
