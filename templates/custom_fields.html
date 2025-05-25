@@ -11,8 +11,8 @@
     entity == 'item' %} {% set force_checked = { 'item_custom_id': ['visible', 'required'], 'item_description': ['visible', 'required'], 'item_value':
     ['visible', 'required'] } %} {% elif entity == 'transaction' %} {% set force_checked = { 'transaction_period': ['visible', 'required'],
     'transaction_price': ['visible', 'required'], 'transaction_status': ['visible', 'required'], 'transaction_value_paid': ['visible', 'required'],
-    'transaction_ret_date': ['visible', 'required'], 'transaction_created_at': ['visible', 'required']} %} {% else %} {% set force_checked = {} %} {%
-    endif %} {% for field in all_fields %}
+    'transaction_ret_date': ['visible', 'required'], 'created_at': ['visible', 'required']} %} {% else %} {% set force_checked = {} %} {% endif %} {%
+    for field in all_fields %}
     <div class="border rounded p-3 mb-3" data-id="{{ field.id }}">
       <input type="hidden" name="fields[{{ loop.index0 }}][id]" value="{{ field.id }}" />
       <input type="hidden" name="fields[{{ loop.index0 }}][kind]" value="{{ field.f_type }}" />
