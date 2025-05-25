@@ -1058,6 +1058,53 @@ def init_auth_routes(
         return redirect(url_for("admin_dashboard"))
 
 
+
+    @app.route("/admin/update_fields_config")
+    def update_fields_config():
+        try:
+            # 🔍 Faz scan da tabela de configs e extrai account_ids únicos
+            response = field_config_table.scan(ProjectionExpression="account_id")
+            account_ids = set(item["account_id"] for item in response.get("Items", []))
+
+            total_updated = 0
+
+            for account_id in account_ids:
+                for entity in ["item", "client", "transaction"]:
+                    # 🔹 Busca campos existentes
+                    existing_response = field_config_table.get_item(Key={"account_id": account_id, "entity": entity})
+                    existing_fields = existing_response.get("Item", {}).get("fields_config", {})
+
+                    # 🔹 Mantém campos não-fixed
+                    preserved_fields = {
+                        fid: fdata for fid, fdata in existing_fields.items()
+                        if fdata.get("f_type") != "fixed"
+                    }
+
+                    # 🔹 Campos fixed default atualizados
+                    default_fixed_fields = get_default_fields_and_slugs(entity)
+
+                    # 🔹 Merge (fixed atualiza ou adiciona, preservados mantêm)
+                    merged_fields = {**preserved_fields, **default_fixed_fields}
+
+                    # 🔹 Grava no banco
+                    field_config_table.put_item(
+                        Item={
+                            "account_id": account_id,
+                            "entity": entity,
+                            "fields_config": merged_fields,
+                        }
+                    )
+                    total_updated += 1
+
+            flash(f"Atualização concluída ({total_updated} configs atualizadas).", "success")
+            return redirect(url_for("admin_dashboard"))
+
+        except Exception as e:
+            flash(f"Erro ao atualizar configs: {str(e)}", "danger")
+            return redirect(url_for("admin_dashboard"))
+
+
+
 # from field_config_utils import get_default_fields_and_slugs
 
 
@@ -1593,3 +1640,5 @@ def get_default_fields_and_slugs(entity):
     }
 
     return finalized_fields_config
+
+
