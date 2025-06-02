@@ -56,7 +56,7 @@ def init_static_routes(
                 return redirect(url_for("contato"))
 
             # Enviar e-mail via AWS SES
-            destinatario = "contato@alugueqqc.com.br"
+            destinatario = "contato@locashop.com.br"
             assunto = f"Novo contato de {nome}"
             corpo_email = f"Nome: {nome}\nE-mail: {email}\n\nMensagem:\n{mensagem}"
 
@@ -94,7 +94,7 @@ def init_static_routes(
                 return redirect(url_for("reportar_bug"))
 
             # Enviar e-mail via AWS SES
-            destinatario = "contato@alugueqqc.com.br"
+            destinatario = "contato@locashop.com.br"
             assunto = f"Bug reportado: {url}"
             corpo_email = (
                 f"URL: {url}\nE-mail: {email}\n\nDescrição do Bug:\n{descricao}"
