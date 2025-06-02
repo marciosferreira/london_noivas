@@ -27,27 +27,27 @@ def send_password_reset_email(email, username, reset_link):
     """Sends a password reset email to the user."""
     SENDER = "nao_responda@alugueqqc.com.br"  # Deve ser um email verificado no SES
     RECIPIENT = email
-    SUBJECT = "Alugue QQC - Recuperação de Senha"
+    SUBJECT = "LocaShop - Recuperação de Senha"
 
     # O corpo do email em HTML
     BODY_HTML = f"""
     <html>
     <head></head>
     <body>
-    <h1>Alugue QQC - Recuperação de Senha</h1>
+    <h1>LocaShop - Recuperação de Senha</h1>
     <p>Olá {username},</p>
     <p>Recebemos uma solicitação para redefinir sua senha. Se você não solicitou isso, por favor ignore este email.</p>
     <p>Para redefinir sua senha, clique no link abaixo:</p>
     <p><a href="{reset_link}">Redefinir minha senha</a></p>
     <p>Este link é válido por 24 horas.</p>
-    <p>Atenciosamente,<br>Equipe Alugue QQC</p>
+    <p>Atenciosamente,<br>Equipe LocaShop</p>
     </body>
     </html>
     """
 
     # O corpo do email em texto simples para clientes que não suportam HTML
     BODY_TEXT = f"""
-    Alugue QQC - Recuperação de Senha
+    LocaShop - Recuperação de Senha
 
     Olá {username},
 
@@ -59,7 +59,7 @@ def send_password_reset_email(email, username, reset_link):
     Este link é válido por 24 horas.
 
     Atenciosamente,
-    Equipe Alugue QQC
+    Equipe LocaShop
     """
 
     try:
@@ -91,7 +91,7 @@ def send_confirmation_email(email, username, email_token):
     """Sends an email confirmation link to the user."""
     SENDER = "nao_responda@alugueqqc.com.br"  # Deve ser um email verificado no SES
     RECIPIENT = email
-    SUBJECT = "Alugue QQC - Confirmação de E-mail"
+    SUBJECT = "LocaShop - Confirmação de E-mail"
 
     # Corpo do e-mail em HTML
     BODY_HTML = f"""
@@ -100,12 +100,12 @@ def send_confirmation_email(email, username, email_token):
     <body>
     <h1>Confirmação de E-mail</h1>
     <p>Olá <strong>{username}</strong>,</p>
-    <p>Obrigado por se cadastrar no Alugue QQC!</p>
+    <p>Obrigado por se cadastrar no LocaShop!</p>
     <p>Para ativar sua conta, clique no link abaixo:</p>
     <p><a href="{email_token}" style="font-size:16px; font-weight:bold; color:#ffffff; background-color:#007bff; padding:10px 20px; text-decoration:none; border-radius:5px;">Confirmar Meu E-mail</a></p>
     <p>Se o botão acima não funcionar, copie e cole o seguinte link no seu navegador:</p>
     <p><a href="{email_token}">{email_token}</a></p>
-    <p>Atenciosamente,<br>Equipe Alugue QQC</p>
+    <p>Atenciosamente,<br>Equipe LocaShop</p>
     </body>
     </html>
     """
@@ -116,15 +116,15 @@ def send_confirmation_email(email, username, email_token):
 
     Olá {username},
 
-    Obrigado por se cadastrar no Alugue QQC!
+    Obrigado por se cadastrar no LocaShop!
 
     Para ativar sua conta, clique no link abaixo:
     {email_token}
 
-    Se você não se cadastrou no Alugue QQC, ignore este e-mail.
+    Se você não se cadastrou no LocaShop, ignore este e-mail.
 
     Atenciosamente,
-    Equipe Alugue QQC
+    Equipe LocaShop
     """
 
     try:

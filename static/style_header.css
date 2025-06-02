@@ -6,6 +6,9 @@
   z-index: 1000;
 }
 
+.no-space {
+  margin-left: -8px; /* ou -0.5px se for exagerado */
+}
 /* Estilo geral da navbar */
 .navbar {
   background-color: #003366 !important;
