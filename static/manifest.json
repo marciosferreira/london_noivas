@@ -1,6 +1,6 @@
 {
-  "short_name": "Alugue QQC",
-  "name": "Alugue QQC - Alugue Qualquer Coisa",
+  "short_name": "LocaShop",
+  "name": "LocaShop - Gerenciamento de Aluguéis",
   "icons": [
     {
       "src": "/static/icons/icon-192x192-w.png",
