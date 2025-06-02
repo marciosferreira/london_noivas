@@ -80,7 +80,7 @@ def init_auth_routes(
                 return redirect(url_for("register"))
 
             # Validar no servidor do Google
-            secret_key = "6LdriyYrAAAAADXe0sZnhzr-mOCFGs61f_7dv2pZ"
+            secret_key = "66LfUc1MrAAAAAGMKzABYW1rFF78jDBxHZKAF_jwy"
             verify_url = "https://www.google.com/recaptcha/api/siteverify"
             payload = {
                 "secret": secret_key,
@@ -417,7 +417,7 @@ def init_auth_routes(
 
             return render_template(
                 "forgot_password.html",
-                message="Se este email estiver cadastrado, enviaremos instruções para redefinir sua senha.",
+                message="Se este email estiver cadastrado, uma instrução para redefinir sua senha foi enviada.",
             )
 
         # Mesmo se o email não existir, retornamos a mesma mensagem por segurança
@@ -493,11 +493,15 @@ def init_auth_routes(
                 token=token,
             )
 
-        if len(new_password) < 8 or len(new_password) > 64:
-            flash(
-                "A nova senha deve ter mais que 8 e menos que 64 caracteres.", "danger"
-            )
-            return redirect(request.referrer)
+        import re
+        if (
+            len(new_password) < 6
+            or len(new_password) > 64
+            or not re.search(r"[A-Za-z]", new_password)
+            or not re.search(r"\d", new_password)
+        ):
+            flash("A nova senha deve ter entre 6 e 64 caracteres, com ao menos uma letra e um número.", "danger")
+            return redirect(url_for("sua_rota_ou_página"))
 
         try:
             # Verificar se o token existe e é válido
@@ -526,8 +530,10 @@ def init_auth_routes(
                     new_password, method="pbkdf2:sha256"
                 )
 
-                user_id = session.get("user_id") if "user_id" in session else None
+                #user_id = session.get("user_id") if "user_id" in session else None
                 user_utc = get_user_timezone(users_table, user_id)
+
+                print("updating password in db...")
 
                 # Atualizar senha no banco de dados
                 users_table.update_item(
