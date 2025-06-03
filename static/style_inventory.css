@@ -61,11 +61,3 @@
   z-index: 1;
   position: absolute;
 }
-
-#imageModal {
-  z-index: 9999 !important;
-}
-
-.modal-backdrop.show {
-  z-index: 9998 !important;
-}
