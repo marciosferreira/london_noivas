@@ -6,10 +6,7 @@
     <link rel="shortcut icon" href="/static/icons/favicon.ico" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
 
-    <meta
-      name="description"
-      content="Gerencie aluguéis de forma simples, segura e gratuita com o LocaShop. Ideal para pequenos negócios e empreendedores."
-    />
+    <meta name="description" content="Gerencie aluguéis de forma simples e eguracom o LocaShop. Ideal para pequenos negócios e empreendedores." />
     <meta name="keywords" content="aluguel, controle de itens, gerenciador de aluguéis, sistema de aluguel, grátis, gestão de inventário" />
     <meta name="author" content="LocaShop" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -252,30 +249,18 @@
       });
     </script>
 
-    <!--
     <script>
-      document.addEventListener('DOMContentLoaded', function () {
-        document.querySelectorAll('form').forEach((form) => {
-          const btn = form.querySelector('button[type="submit"]');
-          if (!btn) return;
-
-          const spinner = btn.querySelector('.spinner-border');
-          const text = btn.querySelector('span');
-
-          form.addEventListener('submit', function (e) {
-            // Aguarda final da execução para saber se foi cancelado
-            setTimeout(() => {
-              if (form.checkValidity()) {
-                btn.disabled = true;
-                if (spinner) spinner.style.display = 'inline-block';
-                if (text) text.textContent = 'Enviando...';
-              }
-            }, 0);
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker
+          .register('/service-worker.js')
+          .then(function (registration) {
+            console.log('Service Worker registrado com sucesso:', registration);
+          })
+          .catch(function (error) {
+            console.error('Erro ao registrar o Service Worker:', error);
           });
-        });
-      });
+      }
     </script>
-    -->
 
     {% endblock %}
   </body>
