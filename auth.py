@@ -763,7 +763,7 @@ def init_auth_routes(
         from app import ses_client
 
         ses_client.send_email(
-            Source="nao_responda@alugueqqc.com.br",
+            Source="nao_responda@locashop.com.br",
             Destination={"ToAddresses": [new_email]},
             Message={
                 "Subject": {"Data": "Confirme seu novo e-mail"},

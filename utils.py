@@ -25,7 +25,7 @@ s3 = boto3.client(
 # Email functions
 def send_password_reset_email(email, username, reset_link):
     """Sends a password reset email to the user."""
-    SENDER = "nao_responda@alugueqqc.com.br"  # Deve ser um email verificado no SES
+    SENDER = "nao_responda@locashop.com.br"  # Deve ser um email verificado no SES
     RECIPIENT = email
     SUBJECT = "LocaShop - Recuperação de Senha"
 
@@ -89,7 +89,7 @@ def send_password_reset_email(email, username, reset_link):
 
 def send_confirmation_email(email, username, email_token):
     """Sends an email confirmation link to the user."""
-    SENDER = "nao_responda@alugueqqc.com.br"  # Deve ser um email verificado no SES
+    SENDER = "nao_responda@locashop.com.br"  # Deve ser um email verificado no SES
     RECIPIENT = email
     SUBJECT = "LocaShop - Confirmação de E-mail"
 
@@ -164,7 +164,7 @@ def send_admin_notification_email(admin_email, new_user_email, new_user_username
     """
 
     ses_client.send_email(
-        Source="nao_responda@alugueqqc.com.br",
+        Source="nao_responda@locashop.com.br",
         Destination={"ToAddresses": [admin_email]},
         Message={
             "Subject": {"Data": subject},
