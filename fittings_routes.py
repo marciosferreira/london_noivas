@@ -109,6 +109,68 @@ def init_fittings_routes(
         print(f"DEBUG: Final results count: {len(results)}")
         return results
 
+    def _next_dates_with_fittings_and_transactions(account_id: str, start_date_iso: str, count: int = None):
+        # Busca TODAS as próximas datas com provas e transações
+        results = []
+        try:
+            # Buscar provas futuras
+            fittings_resp = fittings_table.scan(
+                FilterExpression=Attr("account_id").eq(account_id)
+            )
+            fittings_items = fittings_resp.get("Items", [])
+            
+            # Buscar transações futuras (retiradas e devoluções)
+            transactions_resp = transactions_table.scan(
+                FilterExpression=Attr("account_id").eq(account_id)
+                & (Attr("transaction_status").eq("reserved")
+                   | Attr("transaction_status").eq("rented"))
+            )
+            transactions_items = transactions_resp.get("Items", [])
+            
+            # Agrupar por data
+            dates_dict = {}
+            
+            # Processar provas
+            for item in fittings_items:
+                date_part = item["date_time_local"][:10]  # Extrai apenas a parte da data (YYYY-MM-DD)
+                if date_part > start_date_iso:
+                    if date_part not in dates_dict:
+                        dates_dict[date_part] = {"fitting_items": [], "transaction_items": []}
+                    dates_dict[date_part]["fitting_items"].append(item)
+            
+            # Processar transações
+            for item in transactions_items:
+                # Verificar retiradas
+                rental_date = item.get("rental_date")
+                if rental_date and rental_date > start_date_iso:
+                    if rental_date not in dates_dict:
+                        dates_dict[rental_date] = {"fitting_items": [], "transaction_items": []}
+                    item_copy = item.copy()
+                    item_copy['transaction_type'] = 'pickup'
+                    dates_dict[rental_date]["transaction_items"].append(item_copy)
+                
+                # Verificar devoluções (apenas para status 'rented')
+                return_date = item.get("return_date")
+                if return_date and return_date > start_date_iso and item.get("transaction_status") == "rented":
+                    if return_date not in dates_dict:
+                        dates_dict[return_date] = {"fitting_items": [], "transaction_items": []}
+                    item_copy = item.copy()
+                    item_copy['transaction_type'] = 'return'
+                    dates_dict[return_date]["transaction_items"].append(item_copy)
+            
+            # Converte para o formato esperado e ordena por data
+            for date_iso in sorted(dates_dict.keys()):
+                results.append({
+                    "date_iso": date_iso,
+                    "fitting_items": dates_dict[date_iso]["fitting_items"],
+                    "transaction_items": dates_dict[date_iso]["transaction_items"]
+                })
+                    
+        except Exception as e:
+            print("Erro ao buscar próximos dias com provas e transações:", e)
+        
+        return results
+
     def _past_dates_with_fittings(account_id: str, end_date_iso: str, count: int = 30):
         # Busca agendamentos passados (anteriores à data especificada)
         results = []
@@ -161,6 +223,50 @@ def init_fittings_routes(
             print("Erro ao buscar retiradas de hoje:", e)
             return []
 
+    def _rentals_return_today(account_id: str, today_iso: str):
+        # Lista devoluções agendadas para hoje (rented)
+        try:
+            resp = transactions_table.scan(
+                FilterExpression=Attr("account_id").eq(account_id)
+                & Attr("return_date").eq(today_iso)
+                & Attr("transaction_status").eq("rented")
+            )
+            return resp.get("Items", [])
+        except Exception as e:
+            print("Erro ao buscar devoluções de hoje:", e)
+            return []
+
+    def _rentals_for_date(account_id: str, date_iso: str):
+        # Lista transações (retiradas e devoluções) para uma data específica
+        try:
+            # Buscar retiradas para esta data
+            pickup_resp = transactions_table.scan(
+                FilterExpression=Attr("account_id").eq(account_id)
+                & Attr("rental_date").eq(date_iso)
+                & (Attr("transaction_status").eq("reserved")
+                   | Attr("transaction_status").eq("rented"))
+            )
+            pickups = pickup_resp.get("Items", [])
+            
+            # Buscar devoluções para esta data
+            return_resp = transactions_table.scan(
+                FilterExpression=Attr("account_id").eq(account_id)
+                & Attr("return_date").eq(date_iso)
+                & Attr("transaction_status").eq("rented")
+            )
+            returns = return_resp.get("Items", [])
+            
+            # Marcar o tipo de transação
+            for item in pickups:
+                item['transaction_type'] = 'pickup'
+            for item in returns:
+                item['transaction_type'] = 'return'
+            
+            return pickups + returns
+        except Exception as e:
+            print(f"Erro ao buscar transações para {date_iso}:", e)
+            return []
+
     def _validate_conflicts(client_id, item_id, date_iso, time_local):
         # Usa os GSIs fornecidos para detectar conflitos por cliente/item no mesmo horário
         conflicts = {"client": [], "item": []}
@@ -201,15 +307,17 @@ def init_fittings_routes(
 
         fittings_today = _list_fittings_for_date(account_id, today_iso)
         rentals_today = _rentals_pickup_today(account_id, today_iso)
+        returns_today = _rentals_return_today(account_id, today_iso)
 
-        # Mostra TODAS as datas futuras com provas
-        next_days = _next_dates_with_fittings(account_id, today_iso)
+        # Mostra TODAS as datas futuras com provas e transações
+        next_days = _next_dates_with_fittings_and_transactions(account_id, today_iso)
 
         return render_template(
             "agenda.html",
             today_iso=today_iso,
             fittings_today=fittings_today,
             rentals_today=rentals_today,
+            returns_today=returns_today,
             next_days=next_days,
         )
 

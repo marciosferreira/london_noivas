@@ -123,3 +123,77 @@ td {
   display: block;
   margin: 0 auto;
 }
+
+/* Responsividade específica para a agenda */
+@media (max-width: 768px) {
+  /* Cabeçalho principal da agenda */
+  .container .d-flex.justify-content-between.align-items-center {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 1rem;
+  }
+  
+  .container .d-flex.justify-content-between.align-items-center h2 {
+    text-align: center;
+    margin-bottom: 0;
+  }
+  
+  .container .d-flex.justify-content-between.align-items-center .d-flex.gap-2 {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 576px) {
+  /* Seção "Hoje" */
+  section .d-flex.justify-content-between.align-items-center {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 0.75rem;
+  }
+  
+  section .d-flex.justify-content-between.align-items-center h4 {
+    text-align: center;
+    font-size: 1.1rem;
+  }
+  
+  section .d-flex.justify-content-between.align-items-center .btn {
+    align-self: center;
+    width: auto;
+    min-width: 200px;
+  }
+  
+  /* Cabeçalhos de data individuais */
+  .card-header .d-flex.justify-content-between.align-items-center {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 0.75rem;
+  }
+  
+  .card-header .d-flex.justify-content-between.align-items-center .d-flex.align-items-center {
+    justify-content: center;
+    text-align: center;
+  }
+  
+  .card-header .d-flex.justify-content-between.align-items-center .d-flex.align-items-center h4 {
+    font-size: 1rem;
+    margin-bottom: 0;
+  }
+  
+  .card-header .d-flex.justify-content-between.align-items-center .btn {
+    align-self: center;
+    width: auto;
+    min-width: 180px;
+  }
+  
+  /* Botões da agenda em geral */
+  .btn-outline-success, .btn-success {
+    font-size: 0.875rem;
+    padding: 0.5rem 1rem;
+  }
+  
+  /* Garantir que os ícones não quebrem */
+  .fas {
+    flex-shrink: 0;
+  }
+}

@@ -2392,6 +2392,7 @@ def list_transactions(
     field_config_table,
     client_id= None,
     item_id = None,
+    transaction_id = None,
     page=None,
     limit=6,
 ):
@@ -2501,8 +2502,11 @@ def list_transactions(
     if not client_id:
         client_id = request.args.get("client_id")
 
-    # 🔍 Exibe apenas transações específicas, se item_id ou client_id estiverem definidos
-    if item_id or client_id:
+    if not transaction_id:
+        transaction_id = request.args.get("transaction_id")
+
+    # 🔍 Exibe apenas transações específicas, se item_id, client_id ou transaction_id estiverem definidos
+    if item_id or client_id or transaction_id:
         query_kwargs = {
             "IndexName": "account_id-created_at-index",
             "KeyConditionExpression": Key("account_id").eq(account_id),
@@ -2518,6 +2522,8 @@ def list_transactions(
             if item_id and txn.get("item_id") != item_id:
                 continue
             if client_id and txn.get("client_id") != client_id:
+                continue
+            if transaction_id and txn.get("transaction_id") != transaction_id:
                 continue
             transacoes_filtradas.append(process_dates(txn))
 

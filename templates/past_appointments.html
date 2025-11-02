@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Agendamentos Passados{% endblock %}
+{% block title %}Provas Passadas{% endblock %}
 
 {% block content %}
 <div class="container-fluid py-4">
@@ -10,7 +10,7 @@
       <div class="d-flex justify-content-between align-items-center mb-4">
         <div class="d-flex align-items-center">
           <i class="fas fa-history text-secondary me-3 fs-3"></i>
-          <h2 class="mb-0 text-dark fw-bold">Agendamentos Passados</h2>
+          <h2 class="mb-0 text-dark fw-bold">Provas Passadas</h2>
         </div>
         <a class="btn btn-primary" href="{{ url_for('agenda') }}">
           <i class="fas fa-arrow-left me-2"></i>Voltar para Agenda
@@ -18,22 +18,22 @@
       </div>
 
       {% if not past_days %}
-      <!-- Mensagem quando não há agendamentos passados -->
+      <!-- Mensagem quando não há provas passadas -->
       <div class="text-center py-5">
         <div class="card border-0 shadow-sm">
           <div class="card-body py-5">
             <i class="fas fa-calendar-times text-muted mb-3" style="font-size: 4rem;"></i>
-            <h4 class="text-muted mb-3">Nenhum agendamento passado encontrado</h4>
-            <p class="text-muted">Quando você tiver agendamentos realizados, eles aparecerão aqui.</p>
+            <h4 class="text-muted mb-3">Nenhuma prova passada encontrada</h4>
+            <p class="text-muted">Quando você tiver provas realizadas, elas aparecerão aqui.</p>
             <a href="{{ url_for('agenda') }}" class="btn btn-primary">
-              <i class="fas fa-plus me-2"></i>Criar novo agendamento
+              <i class="fas fa-plus me-2"></i>Criar nova prova
             </a>
           </div>
         </div>
       </div>
       {% else %}
 
-      <!-- Lista de agendamentos passados -->
+      <!-- Lista de provas passadas -->
       {% for day in past_days %}
       {% set outer_loop = loop %}
       
@@ -74,6 +74,12 @@
           <div class="col-12 col-md-6 col-lg-4">
             <div class="card shadow-lg h-100 position-relative rounded-3 border-0 border-start border-4 border-secondary">
               <div class="card-body py-3 px-4">
+                <!-- Título do card -->
+                <div class="d-flex align-items-center mb-3">
+                  <i class="fas fa-user-tie text-secondary me-2"></i>
+                  <h6 class="mb-0 fw-bold text-dark">Prova</h6>
+                </div>
+                
                 <!-- Botões de ação -->
                 <div class="d-flex justify-content-end mb-2 gap-1">
                   <div class="dropdown">
