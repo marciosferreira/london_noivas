@@ -1,0 +1,440 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Prova{% endblock %}
+
+{% block head %}
+<!-- Bootstrap CSS -->
+<link
+  href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+  rel="stylesheet"
+  integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN"
+  crossorigin="anonymous"
+/>
+
+<!-- FontAwesome -->
+<link
+  rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+  integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw=="
+  crossorigin="anonymous"
+  referrerpolicy="no-referrer"
+/>
+
+<style>
+  .autocomplete-container {
+    position: relative;
+  }
+  .autocomplete-suggestions {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #ddd;
+    border-top: none;
+    border-radius: 0 0 4px 4px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  .autocomplete-item {
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+  .autocomplete-item:hover {
+    background-color: #f8f9fa;
+  }
+  .card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    border: 1px solid rgba(0, 0, 0, 0.125);
+  }
+  .card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-3">
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="h3 mb-0">
+        <i class="fas fa-edit text-warning me-2"></i>Editar Prova
+      </h1>
+      <p class="text-muted mb-0">Modifique os dados da prova de roupa</p>
+    </div>
+    <a href="{{ url_for('agenda') }}" class="btn btn-outline-secondary">
+      <i class="fas fa-arrow-left me-2"></i>Voltar para Agenda
+    </a>
+  </div>
+
+  <!-- Form Card -->
+  <div class="row justify-content-center">
+    <div class="col-lg-8 col-xl-6">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-user-clock me-2"></i>Dados da Prova
+          </h5>
+        </div>
+        <div class="card-body">
+          <form method="POST">
+            <div class="row g-3">
+              <!-- Data -->
+              <div class="col-sm-6">
+                <label class="form-label">
+                  <i class="fas fa-calendar me-1"></i>Data <span class="text-danger">*</span>
+                </label>
+                <input type="date" class="form-control" name="date_iso" value="{{ fitting.date_local }}" required>
+              </div>
+
+              <!-- Hora -->
+              <div class="col-sm-6">
+                <label class="form-label">
+                  <i class="fas fa-clock me-1"></i>Hora (opcional)
+                </label>
+                <input type="time" class="form-control" name="time_local" value="{{ fitting.time_local or '' }}">
+                <div class="form-text">Deixe em branco se não houver horário específico</div>
+              </div>
+
+              <!-- Cliente ID -->
+              <div class="col-sm-6">
+                <label class="form-label">
+                  <i class="fas fa-hashtag me-1"></i>ID do Cliente
+                </label>
+                <div class="autocomplete-container">
+                  <input type="text" class="form-control" name="client_id" id="client_id" value="{{ fitting.client_id }}" placeholder="Digite o ID do cliente">
+                  <div id="client_id_suggestions" class="autocomplete-suggestions"></div>
+                </div>
+                <div class="form-text">Campo auxiliar para busca</div>
+              </div>
+
+              <!-- Nome do Cliente -->
+              <div class="col-sm-6">
+                <label class="form-label">
+                  <i class="fas fa-user me-1"></i>Nome do Cliente
+                </label>
+                <div class="autocomplete-container">
+                  <input type="text" class="form-control" name="client_name" id="client_name" value="{{ fitting.client_name }}" placeholder="Digite para buscar cliente">
+                  <div id="client_suggestions" class="autocomplete-suggestions"></div>
+                </div>
+                <div class="form-text">Campo auxiliar para busca</div>
+              </div>
+
+              <!-- Item ID -->
+              <div class="col-sm-6">
+                <label class="form-label">
+                  <i class="fas fa-barcode me-1"></i>ID do Item
+                </label>
+                <div class="autocomplete-container">
+                  <input type="text" class="form-control" name="item_id" id="item_id" value="{{ fitting.item_id }}" placeholder="Digite o ID do item">
+                  <div id="item_id_suggestions" class="autocomplete-suggestions"></div>
+                </div>
+                <div class="form-text">Campo auxiliar para busca</div>
+              </div>
+
+              <!-- Descrição do Item -->
+              <div class="col-sm-6">
+                <label class="form-label">
+                  <i class="fas fa-tag me-1"></i>Descrição do Item
+                </label>
+                <div class="autocomplete-container">
+                  <input type="text" class="form-control" name="item_description" id="item_description" value="{{ fitting.item_description }}" placeholder="Digite para buscar item">
+                  <div id="item_description_suggestions" class="autocomplete-suggestions"></div>
+                </div>
+                <div class="form-text">Campo auxiliar para busca</div>
+              </div>
+
+              <!-- Status -->
+              <div class="col-sm-6">
+                <label class="form-label">
+                  <i class="fas fa-info-circle me-1"></i>Status
+                </label>
+                <select class="form-select" name="status">
+                  <option value="Pendente" {% if fitting.status == 'Pendente' %}selected{% endif %}>Pendente</option>
+                  <option value="Confirmado" {% if fitting.status == 'Confirmado' %}selected{% endif %}>Confirmado</option>
+                  <option value="Cancelado" {% if fitting.status == 'Cancelado' %}selected{% endif %}>Cancelado</option>
+                </select>
+              </div>
+
+              <!-- Observações -->
+              <div class="col-12">
+                <label class="form-label">
+                  <i class="fas fa-sticky-note me-1"></i>Observações (opcional)
+                </label>
+                <textarea class="form-control" name="notes" rows="3" placeholder="Detalhes importantes sobre a prova">{{ fitting.notes or '' }}</textarea>
+              </div>
+            </div>
+
+            <!-- Buttons -->
+            <div class="d-flex gap-2 mt-4">
+              <button type="submit" class="btn btn-success">
+                <i class="fas fa-save me-2"></i>Atualizar Prova
+              </button>
+              <a href="{{ url_for('agenda') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-times me-2"></i>Cancelar
+              </a>
+              <form method="post" action="{{ url_for('delete_fitting', fitting_id=fitting.fitting_id) }}" style="display: inline;" onsubmit="return confirm('Tem certeza que deseja excluir esta prova?')">
+                <button type="submit" class="btn btn-danger">
+                  <i class="fas fa-trash me-2"></i>Excluir
+                </button>
+              </form>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- FontAwesome -->
+<script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+
+<!-- Bootstrap Bundle -->
+<script
+  src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
+  integrity="sha384-A3xORN3yEh9NTBI69AsVZqg0vszNvB4LaU6gq3p0eNmKUy5OWyE4hzJxKr5oUqvN"
+  crossorigin="anonymous"
+></script>
+
+<script>
+  // Utilitário de debounce para limitar chamadas de busca
+  function debounce(fn, wait) {
+    let t;
+    return function(...args) {
+      clearTimeout(t);
+      const ctx = this;
+      t = setTimeout(() => fn.apply(ctx, args), wait);
+    };
+  }
+
+  // Cliente: autocomplete por nome, copia apenas o texto para o campo
+  (function() {
+    const input = document.getElementById('client_name');
+    const box = document.getElementById('client_suggestions');
+    if (!input || !box) return;
+
+    // Limpar client_id quando client_name for limpo
+    input.addEventListener('input', function() {
+      if (this.value.trim() === '') {
+        const clientIdInput = document.querySelector('input[name="client_id"]');
+        if (clientIdInput) clientIdInput.value = '';
+      }
+    });
+
+    const handleInput = async () => {
+      const term = input.value.trim();
+      if (!term) { box.innerHTML = ''; return; }
+      try {
+        const res = await fetch(`/autocomplete_clients?term=${encodeURIComponent(term)}`);
+        const clients = await res.json();
+        box.innerHTML = '';
+        clients.forEach((cli, idx) => {
+          const div = document.createElement('div');
+          div.className = 'autocomplete-item px-2 py-1';
+          if (idx > 0) div.style.borderTop = '1px solid #e9ecef';
+          div.innerHTML = `
+            <div class="d-flex flex-column">
+              <strong>${cli.client_name || ''}</strong>
+              ${cli.client_phone ? `<small class="text-muted">📞 ${cli.client_phone}</small>` : ''}
+              ${cli.client_email ? `<small class="text-muted">📧 ${cli.client_email}</small>` : ''}
+            </div>`;
+          div.addEventListener('click', () => {
+            input.value = cli.client_name || '';
+            // Preencher automaticamente o campo client_id
+            const clientIdInput = document.querySelector('input[name="client_id"]');
+            if (clientIdInput) clientIdInput.value = cli.client_id || '';
+            box.innerHTML = '';
+          });
+          box.appendChild(div);
+        });
+      } catch (e) {
+        console.error('Erro ao buscar clientes:', e);
+      }
+    };
+    input.addEventListener('input', debounce(handleInput, 300));
+    input.addEventListener('blur', () => setTimeout(() => (box.innerHTML = ''), 200));
+  })();
+
+  // Cliente ID: autocomplete por ID ou nome
+  (function() {
+    const input = document.getElementById('client_id');
+    const box = document.getElementById('client_id_suggestions');
+    if (!input || !box) return;
+
+    const handleInput = async () => {
+      const term = input.value.trim();
+      if (!term) { box.innerHTML = ''; return; }
+      try {
+        const res = await fetch(`/autocomplete_clients?term=${encodeURIComponent(term)}`);
+        const clients = await res.json();
+        const termLower = term.toLowerCase();
+        box.innerHTML = '';
+        clients
+          .filter(cli => (cli.client_id || '').toLowerCase().includes(termLower) || (cli.client_name || '').toLowerCase().includes(termLower))
+          .forEach((cli, idx) => {
+            const div = document.createElement('div');
+            div.className = 'autocomplete-item px-2 py-1';
+            if (idx > 0) div.style.borderTop = '1px solid #e9ecef';
+            div.innerHTML = `
+              <div class="d-flex flex-column">
+                <div><strong>${cli.client_name || '(sem nome)'}</strong> <small class="text-muted">ID: ${cli.client_id}</small></div>
+                ${cli.client_phone ? `<small class="text-muted">📞 ${cli.client_phone}</small>` : ''}
+                ${cli.client_email ? `<small class="text-muted">📧 ${cli.client_email}</small>` : ''}
+              </div>`;
+            div.addEventListener('click', () => {
+              input.value = cli.client_id || '';
+              const nameInput = document.getElementById('client_name');
+              if (nameInput) nameInput.value = cli.client_name || '';
+              box.innerHTML = '';
+            });
+            box.appendChild(div);
+          });
+      } catch (e) {
+        console.error('Erro ao buscar clientes (ID):', e);
+      }
+    };
+    input.addEventListener('input', debounce(handleInput, 300));
+    input.addEventListener('blur', () => setTimeout(() => (box.innerHTML = ''), 200));
+  })();
+
+  // Client ID: autocomplete por ID do cliente
+  (function() {
+    const input = document.getElementById('client_id');
+    const box = document.getElementById('client_id_suggestions');
+    if (!input || !box) return;
+
+    const handleInput = async () => {
+      const term = input.value.trim();
+      if (!term) { box.innerHTML = ''; return; }
+      try {
+        const res = await fetch(`/autocomplete_clients_by_id?term=${encodeURIComponent(term)}`);
+        const clients = await res.json();
+        box.innerHTML = '';
+        clients.forEach((cli, idx) => {
+          const div = document.createElement('div');
+          div.className = 'autocomplete-item px-2 py-1';
+          if (idx > 0) div.style.borderTop = '1px solid #e9ecef';
+          div.innerHTML = `
+            <div class="d-flex flex-column">
+              <div><strong>${cli.client_id}</strong></div>
+              <small class="text-muted">${cli.client_name || 'Sem nome'}</small>
+              ${cli.client_phone ? `<small class="text-muted">📞 ${cli.client_phone}</small>` : ''}
+            </div>`;
+          div.addEventListener('click', () => {
+            input.value = cli.client_id || '';
+            const nameInput = document.getElementById('client_name');
+            if (nameInput) nameInput.value = cli.client_name || '';
+            box.innerHTML = '';
+          });
+          box.appendChild(div);
+        });
+      } catch (e) {
+        console.error('Erro ao buscar clientes (ID):', e);
+      }
+    };
+    input.addEventListener('input', debounce(handleInput, 300));
+    input.addEventListener('blur', () => setTimeout(() => (box.innerHTML = ''), 200));
+  })();
+
+  // Item: autocomplete por descrição ou código, copia apenas descrição
+  (function() {
+    const input = document.getElementById('item_description');
+    const box = document.getElementById('item_description_suggestions');
+    if (!input || !box) return;
+
+    // Limpar item_id quando item_description for limpo
+    input.addEventListener('input', function() {
+      if (this.value.trim() === '') {
+        const itemIdInput = document.getElementById('item_id');
+        if (itemIdInput) itemIdInput.value = '';
+      }
+    });
+
+    const handleInput = async () => {
+      const term = input.value.trim();
+      const termLower = term.toLowerCase();
+      if (!term) { box.innerHTML = ''; return; }
+      try {
+        const res = await fetch(`/autocomplete_items?term=${encodeURIComponent(term)}`);
+        const items = await res.json();
+        box.innerHTML = '';
+        // Filtra somente por descrição no frontend
+        items
+          .filter(it => (it.item_description || '').toLowerCase().includes(termLower))
+          .forEach((it, idx) => {
+          const div = document.createElement('div');
+          div.className = 'autocomplete-item px-2 py-1';
+          if (idx > 0) div.style.borderTop = '1px solid #e9ecef';
+          div.innerHTML = `
+            <div class="d-flex flex-column">
+              <div><strong>${it.item_custom_id || '(sem código)'}</strong></div>
+              <small class="text-muted">${it.item_description || 'Sem descrição'}</small>
+            </div>`;
+          div.addEventListener('click', () => {
+            input.value = it.item_description || '';
+            const idInput = document.getElementById('item_id');
+            if (idInput) idInput.value = it.item_id || '';
+            box.innerHTML = '';
+          });
+          box.appendChild(div);
+        });
+      } catch (e) {
+        console.error('Erro ao buscar itens:', e);
+      }
+    };
+    input.addEventListener('input', debounce(handleInput, 300));
+    input.addEventListener('blur', () => setTimeout(() => (box.innerHTML = ''), 200));
+  })();
+
+  // Item ID: autocomplete por código/ID, copia apenas o item_id
+  (function() {
+    const input = document.getElementById('item_id');
+    const box = document.getElementById('item_id_suggestions');
+    if (!input || !box) return;
+
+    const handleInput = async () => {
+      const term = input.value.trim();
+      const termLower = term.toLowerCase();
+      if (!term) { box.innerHTML = ''; return; }
+      try {
+        const res = await fetch(`/autocomplete_items?term=${encodeURIComponent(term)}`);
+        const items = await res.json();
+        box.innerHTML = '';
+        items
+          .filter(it =>
+            (it.item_custom_id || '').toLowerCase().includes(termLower) ||
+            String(it.item_id || '').toLowerCase().includes(termLower)
+          )
+          .forEach((it, idx) => {
+            const div = document.createElement('div');
+            div.className = 'autocomplete-item px-2 py-1';
+            if (idx > 0) div.style.borderTop = '1px solid #e9ecef';
+            div.innerHTML = `
+              <div class="d-flex flex-column">
+                <div><strong>${it.item_custom_id || '(sem código)'}</strong></div>
+                <small class="text-muted">${it.item_description || 'Sem descrição'}</small>
+                <small class="text-muted">ID interno: ${it.item_id || '-'}</small>
+              </div>`;
+            div.addEventListener('click', () => {
+              input.value = it.item_id || '';
+              const descInput = document.getElementById('item_description');
+              if (descInput) descInput.value = it.item_description || '';
+              box.innerHTML = '';
+            });
+            box.appendChild(div);
+          });
+      } catch (e) {
+        console.error('Erro ao buscar itens por ID:', e);
+      }
+    };
+    input.addEventListener('input', debounce(handleInput, 300));
+    input.addEventListener('blur', () => setTimeout(() => (box.innerHTML = ''), 200));
+  })();
+</script>
+{% endblock %}

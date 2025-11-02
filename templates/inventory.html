@@ -1,6 +1,15 @@
 {% extends "base.html" %} {% block title %}Itens Disponíveis{% endblock %} {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='style_inventory.css') }}" />
 {% endblock %} {% block content %}
+
+<!-- Dados de paginação para JavaScript -->
+<div 
+  id="paginationData" 
+  data-has-next="{{ 'true' if has_next else 'false' }}" 
+  data-next-page="{{ current_page + 1 if has_next else 1 }}"
+  style="display: none;">
+</div>
+
 <div class="container my-3">
   <h2 class="mb-4">Inventário de itens</h2>
 
@@ -24,7 +33,7 @@
             alt="Imagem"
             class="card-img-top mx-auto d-block"
             style="height: 240px; width: auto; max-width: 100%; object-fit: cover; cursor: pointer"
-            onclick="mostrarImagemModal('{{ image_value if image_value and image_value != 'N/A' else url_for('static', filename='item-placeholder.png') }}')"
+            onclick="mostrarImagemModal(this.src)"
           />
         </div>
         {% endfor %}
@@ -57,6 +66,33 @@
             <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalItem{{ loop.index }}">
               <i class="fas fa-eye"></i>
             </button>
+          </div>
+
+          <!-- Resumo fixo: cliente e item -->
+          <div class="d-flex flex-column gap-2 mb-2">
+            <div class="d-flex justify-content-between small border-bottom pb-1">
+              <span class="text-muted">ID do Cliente</span>
+              <span class="text-end">{{ item.client_id if item.client_id is defined else '-' }}</span>
+            </div>
+            <div class="d-flex justify-content-between small border-bottom pb-1">
+              <span class="text-muted">Nome do Cliente</span>
+              <span class="text-end">{{ item.client_name if item.client_name is defined else '-' }}</span>
+            </div>
+            <div class="d-flex justify-content-between small border-bottom pb-1">
+              <span class="text-muted">ID do Item</span>
+              <span class="text-end">{{ item.item_id if item.item_id is defined else (item.item_custom_id if item.item_custom_id is defined else '-') }}</span>
+            </div>
+            <div class="d-flex justify-content-between small border-bottom pb-1">
+              <span class="text-muted">Descrição do Item</span>
+              <span class="text-end">
+                {% set desc = item.item_description if item.item_description is defined and item.item_description else 
+                              item.description if item.description is defined and item.description else 
+                              item.nome if item.nome is defined and item.nome else 
+                              item.descricao if item.descricao is defined and item.descricao else 
+                              (item.key_values['item_description'] if item.key_values is defined and 'item_description' in item.key_values else '') %}
+                {{ desc if desc else '-' }}
+              </span>
+            </div>
           </div>
 
           <div class="d-flex flex-column gap-2">
@@ -123,15 +159,22 @@
   liCurrent.appendChild(aCurrent);
   paginacao.appendChild(liCurrent);
 
-  {% if has_next %}
+  // Dados do servidor para paginação
+  const el = document.getElementById('paginationData');
+  const paginationData = {
+    hasNext: el.dataset.hasNext === 'true',
+    nextPage: parseInt(el.dataset.nextPage, 10)
+  };
+  
+  if (paginationData.hasNext) {
     const liNext = document.createElement('li');
     liNext.className = 'page-item';
     const aNext = document.createElement('a');
     aNext.className = 'page-link';
     aNext.innerText = 'Próxima →';
-    aNext.href = `${prefix}page={{ current_page + 1 }}`;
+    aNext.href = `${prefix}page=${paginationData.nextPage}`;
     liNext.appendChild(aNext);
     paginacao.appendChild(liNext);
-  {% endif %}
+  }
 </script>
 {% endblock %}

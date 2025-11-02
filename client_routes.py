@@ -29,6 +29,23 @@ def init_client_routes(
     text_models_table,
     field_config_table,
 ):
+    @app.route("/open_client/<client_ref>")
+    def open_client(client_ref):
+        if not session.get("logged_in"):
+            return redirect(url_for("login"))
+
+        # Primeiro tenta por chave primária (client_id)
+        try:
+            response = clients_table.get_item(Key={"client_id": client_ref})
+            cliente = response.get("Item")
+            if cliente:
+                return redirect(url_for("listar_clientes") + f"?client_id={cliente['client_id']}")
+        except Exception:
+            pass
+
+        # Se não encontrar, informa e volta para lista
+        flash("Cliente não encontrado.", "danger")
+        return redirect(url_for("listar_clientes"))
 
     @app.route("/autocomplete_clients")
     def autocomplete_clients():
@@ -69,6 +86,46 @@ def init_client_routes(
 
         except Exception as e:
             print(f"Erro na busca de autocomplete: {str(e)}")
+            return jsonify([])  # Retorna lista vazia em caso de erro
+
+    @app.route("/autocomplete_clients_by_id")
+    def autocomplete_clients_by_id():
+        from boto3.dynamodb.conditions import Attr
+        
+        account_id = session.get("account_id")
+        term = request.args.get("term", "").strip()
+
+        print(f"Buscando clientes por ID com termo: {term}")
+
+        if not term:
+            return jsonify([])
+
+        try:
+            # Fazer scan para buscar por client_id que contenha o termo
+            response = clients_table.scan(
+                FilterExpression=Attr("account_id").eq(account_id) & Attr("client_id").contains(term),
+                Limit=10
+            )
+
+            suggestions = [
+                {
+                    "client_name": item.get("client_name", ""),
+                    "client_cpf": item.get("client_cpf", ""),
+                    "client_cnpj": item.get("client_cnpj", ""),
+                    "client_phone": item.get("client_phone", ""),
+                    "client_id": item.get("client_id", ""),
+                    "client_email": item.get("client_email", ""),
+                    "client_address": item.get("client_address", ""),
+                    "client_obs": item.get("client_obs", ""),
+                }
+                for item in response.get("Items", [])
+            ]
+
+            print(f"Encontrados {len(suggestions)} clientes por ID para '{term}'")
+            return jsonify(suggestions)
+
+        except Exception as e:
+            print(f"Erro na busca de autocomplete por ID: {str(e)}")
             return jsonify([])  # Retorna lista vazia em caso de erro
 
     @app.route("/clients")

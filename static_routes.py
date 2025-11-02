@@ -478,16 +478,14 @@ def init_static_routes(
     @app.route("/")
     def index():
         if session.get("logged_in"):
-            return redirect(
-                url_for("home")
-            )  # Redireciona para /home (que já redireciona para all_transactions)
+            return redirect(url_for("agenda"))
         return render_template("index.html")
 
     @app.route("/home")
     def home():
         if not session.get("logged_in"):
             return redirect(url_for("index"))
-        return redirect(url_for("all_transactions"))
+        return redirect(url_for("agenda"))
 
     from flask import Flask, request, session
     import stripe
@@ -895,7 +893,9 @@ def init_static_routes(
         for item in all_items:
             custom_id = (item.get("item_custom_id") or "").lower()
             description = (item.get("item_description") or "").lower()
-            if term in custom_id or term in description:
+            item_id_value = (item.get("item_id") or "").lower()
+            # aceita busca por código (custom_id), descrição ou pelo próprio item_id
+            if term in custom_id or term in description or term in item_id_value:
                 suggestions.append(item)
 
         return jsonify([

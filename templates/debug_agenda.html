@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Agenda</title>
+    <style>
+        body { font-family: monospace; margin: 20px; }
+        .debug-section { margin: 20px 0; padding: 10px; border: 1px solid #ccc; }
+        .error { color: red; }
+        .success { color: green; }
+        .raw-data { background: #f5f5f5; padding: 10px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>Debug Agenda Data</h1>
+    
+    <div class="debug-section">
+        <h2>General Info</h2>
+        <p><strong>Account ID:</strong> {{ account_id }}</p>
+        <p><strong>Today ISO:</strong> {{ today_iso }}</p>
+        <p><strong>Next Days Type:</strong> {{ next_days.__class__.__name__ }}</p>
+        <p><strong>Total dates found:</strong> 
+            {% if next_days %}
+                {{ next_days|length }}
+            {% else %}
+                0 (next_days is None or empty)
+            {% endif %}
+        </p>
+        
+        <div class="raw-data">
+            <h3>Raw next_days data:</h3>
+            <pre>{{ next_days }}</pre>
+        </div>
+    </div>
+
+    {% if next_days %}
+        {% for day in next_days %}
+            <div class="debug-section">
+                <h3>Date: {{ day.date_iso }}</h3>
+                <p><strong>Day Type:</strong> {{ day.__class__.__name__ }}</p>
+                <p><strong>Day Keys:</strong> {{ day.keys() if day.keys else 'No keys method' }}</p>
+                
+                <div class="raw-data">
+                    <h4>Raw day data:</h4>
+                    <pre>{{ day }}</pre>
+                </div>
+                
+                <p><strong>fitting_items Type:</strong> {{ day.fitting_items.__class__.__name__ if day.fitting_items is defined else 'undefined' }}</p>
+                <p><strong>fitting_items Callable:</strong> {{ 'Yes' if day.fitting_items is callable else 'No' }}</p>
+                
+                {% if day.fitting_items is iterable %}
+                    <p><strong>Number of items:</strong> {{ day.fitting_items|length }}</p>
+                    
+                    {% for item in day.fitting_items %}
+                        <div style="margin-left: 20px; border-left: 2px solid #ddd; padding-left: 10px;">
+                            <p><strong>Item {{ loop.index }}:</strong></p>
+                            <div class="raw-data">
+                                <pre>{{ item }}</pre>
+                            </div>
+                            <p>ID: {{ item.fitting_id }}</p>
+                            <p>Client: {{ item.client_name }}</p>
+                            <p>Item: {{ item.item_description }}</p>
+                            <p>Time: {{ item.time_local }}</p>
+                            <p>Status: {{ item.status }}</p>
+                            <p>DateTime: {{ item.date_time_local }}</p>
+                            <p>Notes: {{ item.notes }}</p>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="error">fitting_items is not iterable! Type: {{ day.fitting_items.__class__.__name__ }}</p>
+                    <div class="raw-data">
+                        <h4>Raw fitting_items:</h4>
+                        <pre>{{ day.fitting_items }}</pre>
+                    </div>
+                {% endif %}
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="debug-section">
+            <p class="error">No next_days data available</p>
+        </div>
+    {% endif %}
+</body>
+</html>

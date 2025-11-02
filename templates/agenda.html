@@ -1,0 +1,491 @@
+{% extends "base.html" %}
+
+{% block title %}Agenda{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='style_clientes.css') }}" />
+{% endblock %}
+
+{% block content %}
+<div class="container my-3">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0">Agenda</h2>
+    <div class="d-flex gap-2">
+      <a class="btn btn-outline-secondary" href="{{ url_for('past_appointments') }}">
+        <i class="fas fa-history me-2"></i>Agendamentos Passados
+      </a>
+      <a class="btn btn-success" href="{{ url_for('add_fitting') }}">
+        <i class="fas fa-plus me-2"></i>Agendar prova
+      </a>
+    </div>
+  </div>
+
+  <section class="mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h4 class="mb-0">Hoje ({{ today_iso|formatar_data_com_dia_semana }})</h4>
+      <a class="btn btn-outline-success btn-sm" href="{{ url_for('add_fitting', date=today_iso) }}">
+        <i class="fas fa-plus me-1"></i>Agendar prova hoje
+      </a>
+    </div>
+    
+    {% if not rentals_today and not fittings_today %}
+    <div class="card shadow-sm border-0 border-start border-4 border-info">
+      <div class="card-body text-center py-4">
+        <i class="fas fa-calendar-check text-info mb-3" style="font-size: 2rem; opacity: 0.6;"></i>
+        <p class="text-muted mb-0">Sem provas para hoje</p>
+        <small class="text-muted">Aproveite para organizar os próximos compromissos!</small>
+      </div>
+    </div>
+    {% endif %}
+    
+    {% if rentals_today %}
+    <div class="mb-3">
+      <div class="card shadow-sm border-0 border-start border-4 border-primary">
+        <div class="card-header bg-primary text-white">
+          <i class="fas fa-calendar-check me-2"></i>Retiradas de hoje
+        </div>
+        <div class="card-body">
+          {% for tx in rentals_today %}
+          <div class="border-bottom py-2 {% if not loop.last %}mb-2{% endif %}">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                {% if tx.client_id %}
+                  <a href="{{ url_for('open_client', client_ref=tx.client_id) }}" class="text-decoration-none fw-bold">{{ tx.client_name or tx.client_id }}</a>
+                {% else %}
+                  <span class="fw-bold">{{ tx.client_name or 'Cliente' }}</span>
+                {% endif %}
+                <span class="text-muted mx-2">•</span>
+                {% set item_ref = tx.item_id or tx.item_custom_id %}
+                {% if item_ref %}
+                  <a href="{{ url_for('open_item', item_ref=item_ref) }}" class="text-decoration-none">{{ tx.item_description or tx.item_custom_id or tx.item_id }}</a>
+                {% else %}
+                  {{ tx.item_description or tx.item_custom_id or 'Item' }}
+                {% endif %}
+              </div>
+              <div class="text-end">
+                <span class="badge bg-secondary">{{ tx.transaction_status }}</span>
+              </div>
+            </div>
+            <div class="mt-1">
+              <small class="text-muted">
+                <i class="fas fa-calendar me-1"></i>Retirada: {{ tx.rental_date|format_date }}
+              </small>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if fittings_today %}
+    <div class="row g-3">
+      {% for f in fittings_today %}
+      <div class="col-12 col-md-6 col-lg-4">
+        <div class="card shadow-lg h-100 position-relative rounded-3 border-0 border-start border-4 border-warning">
+          <div class="card-body py-3 px-4">
+            <!-- Botões de ação -->
+            <div class="d-flex justify-content-end mb-2 gap-1">
+              <div class="dropdown">
+                <button
+                  class="btn btn-sm btn-outline-secondary dropdown-toggle"
+                  type="button"
+                  id="dropdownMenuButton{{ loop.index }}"
+                  data-bs-toggle="dropdown"
+                  aria-expanded="false"
+                >
+                  <i class="fas fa-ellipsis-v"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton{{ loop.index }}">
+                  <li>
+                    <a class="dropdown-item" href="{{ url_for('edit_fitting', fitting_id=f.fitting_id) }}">
+                      <i class="fas fa-edit me-2"></i>Editar
+                    </a>
+                  </li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li>
+                    <form method="post" action="{{ url_for('delete_fitting', fitting_id=f.fitting_id) }}" style="display: inline;" onsubmit="return confirm('Tem certeza que deseja excluir esta prova?')">
+                      <button type="submit" class="dropdown-item text-danger">
+                        <i class="fas fa-trash me-2"></i>Excluir
+                      </button>
+                    </form>
+                  </li>
+                </ul>
+              </div>
+
+              <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalFitting{{ loop.index }}">
+                <i class="fas fa-eye"></i>
+              </button>
+            </div>
+
+            <!-- Campos da prova -->
+            <div class="d-flex flex-column gap-2">
+              <div class="d-flex justify-content-between small border-bottom pb-1">
+                <span class="text-muted">Data</span>
+                <span class="text-end fw-bold">{{ f.date_local|format_date }}</span>
+              </div>
+              
+              <div class="d-flex justify-content-between small border-bottom pb-1">
+                <span class="text-muted">Horário</span>
+                <span class="text-end">
+                  {% if f.time_local %}
+                    <span class="badge bg-info text-dark">{{ f.time_local }}</span>
+                  {% else %}
+                    <span class="text-muted">Sem horário</span>
+                  {% endif %}
+                </span>
+              </div>
+
+              {% if f.client_name or f.client_id %}
+              <div class="d-flex justify-content-between small border-bottom pb-1">
+                <span class="text-muted">Cliente</span>
+                <span class="text-end">
+                  {% if f.client_id %}
+                    <a href="{{ url_for('open_client', client_ref=f.client_id) }}" class="text-decoration-none">
+                      {{ f.client_name or f.client_id }}
+                    </a>
+                  {% else %}
+                    {{ f.client_name }}
+                  {% endif %}
+                </span>
+              </div>
+              {% endif %}
+
+              {% if f.item_description or f.item_id or f.item_custom_id %}
+              <div class="d-flex justify-content-between small border-bottom pb-1">
+                <span class="text-muted">Item</span>
+                <span class="text-end">
+                  {% set item_ref = f.item_id or f.item_custom_id %}
+                  {% if item_ref %}
+                    <a href="{{ url_for('open_item', item_ref=item_ref) }}" class="text-decoration-none">
+                      {{ f.item_description or f.item_id or f.item_custom_id }}
+                    </a>
+                  {% else %}
+                    {{ f.item_description }}
+                  {% endif %}
+                </span>
+              </div>
+              {% endif %}
+
+              {% if f.notes %}
+              <div class="d-flex justify-content-between small border-bottom pb-1">
+                <span class="text-muted">Observações</span>
+                <span class="text-end">{{ f.notes | truncate(30, True) }}</span>
+              </div>
+              {% endif %}
+
+              <div class="d-flex justify-content-between small">
+                <span class="text-muted">Status</span>
+                <span class="text-end">
+                  <span class="badge bg-secondary">{{ f.status }}</span>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal para detalhes da prova -->
+      <div class="modal fade" id="modalFitting{{ loop.index }}" tabindex="-1" aria-labelledby="modalFittingLabel{{ loop.index }}" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="modalFittingLabel{{ loop.index }}">Detalhes da Prova</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <div class="row g-2">
+                <div class="col-6">
+                  <strong>Data:</strong><br>
+                  <span>{{ f.date_local|format_date }}</span>
+                </div>
+                <div class="col-6">
+                  <strong>Horário:</strong><br>
+                  <span>{{ f.time_local or 'Sem horário' }}</span>
+                </div>
+                <div class="col-6">
+                  <strong>ID do Cliente:</strong><br>
+                  <span>{{ f.client_id or 'N/A' }}</span>
+                </div>
+                <div class="col-6">
+                  <strong>Nome do Cliente:</strong><br>
+                  <span>{{ f.client_name or 'Cliente não definido' }}</span>
+                </div>
+                <div class="col-6">
+                  <strong>ID do Item:</strong><br>
+                  <span>{{ f.item_id or f.item_custom_id or 'N/A' }}</span>
+                </div>
+                <div class="col-6">
+                  <strong>Descrição do Item:</strong><br>
+                  <span>{{ f.item_description or 'Vestido não definido' }}</span>
+                </div>
+                <div class="col-12">
+                  <strong>Observações:</strong><br>
+                  <span>{{ f.notes or 'Nenhuma observação' }}</span>
+                </div>
+                <div class="col-12">
+                  <strong>Status:</strong><br>
+                  <span class="badge bg-secondary">{{ f.status }}</span>
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <a href="{{ url_for('edit_fitting', fitting_id=f.fitting_id) }}" class="btn btn-primary">Editar</a>
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    </div>
+  </section>
+
+  <!-- Divisória entre "Hoje" e próximas datas -->
+  {% if next_days %}
+  <div class="row my-5">
+    <div class="col-12">
+      <div class="d-flex align-items-center">
+        <div class="flex-grow-1">
+          <hr class="border-2 border-success opacity-25">
+        </div>
+        <div class="px-4">
+          <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-3 py-2">
+            <i class="fas fa-clock me-2"></i>Próximas datas
+          </span>
+        </div>
+        <div class="flex-grow-1">
+          <hr class="border-2 border-success opacity-25">
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% for day in next_days %}
+  {% set outer_loop = loop %}
+  
+  <!-- Divisória entre datas (não mostrar antes da primeira data) -->
+  {% if not loop.first %}
+  <div class="row my-5">
+    <div class="col-12">
+      <div class="d-flex align-items-center">
+        <div class="flex-grow-1">
+          <hr class="border-2 border-primary opacity-25">
+        </div>
+        <div class="px-3">
+          <i class="fas fa-calendar-alt text-primary opacity-50"></i>
+        </div>
+        <div class="flex-grow-1">
+          <hr class="border-2 border-primary opacity-25">
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+  
+  <section class="mb-5">
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-light border-0 py-3">
+        <div class="d-flex justify-content-between align-items-center">
+          <div class="d-flex align-items-center">
+            <i class="fas fa-calendar-day text-info me-3 fs-5"></i>
+            <h4 class="mb-0 text-dark fw-bold">{{ day.date_iso|formatar_data_com_dia_semana }}</h4>
+          </div>
+          <a class="btn btn-outline-success btn-sm" href="{{ url_for('add_fitting', date=day.date_iso) }}">
+            <i class="fas fa-plus me-1"></i>Agendar prova
+          </a>
+        </div>
+      </div>
+      <div class="card-body p-4">
+    {% if day['fitting_items'] %}
+    <div class="row g-3">
+      {% for f in day['fitting_items'] %}
+      <div class="col-12 col-md-6 col-lg-4">
+        <div class="card shadow-lg h-100 position-relative rounded-3 border-0 border-start border-4 border-info">
+          <div class="card-body py-3 px-4">
+            <!-- Botões de ação -->
+            <div class="d-flex justify-content-end mb-2 gap-1">
+              <div class="dropdown">
+                <button
+                  class="btn btn-sm btn-outline-secondary dropdown-toggle"
+                  type="button"
+                  id="dropdownMenuButton{{ loop.index }}"
+                  data-bs-toggle="dropdown"
+                  aria-expanded="false"
+                >
+                  <i class="fas fa-ellipsis-v"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton{{ loop.index }}">
+                  <li>
+                    <a class="dropdown-item" href="{{ url_for('edit_fitting', fitting_id=f.fitting_id) }}">
+                      <i class="fas fa-edit me-2"></i>Editar
+                    </a>
+                  </li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li>
+                    <form method="post" action="{{ url_for('delete_fitting', fitting_id=f.fitting_id) }}" style="display: inline;" onsubmit="return confirm('Tem certeza que deseja excluir esta prova?')">
+                      <button type="submit" class="dropdown-item text-danger">
+                        <i class="fas fa-trash me-2"></i>Excluir
+                      </button>
+                    </form>
+                  </li>
+                </ul>
+              </div>
+
+              <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalFittingDay{{ outer_loop.index0 }}_{{ loop.index }}">
+                <i class="fas fa-eye"></i>
+              </button>
+            </div>
+
+            <!-- Campos da prova -->
+            <div class="d-flex flex-column gap-2">
+              <div class="d-flex justify-content-between small border-bottom pb-1">
+                <span class="text-muted">Data</span>
+                <span class="text-end fw-bold">{{ f.date_local|format_date }}</span>
+              </div>
+              
+              <div class="d-flex justify-content-between small border-bottom pb-1">
+                <span class="text-muted">Horário</span>
+                <span class="text-end">
+                  {% if f.time_local %}
+                    <span class="badge bg-info text-dark">{{ f.time_local }}</span>
+                  {% else %}
+                    <span class="text-muted">Sem horário</span>
+                  {% endif %}
+                </span>
+              </div>
+
+              {% if f.client_name or f.client_id %}
+              <div class="d-flex justify-content-between small border-bottom pb-1">
+                <span class="text-muted">Cliente</span>
+                <span class="text-end">
+                  {% if f.client_id %}
+                    <a href="{{ url_for('open_client', client_ref=f.client_id) }}" class="text-decoration-none">
+                      {{ f.client_name or f.client_id }}
+                    </a>
+                  {% else %}
+                    {{ f.client_name }}
+                  {% endif %}
+                </span>
+              </div>
+              {% endif %}
+
+              {% if f.item_description or f.item_id or f.item_custom_id %}
+              <div class="d-flex justify-content-between small border-bottom pb-1">
+                <span class="text-muted">Item</span>
+                <span class="text-end">
+                  {% set item_ref = f.item_id or f.item_custom_id %}
+                  {% if item_ref %}
+                    <a href="{{ url_for('open_item', item_ref=item_ref) }}" class="text-decoration-none">
+                      {{ f.item_description or f.item_id or f.item_custom_id }}
+                    </a>
+                  {% else %}
+                    {{ f.item_description }}
+                  {% endif %}
+                </span>
+              </div>
+              {% endif %}
+
+              {% if f.notes %}
+              <div class="d-flex justify-content-between small border-bottom pb-1">
+                <span class="text-muted">Observações</span>
+                <span class="text-end">{{ f.notes | truncate(30, True) }}</span>
+              </div>
+              {% endif %}
+
+              <div class="d-flex justify-content-between small">
+                <span class="text-muted">Status</span>
+                <span class="text-end">
+                  <span class="badge bg-secondary">{{ f.status }}</span>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal para detalhes da prova -->
+      <div class="modal fade" id="modalFittingDay{{ outer_loop.index0 }}_{{ loop.index }}" tabindex="-1" aria-labelledby="modalFittingDayLabel{{ outer_loop.index0 }}_{{ loop.index }}" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="modalFittingDayLabel{{ outer_loop.index0 }}_{{ loop.index }}">Detalhes da Prova</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <div class="row g-2">
+                <div class="col-6">
+                  <strong>Data:</strong><br>
+                  <span>{{ f.date_local|format_date }}</span>
+                </div>
+                <div class="col-6">
+                  <strong>Horário:</strong><br>
+                  <span>{{ f.time_local or 'Sem horário' }}</span>
+                </div>
+                <div class="col-6">
+                  <strong>ID do Cliente:</strong><br>
+                  <span>{{ f.client_id or 'N/A' }}</span>
+                </div>
+                <div class="col-6">
+                  <strong>Nome do Cliente:</strong><br>
+                  <span>{{ f.client_name or 'Cliente não definido' }}</span>
+                </div>
+                <div class="col-6">
+                  <strong>ID do Item:</strong><br>
+                  <span>{{ f.item_id or f.item_custom_id or 'N/A' }}</span>
+                </div>
+                <div class="col-6">
+                  <strong>Descrição do Item:</strong><br>
+                  <span>{{ f.item_description or 'Vestido não definido' }}</span>
+                </div>
+                <div class="col-12">
+                  <strong>Observações:</strong><br>
+                  <span>{{ f.notes or 'Nenhuma observação' }}</span>
+                </div>
+                <div class="col-12">
+                  <strong>Status:</strong><br>
+                  <span class="badge bg-secondary">{{ f.status }}</span>
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <a href="{{ url_for('edit_fitting', fitting_id=f.fitting_id) }}" class="btn btn-primary">Editar</a>
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+      <i class="fas fa-info-circle me-2"></i>Sem provas para esta data.
+    </div>
+    {% endif %}
+      </div>
+    </div>
+  </section>
+  {% endfor %}
+
+  {% if not rentals_today and not fittings_today and not next_days %}
+  <div class="alert alert-info">
+    <i class="fas fa-info-circle me-2"></i>Nenhum evento encontrado. Use "Agendar prova" para criar o primeiro.
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<!-- FontAwesome -->
+<script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+
+<!-- Bootstrap Bundle -->
+<script
+  src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
+  integrity="sha384-A3xORN3yEh9NTBI69AsVZqg0vszNvB4LaU6gq3p0eNmKUy5OWyE4hzJxKr5oUqvN"
+  crossorigin="anonymous"
+></script>
+{% endblock %}

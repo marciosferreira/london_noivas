@@ -1,0 +1,23 @@
+/* Estilo para campos preenchidos automaticamente */
+.auto-filled-field {
+    background-color: #e9ecef !important;
+    color: #495057 !important;
+    cursor: not-allowed !important;
+    border-color: #ced4da !important;
+}
+
+.auto-filled-field:focus {
+    background-color: #e9ecef !important;
+    color: #495057 !important;
+    border-color: #ced4da !important;
+    box-shadow: none !important;
+    outline: none !important;
+}
+
+.auto-filled-field::selection {
+    background: transparent;
+}
+
+.auto-filled-field::-moz-selection {
+    background: transparent;
+}

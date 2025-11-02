@@ -1088,6 +1088,45 @@ def init_item_routes(
             next_page=next_page,
         )
 
+    # Resolver de item por item_id (PK) ou item_custom_id (GSI)
+    @app.route("/open_item/<item_ref>")
+    def open_item(item_ref):
+        if not session.get("logged_in"):
+            return redirect(url_for("login"))
+
+        next_page = request.args.get("next", url_for("inventory"))
+        account_id = session.get("account_id")
+
+        # Tenta buscar por chave primária item_id
+        try:
+            resp_pk = itens_table.get_item(Key={"item_id": item_ref})
+            item_pk = resp_pk.get("Item")
+            if item_pk:
+                # Redireciona para inventário com query item_id
+                return redirect(url_for("inventory", item_id=item_pk.get("item_id")))
+        except Exception as e:
+            print(f"Erro ao buscar por item_id: {e}")
+
+        # Se não encontrou, tenta pelo GSI account_id-item_custom_id-index
+        try:
+            resp_gsi = itens_table.query(
+                IndexName="account_id-item_custom_id-index",
+                KeyConditionExpression=Key("account_id").eq(account_id)
+                & Key("item_custom_id").eq(item_ref),
+                Limit=1,
+            )
+            items = resp_gsi.get("Items", [])
+            if items:
+                # Redireciona para inventário com query item_id
+                return redirect(url_for("inventory", item_id=items[0].get("item_id")))
+            else:
+                flash("Item não encontrado.", "danger")
+                return redirect(next_page)
+        except Exception as e:
+            print(f"Erro ao buscar por item_custom_id: {e}")
+            flash("Erro ao buscar item.", "danger")
+            return redirect(next_page)
+
     ##########################################################
 
     @app.route("/delete/<item_id>", methods=["POST"])

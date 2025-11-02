@@ -43,6 +43,7 @@ text_models_table = dynamodb.Table("alugue_qqc_text_models")
 payment_transactions = dynamodb.Table("alugueqqc_payment_transactions")
 custom_fields_table = dynamodb.Table("alugueqqc_custom_fields")
 field_config_table = dynamodb.Table("alugueqqc_field_config_table")
+fittings_table = dynamodb.Table("alugueqqc_fittings_table")
 
 
 s3 = boto3.client(
@@ -82,6 +83,7 @@ from transaction_routes import init_transaction_routes
 from client_routes import init_client_routes
 from static_routes import init_static_routes
 from datetime import datetime, timezone
+from fittings_routes import init_fittings_routes
 
 
 # Initialize routes from modules
@@ -125,6 +127,16 @@ init_static_routes(
     text_models_table,
     users_table,
     payment_transactions,
+)
+
+# Provas e Agenda
+init_fittings_routes(
+    app,
+    fittings_table,
+    transactions_table,
+    itens_table,
+    clients_table,
+    users_table,
 )
 
 
@@ -182,6 +194,40 @@ def formatar_data_br(data_iso):
         except ValueError:
             return data_iso  # formato inesperado, retorna como está
     return dt.strftime("%d/%m/%Y")
+
+
+@app.template_filter("formatar_data_com_dia_semana")
+def formatar_data_com_dia_semana(data_iso):
+    """Formata data incluindo o dia da semana em português"""
+    if not data_iso:
+        return "-"
+    
+    # Mapeamento dos dias da semana em português
+    dias_semana = {
+        0: "Segunda-feira",
+        1: "Terça-feira", 
+        2: "Quarta-feira",
+        3: "Quinta-feira",
+        4: "Sexta-feira",
+        5: "Sábado",
+        6: "Domingo"
+    }
+    
+    try:
+        # Primeiro tenta como data completa com hora
+        dt = datetime.strptime(data_iso, "%Y-%m-%d %H:%M:%S")
+    except ValueError:
+        try:
+            # Depois tenta só a parte da data
+            dt = datetime.strptime(data_iso, "%Y-%m-%d")
+        except ValueError:
+            return data_iso  # formato inesperado, retorna como está
+    
+    # Obtém o dia da semana (0=segunda, 6=domingo)
+    dia_semana = dias_semana[dt.weekday()]
+    data_formatada = dt.strftime("%d/%m/%Y")
+    
+    return f"{dia_semana}, {data_formatada}"
 
 
 @app.template_filter("format_brl")
