@@ -38,6 +38,12 @@ def init_auth_routes(
     # Registration route
     @app.route("/register", methods=["GET", "POST"])
     def register():
+        # Verificar se o registro está habilitado
+        allow_registration = os.getenv('ALLOW_USER_REGISTRATION', 'false').lower() == 'true'
+        if not allow_registration:
+            flash("O registro de novos usuários está temporariamente desabilitado.", "warning")
+            return render_template("register.html", registration_disabled=True, register=True, recaptcha_site_key=os.getenv('RECAPTCHA_SITE_KEY'))
+        
         if request.method == "POST":
             # Primeiro, verificar o reCAPTCHA
             email = request.form.get("email")
@@ -74,24 +80,57 @@ def init_auth_routes(
 
             # valida o reCAPTCHA
             recaptcha_response = request.form.get("g-recaptcha-response")
+            
+            # Debug: verificar o que está sendo recebido
+            print(f"reCAPTCHA Debug - Received response: '{recaptcha_response}'")
+            print(f"reCAPTCHA Debug - Response length: {len(recaptcha_response) if recaptcha_response else 0}")
 
             if not recaptcha_response:
                 flash("Por favor, confirme que você não é um robô.", "danger")
                 return redirect(url_for("register"))
 
             # Validar no servidor do Google
-            secret_key = "66LfUc1MrAAAAAGMKzABYW1rFF78jDBxHZKAF_jwy"
+            secret_key = os.getenv('RECAPTCHA_SECRET_KEY')
+            if not secret_key:
+                flash("Erro de configuração do reCAPTCHA. Contate o administrador.", "danger")
+                return redirect(url_for("register"))
+                
+            print(f"reCAPTCHA Debug - Secret key exists: {bool(secret_key)}")
+            print(f"reCAPTCHA Debug - Remote IP: {request.remote_addr}")
+                
             verify_url = "https://www.google.com/recaptcha/api/siteverify"
             payload = {
                 "secret": secret_key,
                 "response": recaptcha_response,
                 "remoteip": request.remote_addr,
             }
-            r = requests.post(verify_url, data=payload)
-            result = r.json()
-
-            if not result.get("success"):
-                flash("Falha na verificação do reCAPTCHA. Tente novamente.", "danger")
+            
+            print(f"reCAPTCHA Debug - Payload: {payload}")
+            
+            try:
+                r = requests.post(verify_url, data=payload, timeout=10)
+                result = r.json()
+                
+                # Log detalhado para debug
+                print(f"reCAPTCHA Debug - Status Code: {r.status_code}")
+                print(f"reCAPTCHA Debug - Response: {result}")
+                print(f"reCAPTCHA Debug - Success: {result.get('success')}")
+                print(f"reCAPTCHA Debug - Error codes: {result.get('error-codes', [])}")
+                
+                if not result.get("success"):
+                    error_codes = result.get('error-codes', [])
+                    error_msg = f"Falha na verificação do reCAPTCHA. Códigos de erro: {', '.join(error_codes)}"
+                    print(f"reCAPTCHA Error: {error_msg}")
+                    flash("Falha na verificação do reCAPTCHA. Tente novamente.", "danger")
+                    return redirect(url_for("register"))
+                    
+            except requests.exceptions.RequestException as e:
+                print(f"reCAPTCHA Request Error: {str(e)}")
+                flash("Erro de conexão com o serviço reCAPTCHA. Tente novamente.", "danger")
+                return redirect(url_for("register"))
+            except Exception as e:
+                print(f"reCAPTCHA Unexpected Error: {str(e)}")
+                flash("Erro inesperado na verificação do reCAPTCHA. Tente novamente.", "danger")
                 return redirect(url_for("register"))
 
             # --- NOVO: Captura o IP do cliente
@@ -140,9 +179,10 @@ def init_auth_routes(
                     "register.html",
                     error="Já existe um cadastro com esse e-mail!",
                     register=True,
+                    recaptcha_site_key=os.getenv('RECAPTCHA_SITE_KEY')
                 )
 
-        return render_template("register.html", register=True)
+        return render_template("register.html", register=True, recaptcha_site_key=os.getenv('RECAPTCHA_SITE_KEY'))
 
     # Login route
     @app.route("/login", methods=["GET", "POST"])
@@ -1144,19 +1184,24 @@ def create_user(
             return False  # E-mail já cadastrado
 
         try:
-            customer = stripe.Customer.create(
-                email=email,
-                name=username,
-                metadata={"account_id": account_id},
-            )
-            stripe_customer_id = customer.id
+            # Verificar se o Stripe está habilitado
+            use_stripe = os.getenv('USE_STRIPE', 'false').lower() == 'true'
+            stripe_customer_id = None
+            
+            if use_stripe:
+                customer = stripe.Customer.create(
+                    email=email,
+                    name=username,
+                    metadata={"account_id": account_id},
+                )
+                stripe_customer_id = customer.id
 
-            subscription = stripe.Subscription.create(
-                customer=stripe_customer_id,
-                items=[{"price": os.getenv("STRIPE_PRICE_ID")}],
-                trial_period_days=30,
-                metadata={"account_id": account_id},
-            )
+                subscription = stripe.Subscription.create(
+                    customer=stripe_customer_id,
+                    items=[{"price": os.getenv("STRIPE_PRICE_ID")}],
+                    trial_period_days=30,
+                    metadata={"account_id": account_id},
+                )
 
             # ✅ Campos default para item e client
             for entity in ["item", "client", "transaction"]:
@@ -1181,8 +1226,12 @@ def create_user(
                 "email_token": email_token,
                 "last_email_sent": datetime.datetime.now(user_utc).isoformat(),
                 "status": status,
-                "stripe_customer_id": stripe_customer_id,
             }
+            
+            # Só adicionar stripe_customer_id se o Stripe estiver habilitado
+            if use_stripe and stripe_customer_id:
+                item["stripe_customer_id"] = stripe_customer_id
+                
             if user_ip:
                 item["ip"] = user_ip
 
