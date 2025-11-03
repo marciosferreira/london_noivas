@@ -1,0 +1,212 @@
+/* CSS específico para a página da agenda - FORÇA MÁXIMA */
+
+/* Regras universais para garantir visibilidade */
+.agenda-page * {
+  visibility: visible !important;
+}
+
+.agenda-page .card-header * {
+  display: block !important;
+  visibility: visible !important;
+}
+
+.agenda-page .card-header .d-flex {
+  display: flex !important;
+  visibility: visible !important;
+}
+
+.agenda-page .card-header .btn {
+  display: inline-block !important;
+  visibility: visible !important;
+}
+
+/* Sobrescrever TODAS as regras problemáticas com especificidade máxima */
+@media screen and (max-width: 576px) {
+  /* Forçar layout horizontal para cabeçalhos */
+  body .container .agenda-page section .card .card-header .d-flex.justify-content-between.align-items-center {
+    flex-direction: row !important;
+    align-items: flex-start !important;
+    gap: 0.75rem !important;
+    flex-wrap: wrap !important;
+    justify-content: flex-start !important;
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    height: auto !important;
+    width: auto !important;
+    overflow: visible !important;
+  }
+  
+  /* Forçar visibilidade da data */
+  body .container .agenda-page section .card .card-header .d-flex.justify-content-between.align-items-center .d-flex.align-items-center {
+    flex: 1 1 auto !important;
+    min-width: 200px !important;
+    justify-content: flex-start !important;
+    text-align: left !important;
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    height: auto !important;
+    width: auto !important;
+    overflow: visible !important;
+  }
+  
+  /* Forçar visibilidade do texto da data */
+  body .container .agenda-page section .card .card-header .d-flex.justify-content-between.align-items-center .d-flex.align-items-center h4 {
+    font-size: 0.95rem !important;
+    margin-bottom: 0 !important;
+    white-space: nowrap !important;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    height: auto !important;
+    width: auto !important;
+    color: #000 !important;
+    background: transparent !important;
+  }
+  
+  /* Forçar visibilidade do botão */
+  body .container .agenda-page section .card .card-header .d-flex.justify-content-between.align-items-center .btn {
+    flex: 0 0 auto !important;
+    min-width: 120px !important;
+    font-size: 0.85rem !important;
+    padding: 0.375rem 0.75rem !important;
+    margin-left: auto !important;
+    display: inline-block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    height: auto !important;
+    width: auto !important;
+    position: static !important;
+    z-index: auto !important;
+  }
+  
+  /* Forçar visibilidade do ícone */
+  body .container .agenda-page section .card .card-header .fas.fa-calendar-day {
+    font-size: 1rem !important;
+    display: inline !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+}
+
+/* Para telas médias */
+@media screen and (max-width: 500px) {
+  body .container .agenda-page section .card .card-header .d-flex.justify-content-between.align-items-center .d-flex.align-items-center {
+    min-width: 180px !important;
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+  
+  body .container .agenda-page section .card .card-header .d-flex.justify-content-between.align-items-center .d-flex.align-items-center h4 {
+    font-size: 0.9rem !important;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+  
+  body .container .agenda-page section .card .card-header .d-flex.justify-content-between.align-items-center .btn {
+    min-width: 100px !important;
+    font-size: 0.8rem !important;
+    padding: 0.25rem 0.5rem !important;
+    display: inline-block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+}
+
+/* Para telas muito pequenas */
+@media screen and (max-width: 400px) {
+  body .container .agenda-page section .card .card-header .d-flex.justify-content-between.align-items-center {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.75rem !important;
+    justify-content: center !important;
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+  
+  body .container .agenda-page section .card .card-header .d-flex.justify-content-between.align-items-center .d-flex.align-items-center {
+    justify-content: center !important;
+    text-align: center !important;
+    min-width: auto !important;
+    flex: none !important;
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+  
+  body .container .agenda-page section .card .card-header .d-flex.justify-content-between.align-items-center .btn {
+    align-self: center !important;
+    min-width: 150px !important;
+    margin-left: 0 !important;
+    display: inline-block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+}
+
+/* Para telas médias (400px a 576px) - ajuste fino */
+@media (max-width: 500px) {
+  .agenda-page section .card .card-header .d-flex.justify-content-between.align-items-center .d-flex.align-items-center {
+    min-width: 180px !important;
+    display: flex !important;
+    visibility: visible !important;
+  }
+  
+  .agenda-page section .card .card-header .d-flex.justify-content-between.align-items-center .d-flex.align-items-center h4 {
+    font-size: 0.9rem !important;
+    display: block !important;
+    visibility: visible !important;
+  }
+  
+  .agenda-page section .card .card-header .d-flex.justify-content-between.align-items-center .btn {
+    min-width: 100px !important;
+    font-size: 0.8rem !important;
+    padding: 0.25rem 0.5rem !important;
+    display: inline-block !important;
+    visibility: visible !important;
+  }
+}
+
+/* Para telas muito pequenas (menos de 400px) */
+@media (max-width: 400px) {
+  .agenda-page section .card .card-header .d-flex.justify-content-between.align-items-center {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.75rem !important;
+    justify-content: center !important;
+    display: flex !important;
+    visibility: visible !important;
+  }
+  
+  .agenda-page section .card .card-header .d-flex.justify-content-between.align-items-center .d-flex.align-items-center {
+    justify-content: center !important;
+    text-align: center !important;
+    min-width: auto !important;
+    flex: none !important;
+    display: flex !important;
+    visibility: visible !important;
+  }
+  
+  .agenda-page section .card .card-header .d-flex.justify-content-between.align-items-center .btn {
+    align-self: center !important;
+    min-width: 150px !important;
+    margin-left: 0 !important;
+    display: inline-block !important;
+    visibility: visible !important;
+  }
+}
+
+/* Melhorias gerais para a agenda */
+.agenda-page .card-header {
+  background-color: #f8f9fa !important;
+  border-bottom: 1px solid #dee2e6 !important;
+}
+
+.agenda-page .card {
+  border: 1px solid #dee2e6 !important;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !important;
+}

@@ -4,11 +4,12 @@
 
 {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='style_clientes.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='style_agenda.css') }}" />
 {% endblock %}
 
 {% block content %}
 {% set status_map = { 'reserved': 'reservado', 'rented': 'retirado', 'returned': 'devolvido', 'overdue': 'atrasado' } %}
-<div class="container my-3">
+<div class="container my-3 agenda-page">
   <div class="d-flex justify-content-between align-items-center mb-4">
     <h2 class="mb-0">Agenda</h2>
     <div class="d-flex gap-2">
@@ -22,12 +23,19 @@
   </div>
 
   <section class="mb-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <h4 class="mb-0">Hoje ({{ today_iso|formatar_data_com_dia_semana }})</h4>
-      <a class="btn btn-outline-success btn-sm" href="{{ url_for('add_fitting', date=today_iso) }}">
-        <i class="fas fa-plus me-1"></i>Agendar prova hoje
-      </a>
-    </div>
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-light border-0 py-3" style="display: block !important; visibility: visible !important;">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2" style="display: flex !important; visibility: visible !important; opacity: 1 !important;">
+          <div class="d-flex align-items-center flex-shrink-0" style="display: flex !important; visibility: visible !important; opacity: 1 !important;">
+            <i class="fas fa-calendar-day text-info me-2 d-none d-sm-inline" style="display: inline !important; visibility: visible !important; opacity: 1 !important;"></i>
+            <h4 class="mb-0 text-dark fw-bold" style="display: block !important; visibility: visible !important; opacity: 1 !important;">Hoje ({{ today_iso|formatar_data_com_dia_semana }})</h4>
+          </div>
+          <a class="btn btn-outline-success btn-sm flex-shrink-0" href="{{ url_for('add_fitting', date=today_iso) }}" style="display: inline-block !important; visibility: visible !important; opacity: 1 !important;">
+            <i class="fas fa-plus me-1" style="display: inline !important; visibility: visible !important; opacity: 1 !important;"></i><span class="d-none d-sm-inline" style="display: inline !important; visibility: visible !important; opacity: 1 !important;">Agendar prova hoje</span><span class="d-sm-none" style="display: none !important;">Agendar</span>
+          </a>
+        </div>
+      </div>
+      <div class="card-body p-4">
     
     {% if not rentals_today and not returns_today and not fittings_today %}
     <div class="card shadow-sm border-0 border-start border-4 border-info">
@@ -41,40 +49,54 @@
 
     {% if returns_today %}
     <div class="mb-3">
-      <div class="card shadow-sm border-0 border-start border-4 border-danger">
-        <div class="card-header bg-danger text-white">
-          <i class="fas fa-undo me-2"></i>Devoluções de hoje
-        </div>
-        <div class="card-body">
-          {% for tx in returns_today %}
-          <div class="border-bottom py-2 {% if not loop.last %}mb-2{% endif %}">
-            <div class="d-flex justify-content-between align-items-start">
-              <div>
-                {% if tx.client_id %}
-                  <span class="fw-bold">{{ tx.client_name or tx.client_id }}</span>
-                {% else %}
-                  <span class="fw-bold">{{ tx.client_name or 'Cliente' }}</span>
-                {% endif %}
-                <span class="text-muted mx-2">•</span>
-                {% set item_ref = tx.item_id or tx.item_custom_id %}
-                {% if item_ref %}
-                  <span>{{ tx.item_description or tx.item_custom_id or tx.item_id }}</span>
-                {% else %}
-                  {{ tx.item_description or tx.item_custom_id or 'Item' }}
-                {% endif %}
+      <div class="row g-3">
+        {% for tx in returns_today %}
+        <div class="col-12 col-md-6 col-lg-4">
+          <div class="card shadow-lg h-100 position-relative rounded-3 border-0 border-start border-4 border-danger">
+            <div class="card-body py-3 px-4">
+              <!-- Título do card -->
+              <div class="d-flex align-items-center justify-content-between mb-3">
+                <div class="d-flex align-items-center">
+                  <i class="fas fa-undo text-danger me-2"></i>
+                  <h6 class="mb-0 fw-bold text-dark">Devolução</h6>
+                </div>
+                <a href="{{ url_for('all_transactions', transaction_id=tx.transaction_id) }}" class="btn btn-sm btn-outline-danger">
+                  <i class="fas fa-eye me-1"></i>Ver transação
+                </a>
               </div>
-              <div class="text-end">
-                <span class="badge bg-secondary">{{ status_map.get(tx.transaction_status, tx.transaction_status) }}</span>
+              
+              <!-- Campos da transação -->
+              <div class="d-flex flex-column gap-2">
+                <div class="d-flex justify-content-between small border-bottom pb-1">
+                  <span class="text-muted">Data</span>
+                  <span class="text-end fw-bold">{{ tx.return_date|format_date }}</span>
+                </div>
+
+                {% if tx.client_name or tx.client_id %}
+                <div class="d-flex justify-content-between small border-bottom pb-1">
+                  <span class="text-muted">Cliente</span>
+                  <span class="text-end">{{ tx.client_name or tx.client_id }}</span>
+                </div>
+                {% endif %}
+
+                {% if tx.item_description or tx.item_id or tx.item_custom_id %}
+                <div class="d-flex justify-content-between small border-bottom pb-1">
+                  <span class="text-muted">Item</span>
+                  <span class="text-end">{{ tx.item_description or tx.item_id or tx.item_custom_id }}</span>
+                </div>
+                {% endif %}
+
+                <div class="d-flex justify-content-between align-items-center small">
+                  <span class="text-muted">Status</span>
+                  <div class="text-end">
+                    <span class="badge bg-secondary">{{ status_map.get(tx.transaction_status, tx.transaction_status) }}</span>
+                  </div>
+                </div>
               </div>
-            </div>
-            <div class="mt-1">
-              <small class="text-muted">
-                <i class="fas fa-calendar me-1"></i>Devolução: {{ tx.return_date|format_date }}
-              </small>
             </div>
           </div>
-          {% endfor %}
         </div>
+        {% endfor %}
       </div>
     </div>
     {% endif %}
@@ -300,6 +322,7 @@
       {% endfor %}
     </div>
     {% endif %}
+      </div>
     </div>
   </section>
 
@@ -348,14 +371,14 @@
   
   <section class="mb-5">
     <div class="card border-0 shadow-sm mb-4">
-      <div class="card-header bg-light border-0 py-3">
-        <div class="d-flex justify-content-between align-items-center">
-          <div class="d-flex align-items-center">
-            <i class="fas fa-calendar-day text-info me-3 fs-5"></i>
-            <h4 class="mb-0 text-dark fw-bold">{{ day.date_iso|formatar_data_com_dia_semana }}</h4>
+      <div class="card-header bg-light border-0 py-3" style="display: block !important; visibility: visible !important;">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2" style="display: flex !important; visibility: visible !important; opacity: 1 !important;">
+          <div class="d-flex align-items-center flex-shrink-0" style="display: flex !important; visibility: visible !important; opacity: 1 !important;">
+            <i class="fas fa-calendar-day text-info me-2 d-none d-sm-inline" style="display: inline !important; visibility: visible !important; opacity: 1 !important;"></i>
+            <h4 class="mb-0 text-dark fw-bold" style="display: block !important; visibility: visible !important; opacity: 1 !important;">{{ day.date_iso|formatar_data_com_dia_semana }}</h4>
           </div>
-          <a class="btn btn-outline-success btn-sm" href="{{ url_for('add_fitting', date=day.date_iso) }}">
-            <i class="fas fa-plus me-1"></i>Agendar prova
+          <a class="btn btn-outline-success btn-sm flex-shrink-0" href="{{ url_for('add_fitting', date=day.date_iso) }}" style="display: inline-block !important; visibility: visible !important; opacity: 1 !important;">
+            <i class="fas fa-plus me-1" style="display: inline !important; visibility: visible !important; opacity: 1 !important;"></i><span class="d-none d-sm-inline" style="display: inline !important; visibility: visible !important; opacity: 1 !important;">Agendar prova</span><span class="d-sm-none" style="display: none !important;">Agendar</span>
           </a>
         </div>
       </div>
