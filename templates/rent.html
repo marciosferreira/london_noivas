@@ -124,7 +124,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.umd.min.js"></script>
 
 <script>
-  const ORDEM_BLOCOS = {{ ordem | tojson }};
+  const ORDEM_BLOCOS = JSON.parse(`{{ ordem | tojson | safe }}`);
 </script>
 
 <script>
@@ -623,7 +623,7 @@
     // 📆 Datepicker com datas bloqueadas
     function iniciarDatePicker() {
       const DateTime = easepick.DateTime;
-      const rawDates = {{ reserved_ranges | tojson(indent=2) }};
+      const rawDates = JSON.parse(`{{ reserved_ranges | tojson | safe }}`);
       const bookedDates = rawDates.map(d => {
         if (d instanceof Array) {
           const start = new DateTime(d[0], 'YYYY-MM-DD');
@@ -891,13 +891,15 @@
     // 🔁 Bloqueia novas transaçoes de acordo com o plano
 
   document.addEventListener("DOMContentLoaded", function () {
-    const totalTransactions = {{ total_relevant_transactions | default(0) | tojson }};
-    const subscriptionStatus = {{ current_stripe_transaction.subscription_status | default('none') | tojson }};
+    const totalTransactions = JSON.parse(`{{ (total_relevant_transactions if total_relevant_transactions is not none else 0) | tojson | safe }}`);
+    const subscriptionStatus = JSON.parse(`{{ (current_stripe_transaction.subscription_status if current_stripe_transaction is not none else 'none') | tojson | safe }}`);
+    const userRole = JSON.parse(`{{ (session.get('role') if session.get('role') is not none else 'admin') | tojson | safe }}`);
 
     const allowedStatuses = ["trialing", "active", "past_due"];
     const maxLimit = allowedStatuses.includes(subscriptionStatus) ? 300 : 0;
 
-    const atingiuLimite = totalTransactions >= maxLimit;
+    const isAdminBypass = userRole === 'general_admin';
+    const atingiuLimite = !isAdminBypass && totalTransactions >= maxLimit;
 
     if (atingiuLimite) {
       const modal = new bootstrap.Modal(document.getElementById("limitModal"));
