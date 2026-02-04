@@ -657,8 +657,13 @@ def init_item_routes(
                         )
 
             # Verifica alterações
-            # Verifica alterações
             changes = {}
+            
+            # Add featured field handling
+            featured = request.form.get("featured") == "on"
+            if item.get("featured", False) != featured:
+                changes["featured"] = featured
+
             for k, v in new_values.items():
                 if key_values.get(k) != v:
                     # Coletar tudo em um novo key_values completo
@@ -742,6 +747,7 @@ def init_item_routes(
 
         prepared["item_id"] = item["item_id"]
         prepared["key_values"] = key_values  # ← isso garante que o template poderá usar item.key_values
+        prepared["featured"] = item.get("featured", False)
 
 
         origin = next_page.rstrip("/").split("/")[-1]

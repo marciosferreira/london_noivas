@@ -1,7 +1,7 @@
 /* Header fixo */
 .header {
   width: 100%;
-  position: fixed;
+  /* position: fixed; removido para scroll normal */
   top: 0;
   z-index: 1000;
 }
@@ -79,7 +79,7 @@
 
 /* Compensa espaço do header fixo no body */
 body {
-  padding-top: 77px; /* Ajustado para altura da navbar+logo */
+  padding-top: 0; /* Ajustado para scroll normal */
 }
 
 .welcome-banner {

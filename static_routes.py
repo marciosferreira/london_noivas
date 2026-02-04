@@ -18,7 +18,7 @@ endpoint_secret = os.getenv("STRIPE_WEBHOOK_SECRET")  # ← este é o certo
 import uuid
 from decimal import Decimal
 import datetime
-from boto3.dynamodb.conditions import Key
+from boto3.dynamodb.conditions import Key, Attr
 from flask import render_template_string
 from utils import get_user_timezone, get_account_plan
 from flask import jsonify
@@ -38,6 +38,7 @@ def init_static_routes(
     text_models_table,
     users_table,
     payment_transactions_table,
+    field_config_table,
 ):
     # Static pages
     @app.route("/terms")
@@ -477,9 +478,107 @@ def init_static_routes(
 
     @app.route("/")
     def index():
-        if session.get("logged_in"):
-            return redirect(url_for("agenda"))
-        return render_template("index.html")
+        try:
+            # Fetch available items for vitrine that are featured
+            response = itens_table.scan(
+                FilterExpression=Attr("status").eq("available") & Attr("featured").eq(True)
+            )
+            itens = response.get("Items", [])
+            
+            # Simple pagination handling
+            while "LastEvaluatedKey" in response:
+                response = itens_table.scan(
+                    FilterExpression=Attr("status").eq("available") & Attr("featured").eq(True),
+                    ExclusiveStartKey=response["LastEvaluatedKey"]
+                )
+                itens.extend(response.get("Items", []))
+                
+            fields_config = []
+            if itens:
+                # Use account_id from first item to get config
+                account_id = itens[0].get("account_id")
+                if account_id:
+                    config_response = field_config_table.get_item(
+                        Key={"account_id": account_id, "entity": "item"}
+                    )
+                    fields_config_map = config_response.get("Item", {}).get("fields_config", {})
+                    
+                    for field_id, cfg in fields_config_map.items():
+                        fields_config.append({
+                            "id": field_id,
+                            "label": cfg.get("label", field_id),
+                            "type": cfg.get("type", "string"),
+                            "visible": cfg.get("visible", True),
+                            "preview": cfg.get("preview", False),
+                            "order_sequence": int(cfg.get("order_sequence", 999))
+                        })
+                    fields_config.sort(key=lambda x: x["order_sequence"])
+            
+            return render_template("index.html", itens=itens, fields_config=fields_config)
+            
+        except Exception as e:
+            print(f"Error loading vitrine: {e}")
+            return render_template("index.html", itens=[], fields_config=[])
+
+    @app.route("/catalogo")
+    def catalogo():
+        try:
+            page = request.args.get('page', 1, type=int)
+            per_page = 12
+            
+            # Fetch all available items (same as index)
+            response = itens_table.scan(
+                FilterExpression=Attr("status").eq("available")
+            )
+            itens = response.get("Items", [])
+            
+            while "LastEvaluatedKey" in response:
+                response = itens_table.scan(
+                    FilterExpression=Attr("status").eq("available"),
+                    ExclusiveStartKey=response["LastEvaluatedKey"]
+                )
+                itens.extend(response.get("Items", []))
+            
+            # Configuração de campos para imagens
+            fields_config = []
+            if itens:
+                account_id = itens[0].get("account_id")
+                if account_id:
+                    config_response = field_config_table.get_item(
+                        Key={"account_id": account_id, "entity": "item"}
+                    )
+                    fields_config_map = config_response.get("Item", {}).get("fields_config", {})
+                    for field_id, cfg in fields_config_map.items():
+                        fields_config.append({
+                            "id": field_id,
+                            "label": cfg.get("label", field_id),
+                            "type": cfg.get("type", "string"),
+                            "visible": cfg.get("visible", True),
+                            "preview": cfg.get("preview", False),
+                            "order_sequence": int(cfg.get("order_sequence", 999))
+                        })
+                    fields_config.sort(key=lambda x: x["order_sequence"])
+
+            # Paginação em memória
+            total_items = len(itens)
+            total_pages = (total_items + per_page - 1) // per_page
+            
+            start = (page - 1) * per_page
+            end = start + per_page
+            current_itens = itens[start:end]
+            
+            return render_template(
+                "catalogo.html", 
+                itens=current_itens, 
+                fields_config=fields_config,
+                page=page,
+                total_pages=total_pages,
+                total_items=total_items
+            )
+            
+        except Exception as e:
+            print(f"Error loading catalogo: {e}")
+            return render_template("catalogo.html", itens=[], fields_config=[], page=1, total_pages=1)
 
     @app.route("/home")
     def home():

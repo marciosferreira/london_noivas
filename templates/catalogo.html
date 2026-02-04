@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="pt-br" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catálogo Completo - London Noivas</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'london-gold': '#C5A059',
+                        'stone': {
+                            50: '#fafaf9',
+                            100: '#f5f5f4',
+                            200: '#e7e5e4',
+                            300: '#d6d3d1',
+                            400: '#a8a29e',
+                            500: '#78716c',
+                            600: '#57534e',
+                            700: '#44403c',
+                            800: '#292524',
+                            900: '#1c1917',
+                        }
+                    },
+                    fontFamily: {
+                        serif: ['Playfair Display', 'serif'],
+                        sans: ['Lato', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .animate-fadeIn {
+            animation: fadeIn 0.5s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-stone-50 text-stone-800 font-sans antialiased">
+
+    <!-- Header -->
+    <header id="main-header" class="fixed top-0 left-0 right-0 z-50 bg-stone-900 shadow-md py-4 transition-all duration-300">
+        <div class="container mx-auto px-6 flex justify-between items-center">
+            <a href="/" class="flex items-center gap-2 group">
+                <div class="w-10 h-10 bg-london-gold flex items-center justify-center rounded-sm group-hover:bg-white transition-colors">
+                    <span class="text-white group-hover:text-london-gold font-serif text-xl font-bold transition-colors">L</span>
+                </div>
+                <h1 class="text-xl font-serif tracking-widest text-white group-hover:text-london-gold transition-colors duration-300">
+                    LONDON NOIVAS
+                </h1>
+            </a>
+
+            <nav class="hidden md:flex gap-8 items-center font-medium tracking-wide text-sm">
+                <a href="/" class="nav-link text-white hover:text-london-gold transition-colors">INÍCIO</a>
+                <a href="/catalogo" class="nav-link text-london-gold transition-colors">CATÁLOGO</a>
+                <a href="https://wa.me/5592984409472" class="bg-london-gold text-white px-6 py-2 rounded-full hover:bg-white hover:text-london-gold transition-all shadow-lg">
+                    AGENDAR VISITA
+                </a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="pt-32 pb-24 min-h-screen">
+        <div class="container mx-auto px-6">
+            
+            <!-- Page Title -->
+            <div class="text-center mb-16 animate-fadeIn">
+                <h2 class="text-4xl md:text-5xl font-serif text-stone-800 mb-4">Nosso Acervo Completo</h2>
+                <div class="w-24 h-1 bg-london-gold mx-auto mb-6"></div>
+                <p class="text-stone-500 max-w-2xl mx-auto text-lg font-light">
+                    Explore nossa coleção exclusiva de vestidos selecionados para tornar seu momento inesquecível.
+                </p>
+            </div>
+
+            <!-- Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 mb-16">
+                {% if itens %}
+                    {% for item in itens %}
+                        {# Image Logic #}
+                        {% set ns = namespace(found=false, image_url='') %}
+                        {% for field in fields_config if field.type == 'item_image_url' and field.visible %}
+                           {% set image_value = item.key_values[field.id] if item.key_values is defined and field.id in item.key_values else item[field.id] if field.id in item else '' %}
+                           {% if image_value and image_value != 'N/A' and not ns.found %}
+                               {% set ns.image_url = image_value %}
+                               {% set ns.found = true %}
+                           {% endif %}
+                        {% endfor %}
+
+                        {% set display_title = item.item_description if item.item_description else item.description if item.description else item.nome if item.nome else 'Peça Exclusiva' %}
+                        {% set display_desc = item.description if item.description else item.item_obs if item.item_obs else 'Sem descrição detalhada.' %}
+                        
+                        <div class="group bg-white rounded-sm shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden animate-fadeIn"
+                             onclick="openCatalogModal('{{ ns.image_url }}', '{{ display_title | replace("'", "\\'") }}', '{{ display_desc | replace("'", "\\'") | replace('\n', ' ') }}', '{{ item.item_id }}')">
+                            <script>
+                                (function() {
+                                    window.catalogData = window.catalogData || {};
+                                    window.catalogData['{{ item.item_id }}'] = {
+                                        imageUrl: '{{ ns.image_url }}',
+                                        title: '{{ display_title | replace("'", "\\'") }}',
+                                        description: '{{ display_desc | replace("'", "\\'") | replace('\n', ' ') }}'
+                                    };
+                                })();
+                            </script>
+                            
+                            <div class="aspect-[3/4] overflow-hidden bg-stone-200 relative">
+                                {% if ns.found %}
+                                    <img src="{{ ns.image_url }}" alt="{{ display_title }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700">
+                                {% else %}
+                                    <div class="w-full h-full flex items-center justify-center text-stone-400 bg-stone-100">
+                                        <span class="font-serif italic">Sem imagem</span>
+                                    </div>
+                                {% endif %}
+                                <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors"></div>
+                                <div class="absolute bottom-4 right-4 bg-white/90 p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-stone-800">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                                    </svg>
+                                </div>
+                            </div>
+                            
+                            <div class="p-6">
+                                <h3 class="font-serif text-lg text-stone-800 mb-2 truncate">{{ display_title }}</h3>
+                                <p class="text-xs text-london-gold tracking-widest font-bold uppercase">Ver Detalhes</p>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="col-span-full text-center py-20 bg-stone-100 rounded-lg">
+                        <p class="text-stone-500 text-xl font-serif">Nenhum item encontrado no catálogo.</p>
+                        <a href="/" class="mt-4 inline-block text-london-gold hover:underline">Voltar ao início</a>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Pagination -->
+            {% if total_pages > 1 %}
+            <div class="flex justify-center items-center gap-4">
+                {% if page > 1 %}
+                <a href="{{ url_for('catalogo', page=page-1) }}" class="px-6 py-3 border border-stone-300 text-stone-600 hover:bg-stone-800 hover:text-white hover:border-stone-800 transition-all font-medium rounded-sm">
+                    &larr; Anterior
+                </a>
+                {% endif %}
+                
+                <span class="font-serif text-stone-500">
+                    Página <span class="text-stone-800 font-bold">{{ page }}</span> de {{ total_pages }}
+                </span>
+                
+                {% if page < total_pages %}
+                <a href="{{ url_for('catalogo', page=page+1) }}" class="px-6 py-3 border border-stone-300 text-stone-600 hover:bg-stone-800 hover:text-white hover:border-stone-800 transition-all font-medium rounded-sm">
+                    Próxima &rarr;
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
+
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer id="contato" class="bg-stone-50 pt-20 pb-10 border-t border-stone-200">
+        <div class="container mx-auto px-6">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
+                <div class="col-span-1 md:col-span-2">
+                    <h2 class="text-3xl font-serif mb-6 tracking-widest text-stone-800">LONDON NOIVAS</h2>
+                    <p class="text-stone-500 mb-8 max-w-sm">
+                        Tornando momentos especiais em memórias eternas através da elegância e sofisticação que você merece.
+                    </p>
+                    <div class="flex gap-4">
+                        <a href="https://instagram.com/londonnoivas" target="_blank" class="flex items-center gap-3 group">
+                            <div class="w-10 h-10 border border-stone-300 rounded-full flex items-center justify-center group-hover:bg-london-gold group-hover:text-white group-hover:border-london-gold transition-all">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                    <path d="M8 0C5.829 0 5.556.01 4.703.048 3.85.088 3.269.222 2.76.42a3.917 3.917 0 0 0-1.417.923A3.927 3.927 0 0 0 .42 2.76C.222 3.268.087 3.85.048 4.7.01 5.555 0 5.827 0 8.001c0 2.172.01 2.444.048 3.297.04.852.174 1.433.372 1.942.205.526.478.972.923 1.417.444.445.89.719 1.416.923.51.198 1.09.333 1.942.372C5.555 15.99 5.827 16 8 16s2.444-.01 3.298-.048c.851-.04 1.434-.174 1.943-.372a3.916 3.916 0 0 0 1.416-.923c.445-.445.718-.891.923-1.417.197-.509.332-1.09.372-1.942C15.99 10.445 16 10.173 16 8s-.01-2.445-.048-3.299c-.04-.851-.175-1.433-.372-1.941a3.926 3.926 0 0 0-.923-1.417A3.911 3.911 0 0 0 13.24.42c-.51-.198-1.092-.333-1.943-.372C10.443.01 10.172 0 7.998 0h.003zm-.717 1.442h.718c2.136 0 2.389.007 3.232.046.78.035 1.204.166 1.486.275.373.145.64.319.92.599.28.28.453.546.598.92.11.281.24.705.275 1.485.039.843.047 1.096.047 3.231s-.008 2.389-.047 3.232c-.035.78-.166 1.203-.275 1.485a2.47 2.47 0 0 1-.599.919c-.28.28-.546.453-.92.598-.281.11-.705.24-1.485.276-.843.038-1.096.047-3.232.047s-2.39-.009-3.233-.047c-.78-.036-1.203-.166-1.486-.276a2.478 2.478 0 0 1-.919-.598 2.48 2.48 0 0 1-.599-.92c-.11-.281-.24-.705-.275-1.485-.038-.843-.047-1.096-.047-3.232 0-2.136.009-2.388.047-3.231.036-.78.166-1.204.276-1.486.145-.373.319-.64.599-.92.28-.28.546-.453.92-.598.282-.11.705-.24 1.485-.276.738-.034 1.024-.044 2.515-.045v.002zm4.988 1.328a.96.96 0 1 0 0 1.92.96.96 0 0 0 0-1.92zm-4.27 1.122a4.109 4.109 0 1 0 0 8.217 4.109 4.109 0 0 0 0-8.217zm0 1.441a2.667 2.667 0 1 1 0 5.334 2.667 2.667 0 0 1 0-5.334z"/>
+                                </svg>
+                            </div>
+                            <span class="text-stone-500 font-bold text-sm tracking-widest group-hover:text-london-gold transition-colors">@londonnoivas</span>
+                        </a>
+                    </div>
+                </div>
+                
+                <div>
+                    <h4 class="font-bold text-stone-800 mb-6 tracking-widest uppercase text-sm">Onde Estamos</h4>
+                    <ul class="space-y-4 text-stone-500 text-sm mb-6">
+                        <li>Rua Voltaire, 4</li>
+                        <li>Colônia Santo Antônio - Manaus - AM</li>
+                        <li>Seg - Sáb: 10h às 20h</li>
+                        <li>Tel: (92) 98440-9472</li>
+                    </ul>
+                    <div class="rounded-sm overflow-hidden shadow-md border border-stone-200">
+                        <iframe width="100%" height="200" frameborder="0" style="border:0" src="https://maps.google.com/maps?q=Rua+Voltaire+4+Colonia+Santo+Antonio+Manaus+AM&t=&z=15&ie=UTF8&iwloc=&output=embed" allowfullscreen></iframe>
+                    </div>
+                </div>
+
+                <div>
+                    <h4 class="font-bold text-stone-800 mb-6 tracking-widest uppercase text-sm">Links Rápidos</h4>
+                    <ul class="space-y-4 text-stone-500 text-sm">
+                        <li><a href="/#colecoes" class="hover:text-london-gold transition-colors">Destaques</a></li>
+                        <li><a href="/#showroom" class="hover:text-london-gold transition-colors">Busca com IA</a></li>
+                        <li><a href="https://wa.me/5592984409472" target="_blank" class="hover:text-london-gold transition-colors">Agendamento</a></li>
+                        <li>
+                             {% if not session.get('logged_in') %}
+                             <a href="{{ url_for('login') }}" class="hover:text-london-gold transition-colors">Área Restrita</a>
+                             {% else %}
+                             <a href="{{ url_for('agenda') }}" class="hover:text-london-gold transition-colors">Painel Admin</a>
+                             {% endif %}
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="border-t border-stone-200 pt-8 text-center text-stone-400 text-xs">
+                <p>&copy; 2025 London Noivas. Todos os direitos reservados. Desenvolvido com sofisticação.</p>
+            </div>
+        </div>
+        
+        <!-- Floating WhatsApp CTA -->
+        <a href="https://wa.me/5592984409472" class="fixed bottom-8 right-8 bg-green-500 text-white p-4 rounded-full shadow-2xl hover:scale-110 transition-transform z-50 flex items-center gap-2 group">
+            <span class="max-w-0 overflow-hidden group-hover:max-w-xs transition-all duration-500 whitespace-nowrap font-bold">
+                Agendar no WhatsApp
+            </span>
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.588-5.946 0-6.556 5.332-11.891 11.891-11.891 3.181 0 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.481 8.403 0 6.556-5.332 11.892-11.891 11.891 11.891 3.181 0 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.481 8.403 0 6.556-5.332 11.892-11.891 11.892-1.999 0-3.956-.503-5.692-1.448l-6.301 1.666zm6.29-4.143c1.589.943 3.197 1.441 4.934 1.441 5.485 0 9.95-4.465 9.95-9.95 0-2.652-1.036-5.147-2.919-7.031-1.883-1.883-4.384-2.917-7.031-2.917-5.485 0-9.951 4.465-9.951 9.95 0 2.07.635 4.089 1.835 5.823l-1.101 4.022 4.133-1.092zm10.293-7.234c-.298-.15-1.764-.871-2.037-.972-.273-.102-.472-.152-.671.152-.199.303-.771 1.018-.944 1.219-.174.202-.348.227-.646.077-.298-.15-1.258-.464-2.396-1.48-.885-.789-1.483-1.763-1.656-2.064-.174-.302-.018-.465.132-.614.135-.133.298-.348.447-.521.149-.174.199-.298.298-.497.099-.198.05-.373-.025-.522-.075-.15-.671-1.616-.919-2.213-.242-.581-.486-.502-.671-.512-.174-.01-.373-.013-.572-.013-.199 0-.523.075-.795.373-.273.302-1.045 1.018-1.045 2.486s1.07 2.885 1.219 3.085c.149.202 2.105 3.214 5.099 4.507.712.308 1.268.491 1.701.628.715.227 1.365.195 1.879.118.573-.086 1.764-.72 2.013-1.417.248-.696.248-1.292.174-1.417-.074-.125-.272-.201-.57-.352z"/>
+            </svg>
+        </a>
+
+    <!-- Catalog Modal -->
+    <div id="catalog-modal" class="fixed inset-0 z-[100] hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="fixed inset-0 bg-stone-900/90 transition-opacity backdrop-blur-sm" onclick="closeCatalogModal()"></div>
+
+        <div class="fixed inset-0 z-10 overflow-y-auto">
+            <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+                <div class="relative transform overflow-hidden rounded-sm bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-5xl animate-fadeIn">
+                    
+                    <div class="absolute top-0 right-0 pt-4 pr-4 z-20">
+                        <button type="button" class="rounded-full bg-white/20 p-2 text-stone-500 hover:text-stone-800 focus:outline-none transition-colors" onclick="closeCatalogModal()">
+                            <span class="sr-only">Fechar</span>
+                            <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    <div class="flex flex-col md:flex-row h-full md:h-[80vh]">
+                        <!-- Image Side -->
+                        <div class="md:w-1/2 bg-stone-100 relative h-[50vh] md:h-full">
+                            <img id="modal-img" src="" alt="Detalhe" class="absolute inset-0 w-full h-full object-cover">
+                        </div>
+                        
+                        <!-- Content Side -->
+                        <div class="md:w-1/2 p-8 md:p-12 flex flex-col overflow-y-auto bg-white">
+                            <div class="flex-1">
+                                <span class="text-london-gold font-bold tracking-widest text-xs uppercase mb-2 block">London Noivas Collection</span>
+                                <h3 id="modal-title" class="text-3xl md:text-4xl font-serif text-stone-900 mb-6 leading-tight"></h3>
+                                
+                                <div class="w-12 h-1 bg-stone-200 mb-8"></div>
+                                
+                                <div class="prose prose-stone max-w-none">
+                                    <h4 class="font-serif text-lg text-stone-800 mb-2">Descrição da Peça</h4>
+                                    <p id="modal-desc" class="text-stone-600 font-light leading-relaxed text-lg mb-8"></p>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-8 pt-8 border-t border-stone-100">
+                                <p class="text-stone-400 text-sm mb-4 text-center italic">Gostou deste modelo? Fale conosco agora.</p>
+                                <a id="modal-whatsapp-link" href="#" target="_blank" class="block w-full bg-[#25D366] hover:bg-[#1ebc57] text-white py-4 px-6 rounded-sm transition-colors text-center shadow-lg hover:shadow-xl transform hover:-translate-y-1 duration-200 flex items-center justify-center gap-3">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+                                        <path d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592zm3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.729.729 0 0 0-.529.247c-.182.198-.691.677-.691 1.654 0 .977.71 1.916.81 2.049.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232z"/>
+                                    </svg>
+                                    <span class="font-bold tracking-widest text-sm">SOLICITAR MAIS INFORMAÇÕES</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openCatalogModal(imageUrl, title, description, itemId) {
+            document.getElementById('modal-img').src = imageUrl || 'https://via.placeholder.com/600x800?text=Sem+Imagem';
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('modal-desc').textContent = description;
+            
+            // Update URL to include item_id
+            const url = new URL(window.location);
+            url.searchParams.set('item', itemId);
+            window.history.pushState({}, '', url);
+
+            // Format WhatsApp link
+            const phoneNumber = "5592984409472";
+            let text = `Olá, gostaria de mais informações sobre o vestido do catálogo: ${title}`;
+            
+            // Add Image URL if available
+            if (imageUrl && !imageUrl.includes('placeholder')) {
+                text += `\n\nFoto: ${imageUrl}`;
+            }
+            
+            // Add Direct Link
+            text += `\n\nLink: ${url.toString()}`;
+
+            const encodedText = encodeURIComponent(text);
+            document.getElementById('modal-whatsapp-link').href = `https://wa.me/${phoneNumber}?text=${encodedText}`;
+            
+            document.getElementById('catalog-modal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden'; // Prevent scrolling
+        }
+
+        function closeCatalogModal() {
+            document.getElementById('catalog-modal').classList.add('hidden');
+            document.body.style.overflow = ''; // Restore scrolling
+            
+            // Remove item param from URL
+            const url = new URL(window.location);
+            url.searchParams.delete('item');
+            window.history.pushState({}, '', url);
+        }
+
+        // Check URL for item param on load
+        window.addEventListener('load', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const itemId = urlParams.get('item');
+            if (itemId && window.catalogData && window.catalogData[itemId]) {
+                const item = window.catalogData[itemId];
+                openCatalogModal(item.imageUrl, item.title, item.description, itemId);
+            }
+        });
+    </script>
+
+</body>
+</html>

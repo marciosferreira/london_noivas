@@ -68,16 +68,8 @@
             </button>
           </div>
 
-          <!-- Resumo fixo: cliente e item -->
+          <!-- Resumo do Item -->
           <div class="d-flex flex-column gap-2 mb-2">
-            <div class="d-flex justify-content-between small border-bottom pb-1">
-              <span class="text-muted">ID do Cliente</span>
-              <span class="text-end">{{ item.client_id if item.client_id is defined else '-' }}</span>
-            </div>
-            <div class="d-flex justify-content-between small border-bottom pb-1">
-              <span class="text-muted">Nome do Cliente</span>
-              <span class="text-end">{{ item.client_name if item.client_name is defined else '-' }}</span>
-            </div>
             <div class="d-flex justify-content-between small border-bottom pb-1">
               <span class="text-muted">ID do Item</span>
               <span class="text-end">{{ item.item_id if item.item_id is defined else (item.item_custom_id if item.item_custom_id is defined else '-') }}</span>
@@ -96,7 +88,9 @@
           </div>
 
           <div class="d-flex flex-column gap-2">
-            {% for field in fields_config if field.preview and field.visible and field.type != 'item_image_url' %}
+            {% for field in fields_config 
+                 if field.preview and field.visible and field.type != 'item_image_url' 
+                 and field.id not in ['item_description','description','nome','descricao'] %}
             <div class="d-flex justify-content-between small border-bottom pb-1">
               <span class="text-muted">{{ field.label }}</span>
               <span class="text-end">

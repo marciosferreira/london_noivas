@@ -88,6 +88,10 @@
 
     <div class="row mt-4">
       <div class="col text-center">
+        <div class="d-inline-flex align-items-center gap-2 mb-3 me-4">
+          <input type="checkbox" id="featured" name="featured" {% if item.featured %}checked{% endif %} />
+          <label for="featured" class="form-check-label">Destaque na Home?</label>
+        </div>
         <div class="d-inline-flex align-items-center gap-2 mb-3">
           <input type="checkbox" id="update_all_transactions" name="update_all_transactions" />
           <label for="update_all_transactions" class="form-check-label">Alterar em todas as transações existentes?</label>

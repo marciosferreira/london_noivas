@@ -2,22 +2,26 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='style_not_logged_header.css') }}" />
 
 <header class="header">
-  <nav class="navbar navbar-expand-lg fixed-top" style="background-color: #003366">
-    <div class="container d-flex align-items-center justify-content-between py-2">
+  <nav class="navbar navbar-expand-lg" style="background-color: #003366">
+    <div class="container d-flex align-items-center justify-content-center py-2">
       <!-- Logo -->
       <a class="navbar-brand d-flex align-items-center" href="{{ url_for('index') }}">
         <img src="{{ url_for('static', filename='icons/logo.png') }}" alt="Logo" class="logo me-2" />
-        <span style="color: white">Loca</span>
-        <span style="color: #ffc107" class="no-space">Shop</span>
+        <span style="color: white">London</span>
+        <span style="color: #ffc107" class="no-space">Noivas</span>
       </a>
 
-      <!-- Botão Login (direto, sem menu) -->
-      {% if request.endpoint == 'index' %}
-      <a class="btn-header-login" href="{{ url_for('login') }}">Login</a>
-      {% elif request.endpoint == 'login'%}
-      <a class="btn-index-register" href="{{ url_for('register') }}">Cadastro</a>
-      {% else %}
-      <a class="btn-header-login-outline" href="{{ url_for('login') }}">Login</a>
+      <!-- Botões removidos da página inicial -->
+      {% if request.endpoint != 'index' %}
+          {% if request.endpoint == 'login'%}
+          <div class="position-absolute end-0 me-3">
+             <a class="btn-index-register" href="{{ url_for('register') }}">Cadastro</a>
+          </div>
+          {% else %}
+          <div class="position-absolute end-0 me-3">
+             <a class="btn-header-login-outline" href="{{ url_for('login') }}">Login</a>
+          </div>
+          {% endif %}
       {% endif %}
     </div>
   </nav>
