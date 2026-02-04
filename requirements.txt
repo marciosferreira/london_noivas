@@ -9,3 +9,6 @@ pillow
 qrcode[pil]
 requests
 stripe
+openai
+faiss-cpu
+numpy
