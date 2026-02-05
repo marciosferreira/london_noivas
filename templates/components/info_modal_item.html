@@ -39,7 +39,7 @@
               {% set value = item.key_values[field.id] if item.key_values is defined and field.id in item.key_values else item[field.id] if field.id
               in item else '' %} {% if value == 'None' or value is none %}
               <span class="text-muted">-</span>
-              {% else %} {% if field.type == "date" %} {{ value | format_date }} {% elif field.type in ["value", "item_value"] %} {% if value|float == 0 %} Consulte o preço {% else %} {{ value |
+              {% else %} {% if field.type == "date" %} {{ value | format_date }} {% elif field.type in ["value", "item_value"] %} {% if value|float == 0 %} Consulte o preço do aluguel {% else %} {{ value |
               format_brl }} {% endif %} {% else %} {{ value }} {% endif %} {% endif %}
             </div>
             {% endfor %}

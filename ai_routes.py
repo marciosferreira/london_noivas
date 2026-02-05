@@ -172,7 +172,7 @@ def ai_search():
             "image_url": url_for('static', filename=f"dresses/{chosen_item['file_name']}"),
             "description": chosen_item['description'],
             "title": chosen_item.get('title', 'Sugestão Exclusiva'),
-            "price": "Consulte o preço",
+            "price": "Consulte o preço do aluguel",
             "id": f"ai_main_{selected_index}"
         }
 
@@ -184,7 +184,7 @@ def ai_search():
                     "image_url": url_for('static', filename=f"dresses/{item['file_name']}"),
                     "description": item['description'],
                     "title": item.get('title', 'Sugestão Exclusiva'),
-                    "price": "Consulte o preço",
+                    "price": "Consulte o preço do aluguel",
                     "id": f"ai_sugg_{i}"
                 })
 

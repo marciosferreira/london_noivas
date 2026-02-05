@@ -4,6 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>London Noivas - Aluguel de Vestidos</title>
+
+    <!-- Google Ads Global Site Tag (gtag.js) -->
+    <!-- Substitua AW-SEU_ID_AQUI pelo seu ID do Google Ads -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=AW-SEU_ID_AQUI"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+
+        gtag('config', 'AW-SEU_ID_AQUI');
+    </script>
     
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -83,7 +94,7 @@
                 <a href="{{ url_for('catalogo') }}" class="nav-link text-white hover:text-london-gold transition-colors">CATÁLOGO</a>
                 <a href="#sobre" class="nav-link text-white hover:text-london-gold transition-colors">SOBRE</a>
                 <a href="#contato" class="nav-link text-white hover:text-london-gold transition-colors">CONTATO</a>
-                <a href="https://wa.me/5592993531943" class="bg-london-gold text-white px-6 py-2 rounded-full hover:bg-opacity-90 transition-all shadow-lg">
+                <a href="https://wa.me/5592993531943" onclick="trackWhatsAppClick('header')" class="bg-london-gold text-white px-6 py-2 rounded-full hover:bg-opacity-90 transition-all shadow-lg">
                     AGENDAR VISITA
                 </a>
                 
@@ -127,7 +138,7 @@
                     <a href="#colecoes" class="bg-london-gold text-white px-10 py-4 rounded-sm font-semibold tracking-widest hover:bg-white hover:text-london-gold transition-all">
                         VER DESTAQUES
                     </a>
-                    <a href="https://wa.me/5592993531943" class="bg-transparent border-2 border-white text-white px-10 py-4 rounded-sm font-semibold tracking-widest hover:bg-white hover:text-stone-900 transition-all">
+                    <a href="https://wa.me/5592993531943" onclick="trackWhatsAppClick('hero')" class="bg-transparent border-2 border-white text-white px-10 py-4 rounded-sm font-semibold tracking-widest hover:bg-white hover:text-stone-900 transition-all">
                         FALAR COM CONSULTORA
                     </a>
                 </div>
@@ -218,11 +229,11 @@
                     {% endfor %}
                     
                     {# Price Logic #}
-                    {% set ns.price_display = 'Consulte o preço' %}
+                    {% set ns.price_display = 'Consulte o preço do aluguel' %}
                     {% for field in fields_config if field.type in ['value', 'item_value'] %}
                        {% set price_val = item.key_values[field.id] if item.key_values is defined and field.id in item.key_values else item[field.id] if field.id in item else 0 %}
                        {% if price_val|float == 0 %}
-                           {% set ns.price_display = 'Consulte o preço' %}
+                           {% set ns.price_display = 'Consulte o preço do aluguel' %}
                        {% else %}
                            {% set ns.price_display = 'R$ ' + (price_val|format_brl) + ' (aluguel)' %}
                        {% endif %}
@@ -233,7 +244,7 @@
                     {% set display_desc = (item.item_description | default('') | string | trim) or (item.description | default('') | string | trim) or (item.item_obs | default('') | string | trim) or 'Sem descrição detalhada.' %}
                     
                     <div class="group relative overflow-hidden cursor-pointer shadow-lg hover:shadow-2xl transition-all duration-500"
-                         onclick="openCatalogModalById('{{ item.item_id }}')">
+                         onclick="openCatalogModalById('{{ item.item_id }}', 'featured')">
                         <script>
                             (function() {
                                 window.catalogData = window.catalogData || {};
@@ -285,7 +296,7 @@
             
             <div class="mt-16 text-center">
                 <a href="{{ url_for('catalogo') }}" class="inline-block border border-stone-800 text-stone-800 px-12 py-4 hover:bg-stone-800 hover:text-white transition-all tracking-widest font-bold">
-                    VER TODO O CATÁLOGO
+                    VER CATÁLOGO
                 </a>
             </div>
         </section>
@@ -590,7 +601,7 @@
                         dress.title || "Sugestão Exclusiva", 
                         dress.description, 
                         dress.id, 
-                        dress.price || "Consulte o preço"
+                        dress.price || "Consulte o preço do aluguel"
                     );
 
                     if (suggestions && suggestions.length > 0) {
@@ -612,7 +623,7 @@
                             item.title || "Sugestão Exclusiva", 
                             item.description, 
                             item.id, 
-                            item.price || "Consulte o preço"
+                            item.price || "Consulte o preço do aluguel"
                         );
                         
                         div.innerHTML = `
@@ -723,7 +734,7 @@
                         <li>Rua Voltaire, 9</li>
                         <li>Colônia Santo Antônio - Manaus - AM</li>
                         <li>Seg - Sáb: 10h às 20h</li>
-                        <li>Tel/WhatsApp: (92) 99353-1943</li>
+                        <li>Tel/WhatsApp: <span id="phone-display-index" class="cursor-pointer underline decoration-dotted text-london-gold" onclick="revealPhone('phone-display-index')">Ver número</span></li>
                     </ul>
                     <div class="rounded-sm overflow-hidden shadow-md border border-stone-200">
                         <iframe width="100%" height="200" frameborder="0" style="border:0" src="https://maps.google.com/maps?q=Rua+Voltaire+4+Colonia+Santo+Antonio+Manaus+AM&t=&z=15&ie=UTF8&iwloc=&output=embed" allowfullscreen></iframe>
@@ -735,7 +746,7 @@
                     <ul class="space-y-4 text-stone-500 text-sm">
                         <li><a href="#colecoes" class="hover:text-london-gold transition-colors">Destaques</a></li>
                         <li><a href="#showroom" class="hover:text-london-gold transition-colors">Busca com IA</a></li>
-                        <li><a href="https://wa.me/5592993531943" target="_blank" class="hover:text-london-gold transition-colors">Agendamento</a></li>
+                        <li><a href="https://wa.me/5592993531943" target="_blank" onclick="trackWhatsAppClick('footer_link')" class="hover:text-london-gold transition-colors">Agendamento</a></li>
                         <li>
                              {% if not session.get('logged_in') %}
                              <a href="{{ url_for('login') }}" class="hover:text-london-gold transition-colors">Área Restrita</a>
@@ -753,7 +764,7 @@
         </div>
         
         <!-- Floating WhatsApp CTA -->
-        <a href="https://wa.me/5592993531943" class="fixed bottom-8 right-8 bg-green-500 text-white p-4 rounded-full shadow-2xl hover:scale-110 transition-transform z-50 flex items-center gap-2 group">
+        <a href="https://wa.me/5592993531943" onclick="trackWhatsAppClick('floating_cta')" class="fixed bottom-8 right-8 bg-green-500 text-white p-4 rounded-full shadow-2xl hover:scale-110 transition-transform z-50 flex items-center gap-2 group">
             <span class="max-w-0 overflow-hidden group-hover:max-w-xs transition-all duration-500 whitespace-nowrap font-bold">
                 Agendar no WhatsApp
             </span>
@@ -850,16 +861,16 @@
     </div>
 
     <script>
-        function openCatalogModalById(itemId) {
+        function openCatalogModalById(itemId, source) {
             const data = window.catalogData && window.catalogData[itemId];
             if (data) {
-                openCatalogModal(data.imageUrl, data.title, data.description, itemId, data.price);
+                openCatalogModal(data.imageUrl, data.title, data.description, itemId, data.price, source);
             } else {
                 console.error('Dados do item não encontrados para ID:', itemId);
             }
         }
 
-        function openCatalogModal(imageUrl, title, description, itemId, price) {
+        function openCatalogModal(imageUrl, title, description, itemId, price, source) {
             document.getElementById('catalog-modal-img').src = imageUrl || 'https://via.placeholder.com/600x800?text=Sem+Imagem';
             document.getElementById('catalog-modal-title').textContent = title;
             document.getElementById('catalog-modal-desc').textContent = description;
@@ -884,7 +895,17 @@
             }
 
             const encodedText = encodeURIComponent(text);
-            document.getElementById('catalog-modal-whatsapp-link').href = `https://wa.me/${phoneNumber}?text=${encodedText}`;
+            const whatsappLink = document.getElementById('catalog-modal-whatsapp-link');
+            whatsappLink.href = `https://wa.me/${phoneNumber}?text=${encodedText}`;
+            
+            // Dynamic tracking based on source (AI, Featured, or Catalog)
+            if (source === 'featured') {
+                whatsappLink.onclick = function() { trackWhatsAppClick('featured_modal_whatsapp'); };
+            } else if (isAiItem) {
+                whatsappLink.onclick = function() { trackWhatsAppClick('ai_modal_whatsapp'); };
+            } else {
+                whatsappLink.onclick = function() { trackWhatsAppClick('catalog_modal_whatsapp'); };
+            }
             
             document.getElementById('catalog-modal').classList.remove('hidden');
             document.body.style.overflow = 'hidden'; // Prevent scrolling
@@ -909,6 +930,36 @@
                 openCatalogModal(item.imageUrl, item.title, item.description, itemId, item.price);
             }
         });
+    </script>
+    <!-- Conversion Tracking Scripts -->
+    <script>
+        // Google Ads Conversion Tracking Logic
+        const GOOGLE_ADS_ID = 'AW-SEU_ID_AQUI'; // Substitua pelo seu ID
+
+        function trackConversion(label) {
+            console.log('Conversion Event Tracked:', label);
+            
+            if (typeof gtag !== 'undefined') {
+                gtag('event', 'conversion', {
+                    'send_to': GOOGLE_ADS_ID + '/' + label
+                });
+            }
+        }
+
+        function trackWhatsAppClick(location) {
+            trackConversion('whatsapp_click_' + location);
+        }
+
+        function revealPhone(elementId) {
+            const phoneSpan = document.getElementById(elementId);
+            if (phoneSpan) {
+                phoneSpan.innerText = '(92) 99353-1943';
+                phoneSpan.classList.remove('cursor-pointer', 'underline', 'decoration-dotted', 'text-london-gold');
+                phoneSpan.classList.add('text-stone-800');
+                phoneSpan.onclick = null; // Remove click handler
+                trackConversion('phone_reveal');
+            }
+        }
     </script>
 </body>
 </html>

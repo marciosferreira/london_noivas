@@ -5,6 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Catálogo Completo - London Noivas</title>
     
+    <!-- Google Ads Global Site Tag (gtag.js) -->
+    <!-- Substitua AW-SEU_ID_AQUI pelo seu ID do Google Ads -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=AW-SEU_ID_AQUI"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+
+        gtag('config', 'AW-SEU_ID_AQUI');
+    </script>
+    
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -66,7 +77,7 @@
             <nav class="hidden md:flex gap-8 items-center font-medium tracking-wide text-sm">
                 <a href="/" class="nav-link text-white hover:text-london-gold transition-colors">INÍCIO</a>
                 <a href="/catalogo" class="nav-link text-london-gold transition-colors">CATÁLOGO</a>
-                <a href="https://wa.me/5592993531943" class="bg-london-gold text-white px-6 py-2 rounded-full hover:bg-white hover:text-london-gold transition-all shadow-lg">
+                <a href="https://wa.me/5592993531943" onclick="trackWhatsAppClick('header')" class="bg-london-gold text-white px-6 py-2 rounded-full hover:bg-white hover:text-london-gold transition-all shadow-lg">
                     AGENDAR VISITA
                 </a>
             </nav>
@@ -78,7 +89,7 @@
             
             <!-- Page Title -->
             <div class="text-center mb-16 animate-fadeIn">
-                <h2 class="text-4xl md:text-5xl font-serif text-stone-800 mb-2">Nosso Acervo</h2>
+                <h2 class="text-4xl md:text-5xl font-serif text-stone-800 mb-2">Acervo para Aluguel</h2>
                 <p class="text-sm md:text-base text-stone-500 font-light mb-4">(mais modelos na loja)</p>
                 <div class="w-24 h-1 bg-london-gold mx-auto mb-6"></div>
                 <p class="text-stone-500 max-w-2xl mx-auto text-lg font-light">
@@ -101,11 +112,11 @@
                         {% endfor %}
 
                         {# Price Logic #}
-                        {% set ns.price_display = 'Consulte o preço' %}
+                        {% set ns.price_display = 'Consulte o preço do aluguel' %}
                         {% for field in fields_config if field.type in ['value', 'item_value'] %}
                            {% set price_val = item.key_values[field.id] if item.key_values is defined and field.id in item.key_values else item[field.id] if field.id in item else 0 %}
                            {% if price_val|float == 0 %}
-                               {% set ns.price_display = 'Consulte o preço' %}
+                               {% set ns.price_display = 'Consulte o preço do aluguel' %}
                            {% else %}
                                {% set ns.price_display = 'R$ ' + (price_val|format_brl) + ' (aluguel)' %}
                            {% endif %}
@@ -209,7 +220,7 @@
                         <li>Rua Voltaire, 9</li>
                         <li>Colônia Santo Antônio - Manaus - AM</li>
                         <li>Seg - Sáb: 10h às 20h</li>
-                        <li>Tel: (92) 99353-1943</li>
+                        <li>Tel: <span id="phone-display-catalogo" class="cursor-pointer underline decoration-dotted text-london-gold" onclick="revealPhone('phone-display-catalogo')">Ver número</span></li>
                     </ul>
                     <div class="rounded-sm overflow-hidden shadow-md border border-stone-200">
                         <iframe width="100%" height="200" frameborder="0" style="border:0" src="https://maps.google.com/maps?q=Rua+Voltaire+4+Colonia+Santo+Antonio+Manaus+AM&t=&z=15&ie=UTF8&iwloc=&output=embed" allowfullscreen></iframe>
@@ -221,7 +232,7 @@
                     <ul class="space-y-4 text-stone-500 text-sm">
                         <li><a href="/#colecoes" class="hover:text-london-gold transition-colors">Destaques</a></li>
                         <li><a href="/#showroom" class="hover:text-london-gold transition-colors">Busca com IA</a></li>
-                        <li><a href="https://wa.me/5592993531943" target="_blank" class="hover:text-london-gold transition-colors">Agendamento</a></li>
+                        <li><a href="https://wa.me/5592993531943" target="_blank" onclick="trackWhatsAppClick('footer_link')" class="hover:text-london-gold transition-colors">Agendamento</a></li>
                         <li>
                              {% if not session.get('logged_in') %}
                              <a href="{{ url_for('login') }}" class="hover:text-london-gold transition-colors">Área Restrita</a>
@@ -239,7 +250,7 @@
         </div>
         
         <!-- Floating WhatsApp CTA -->
-        <a href="https://wa.me/5592993531943" class="fixed bottom-8 right-8 bg-green-500 text-white p-4 rounded-full shadow-2xl hover:scale-110 transition-transform z-50 flex items-center gap-2 group">
+        <a href="https://wa.me/5592993531943" onclick="trackWhatsAppClick('floating_cta')" class="fixed bottom-8 right-8 bg-green-500 text-white p-4 rounded-full shadow-2xl hover:scale-110 transition-transform z-50 flex items-center gap-2 group">
             <span class="max-w-0 overflow-hidden group-hover:max-w-xs transition-all duration-500 whitespace-nowrap font-bold">
                 Agendar no WhatsApp
             </span>
@@ -329,7 +340,9 @@
             text += `\nLink: ${url.toString()}`;
 
             const encodedText = encodeURIComponent(text);
-            document.getElementById('modal-whatsapp-link').href = `https://wa.me/${phoneNumber}?text=${encodedText}`;
+            const whatsappLink = document.getElementById('modal-whatsapp-link');
+            whatsappLink.href = `https://wa.me/${phoneNumber}?text=${encodedText}`;
+            whatsappLink.onclick = function() { trackWhatsAppClick('catalog_modal_whatsapp'); };
             
             document.getElementById('catalog-modal').classList.remove('hidden');
             document.body.style.overflow = 'hidden'; // Prevent scrolling
@@ -356,5 +369,35 @@
         });
     </script>
 
+    <!-- Conversion Tracking Scripts -->
+    <script>
+        // Google Ads Conversion Tracking Logic
+        const GOOGLE_ADS_ID = 'AW-SEU_ID_AQUI'; // Substitua pelo seu ID
+
+        function trackConversion(label) {
+            console.log('Conversion Event Tracked:', label);
+            
+            if (typeof gtag !== 'undefined') {
+                gtag('event', 'conversion', {
+                    'send_to': GOOGLE_ADS_ID + '/' + label
+                });
+            }
+        }
+
+        function trackWhatsAppClick(location) {
+            trackConversion('whatsapp_click_' + location);
+        }
+
+        function revealPhone(elementId) {
+            const phoneSpan = document.getElementById(elementId);
+            if (phoneSpan) {
+                phoneSpan.innerText = '(92) 99353-1943';
+                phoneSpan.classList.remove('cursor-pointer', 'underline', 'decoration-dotted', 'text-london-gold');
+                phoneSpan.classList.add('text-stone-800');
+                phoneSpan.onclick = null;
+                trackConversion('phone_reveal');
+            }
+        }
+    </script>
 </body>
 </html>
