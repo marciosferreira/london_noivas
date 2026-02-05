@@ -5,15 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Catálogo Completo - London Noivas</title>
     
-    <!-- Google Ads Global Site Tag (gtag.js) -->
-    <!-- Substitua AW-SEU_ID_AQUI pelo seu ID do Google Ads -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=AW-SEU_ID_AQUI"></script>
+    <!-- Google Analytics 4 (gtag.js) -->
+    <!-- Substitua G-SEU_ID_AQUI pelo seu ID de Medida do GA4 -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XLGTXVVZ97"></script>
     <script>
         window.dataLayer = window.dataLayer || [];
         function gtag(){dataLayer.push(arguments);}
         gtag('js', new Date());
 
-        gtag('config', 'AW-SEU_ID_AQUI');
+        gtag('config', 'G-SEU_ID_AQUI');
     </script>
     
     <!-- Google Fonts -->
@@ -369,23 +369,24 @@
         });
     </script>
 
-    <!-- Conversion Tracking Scripts -->
+    <!-- Analytics Tracking Scripts -->
     <script>
-        // Google Ads Conversion Tracking Logic
-        const GOOGLE_ADS_ID = 'AW-SEU_ID_AQUI'; // Substitua pelo seu ID
+        // Google Analytics 4 Event Tracking
+        const GA_MEASUREMENT_ID = 'G-SEU_ID_AQUI'; // Substitua pelo seu ID
 
-        function trackConversion(label) {
-            console.log('Conversion Event Tracked:', label);
-            
+        function trackEvent(eventName, params) {
+            console.log('Event Tracked:', eventName, params);
             if (typeof gtag !== 'undefined') {
-                gtag('event', 'conversion', {
-                    'send_to': GOOGLE_ADS_ID + '/' + label
-                });
+                gtag('event', eventName, params);
             }
         }
 
         function trackWhatsAppClick(location) {
-            trackConversion('whatsapp_click_' + location);
+            trackEvent('whatsapp_click', {
+                'event_category': 'contact',
+                'event_label': location,
+                'transport_type': 'beacon'
+            });
         }
 
         function revealPhone(elementId) {
@@ -395,7 +396,11 @@
                 phoneSpan.classList.remove('cursor-pointer', 'underline', 'decoration-dotted', 'text-london-gold');
                 phoneSpan.classList.add('text-stone-800');
                 phoneSpan.onclick = null;
-                trackConversion('phone_reveal');
+                
+                trackEvent('phone_reveal', {
+                    'event_category': 'contact',
+                    'event_label': 'footer_phone'
+                });
             }
         }
     </script>
