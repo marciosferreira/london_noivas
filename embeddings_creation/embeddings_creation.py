@@ -64,8 +64,31 @@ def analyze_dress(image_path):
 def process_folder():
     valid_extensions = ('.jpg', '.jpeg', '.png', '.webp')
     
+    # Carrega arquivos já processados
+    processed_files = set()
+    if os.path.exists(OUTPUT_FILE):
+        try:
+            with open(OUTPUT_FILE, "r", encoding="utf-8") as f_read:
+                for line in f_read:
+                    line = line.strip()
+                    if not line: continue
+                    try:
+                        data = json.loads(line)
+                        if "file_name" in data:
+                            processed_files.add(data["file_name"])
+                    except json.JSONDecodeError:
+                        continue
+        except Exception as e:
+            print(f"Erro ao ler cache de processados: {e}")
+
+    print(f"Iniciando processamento. {len(processed_files)} arquivos já processados anteriormente.")
+
     with open(OUTPUT_FILE, "a", encoding="utf-8") as f:
         for filename in os.listdir(IMAGE_DIR):
+            if filename in processed_files:
+                print(f"Pulando {filename} (já processado).")
+                continue
+
             if filename.lower().endswith(valid_extensions):
                 print(f"Processando: {filename}...")
                 image_path = os.path.join(IMAGE_DIR, filename)

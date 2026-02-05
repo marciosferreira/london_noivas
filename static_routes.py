@@ -29,6 +29,9 @@ from flask import request
 import os
 
 
+# Account ID principal da London Noivas
+LONDON_NOIVAS_ACCOUNT_ID = "37d5b37f-c920-4090-a682-7e1ed2e31a0f"
+
 def init_static_routes(
     app,
     ses_client,
@@ -479,16 +482,16 @@ def init_static_routes(
     @app.route("/")
     def index():
         try:
-            # Fetch available items for vitrine that are featured
+            # Fetch available items for vitrine that are featured AND belong to the main account
             response = itens_table.scan(
-                FilterExpression=Attr("status").eq("available") & Attr("featured").eq(True)
+                FilterExpression=Attr("status").eq("available") & Attr("featured").eq(True) & Attr("account_id").eq(LONDON_NOIVAS_ACCOUNT_ID)
             )
             itens = response.get("Items", [])
             
             # Simple pagination handling
             while "LastEvaluatedKey" in response:
                 response = itens_table.scan(
-                    FilterExpression=Attr("status").eq("available") & Attr("featured").eq(True),
+                    FilterExpression=Attr("status").eq("available") & Attr("featured").eq(True) & Attr("account_id").eq(LONDON_NOIVAS_ACCOUNT_ID),
                     ExclusiveStartKey=response["LastEvaluatedKey"]
                 )
                 itens.extend(response.get("Items", []))
@@ -526,15 +529,15 @@ def init_static_routes(
             page = request.args.get('page', 1, type=int)
             per_page = 12
             
-            # Fetch all available items (same as index)
+            # Fetch all available items (same as index) but filtered by account
             response = itens_table.scan(
-                FilterExpression=Attr("status").eq("available")
+                FilterExpression=Attr("status").eq("available") & Attr("account_id").eq(LONDON_NOIVAS_ACCOUNT_ID)
             )
             itens = response.get("Items", [])
             
             while "LastEvaluatedKey" in response:
                 response = itens_table.scan(
-                    FilterExpression=Attr("status").eq("available"),
+                    FilterExpression=Attr("status").eq("available") & Attr("account_id").eq(LONDON_NOIVAS_ACCOUNT_ID),
                     ExclusiveStartKey=response["LastEvaluatedKey"]
                 )
                 itens.extend(response.get("Items", []))

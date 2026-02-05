@@ -78,7 +78,8 @@
             
             <!-- Page Title -->
             <div class="text-center mb-16 animate-fadeIn">
-                <h2 class="text-4xl md:text-5xl font-serif text-stone-800 mb-4">Nosso Acervo Completo</h2>
+                <h2 class="text-4xl md:text-5xl font-serif text-stone-800 mb-2">Nosso Acervo</h2>
+                <p class="text-sm md:text-base text-stone-500 font-light mb-4">(mais modelos na loja)</p>
                 <div class="w-24 h-1 bg-london-gold mx-auto mb-6"></div>
                 <p class="text-stone-500 max-w-2xl mx-auto text-lg font-light">
                     Explore nossa coleção exclusiva de vestidos selecionados para tornar seu momento inesquecível.
@@ -99,18 +100,30 @@
                            {% endif %}
                         {% endfor %}
 
-                        {% set display_title = item.item_description if item.item_description else item.description if item.description else item.nome if item.nome else 'Peça Exclusiva' %}
-                        {% set display_desc = item.description if item.description else item.item_obs if item.item_obs else 'Sem descrição detalhada.' %}
+                        {# Price Logic #}
+                        {% set ns.price_display = 'Consulte o preço' %}
+                        {% for field in fields_config if field.type in ['value', 'item_value'] %}
+                           {% set price_val = item.key_values[field.id] if item.key_values is defined and field.id in item.key_values else item[field.id] if field.id in item else 0 %}
+                           {% if price_val|float == 0 %}
+                               {% set ns.price_display = 'Consulte o preço' %}
+                           {% else %}
+                               {% set ns.price_display = 'R$ ' + (price_val|format_brl) + ' (aluguel)' %}
+                           {% endif %}
+                        {% endfor %}
+                        
+                        {% set display_title = item.title if item.title else item.nome if item.nome else item.item_custom_id if item.item_custom_id else 'Peça Exclusiva' %}
+                        {% set display_desc = item.item_description if item.item_description else item.description if item.description else item.item_obs if item.item_obs else 'Sem descrição detalhada.' %}
                         
                         <div class="group bg-white rounded-sm shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden animate-fadeIn"
-                             onclick="openCatalogModal('{{ ns.image_url }}', '{{ display_title | replace("'", "\\'") }}', '{{ display_desc | replace("'", "\\'") | replace('\n', ' ') }}', '{{ item.item_id }}')">
+                             onclick="openCatalogModal('{{ ns.image_url }}', '{{ display_title | replace("'", "\\'") }}', '{{ display_desc | replace("'", "\\'") | replace('\n', ' ') }}', '{{ item.item_id }}', '{{ ns.price_display }}')">
                             <script>
                                 (function() {
                                     window.catalogData = window.catalogData || {};
                                     window.catalogData['{{ item.item_id }}'] = {
                                         imageUrl: '{{ ns.image_url }}',
                                         title: '{{ display_title | replace("'", "\\'") }}',
-                                        description: '{{ display_desc | replace("'", "\\'") | replace('\n', ' ') }}'
+                                        description: '{{ display_desc | replace("'", "\\'") | replace('\n', ' ') }}',
+                                        price: '{{ ns.price_display }}'
                                     };
                                 })();
                             </script>
@@ -262,7 +275,8 @@
                         <div class="md:w-1/2 p-8 md:p-12 flex flex-col overflow-y-auto bg-white">
                             <div class="flex-1">
                                 <span class="text-london-gold font-bold tracking-widest text-xs uppercase mb-2 block">London Noivas Collection</span>
-                                <h3 id="modal-title" class="text-3xl md:text-4xl font-serif text-stone-900 mb-6 leading-tight"></h3>
+                                <h3 id="modal-title" class="text-3xl md:text-4xl font-serif text-stone-900 mb-2 leading-tight"></h3>
+                                <p id="modal-price" class="text-2xl text-stone-600 font-serif mb-6"></p>
                                 
                                 <div class="w-12 h-1 bg-stone-200 mb-8"></div>
                                 
@@ -289,10 +303,11 @@
     </div>
 
     <script>
-        function openCatalogModal(imageUrl, title, description, itemId) {
+        function openCatalogModal(imageUrl, title, description, itemId, price) {
             document.getElementById('modal-img').src = imageUrl || 'https://via.placeholder.com/600x800?text=Sem+Imagem';
             document.getElementById('modal-title').textContent = title;
             document.getElementById('modal-desc').textContent = description;
+            document.getElementById('modal-price').textContent = price;
             
             // Update URL to include item_id
             const url = new URL(window.location);
@@ -334,7 +349,7 @@
             const itemId = urlParams.get('item');
             if (itemId && window.catalogData && window.catalogData[itemId]) {
                 const item = window.catalogData[itemId];
-                openCatalogModal(item.imageUrl, item.title, item.description, itemId);
+                openCatalogModal(item.imageUrl, item.title, item.description, itemId, item.price);
             }
         });
     </script>
