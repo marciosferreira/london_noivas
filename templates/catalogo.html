@@ -111,19 +111,19 @@
                            {% endif %}
                         {% endfor %}
                         
-                        {% set display_title = item.title if item.title else item.nome if item.nome else item.item_custom_id if item.item_custom_id else 'Peça Exclusiva' %}
-                        {% set display_desc = item.item_description if item.item_description else item.description if item.description else item.item_obs if item.item_obs else 'Sem descrição detalhada.' %}
+                        {% set display_title = (item.title | default('') | string | trim) or (item.nome | default('') | string | trim) or (item.item_custom_id | default('') | string | trim) or 'Peça Exclusiva' %}
+                        {% set display_desc = (item.item_description | default('') | string | trim) or (item.description | default('') | string | trim) or (item.item_obs | default('') | string | trim) or 'Sem descrição detalhada.' %}
                         
                         <div class="group bg-white rounded-sm shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden animate-fadeIn"
-                             onclick="openCatalogModal('{{ ns.image_url }}', '{{ display_title | replace("'", "\\'") }}', '{{ display_desc | replace("'", "\\'") | replace('\n', ' ') }}', '{{ item.item_id }}', '{{ ns.price_display }}')">
+                             onclick="openCatalogModalById('{{ item.item_id }}')">
                             <script>
                                 (function() {
                                     window.catalogData = window.catalogData || {};
                                     window.catalogData['{{ item.item_id }}'] = {
-                                        imageUrl: '{{ ns.image_url }}',
-                                        title: '{{ display_title | replace("'", "\\'") }}',
-                                        description: '{{ display_desc | replace("'", "\\'") | replace('\n', ' ') }}',
-                                        price: '{{ ns.price_display }}'
+                                        imageUrl: {{ ns.image_url | tojson }},
+                                        title: {{ display_title | tojson }},
+                                        description: {{ display_desc | tojson }},
+                                        price: {{ ns.price_display | tojson }}
                                     };
                                 })();
                             </script>
@@ -303,6 +303,15 @@
     </div>
 
     <script>
+        function openCatalogModalById(itemId) {
+            const data = window.catalogData && window.catalogData[itemId];
+            if (data) {
+                openCatalogModal(data.imageUrl, data.title, data.description, itemId, data.price);
+            } else {
+                console.error('Dados do item não encontrados para ID:', itemId);
+            }
+        }
+
         function openCatalogModal(imageUrl, title, description, itemId, price) {
             document.getElementById('modal-img').src = imageUrl || 'https://via.placeholder.com/600x800?text=Sem+Imagem';
             document.getElementById('modal-title').textContent = title;
@@ -317,9 +326,7 @@
             // Format WhatsApp link
             const phoneNumber = "5592993531943";
             let text = `Olá, gostaria de mais informações sobre o vestido do catálogo: ${title}`;
-            
-            // Add Direct Link
-            text += `\n\nLink: ${url.toString()}`;
+            text += `\nLink: ${url.toString()}`;
 
             const encodedText = encodeURIComponent(text);
             document.getElementById('modal-whatsapp-link').href = `https://wa.me/${phoneNumber}?text=${encodedText}`;

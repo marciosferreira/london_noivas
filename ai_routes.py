@@ -170,7 +170,10 @@ def ai_search():
         # Constrói objeto do vestido principal
         result_dress = {
             "image_url": url_for('static', filename=f"dresses/{chosen_item['file_name']}"),
-            "description": chosen_item['description']
+            "description": chosen_item['description'],
+            "title": chosen_item.get('title', 'Sugestão Exclusiva'),
+            "price": "Consulte o preço",
+            "id": f"ai_main_{selected_index}"
         }
 
         # Constrói lista de sugestões (todos exceto o escolhido)
@@ -179,7 +182,10 @@ def ai_search():
             if i != selected_index:
                 suggestions.append({
                     "image_url": url_for('static', filename=f"dresses/{item['file_name']}"),
-                    "description": item['description']
+                    "description": item['description'],
+                    "title": item.get('title', 'Sugestão Exclusiva'),
+                    "price": "Consulte o preço",
+                    "id": f"ai_sugg_{i}"
                 })
 
         return jsonify({

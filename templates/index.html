@@ -229,25 +229,19 @@
                     {% endfor %}
                     
                     {# Title and Description Logic #}
-                    {% set display_title = item.title if item.title is defined and item.title else 
-                                          item.nome if item.nome is defined and item.nome else 
-                                          item.item_custom_id if item.item_custom_id is defined and item.item_custom_id else 
-                                          'Peça Exclusiva' %}
-                    {% set display_desc = item.item_description if item.item_description is defined and item.item_description else 
-                                         item.description if item.description is defined and item.description else 
-                                         item.item_obs if item.item_obs is defined and item.item_obs else 
-                                         'Sem descrição detalhada.' %}
-
+                    {% set display_title = (item.title | default('') | string | trim) or (item.nome | default('') | string | trim) or (item.item_custom_id | default('') | string | trim) or 'Peça Exclusiva' %}
+                    {% set display_desc = (item.item_description | default('') | string | trim) or (item.description | default('') | string | trim) or (item.item_obs | default('') | string | trim) or 'Sem descrição detalhada.' %}
+                    
                     <div class="group relative overflow-hidden cursor-pointer shadow-lg hover:shadow-2xl transition-all duration-500"
-                         onclick="openCatalogModal('{{ ns.image_url }}', '{{ display_title | replace("'", "\\'") }}', '{{ display_desc | replace("'", "\\'") | replace('\n', ' ') }}', '{{ item.item_id }}', '{{ ns.price_display }}')">
+                         onclick="openCatalogModalById('{{ item.item_id }}')">
                         <script>
                             (function() {
                                 window.catalogData = window.catalogData || {};
                                 window.catalogData['{{ item.item_id }}'] = {
-                                    imageUrl: '{{ ns.image_url }}',
-                                    title: '{{ display_title | replace("'", "\\'") }}',
-                                    description: '{{ display_desc | replace("'", "\\'") | replace('\n', ' ') }}',
-                                    price: '{{ ns.price_display }}'
+                                    imageUrl: {{ ns.image_url | tojson }},
+                                    title: {{ display_title | tojson }},
+                                    description: {{ display_desc | tojson }},
+                                    price: {{ ns.price_display | tojson }}
                                 };
                             })();
                         </script>
@@ -413,7 +407,7 @@
 
                 <!-- Suggestions Gallery (Hidden by default) -->
                 <div id="suggestions-container" class="hidden mt-12 animate-fadeIn">
-                    <h3 class="text-2xl font-serif text-stone-800 mb-6 text-center">Outras opções que combinam com seu estilo</h3>
+                    <h3 class="text-2xl font-serif text-stone-800 mb-6 text-center">Outras opções que combinam com sua necessidade</h3>
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="suggestions-grid">
                         <!-- Thumbnails will be injected here -->
                     </div>
@@ -588,6 +582,17 @@
                     title.textContent = "Recomendação Principal";
                     desc.textContent = dress.description;
 
+                    // Add click handler to open details
+                    const imgContainer = img.parentElement;
+                    imgContainer.style.cursor = "pointer";
+                    imgContainer.onclick = () => openCatalogModal(
+                        dress.image_url, 
+                        dress.title || "Sugestão Exclusiva", 
+                        dress.description, 
+                        dress.id, 
+                        dress.price || "Consulte o preço"
+                    );
+
                     if (suggestions && suggestions.length > 0) {
                         showSuggestions(suggestions);
                     }
@@ -602,7 +607,13 @@
                         if(index >= 4) return; // Limite de 4
                         const div = document.createElement('div');
                         div.className = "aspect-[3/4] bg-stone-200 cursor-pointer overflow-hidden rounded-sm relative group";
-                        div.onclick = () => openModal(item);
+                        div.onclick = () => openCatalogModal(
+                            item.image_url, 
+                            item.title || "Sugestão Exclusiva", 
+                            item.description, 
+                            item.id, 
+                            item.price || "Consulte o preço"
+                        );
                         
                         div.innerHTML = `
                             <img src="${item.image_url}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt="Sugestão">
@@ -804,27 +815,27 @@
                     <div class="flex flex-col md:flex-row h-full md:h-[80vh]">
                         <!-- Image Side -->
                         <div class="md:w-1/2 bg-stone-100 relative h-[50vh] md:h-full">
-                            <img id="modal-img" src="" alt="Detalhe" class="absolute inset-0 w-full h-full object-cover">
+                            <img id="catalog-modal-img" src="" alt="Detalhe" class="absolute inset-0 w-full h-full object-cover">
                         </div>
                         
                         <!-- Content Side -->
                         <div class="md:w-1/2 p-8 md:p-12 flex flex-col overflow-y-auto bg-white">
                             <div class="flex-1">
                                 <span class="text-london-gold font-bold tracking-widest text-xs uppercase mb-2 block">London Noivas Collection</span>
-                                <h3 id="modal-title" class="text-3xl md:text-4xl font-serif text-stone-900 mb-2 leading-tight"></h3>
-                                <p id="modal-price" class="text-2xl text-stone-600 font-serif mb-6"></p>
+                                <h3 id="catalog-modal-title" class="text-3xl md:text-4xl font-serif text-stone-900 mb-2 leading-tight"></h3>
+                                <p id="catalog-modal-price" class="text-2xl text-stone-600 font-serif mb-6"></p>
                                 
                                 <div class="w-12 h-1 bg-stone-200 mb-8"></div>
                                 
                                 <div class="prose prose-stone max-w-none">
                                     <h4 class="font-serif text-lg text-stone-800 mb-2">Descrição da Peça</h4>
-                                    <p id="modal-desc" class="text-stone-600 font-light leading-relaxed text-lg mb-8"></p>
+                                    <p id="catalog-modal-desc" class="text-stone-600 font-light leading-relaxed text-lg mb-8"></p>
                                 </div>
                             </div>
                             
                             <div class="mt-8 pt-8 border-t border-stone-100">
                                 <p class="text-stone-400 text-sm mb-4 text-center italic">Gostou deste modelo? Fale conosco agora.</p>
-                                <a id="modal-whatsapp-link" href="#" target="_blank" class="block w-full bg-[#25D366] hover:bg-[#1ebc57] text-white py-4 px-6 rounded-sm transition-colors text-center shadow-lg hover:shadow-xl transform hover:-translate-y-1 duration-200 flex items-center justify-center gap-3">
+                                <a id="catalog-modal-whatsapp-link" href="#" target="_blank" class="block w-full bg-[#25D366] hover:bg-[#1ebc57] text-white py-4 px-6 rounded-sm transition-colors text-center shadow-lg hover:shadow-xl transform hover:-translate-y-1 duration-200 flex items-center justify-center gap-3">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
                                         <path d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592zm3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.729.729 0 0 0-.529.247c-.182.198-.691.677-.691 1.654 0 .977.71 1.916.81 2.049.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232z"/>
                                     </svg>
@@ -839,26 +850,41 @@
     </div>
 
     <script>
-        function openCatalogModal(imageUrl, title, description, itemId, price) {
-            document.getElementById('modal-img').src = imageUrl || 'https://via.placeholder.com/600x800?text=Sem+Imagem';
-            document.getElementById('modal-title').textContent = title;
-            document.getElementById('modal-desc').textContent = description;
-            document.getElementById('modal-price').textContent = price;
-            
-            // Update URL to include item_id
-            const url = new URL(window.location);
-            url.searchParams.set('item', itemId);
-            window.history.pushState({}, '', url);
+        function openCatalogModalById(itemId) {
+            const data = window.catalogData && window.catalogData[itemId];
+            if (data) {
+                openCatalogModal(data.imageUrl, data.title, data.description, itemId, data.price);
+            } else {
+                console.error('Dados do item não encontrados para ID:', itemId);
+            }
+        }
 
-            // Format WhatsApp link
-            const phoneNumber = "5592993531943";
-            let text = `Olá, gostaria de mais informações sobre o vestido do catálogo: ${title}`;
+        function openCatalogModal(imageUrl, title, description, itemId, price) {
+            document.getElementById('catalog-modal-img').src = imageUrl || 'https://via.placeholder.com/600x800?text=Sem+Imagem';
+            document.getElementById('catalog-modal-title').textContent = title;
+            document.getElementById('catalog-modal-desc').textContent = description;
+            document.getElementById('catalog-modal-price').textContent = price;
             
-            // Add Direct Link
-            text += `\n\nLink: ${url.toString()}`;
+            const phoneNumber = "5592993531943";
+            let text = `Olá, gostaria de mais informações sobre o vestido: ${title}`;
+            
+            // Check if it's an AI item (starts with ai_) or regular item
+            const isAiItem = itemId && itemId.toString().startsWith('ai_');
+
+            if (!isAiItem) {
+                // Update URL to include item_id for regular items
+                const url = new URL(window.location);
+                url.searchParams.set('item', itemId);
+                window.history.pushState({}, '', url);
+                text += `\nLink: ${url.toString()}`;
+            } else {
+                // For AI items, include the image URL since there is no persistent page URL
+                const fullImageUrl = new URL(imageUrl, window.location.origin).href;
+                text += `\nImagem: ${fullImageUrl}`;
+            }
 
             const encodedText = encodeURIComponent(text);
-            document.getElementById('modal-whatsapp-link').href = `https://wa.me/${phoneNumber}?text=${encodedText}`;
+            document.getElementById('catalog-modal-whatsapp-link').href = `https://wa.me/${phoneNumber}?text=${encodedText}`;
             
             document.getElementById('catalog-modal').classList.remove('hidden');
             document.body.style.overflow = 'hidden'; // Prevent scrolling
