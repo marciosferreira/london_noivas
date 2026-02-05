@@ -76,13 +76,36 @@
 
             <nav class="hidden md:flex gap-8 items-center font-medium tracking-wide text-sm">
                 <a href="/" class="nav-link text-white hover:text-london-gold transition-colors">INÍCIO</a>
-                <a href="/catalogo" class="nav-link text-london-gold transition-colors">CATÁLOGO</a>
+                <a href="{{ url_for('catalogo') }}" class="nav-link text-london-gold transition-colors">CATÁLOGO</a>
                 <a href="https://wa.me/5592993531943" onclick="trackWhatsAppClick('header')" class="bg-london-gold text-white px-6 py-2 rounded-full hover:bg-white hover:text-london-gold transition-all shadow-lg">
                     AGENDAR VISITA
                 </a>
             </nav>
+
+            <button id="mobile-menu-btn" class="md:hidden text-london-gold focus:outline-none">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                </svg>
+            </button>
         </div>
     </header>
+
+    <!-- Mobile Menu Overlay -->
+    <div id="mobile-menu" class="fixed inset-0 z-[60] bg-stone-900/95 backdrop-blur-sm transform translate-x-full transition-transform duration-300 md:hidden flex flex-col justify-center items-center">
+        <button id="close-menu-btn" class="absolute top-6 right-6 text-white hover:text-london-gold transition-colors focus:outline-none">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-10 h-10">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+        </button>
+        
+        <nav class="flex flex-col gap-8 text-center">
+            <a href="/" class="text-2xl font-serif text-white hover:text-london-gold transition-colors" onclick="closeMobileMenu()">INÍCIO</a>
+            <a href="{{ url_for('catalogo') }}" class="text-2xl font-serif text-white hover:text-london-gold transition-colors" onclick="closeMobileMenu()">CATÁLOGO</a>
+            <a href="https://wa.me/5592993531943" onclick="trackWhatsAppClick('mobile_menu'); closeMobileMenu()" class="text-xl bg-london-gold text-white px-8 py-3 rounded-full hover:bg-white hover:text-london-gold transition-all shadow-lg mt-4">
+                AGENDAR VISITA
+            </a>
+        </nav>
+    </div>
 
     <main class="pt-32 pb-24 min-h-screen">
         <div class="container mx-auto px-6">
@@ -403,6 +426,24 @@
                 });
             }
         }
+
+        // Mobile Menu Logic
+        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+        const closeMenuBtn = document.getElementById('close-menu-btn');
+        const mobileMenu = document.getElementById('mobile-menu');
+
+        function openMobileMenu() {
+            if (mobileMenu) mobileMenu.classList.remove('translate-x-full');
+            document.body.style.overflow = 'hidden'; // Prevent scrolling
+        }
+
+        function closeMobileMenu() {
+            if (mobileMenu) mobileMenu.classList.add('translate-x-full');
+            document.body.style.overflow = ''; // Restore scrolling
+        }
+
+        if(mobileMenuBtn) mobileMenuBtn.addEventListener('click', openMobileMenu);
+        if(closeMenuBtn) closeMenuBtn.addEventListener('click', closeMobileMenu);
     </script>
 </body>
 </html>
