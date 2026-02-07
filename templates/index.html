@@ -373,7 +373,7 @@
                             Converse com nossa assistente virtual. Descreva o que você procura e nossa inteligência artificial encontrará as melhores opções do nosso acervo para você.
                         </p>
                         
-                        <div class="bg-white rounded-sm shadow-lg border border-stone-200 overflow-hidden flex flex-col h-[400px]">
+                        <div id="chat-box-container" class="bg-white rounded-sm shadow-lg border border-stone-200 overflow-hidden flex flex-col h-[400px]">
                             <!-- Chat Area -->
                             <div id="chat-messages" class="flex-1 p-4 overflow-y-auto space-y-4 bg-stone-50">
                                 <div class="flex gap-3">
@@ -383,7 +383,7 @@
                                         </svg>
                                     </div>
                                     <div class="bg-white p-3 rounded-lg rounded-tl-none shadow-sm text-sm text-stone-700 max-w-[85%] border border-stone-100">
-                                        Olá! Sou sua consultora virtual. Me conte, como é o vestido dos seus sonhos? (Ex: "Procuro um vestido sereia com brilho para um casamento à noite")
+                                        Olá! Sou sua consultora virtual Bella. Me conte, como é o vestido dos seus sonhos? (Ex: "Procuro um vestido sereia com brilho para um casamento à noite")
                                     </div>
                                 </div>
                             </div>
@@ -486,7 +486,7 @@
                                 </svg>
                             </div>
                             <div class="bg-white p-3 rounded-lg rounded-tl-none shadow-sm text-sm text-stone-700 max-w-[85%] border border-stone-100">
-                                Olá! Sou sua consultora virtual. Me conte, como é o vestido dos seus sonhos? (Ex: "Procuro um vestido sereia com brilho para um casamento à noite")
+                                Olá! Sou sua consultora virtual Bella. Me conte, como é o vestido dos seus sonhos? (Ex: "Procuro um vestido sereia com brilho para um casamento à noite")
                             </div>
                         </div>
                     `;
@@ -580,10 +580,15 @@
                     div.className = "flex gap-3";
                     div.innerHTML = `
                         <div class="w-8 h-8 rounded-full bg-london-gold flex items-center justify-center text-white flex-shrink-0">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 animate-pulse"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" /></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 animate-spin"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" /></svg>
                         </div>
-                        <div class="bg-white p-3 rounded-lg rounded-tl-none shadow-sm text-sm text-stone-400 border border-stone-100 italic">
-                            Buscando no acervo...
+                        <div class="bg-white p-3 rounded-lg rounded-tl-none shadow-sm text-sm text-stone-500 border border-stone-100 flex items-center gap-2">
+                            <span class="italic">Consultando a Bella</span>
+                            <div class="flex space-x-1 h-3 items-center">
+                                <div class="w-2 h-2 bg-london-gold rounded-full animate-bounce" style="animation-delay: 0s"></div>
+                                <div class="w-2 h-2 bg-london-gold rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
+                                <div class="w-2 h-2 bg-london-gold rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+                            </div>
                         </div>
                     `;
                     container.appendChild(div);
@@ -856,9 +861,14 @@
                         bubble.style.setProperty('opacity', '0', 'important');
                     }
 
-                    // Scroll to showroom
-                    const showroom = document.getElementById('showroom');
-                    showroom.scrollIntoView({ behavior: 'smooth' });
+                    // Scroll to chat box
+                    const chatBox = document.getElementById('chat-box-container');
+                    if (chatBox) {
+                        chatBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    } else {
+                        const showroom = document.getElementById('showroom');
+                        showroom.scrollIntoView({ behavior: 'smooth' });
+                    }
         
                     // Set value and send
                     setTimeout(() => {
