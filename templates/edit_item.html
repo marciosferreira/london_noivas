@@ -4,133 +4,163 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='style_edit_item.css') }}" />
 {% endblock %}
 {% block content %}
-<div class="container py-4">
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <h1 class="mb-0">{{title}}</h1>
-    <a href="{{ request.args.get('next') }}" class="exit-link">
-      <i class="fas fa-sign-out-alt me-2"></i>
-      Sair sem Finalizar
+
+<div class="container-fluid px-4 py-3">
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="h3 mb-0">
+        <i class="fas fa-edit text-warning me-2"></i>{{ title }}
+      </h1>
+      <p class="text-muted mb-0">Edite os dados do item no inventário</p>
+    </div>
+    <a href="{{ request.args.get('next', url_for('inventory')) }}" class="btn btn-outline-secondary">
+      <i class="fas fa-arrow-left me-2"></i>Voltar
     </a>
   </div>
 
-  <form method="POST" enctype="multipart/form-data">
-    <input type="hidden" name="next" value="{{ request.args.get('next', url_for('index')) }}" />
-    <div class="row row-cols-1 row-cols-md-3 g-4">
-      {% for field in all_fields if field.visible %}
-      {% set key_values = item.key_values if item.get('key_values') else {} %}
-      {% set value = item.get(field.id) if field.fixed else key_values.get(field.id, '') %}
+  <!-- Alert Customizar Campos -->
+  <div class="alert alert-primary d-flex justify-content-between align-items-center shadow-sm" role="alert">
+    <div>
+      <i class="fas fa-info-circle me-2"></i>Dica: Acesse <a href="/custom_fields/item" class="alert-link">Customizar Campos</a> para criar novos ou ajustar os existentes.
+    </div>
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+  </div>
 
-      <div class="col d-flex">
-        <div class="bg-light shadow-sm rounded p-3 border w-100 h-100 d-flex flex-column justify-content-center">
-          <label for="{{ field.id }}" class="form-label fw-semibold">
-            {{ field.label }}{% if field.required %} *{% endif %}
-            {% if field.type == "item_custom_id" %}
-<a href="#" onclick="event.preventDefault(); gerarCodigoItem();" class="text-success small ms-2" style="text-decoration: underline;">
-  gerar aleatório
-</a>
-            {% endif %}
-          </label>
+  <!-- Form Card -->
+  <div class="row justify-content-center">
+    <div class="col-lg-10 col-xl-8">
+      <div class="card shadow-sm border-0">
+        <div class="card-header bg-white py-3 border-bottom">
+          <h5 class="card-title mb-0 text-primary">
+            <i class="fas fa-tshirt me-2"></i>Dados do Item
+          </h5>
+        </div>
+        <div class="card-body p-4">
+          <form method="POST" enctype="multipart/form-data">
+            <input type="hidden" name="next" value="{{ request.args.get('next', url_for('index')) }}" />
 
-          {% if field.type in ["item_custom_id", "item_description"] %}
-          <div class="autocomplete-wrapper position-relative w-100">
-            <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}" value="{{ value }}" autocomplete="off" {% if field.required %}required{% endif %} />
-            <small class="text-muted ms-1" style="margin-top: -10px; margin-bottom: 6px; display: block;">campo de busca</small>
-            <div id="{{ field.id }}_status" class="status-message"></div>
-            <div id="{{ field.id }}_suggestions" class="autocomplete-box position-absolute w-100 bg-white shadow-sm z-3"></div>
-          </div>
+            <div class="row g-3">
+              {% for field in all_fields if field.visible %}
+              <div class="col-md-6">
+                <label for="{{ field.id }}" class="form-label fw-semibold text-secondary small text-uppercase mb-1">
+                  {{ field.label if field.fixed else field.title }}{% if field.required %} <span class="text-danger">*</span>{% endif %}
+                  
+                  {% if field.id in ["title", "item_title", "description", "item_description"] %}
+                  <small class="text-muted ms-1 fw-normal text-lowercase">(será gerado se vazio)</small>
+                  {% endif %}
+                  
+                  {% if field.type == 'item_image_url' %}
+                   <span class="text-danger small ms-1 fw-bold text-lowercase">(obrigatório)</span>
+                  {% endif %}
+                </label>
 
-          {% elif field.type in ['value', 'item_value'] %}
-            <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
-              value="{{ value | format_currency }}" {% if field.required %}required{% endif %} />
+                {# Lógica de valor para Edit Item #}
+                {% set key_values = item.get('key_values', {}) %}
+                {% set valor = item.get(field.id) %}
+                {% if valor is none %}
+                    {% set valor = key_values.get(field.id) %}
+                {% endif %}
 
+                {# Fallback for legacy fields #}
+                {% if valor is none and field.id == 'title' %}
+                    {% set valor = item.get('item_title') or key_values.get('item_title') %}
+                {% elif valor is none and field.id == 'description' %}
+                    {% set valor = item.get('item_description') or key_values.get('item_description') %}
+                {% endif %}
 
-          {% elif field.type in ['text', 'item_obs'] %}
-            <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
-              value="{{ value }}" {% if field.required %}required{% endif %} />
+                {% if valor is none %}{% set valor = '' %}{% endif %}
+                
+                {% if (field.id == "valor" or field.id == "item_value") and not valor %}
+                  {% set valor = "0" %}
+                {% endif %}
 
-          {% elif field.type == 'number' %}
-            <input type="number" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
-              value="{{ value }}" {% if field.required %}required{% endif %} />
+                {% if field.type == "text" or field.type == "item_obs" or field.type == "item_custom_id" or field.type == "item_description" or field.type == "item_title" %}
+                <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}" value="{{ valor }}" {% if field.required %}required{% endif %} {% if field.type == 'item_custom_id' or field.id == 'item_custom_id' %}readonly style="background-color: #e9ecef; cursor: not-allowed;" title="Não é possível alterar este ID"{% endif %} />
 
-          {% elif field.type == 'date' %}
-            <input type="date" class="form-control" id="{{ field.id }}" name="{{ field.id }}"
-              value="{{ value | formatar_data_br }}" {% if field.required %}required{% endif %} />
+                {% elif field.type == "value" or field.type == "item_value" or field.type == "number" %}
+                <div class="input-group">
+                    <span class="input-group-text">R$</span>
+                    <input type="text" class="form-control campo-monetario" id="{{ field.id }}" name="{{ field.id }}" value="{{ valor }}" {% if field.required %}required{% endif %} />
+                </div>
 
-          {% elif field.type == 'dropdown' %}
-            <select class="form-select" id="{{ field.id }}" name="{{ field.id }}" {% if field.required %}required{% endif %}>
-              <option value="">Selecione</option>
-              {% for option in field.options %}
-                <option value="{{ option }}" {% if option == value %}selected{% endif %}>{{ option }}</option>
+                {% elif field.type == 'date' %}
+                <input type="date" class="form-control" id="{{ field.id }}" name="{{ field.id }}" value="{{ valor }}" {% if field.required %}required{% endif %} />
+
+                {% elif field.type == 'dropdown' %}
+                <select class="form-select" id="{{ field.id }}" name="{{ field.id }}" {% if field.required %}required{% endif %}>
+                  <option value="">Selecione</option>
+                  {% for option in field.options %}
+                  <option value="{{ option }}" {% if valor == option %}selected{% endif %}>{{ option }}</option>
+                  {% endfor %}
+                </select>
+
+                {% elif field.type == 'item_image_url' %}
+                <div class="card bg-light border-dashed p-3 text-center">
+                    <div class="mb-2">
+                        <img id="item-image"
+                        src="{{ valor if valor and valor != 'N/A' else url_for('static', filename='item-placeholder.png') }}"
+                        class="img-fluid rounded shadow-sm" style="max-height: 150px;" />
+                    </div>
+                    <input type="text" name="item_image_url" id="image-url-input" value="{{ valor if valor != 'N/A' else '' }}" style="opacity: 0; position: absolute; left: -9999px" />
+                    <div class="d-grid gap-2 col-8 mx-auto">
+                        <label class="btn btn-outline-primary btn-sm" for="image_file">
+                            <i class="fas fa-upload me-1"></i> Escolher Foto
+                        </label>
+                        <input type="file" class="d-none" id="image_file" name="image_file" {% if field.required %}data-required="true"{% endif %} />
+                        <button type="button" onclick="removeImage()" id="remove-btn" class="btn btn-outline-danger btn-sm" style="{{ 'display: block;' if valor and valor != 'N/A' else 'display: none;' }}">
+                            <i class="fas fa-trash me-1"></i> Remover
+                        </button>
+                    </div>
+                </div>
+                {% endif %}
+              </div>
               {% endfor %}
-            </select>
-
-          {% elif field.type == 'item_image_url' %}
-            <div class="text-center mb-2">
-              <img id="item-image"
-                   src="{{ item.item_image_url if item.item_image_url and item.item_image_url != 'N/A' else url_for('static', filename='item-placeholder.png') }}"
-                   style="max-width: 150px;" />
-              <input type="text" name="item_image_url" id="image-url-input"
-                     value="{{ item.item_image_url if item.item_image_url != 'N/A' else '' }}"
-                     style="opacity: 0; position: absolute; left: -9999px" />
-              <button type="button" onclick="removeImage()" id="remove-btn"
-                      class="btn btn-outline-danger btn-sm mt-2"
-                      style="{{ 'display: block;' if item.item_image_url and item.item_image_url != 'N/A' else 'display: none;' }}">
-                Excluir imagem
-              </button>
             </div>
-            <input type="file" class="form-control" id="image_file" name="image_file"
-              {% if field.required %}data-required="true"{% endif %} />
-          {% endif %}
+            
+            <!-- Checkboxes Específicos de Edição -->
+            <div class="row mt-4 border-top pt-3">
+                <div class="col-md-12">
+                    <div class="d-flex flex-wrap gap-4 justify-content-center">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="featured" name="featured" {% if item.get('featured') %}checked{% endif %}>
+                            <label class="form-check-label" for="featured">Destaque na Home?</label>
+                        </div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="update_all_transactions" name="update_all_transactions">
+                            <label class="form-check-label" for="update_all_transactions">Atualizar em todas as transações?</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-end mt-4 pt-3 border-top">
+                <a href="{{ request.args.get('next', url_for('inventory')) }}" class="btn btn-light me-2 border">Cancelar</a>
+                <button type="submit" class="btn btn-warning px-4 d-flex align-items-center gap-2">
+                    <i class="fas fa-save"></i>
+                    <span>Salvar Alterações</span>
+                    <div class="spinner-border spinner-border-sm text-dark" role="status" style="display: none;"></div>
+                </button>
+            </div>
+          </form>
         </div>
       </div>
-      {% endfor %}
     </div>
-
-    <div class="row mt-4">
-      <div class="col text-center">
-        <div class="d-inline-flex align-items-center gap-2 mb-3 me-4">
-          <input type="checkbox" id="featured" name="featured" {% if item.featured %}checked{% endif %} />
-          <label for="featured" class="form-check-label">Destaque na Home?</label>
-        </div>
-        <div class="d-inline-flex align-items-center gap-2 mb-3">
-          <input type="checkbox" id="update_all_transactions" name="update_all_transactions" />
-          <label for="update_all_transactions" class="form-check-label">Alterar em todas as transações existentes?</label>
-        </div>
-      </div>
-    </div>
-
-    <div class="d-flex justify-content-center mt-3">
-      <button type="submit" class="btn btn-success btn-submit">Salvar</button>
-    </div>
-  </form>
+  </div>
 </div>
+
 {% endblock %}
 
 {% block scripts %}
 <script>
-  document.addEventListener('DOMContentLoaded', () => {
-    inicializarAutocompleteItem('item_custom_id');
-    inicializarAutocompleteItem('item_description');
-  });
-</script>
-<script>
-  function gerarCodigoItem() {
-    const campo = document.getElementById('item_custom_id');
-    if (campo) {
-      const uuid = crypto.randomUUID().replace(/-/g, '').substring(0, 12);
-      campo.value = uuid;
-      campo.dispatchEvent(new Event('input'));
-      campo.dispatchEvent(new Event('blur'));
-    }
-  }
-</script>
-<script>
+  // --- Funções de Imagem ---
   function removeImage() {
     document.getElementById('item-image').src = "{{ url_for('static', filename='item-placeholder.png') }}";
     document.getElementById('image-url-input').value = 'DELETE_IMAGE';
     document.getElementById('remove-btn').style.display = 'none';
     document.getElementById('image_file').value = '';
   }
+  
   document.getElementById('image_file')?.addEventListener('change', function (e) {
     const file = e.target.files[0];
     if (!file) return;
@@ -141,8 +171,8 @@
     };
     reader.readAsDataURL(file);
   });
-</script>
-<script>
+
+  // --- Funções Monetárias ---
   function formatarCampoMonetario(input) {
     input.addEventListener('input', function (e) {
       let value = e.target.value.replace(/\D/g, '');
@@ -154,172 +184,24 @@
       const floatValue = parseFloat(value) / 100;
       input.value = floatValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     });
+
     const raw = input.value.replace(/\D/g, '');
     if (raw) {
       const floatValue = parseFloat(raw) / 100;
       input.value = floatValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
   }
-  document.addEventListener('DOMContentLoaded', function () {
+
+  // --- Inicialização ---
+  document.addEventListener('DOMContentLoaded', () => {
+    // Inicializar Formatação Monetária
     const campoValor = document.getElementById('item_value');
     if (campoValor) formatarCampoMonetario(campoValor);
+    
+    // Formatar outros campos monetários se houver
+    document.querySelectorAll('.campo-monetario').forEach(el => {
+        if(el.id !== 'item_value') formatarCampoMonetario(el);
+    });
   });
 </script>
-
-
-<script>
-  function buscarSugestoes(term) {
-    return fetch(`/autocomplete_items?term=${encodeURIComponent(term)}`).then((res) => res.json());
-  }
-
-function preencherCampos(item) {
-  for (const key in item) {
-    const el = document.getElementById(key);
-    if (el && el.type !== 'hidden') {
-      const novoValor = item[key] || '';
-      if (el.value !== novoValor) {
-        el.value = novoValor;
-        // Aplica formatação monetária se for campo de valor
-if (key === 'item_value') {
-  formatarCampoMonetario(el);
-}
-
-
-        // Só dispara se for o campo item_custom_id e valor realmente mudou
-        if (key === 'item_custom_id') {
-          el.dataset.lastChecked = novoValor;
-          el.dispatchEvent(new Event('input'));
-        }
-      }
-    }
-  }
-}
-
-
-  function exibirStatus(inputId, texto, classe) {
-    const statusEl = document.getElementById(`${inputId}_status`);
-    if (!statusEl) return;
-    statusEl.innerHTML = texto;
-    statusEl.className = `status-message ${classe}`;
-    statusEl.style.display = 'block';
-  }
-
-  function limparStatus(inputId) {
-    const statusEl = document.getElementById(`${inputId}_status`);
-    if (statusEl) statusEl.style.display = 'none';
-  }
-
-  function inicializarAutocomplete(inputId, isDescricao = false) {
-    const input = document.getElementById(inputId);
-    const boxId = `${inputId}_suggestions`;
-    const statusId = `${inputId}_status`;
-
-    if (!input) return;
-
-    let box = document.getElementById(boxId);
-    if (!box) {
-      box = document.createElement('div');
-      box.id = boxId;
-      box.className = 'autocomplete-box position-absolute w-100 bg-white shadow-sm z-3';
-      input.closest('.position-relative')?.appendChild(box);
-    }
-
-    const statusEl = document.getElementById(statusId);
-
-    let itensSugeridos = [];
-
-    input.addEventListener('input', async () => {
-      const termo = input.value.trim();
-      if (!termo) {
-        box.innerHTML = '';
-        if (!isDescricao) limparStatus(inputId);
-        return;
-      }
-
-      try {
-        itensSugeridos = await buscarSugestoes(termo);
-        box.innerHTML = '';
-
-        itensSugeridos.forEach((item) => {
-          const div = document.createElement('div');
-          div.className = 'autocomplete-item px-2 py-1';
-          div.innerHTML = `
-  <div class="d-flex flex-column">
-    <div class="d-flex align-items-center">
-      <i class="fas fa-barcode me-2 text-primary"></i>
-      <strong>${item.item_custom_id || '(sem código)'}</strong>
-    </div>
-    <div class="d-flex align-items-center mt-1">
-      <i class="fas fa-align-left me-2 text-secondary"></i>
-      <small class="text-muted">${item.item_description || 'Sem descrição'}</small>
-    </div>
-  </div>
-`;
-
-          div.addEventListener('click', () => {
-            input.value = item[inputId];
-            box.innerHTML = '';
-
-            if (isDescricao) {
-              preencherCampos(item);
-            } else {
-              checarDuplicidade(inputId, item[inputId], itensSugeridos);
-            }
-          });
-          box.appendChild(div);
-        });
-
-        if (!isDescricao) checarDuplicidade(inputId, termo, itensSugeridos);
-      } catch (err) {
-        console.error('Erro ao buscar itens:', err);
-      }
-    });
-
-    input.addEventListener('blur', () => {
-      setTimeout(() => (box.innerHTML = ''), 200);
-    });
-  }
-  function checarDuplicidade(inputId, termo, sugestoes) {
-  const input = document.getElementById(inputId);
-  if (!input) return;
-
-  // Impede checagem repetida do mesmo valor
-  if (input.dataset.lastChecked === termo) return;
-  input.dataset.lastChecked = termo;
-
-  const match = sugestoes.find((item) => (item.item_custom_id || '').toLowerCase() === termo.toLowerCase());
-  const box = document.getElementById(`${inputId}_suggestions`);
-
-  if (match) {
-    preencherCampos(match); // só dispara se valor for diferente
-    const editarLink = `
-      <a href="/edit_item/${match.item_id}?item_id=${match.item_id}&next=${encodeURIComponent(window.location.pathname)}"
-         class="ms-2 text-decoration-underline text-warning">
-        Editar
-      </a>`;
-    exibirStatus(inputId, 'Item Id encontrado ' + editarLink, 'user-found');
-    if (box) box.innerHTML = '';
-  } else {
-    exibirStatus(inputId, 'Novo item será criado', 'user-new');
-  }
-}
-
-
-  document.addEventListener('DOMContentLoaded', () => {
-    inicializarAutocomplete('item_custom_id', false);
-    inicializarAutocomplete('item_description', true);
-  });
-
-  function gerarCodigoItem() {
-    const campo = document.getElementById('item_custom_id');
-    if (campo) {
-      const uuid = crypto.randomUUID().replace(/-/g, '').substring(0, 12);
-      campo.value = uuid;
-      campo.dispatchEvent(new Event('input'));
-    }
-  }
-</script>
-
-
-
 {% endblock %}

@@ -232,6 +232,59 @@
       </div>
     </div>
   </section>
+
+  <br />
+  <br />
+  <h3 class="mb-1 text-center">Top 30 Itens Mais Visualizados</h3>
+  <p class="text-muted text-center mb-4" style="font-size: 0.95rem">(itens mais acessados no catálogo)</p>
+
+  <section class="container mt-4">
+    <div class="table-responsive bg-white shadow-sm rounded p-3">
+        <table class="table table-hover align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th scope="col" class="text-center">#</th>
+                    <th scope="col" class="text-center">Imagem</th>
+                    <th scope="col">Identificação</th>
+                    <th scope="col" class="text-center">Visualizações</th>
+                    <th scope="col" class="text-end">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in top_visited_items %}
+                <tr>
+                    <td class="text-center fw-bold text-secondary">{{ loop.index }}</td>
+                    <td class="text-center">
+                        <img src="{{ item.item_image_url if item.item_image_url else 'https://via.placeholder.com/50' }}" 
+                             alt="Foto" 
+                             class="rounded border object-fit-cover" 
+                             style="width: 50px; height: 50px; cursor: pointer;"
+                             onclick="mostrarImagemModal('{{ item.item_image_url if item.item_image_url else 'https://via.placeholder.com/600x800' }}')">
+                    </td>
+                    <td>
+                        <div class="fw-semibold text-dark">{{ item.title or item.item_custom_id or 'Sem Título' }}</div>
+                        <div class="small text-muted">{{ item.item_description | truncate(50) }}</div>
+                    </td>
+                    <td class="text-center">
+                        <span class="badge bg-primary rounded-pill px-3">{{ item.visit_count or 0 }}</span>
+                    </td>
+                    <td class="text-end">
+                         <a href="{{ url_for('edit_item', item_id=item.item_id) }}" class="btn btn-sm btn-outline-secondary" title="Editar">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" class="text-center text-muted py-4">
+                        Nenhum dado de visualização disponível.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+  </section>
 </div>
 {% set status = current_stripe_transaction.subscription_status | default('') %} {% set max_limit = 300 if status in ["trialing", "active", "past_due"]
 else 0 %}
@@ -269,6 +322,8 @@ else 0 %}
     </div>
   </div>
 </div>
+
+{% include "components/image_modal.html" %}
 
 {% endblock %} {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>

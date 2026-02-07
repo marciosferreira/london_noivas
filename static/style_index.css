@@ -174,9 +174,9 @@ body {
 }
 
 .fixed-height-img {
-  aspect-ratio: 4 / 3; /* ou 16 / 9 */
+  aspect-ratio: 3 / 4;
   width: 100%;
-  object-fit: cover;
+  object-fit: contain;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   cursor: pointer;

@@ -3,13 +3,29 @@ import json
 import pickle
 import faiss
 import numpy as np
-from flask import Blueprint, request, jsonify, url_for
+import boto3
+from boto3.dynamodb.conditions import Key
+from flask import Blueprint, request, jsonify, url_for, current_app
 from openai import OpenAI
 from dotenv import load_dotenv
+from ai_sync_service import get_index_status, sync_index as service_sync_index
 
 # Configuração
 load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+# Inicializa DynamoDB (Para validação de consistência)
+try:
+    dynamodb = boto3.resource(
+        "dynamodb",
+        region_name="us-east-1",
+        aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
+        aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
+    )
+    itens_table = dynamodb.Table("alugueqqc_itens")
+except Exception as e:
+    print(f"Erro ao conectar DynamoDB em ai_routes: {e}")
+    itens_table = None
 
 ai_bp = Blueprint('ai', __name__)
 
@@ -40,6 +56,103 @@ load_resources()
 def get_embedding(text):
     text = text.replace("\n", " ")
     return client.embeddings.create(input=[text], model=EMBEDDING_MODEL).data[0].embedding
+
+def validate_and_enrich_candidates(candidates_metadata):
+    """
+    Valida se os itens existem no DynamoDB e enriquece com dados frescos (incluindo URL S3).
+    Retorna lista filtrada e enriquecida.
+    OTIMIZADO: Usa BatchGetItem para reduzir latência.
+    """
+    if not itens_table or not candidates_metadata:
+        return candidates_metadata # Fallback se DB off
+
+    valid_items = []
+    
+    # 1. Deduplicar e coletar IDs
+    unique_candidates = {} # item_id -> metadata
+    keys_to_fetch = []
+    
+    for meta in candidates_metadata:
+        item_id = meta.get('custom_id')
+        if item_id and item_id not in unique_candidates:
+            unique_candidates[item_id] = meta
+            keys_to_fetch.append({'item_id': item_id})
+    
+    if not keys_to_fetch:
+        return []
+
+    # 2. BatchGetItem (DynamoDB limite de 100 itens por request)
+    fetched_items = {}
+    
+    try:
+        # Divide em chunks de 100 se necessário
+        chunk_size = 100
+        for i in range(0, len(keys_to_fetch), chunk_size):
+            chunk = keys_to_fetch[i:i + chunk_size]
+            
+            response = dynamodb.batch_get_item(
+                RequestItems={
+                    'alugueqqc_itens': {
+                        'Keys': chunk,
+                        'ProjectionExpression': 'item_id, #st, title, item_description, item_image_url, item_value, item_custom_id',
+                        'ExpressionAttributeNames': {'#st': 'status'}
+                    }
+                }
+            )
+            
+            # Processa itens retornados
+            for item in response.get('Responses', {}).get('alugueqqc_itens', []):
+                fetched_items[item['item_id']] = item
+            
+            # Lidar com UnprocessedKeys se houver throttling (opcional, mas recomendado)
+            # Para simplicidade, assumimos que não haverá throttling massivo para < 100 itens
+            
+    except Exception as e:
+        print(f"Erro no BatchGetItem: {e}")
+        # Fallback: se falhar o batch, retorna lista vazia ou tenta individual (vamos retornar vazio por segurança)
+        return []
+
+    # 3. Cruzar dados e enriquecer
+    # Mantém a ordem original do FAISS (relevância)
+    seen_ids = set()
+    for meta in candidates_metadata:
+        item_id = meta.get('custom_id')
+        if not item_id or item_id in seen_ids:
+            continue
+            
+        db_item = fetched_items.get(item_id)
+        
+        if db_item:
+            # Verificar status (apenas available)
+            if db_item.get('status') != 'available':
+                continue
+
+            # Item válido! Enriquecer.
+            seen_ids.add(item_id)
+            
+            # S3 URL
+            s3_url = db_item.get('item_image_url')
+            if s3_url:
+                meta['imageUrl'] = s3_url
+                meta['file_name'] = None
+            
+            # Metadata frescos
+            meta['title'] = db_item.get('title', meta.get('title'))
+            meta['description'] = db_item.get('item_description', meta.get('description'))
+            
+            # Preço
+            val = db_item.get('item_value', 0)
+            if val:
+                meta['price'] = f"R$ {val}"
+            
+            # Custom ID (Human Readable)
+            meta['customId'] = db_item.get('item_custom_id')
+            # UUID (System ID)
+            meta['item_id'] = db_item.get('item_id')
+            
+            valid_items.append(meta)
+            
+    return valid_items
 
 @ai_bp.route('/api/ai-search', methods=['POST'])
 def ai_search():
@@ -101,18 +214,20 @@ def ai_search():
         query_embedding = get_embedding(search_query)
         query_vector = np.array([query_embedding]).astype('float32')
 
-        # 3. Busca no FAISS (TOP 5)
-        k = 5
+        # 3. Busca no FAISS (TOP 10 para garantir pelo menos 4 sugestões após filtros)
+        k = 10
         distances, indices = index.search(query_vector, k)
         
         candidates = []
-        valid_indices = []
         
+        # Coleta metadados brutos
+        raw_candidates = []
         for idx in indices[0]:
             if idx != -1:
-                item = metadata[idx]
-                candidates.append(item)
-                valid_indices.append(idx)
+                raw_candidates.append(metadata[idx].copy()) # Copy para não alterar cache global
+
+        # Validação contra Banco de Dados (Check de Deletados + S3 URL)
+        candidates = validate_and_enrich_candidates(raw_candidates)
 
         if not candidates:
             return jsonify({
@@ -126,14 +241,16 @@ def ai_search():
         for i, c in enumerate(candidates):
             candidates_str += f"OPÇÃO {i}: {c['description']}\n\n"
 
+        # ... (rest of function)
+
         # 4. Seleção Inteligente e Resposta Final
         final_response_prompt = (
             "Você é um consultor de moda experiente e elegante da London Noivas. "
             f"O usuário solicitou: '{search_query}'. "
-            "Abaixo estão as 5 melhores opções encontradas no nosso acervo:\n\n"
+            "Abaixo estão as melhores opções encontradas no nosso acervo:\n\n"
             f"{candidates_str}"
             "Sua tarefa é duplo: "
-            "1. ESCOLHER A MELHOR OPÇÃO entre as 5 listadas que melhor atende ao pedido (considere cor, estilo, detalhes). "
+            "1. ESCOLHER A MELHOR OPÇÃO entre as listadas que melhor atende ao pedido (considere cor, estilo, detalhes). "
             "2. APRESENTAR essa opção escolhida ao usuário. "
             "Regras de apresentação:"
             "- JAMAIS mencione 'Opção 1', 'Opção 2', etc. O usuário verá apenas a imagem do vestido escolhido."
@@ -169,11 +286,12 @@ def ai_search():
         
         # Constrói objeto do vestido principal
         result_dress = {
-            "image_url": url_for('static', filename=f"dresses/{chosen_item['file_name']}"),
+            "image_url": chosen_item.get('imageUrl') or url_for('static', filename=f"dresses/{chosen_item['file_name']}"),
             "description": chosen_item['description'],
             "title": chosen_item.get('title', 'Sugestão Exclusiva'),
-            "price": "Consulte o preço do aluguel",
-            "id": f"ai_main_{selected_index}"
+            "price": chosen_item.get('price', "Consulte o preço do aluguel"),
+            "id": chosen_item.get('item_id') or chosen_item.get('custom_id') or f"ai_main_{selected_index}",
+            "customId": chosen_item.get('customId') or chosen_item.get('custom_id')
         }
 
         # Constrói lista de sugestões (todos exceto o escolhido)
@@ -181,11 +299,12 @@ def ai_search():
         for i, item in enumerate(candidates):
             if i != selected_index:
                 suggestions.append({
-                    "image_url": url_for('static', filename=f"dresses/{item['file_name']}"),
+                    "image_url": item.get('imageUrl') or url_for('static', filename=f"dresses/{item['file_name']}"),
                     "description": item['description'],
                     "title": item.get('title', 'Sugestão Exclusiva'),
-                    "price": "Consulte o preço do aluguel",
-                    "id": f"ai_sugg_{i}"
+                    "price": item.get('price', "Consulte o preço do aluguel"),
+                    "id": item.get('item_id') or item.get('custom_id') or f"ai_sugg_{i}",
+                    "customId": item.get('customId') or item.get('custom_id')
                 })
 
         return jsonify({
@@ -229,16 +348,24 @@ def ai_similar(item_id):
         k = 5 # 1 (ele mesmo) + 4 similares
         distances, indices = index.search(query_vector, k)
         
-        suggestions = []
+        # Coleta metadados brutos
+        raw_suggestions = []
         for idx in indices[0]:
             if idx != -1 and idx != target_idx:
-                item = metadata[idx]
-                suggestions.append({
-                    "id": item.get('custom_id'),
-                    "title": item.get('title', 'Vestido'),
-                    "image_url": url_for('static', filename=f"dresses/{item['file_name']}"),
-                    "description": item.get('description', '')
-                })
+                raw_suggestions.append(metadata[idx].copy())
+
+        # Validação contra Banco de Dados
+        valid_suggestions = validate_and_enrich_candidates(raw_suggestions)
+
+        suggestions = []
+        for item in valid_suggestions:
+            suggestions.append({
+                "id": item.get('item_id') or item.get('custom_id'),
+                "customId": item.get('customId'),
+                "title": item.get('title', 'Vestido'),
+                "image_url": item.get('imageUrl') or url_for('static', filename=f"dresses/{item['file_name']}"),
+                "description": item.get('description', '')
+            })
                 
         return jsonify({"suggestions": suggestions})
 
@@ -257,6 +384,8 @@ def ai_catalog_search():
 
     data = request.get_json()
     query = data.get('query', '')
+    page = int(data.get('page', 1))
+    limit = int(data.get('limit', 12))
     
     if not query:
         return jsonify({"error": "Query vazia"}), 400
@@ -266,24 +395,74 @@ def ai_catalog_search():
         query_embedding = get_embedding(query)
         query_vector = np.array([query_embedding]).astype('float32')
         
-        # 2. Busca no FAISS (TOP 50 para preencher a página)
-        k = 50
+        # 2. Busca no FAISS
+        # Buscamos mais itens (100) para garantir que após o filtro de status/DB
+        # ainda tenhamos itens suficientes para preencher as páginas.
+        k = 100 
         distances, indices = index.search(query_vector, k)
         
-        results = []
+        # Coleta metadados brutos
+        raw_results = []
         for idx in indices[0]:
             if idx != -1:
-                item = metadata[idx]
-                results.append({
-                    "item_id": item.get('custom_id'),
-                    "title": item.get('title', 'Vestido'),
-                    "imageUrl": url_for('static', filename=f"dresses/{item['file_name']}"),
-                    "description": item.get('description', ''),
-                    "price": "Consulte o preço do aluguel"
-                })
+                raw_results.append(metadata[idx].copy())
+
+        # Validação contra Banco de Dados (agora otimizada com BatchGetItem)
+        # Isso é rápido mesmo para 100 itens (~1 call DynamoDB)
+        valid_results = validate_and_enrich_candidates(raw_results)
+
+        # 3. Paginação em memória
+        total_valid = len(valid_results)
+        total_pages = (total_valid + limit - 1) // limit
+        
+        # Ajusta página se fora dos limites
+        if page < 1: page = 1
+        if page > total_pages and total_pages > 0: page = total_pages
+        
+        start = (page - 1) * limit
+        end = start + limit
+        
+        paginated_items = valid_results[start:end]
+
+        results = []
+        for item in paginated_items:
+            results.append({
+                "item_id": item.get('item_id') or item.get('custom_id'), # UUID preferido
+                "title": item.get('title', 'Vestido'),
+                "imageUrl": item.get('imageUrl') or url_for('static', filename=f"dresses/{item['file_name']}"),
+                "description": item.get('description', ''),
+                "price": item.get('price', "Consulte o preço do aluguel"),
+                "customId": item.get('customId') # Adicionado para consistência
+            })
                 
-        return jsonify({"results": results})
+        return jsonify({
+            "results": results,
+            "page": page,
+            "total_pages": total_pages,
+            "total_results": total_valid
+        })
 
     except Exception as e:
         print(f"Erro na busca do catálogo: {e}")
         return jsonify({"error": str(e)}), 500
+
+@ai_bp.route('/api/admin/ai-status', methods=['GET'])
+def admin_ai_status():
+    """Retorna o status de sincronização do índice IA"""
+    try:
+        status = get_index_status()
+        return jsonify(status)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@ai_bp.route('/api/admin/sync-ai-index', methods=['POST'])
+def admin_sync_ai_index():
+    """Aciona a sincronização do índice IA"""
+    try:
+        result = service_sync_index()
+        if result.get('status') == 'success':
+            # Recarrega os recursos na memória da aplicação
+            load_resources()
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500

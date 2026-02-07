@@ -140,7 +140,7 @@
                 <img 
                     src="https://images.unsplash.com/photo-1583939003579-730e3918a45a?auto=format&fit=crop&q=80&w=2000" 
                     alt="Luxury wedding dress" 
-                    class="w-full h-full object-cover"
+                    class="w-full h-full object-cover object-top"
                 />
                 <div class="absolute inset-0 bg-black/40"></div>
             </div>
@@ -180,7 +180,7 @@
                         <img 
                             src="{{ url_for('static', filename='london_noivas_image.png') }}" 
                             alt="Showroom London Noivas" 
-                            class="w-full shadow-2xl relative z-0 rounded-sm object-cover aspect-[2/3]"
+                            class="w-full shadow-2xl relative z-0 rounded-sm object-contain aspect-[2/3] bg-stone-100"
                         />
                         <div class="absolute -bottom-8 -right-8 bg-london-gold p-8 hidden md:block shadow-xl">
                             <p class="text-white font-serif text-2xl italic leading-tight">"Elegância é a única beleza que nunca desaparece."</p>
@@ -271,14 +271,15 @@
                                     imageUrl: {{ ns.image_url | tojson }},
                                     title: {{ display_title | tojson }},
                                     description: {{ display_desc | tojson }},
-                                    price: {{ ns.price_display | tojson }}
+                                    price: {{ ns.price_display | tojson }},
+                                    customId: {{ item.item_custom_id | default(item.item_id) | tojson }}
                                 };
                             })();
                         </script>
 
                         <div class="aspect-[3/4] overflow-hidden bg-stone-200">
                              {% if ns.found %}
-                                <img src="{{ ns.image_url }}" alt="Item Image" class="w-full h-full object-cover grayscale-[0.2] group-hover:grayscale-0 group-hover:scale-110 transition-all duration-700">
+                                <img src="{{ ns.image_url }}" alt="Item Image" class="w-full h-full object-contain bg-gray-50 grayscale-[0.2] group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700">
                              {% else %}
                                 <div class="w-full h-full flex items-center justify-center text-stone-400 bg-stone-100">
                                     <span class="font-serif italic">Sem imagem</span>
@@ -426,7 +427,7 @@
                         
                         <!-- Result State (Hidden by default) -->
                         <div id="result-state" class="hidden w-full h-full relative group">
-                             <img id="result-image" src="" alt="Vestido Recomendado" class="w-full h-full object-cover" />
+                             <img id="result-image" src="" alt="Vestido Recomendado" class="w-full h-full object-contain" />
                              <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-6 text-white transform translate-y-full group-hover:translate-y-0 transition-transform duration-300">
                                 <h3 id="result-title" class="text-xl font-serif mb-2">Vestido Recomendado</h3>
                                 <p id="result-desc" class="text-sm font-light opacity-90 line-clamp-3"></p>
@@ -464,7 +465,7 @@
 
                             <div class="flex flex-col md:flex-row">
                                 <div class="md:w-1/2 aspect-[3/4] bg-stone-100 relative">
-                                    <img id="modal-image" src="" alt="Detail View" class="absolute inset-0 w-full h-full object-cover">
+                                    <img id="modal-image" src="" alt="Detail View" class="absolute inset-0 w-full h-full object-contain">
                                 </div>
                                 <div class="md:w-1/2 p-8 flex flex-col justify-center">
                                     <h3 class="text-2xl font-serif text-london-gold mb-4">Detalhes da Peça</h3>
@@ -620,7 +621,9 @@
                         dress.title || "Sugestão Exclusiva", 
                         dress.description, 
                         dress.id, 
-                        dress.price || "Consulte o preço do aluguel"
+                        dress.price || "Consulte o preço do aluguel",
+                        'ai_result',
+                        dress.customId
                     );
 
                     if (suggestions && suggestions.length > 0) {
@@ -634,7 +637,7 @@
                     grid.innerHTML = ''; // Limpa anteriores
 
                     suggestions.forEach((item, index) => {
-                        if(index >= 4) return; // Limite de 4
+                        if(index >= 8) return; // Limite de 8 (2 linhas no desktop)
                         const div = document.createElement('div');
                         div.className = "aspect-[3/4] bg-stone-200 cursor-pointer overflow-hidden rounded-sm relative group";
                         div.onclick = () => openCatalogModal(
@@ -642,11 +645,13 @@
                             item.title || "Sugestão Exclusiva", 
                             item.description, 
                             item.id, 
-                            item.price || "Consulte o preço do aluguel"
+                            item.price || "Consulte o preço do aluguel",
+                            'ai_suggestion',
+                            item.customId
                         );
                         
                         div.innerHTML = `
-                            <img src="${item.image_url}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt="Sugestão">
+                            <img src="${item.image_url}" class="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500" alt="Sugestão">
                             <div class="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all flex items-center justify-center">
                                 <span class="text-white opacity-0 group-hover:opacity-100 font-serif tracking-widest text-xs border border-white px-3 py-1">VER DETALHES</span>
                             </div>
@@ -845,7 +850,7 @@
                     <div class="flex flex-col md:flex-row h-full md:h-[80vh]">
                         <!-- Image Side -->
                         <div class="md:w-1/2 bg-stone-100 relative h-[50vh] md:h-full">
-                            <img id="catalog-modal-img" src="" alt="Detalhe" class="absolute inset-0 w-full h-full object-cover">
+                            <img id="catalog-modal-img" src="" alt="Detalhe" class="absolute inset-0 w-full h-full object-contain">
                         </div>
                         
                         <!-- Content Side -->
@@ -853,7 +858,8 @@
                             <div class="flex-1">
                                 <span class="text-london-gold font-bold tracking-widest text-xs uppercase mb-2 block">London Noivas Collection</span>
                                 <h3 id="catalog-modal-title" class="text-3xl md:text-4xl font-serif text-stone-900 mb-2 leading-tight"></h3>
-                                <p id="catalog-modal-price" class="text-2xl text-stone-600 font-serif mb-6"></p>
+                                <p id="catalog-modal-price" class="text-2xl text-stone-600 font-serif mb-2"></p>
+                                <p class="text-xs text-stone-400 mb-6 font-mono">ID: <span id="catalog-modal-id-value"></span></p>
                                 
                                 <div class="w-12 h-1 bg-stone-200 mb-8"></div>
                                 
@@ -892,26 +898,36 @@
         function openCatalogModalById(itemId, source) {
             const data = window.catalogData && window.catalogData[itemId];
             if (data) {
-                openCatalogModal(data.imageUrl, data.title, data.description, itemId, data.price, source);
+                // Pass UUID as itemId, and customId as display param
+                openCatalogModal(data.imageUrl, data.title, data.description, itemId, data.price, source, data.customId);
             } else {
                 console.error('Dados do item não encontrados para ID:', itemId);
             }
         }
 
-        function openCatalogModal(imageUrl, title, description, itemId, price, source) {
+        function openCatalogModal(imageUrl, title, description, itemId, price, source, customDisplayId) {
+            const idToShow = customDisplayId || itemId;
+
+            // Handle Price Display Logic
+            let displayPrice = price;
+            if (!price || price === '0' || price === 0 || price === '0.00' || price === '0,00') {
+                displayPrice = 'Consulte o preço do aluguel';
+            }
+
             document.getElementById('catalog-modal-img').src = imageUrl || 'https://via.placeholder.com/600x800?text=Sem+Imagem';
             document.getElementById('catalog-modal-title').textContent = title;
             document.getElementById('catalog-modal-desc').textContent = description;
-            document.getElementById('catalog-modal-price').textContent = price;
+            document.getElementById('catalog-modal-price').textContent = displayPrice;
+            document.getElementById('catalog-modal-id-value').textContent = idToShow;
             
             const phoneNumber = "5592993531943";
-            let text = `Olá, gostaria de mais informações sobre o vestido: ${title}`;
+            let text = `Olá, gostaria de mais informações sobre o vestido: ${title} (Cód: ${idToShow})`;
             
             // Check if it's an AI item (starts with ai_) or regular item
             const isAiItem = itemId && itemId.toString().startsWith('ai_');
 
             if (!isAiItem) {
-                // Update URL to include item_id for regular items
+                // Update URL to include item_id (UUID) for regular items
                 const url = new URL(window.location);
                 url.searchParams.set('item', itemId);
                 window.history.pushState({}, '', url);
@@ -945,6 +961,10 @@
             similarGrid.innerHTML = '';
 
             if (itemId && !isAiItem) {
+                // Increment visit count for all sources
+                fetch(`/api/item/${itemId}/visit`, { method: 'POST' })
+                    .catch(err => console.error('Error incrementing visit count:', err));
+
                 fetch(`/api/ai-similar/${itemId}`)
                     .then(response => response.json())
                     .then(data => {
@@ -952,10 +972,10 @@
                             data.suggestions.forEach(item => {
                                 const div = document.createElement('div');
                                 div.className = 'cursor-pointer group';
-                                div.onclick = () => openCatalogModal(item.image_url, item.title, item.description, item.id, 'Consulte o preço do aluguel', 'similar');
+                                div.onclick = () => openCatalogModal(item.image_url, item.title, item.description, item.id, 'Consulte o preço do aluguel', 'similar', item.customId);
                                 div.innerHTML = `
                                     <div class="aspect-[3/4] bg-stone-100 overflow-hidden mb-2 rounded-sm relative">
-                                        <img src="${item.image_url}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" alt="${item.title}">
+                                        <img src="${item.image_url}" class="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110" alt="${item.title}">
                                         <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300"></div>
                                     </div>
                                     <p class="text-xs font-bold text-stone-800 uppercase tracking-wide truncate">${item.title}</p>
@@ -985,7 +1005,7 @@
             const itemId = urlParams.get('item');
             if (itemId && window.catalogData && window.catalogData[itemId]) {
                 const item = window.catalogData[itemId];
-                openCatalogModal(item.imageUrl, item.title, item.description, itemId, item.price);
+                openCatalogModal(item.imageUrl, item.title, item.description, itemId, item.price, 'url_load', item.customId);
             }
         });
     </script>

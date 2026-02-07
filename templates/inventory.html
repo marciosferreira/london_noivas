@@ -13,6 +13,20 @@
 <div class="container my-3">
   <h2 class="mb-4">Inventário de itens</h2>
 
+  <!-- Alerta de IA Pendente (Inicialmente Oculto) -->
+  <div id="aiSyncAlert" class="alert alert-warning d-none align-items-center justify-content-between mb-4 shadow-sm" role="alert">
+      <div class="d-flex align-items-center">
+          <i class="fas fa-exclamation-triangle me-3 fs-4"></i>
+          <div>
+              <h5 class="alert-heading h6 mb-1 fw-bold">Atualização do Índice de IA Necessária</h5>
+              <p class="mb-0 small" id="aiSyncMsg">Novos itens foram adicionados e precisam ser indexados para a busca inteligente.</p>
+          </div>
+      </div>
+      <button class="btn btn-warning btn-sm fw-bold text-dark ms-3 text-nowrap" onclick="confirmSyncAI()">
+          <i class="fas fa-sync-alt me-1"></i> Atualizar Agora
+      </button>
+  </div>
+
   {% set show_add_item = True %} {% set show_item_filter = True %} {% include "components/item_filter_section.html" with context %} {% if not itens %}
 
   <div class="alert alert-info mt-3">Não há itens que satisfazem os critérios selecionados.</div>
@@ -32,7 +46,7 @@
             src="{{ image_value if image_value and image_value != 'N/A' else url_for('static', filename='item-placeholder.png') }}"
             alt="Imagem"
             class="card-img-top mx-auto d-block"
-            style="height: 240px; width: auto; max-width: 100%; object-fit: cover; cursor: pointer"
+            style="height: 240px; width: 100%; object-fit: contain; background-color: #f8f9fa; cursor: pointer"
             onclick="mostrarImagemModal(this.src)"
           />
         </div>
@@ -75,14 +89,14 @@
               <span class="text-end">{{ item.item_id if item.item_id is defined else (item.item_custom_id if item.item_custom_id is defined else '-') }}</span>
             </div>
             <div class="d-flex justify-content-between small border-bottom pb-1">
-              <span class="text-muted">Descrição do Item</span>
-              <span class="text-end">
-                {% set desc = item.item_description if item.item_description is defined and item.item_description else 
-                              item.description if item.description is defined and item.description else 
-                              item.nome if item.nome is defined and item.nome else 
-                              item.descricao if item.descricao is defined and item.descricao else 
-                              (item.key_values['item_description'] if item.key_values is defined and 'item_description' in item.key_values else '') %}
-                {{ desc if desc else '-' }}
+              <span class="text-muted">Título</span>
+              <span class="text-end fw-bold">
+                {% set title = item.item_title if item.item_title is defined and item.item_title else 
+                              item.title if item.title is defined and item.title else 
+                              item.titulo if item.titulo is defined and item.titulo else 
+                              (item.key_values['item_title'] if item.key_values is defined and 'item_title' in item.key_values else 
+                              (item.key_values['title'] if item.key_values is defined and 'title' in item.key_values else '')) %}
+                {{ title if title else '-' }}
               </span>
             </div>
           </div>
@@ -90,7 +104,7 @@
           <div class="d-flex flex-column gap-2">
             {% for field in fields_config 
                  if field.preview and field.visible and field.type != 'item_image_url' 
-                 and field.id not in ['item_description','description','nome','descricao'] %}
+                 and field.id not in ['item_description','description','nome','descricao','item_title','title','titulo'] %}
             <div class="d-flex justify-content-between small border-bottom pb-1">
               <span class="text-muted">{{ field.label }}</span>
               <span class="text-end">
@@ -170,5 +184,68 @@
     liNext.appendChild(aNext);
     paginacao.appendChild(liNext);
   }
+
+  // --- Lógica de IA ---
+  function checkAIStatus() {
+    fetch('/api/admin/ai-status')
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) return;
+
+            // Verifica se há itens faltando (missing), deletados ou pendentes
+            const pendingCount = (data.pending_ids && Array.isArray(data.pending_ids)) ? data.pending_ids.length : 0;
+            
+            if (data.missing_count > 0 || data.deleted_count > 0 || pendingCount > 0) {
+                const alert = document.getElementById('aiSyncAlert');
+                if(alert) {
+                    alert.classList.remove('d-none');
+                    alert.classList.add('d-flex');
+                    
+                    const msgEl = document.getElementById('aiSyncMsg');
+                    const msg = [];
+                    if (data.missing_count > 0) msg.push(`${data.missing_count} novos`);
+                    if (data.deleted_count > 0) msg.push(`${data.deleted_count} removidos`);
+                    if (pendingCount > 0) msg.push(`${pendingCount} pendentes`);
+                    
+                    if(msg.length > 0) {
+                        msgEl.textContent = `Alterações detectadas: ${msg.join(', ')}. Atualize o índice para refletir na busca.`;
+                    }
+                }
+            }
+        })
+        .catch(console.error);
+  }
+
+  function confirmSyncAI() {
+    if (!confirm('Deseja atualizar o índice de busca por IA agora? Isso pode levar alguns segundos.')) return;
+
+    const btn = document.querySelector('#aiSyncAlert button');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processando...';
+
+    fetch('/api/admin/sync-ai-index', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'}
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            alert('Índice atualizado com sucesso!');
+            document.getElementById('aiSyncAlert').classList.add('d-none');
+            document.getElementById('aiSyncAlert').classList.remove('d-flex');
+        } else {
+            alert('Erro: ' + data.message);
+        }
+    })
+    .catch(() => alert('Erro de comunicação.'))
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    });
+  }
+
+  // Executar na carga
+  checkAIStatus();
 </script>
 {% endblock %}

@@ -47,6 +47,31 @@ def get_all_fields(account_id, field_config_table):
     )
     fields_config = config_response.get("Item", {}).get("fields_config", {})
 
+    # Ensure mandatory fields for item entity
+    if entity == "item":
+        if "title" not in fields_config and "item_title" not in fields_config:
+            fields_config["title"] = {
+                "label": "Título do Item", 
+                "type": "text", 
+                "required": True, 
+                "visible": True, 
+                "order_sequence": 1, 
+                "f_type": "fixed"
+            }
+        
+        # Check for existing description fields (standard 'description' or legacy 'item_description')
+        has_description = "description" in fields_config or "item_description" in fields_config
+        
+        if not has_description:
+            fields_config["description"] = {
+                "label": "Descrição do Item", 
+                "type": "text", 
+                "required": True, 
+                "visible": True, 
+                "order_sequence": 2, 
+                "f_type": "fixed"
+            }
+
     all_fields = []
     for field_id, cfg in fields_config.items():
         label = cfg.get("label", field_id.replace("_", " ").capitalize())
@@ -57,7 +82,7 @@ def get_all_fields(account_id, field_config_table):
                 "label": label,
                 "title": label,  # usado em outras rotas
                 "type": cfg.get("type", "string"),
-                "required": cfg.get("required", False),
+                "required": False if field_id in ["item_custom_id", "title", "item_title", "description", "item_description"] else cfg.get("required", False),
                 "visible": cfg.get("visible", True),
                 "preview": cfg.get("preview", False),
                 "filterable": cfg.get("filterable", False),
@@ -267,6 +292,18 @@ def init_item_routes(
             }
 
             image_file = request.files.get("image_file")
+            
+            # Captura bytes da imagem caso precise para IA (evita erro de arquivo fechado)
+            image_bytes_for_ai = None
+            if image_file:
+                image_bytes_for_ai = image_file.read()
+                image_file.seek(0)
+            
+            # Validação Obrigatória de Imagem
+            if not image_file or not image_file.filename:
+                flash("É obrigatório enviar uma foto do item.", "danger")
+                return redirect(request.url)
+            
             key_values = {}
 
             for field in all_fields:
@@ -303,6 +340,51 @@ def init_item_routes(
 
             item_data["key_values"] = key_values
 
+            # ---------------------------------------------------------
+            # Regra de Negócio: ID Automático
+            # Se não foi informado, gera um ID curto único (6 chars)
+            # ---------------------------------------------------------
+            if not item_data.get("item_custom_id"):
+                 # Gera um ID curto (ex: A1B2C3)
+                 item_data["item_custom_id"] = str(uuid.uuid4().hex[:6]).upper()
+
+            # ---------------------------------------------------------
+            # Regra de Negócio: Geração de Metadados IA (Obrigatória)
+            # Se não foi informado Título ou Descrição, gera via IA
+            # Se falhar, BLOQUEIA o salvamento.
+            # ---------------------------------------------------------
+            description = item_data.get("description") or item_data.get("item_description") or key_values.get("description") or key_values.get("item_description", "")
+            title = item_data.get("title") or item_data.get("item_title") or key_values.get("title") or key_values.get("item_title", "")
+            
+            if not description or not title:
+                try:
+                    from ai_sync_service import generate_dress_metadata
+                    
+                    print("Gerando metadados IA em tempo real...")
+                    gen_desc, gen_title = generate_dress_metadata(image_bytes_for_ai, description, title)
+                    
+                    # Atualiza os campos (respeitando onde estavam ou padrão key_values)
+                    if "description" in item_data: item_data["description"] = gen_desc
+                    elif "item_description" in item_data: item_data["item_description"] = gen_desc
+                    else: key_values["description"] = gen_desc
+                    
+                    if "title" in item_data: item_data["title"] = gen_title
+                    elif "item_title" in item_data: item_data["item_title"] = gen_title
+                    else: key_values["title"] = gen_title
+                    
+                    item_data["key_values"] = key_values # Atualiza no dict principal
+                    
+                except Exception as e:
+                    flash(f"Erro ao gerar descrição/título via IA: {str(e)}. O item não foi salvo.", "danger")
+                    return render_template(
+                        "add_item.html",
+                        next=next_page,
+                        all_fields=all_fields,
+                        current_stripe_transaction=get_latest_transaction(user_id, users_table, payment_transactions_table),
+                        title=title,
+                        item={**item_data, "key_values": key_values}
+                    )
+
             # 🔒 Verifica se item_custom_id já existe **ANTES** de salvar
             item_custom_id = item_data.get("item_custom_id")
             if item_custom_id:
@@ -311,7 +393,10 @@ def init_item_routes(
                     KeyConditionExpression=Key("account_id").eq(account_id) & Key("item_custom_id").eq(item_custom_id)
                 ).get("Items", [])
 
-                if existing:
+                # Ignora itens deletados na verificação de duplicidade
+                active_existing = [i for i in existing if i.get("status") != "deleted"]
+
+                if active_existing:
                     flash("Já existe um item com esse ID. Por favor, use um ID diferente.", "danger")
                     return render_template(
                         "add_item.html",
@@ -322,6 +407,20 @@ def init_item_routes(
                         item={**item_data, "key_values": key_values}
                     )
 
+
+
+            # ---------------------------------------------------------
+            # Regra de Negócio: Sincronização de Campos Legados (GSI)
+            # ---------------------------------------------------------
+            if "description" in item_data:
+                item_data["item_description"] = item_data["description"]
+            elif "item_description" in item_data:
+                item_data["description"] = item_data["item_description"]
+
+            if "title" in item_data:
+                item_data["item_title"] = item_data["title"]
+            elif "item_title" in item_data:
+                item_data["title"] = item_data["item_title"]
 
             itens_table.put_item(Item=item_data)
 
@@ -570,33 +669,18 @@ def init_item_routes(
 
         key_values = item.get("key_values", {})
 
-        # Carregar configuração dos campos
-        config_response = field_config_table.get_item(
-            Key={"account_id": account_id, "entity": "item"}
-        )
-        fields_config_map = config_response.get("Item", {}).get("fields_config", {})
-
-        all_fields = []
-        for field_id, cfg in fields_config_map.items():
-            all_fields.append(
-                {
-                    "id": field_id,
-                    "label": cfg.get("label", field_id.replace("_", " ").capitalize()),
-                    "type": cfg.get("type", "string"),
-                    "required": cfg.get("required", False),
-                    "visible": cfg.get("visible", True),
-                    "order_sequence": int(cfg.get("order_sequence", 999)),
-                    "fixed": cfg.get("f_type", "custom") == "fixed",
-                    "options": (
-                        cfg.get("options", []) if cfg.get("type") == "dropdown" else []
-                    ),
-                }
-            )
-        all_fields = sorted(all_fields, key=lambda x: x["order_sequence"])
+        all_fields = get_all_fields(account_id, field_config_table, "item")
 
         # ---------------- POST ----------------
         if request.method == "POST":
             image_file = request.files.get("image_file")
+            
+            # Captura bytes da imagem caso precise para IA
+            image_bytes_for_ai = None
+            if image_file:
+                image_bytes_for_ai = image_file.read()
+                image_file.seek(0)
+
             image_url_field = request.form.get("item_image_url", "").strip()
             old_image_url = item.get("item_image_url") or key_values.get("item_image_url", "N/A")
             new_image_url = (
@@ -613,6 +697,11 @@ def init_item_routes(
             for field in all_fields:
                 field_id = field["id"]
                 field_type = field["type"]
+
+                # 🚫 Proibir alteração de Item Custom ID na edição
+                if field_id == "item_custom_id":
+                    continue
+
                 if field_id not in form_keys:
                     continue
 
@@ -638,23 +727,69 @@ def init_item_routes(
                 else:
                     new_values[field_id] = value
 
-                # ✅ Agora sim, checagem de duplicidade com dados já preenchidos
-                custom_id = fixed_updates.get("item_custom_id")
-                if custom_id and custom_id != item.get("item_custom_id"):
-                    duplicate_check = itens_table.query(
-                        IndexName="account_id-item_custom_id-index",
-                        KeyConditionExpression=Key("account_id").eq(account_id) & Key("item_custom_id").eq(custom_id),
+            # ---------------------------------------------------------
+            # Regra de Negócio: Geração de Metadados IA (Obrigatória em Edição)
+            # ---------------------------------------------------------
+            # Identifica se campos são fixos ou custom
+            desc_cfg = next((f for f in all_fields if f["id"] in ["description", "item_description"]), None)
+            title_cfg = next((f for f in all_fields if f["id"] in ["title", "item_title"]), None)
+            
+            desc_id = desc_cfg["id"] if desc_cfg else "description"
+            title_id = title_cfg["id"] if title_cfg else "title"
+            
+            desc_fixed = desc_cfg["fixed"] if desc_cfg else False
+            title_fixed = title_cfg["fixed"] if title_cfg else False
+            
+            # Helper para pegar valor atual (novo ou existente)
+            def get_val(fid, is_fixed):
+                if is_fixed: 
+                    return fixed_updates.get(fid) or item.get(fid)
+                return new_values.get(fid) or key_values.get(fid)
+
+            curr_desc = get_val(desc_id, desc_fixed)
+            curr_title = get_val(title_id, title_fixed)
+            
+            # Checa se o usuário limpou explicitamente os campos
+            # Se o campo existe no form e está vazio, considera como "quero gerar via IA"
+            if desc_id in request.form and request.form.get(desc_id, "").strip() == "":
+                curr_desc = None
+            if title_id in request.form and request.form.get(title_id, "").strip() == "":
+                curr_title = None
+
+            # Se faltar algum, tenta gerar
+            if not curr_desc or not curr_title:
+                try:
+                    # Precisamos da imagem (upload ou download)
+                    if not image_bytes_for_ai:
+                        target_url = new_image_url if new_image_url != "N/A" else old_image_url
+                        if target_url and target_url != "N/A":
+                             import requests
+                             # Download rápido apenas para IA
+                             resp = requests.get(target_url, timeout=10)
+                             if resp.status_code == 200:
+                                 image_bytes_for_ai = resp.content
+                    
+                    if image_bytes_for_ai:
+                        from ai_sync_service import generate_dress_metadata
+                        print("Gerando metadados IA em edição...")
+                        gen_desc, gen_title = generate_dress_metadata(image_bytes_for_ai, curr_desc, curr_title)
+                        
+                        # Aplica os valores gerados
+                        if desc_fixed: fixed_updates[desc_id] = gen_desc
+                        else: new_values[desc_id] = gen_desc
+                        
+                        if title_fixed: fixed_updates[title_id] = gen_title
+                        else: new_values[title_id] = gen_title
+                        
+                except Exception as e:
+                    flash(f"Erro ao gerar descrição/título via IA: {str(e)}. O item não foi salvo.", "danger")
+                    return render_template(
+                        "edit_item.html",
+                        item={**item, **fixed_updates, "key_values": {**key_values, **new_values}},
+                        all_fields=all_fields,
+                        next=next_page,
+                        title="Editar item",
                     )
-                    duplicates = duplicate_check.get("Items", [])
-                    if any(i["item_id"] != item_id for i in duplicates):
-                        flash("Já existe um item com este ID personalizado.", "danger")
-                        return render_template(
-                            "edit_item.html",
-                            item={**item, **fixed_updates, "key_values": {**key_values, **new_values}},
-                            all_fields=all_fields,
-                            next=next_page,
-                            title="Editar item",
-                        )
 
             # Verifica alterações
             changes = {}
@@ -676,11 +811,41 @@ def init_item_routes(
             # Monta o novo key_values final (se tiver algum update)
             if new_values:
                 key_values_updated = {**key_values, **new_values}
-                changes["key_values"] = key_values_updated
+                # Compara se houve mudança real no key_values
+                if key_values != key_values_updated:
+                    changes["key_values"] = key_values_updated
+
+            # ---------------------------------------------------------
+            # Regra de Negócio: Sincronização de Campos Legados (GSI)
+            # Garante que updates em 'description' reflitam em 'item_description' e vice-versa
+            # Garante que updates em 'title' reflitam em 'item_title'
+            # ---------------------------------------------------------
+            if "description" in changes:
+                changes["item_description"] = changes["description"]
+            elif "item_description" in changes:
+                changes["description"] = changes["item_description"]
+
+            if "title" in changes:
+                changes["item_title"] = changes["title"]
+            elif "item_title" in changes:
+                changes["title"] = changes["item_title"]
 
             if not changes:
                 flash("Nenhuma alteração foi feita.", "warning")
                 return redirect(next_page)
+            
+            # Se houve alterações relevantes (Título, Descrição ou Imagem), marca para re-embedding
+            # Verifica se houve mudança na imagem (item_image_url é geralmente fixo ou root)
+            image_changed = "item_image_url" in changes or "item_image_url" in changes.get("key_values", {})
+            
+            # Verifica título e descrição
+            # Eles podem estar no nível raiz (se fixos) ou dentro de key_values
+            title_changed = "title" in changes or "title" in changes.get("key_values", {})
+            desc_changed = "description" in changes or "description" in changes.get("key_values", {})
+            
+            # Se algum dos 3 mudou, marca como pending
+            if image_changed or title_changed or desc_changed:
+                changes["embedding_status"] = "pending"
 
             # Atualiza item no DynamoDB
             update_expression = []
@@ -1985,6 +2150,37 @@ def init_item_routes(
         except Exception as e:
             print(f"Erro ao contar itens ativos: {e}")
 
+        # 🔝 Top 30 Itens Mais Visualizados
+        top_visited_items = []
+        try:
+            # Busca todos os itens da conta
+            response = itens_table.query(
+                IndexName="account_id-created_at-index",
+                KeyConditionExpression=Key("account_id").eq(account_id),
+                FilterExpression=Attr("status").is_in(["available", "archive"])
+            )
+            all_account_items = response.get("Items", [])
+            
+            # Paginação para garantir que pegamos todos
+            while "LastEvaluatedKey" in response:
+                response = itens_table.query(
+                    IndexName="account_id-created_at-index",
+                    KeyConditionExpression=Key("account_id").eq(account_id),
+                    FilterExpression=Attr("status").is_in(["available", "archive"]),
+                    ExclusiveStartKey=response["LastEvaluatedKey"]
+                )
+                all_account_items.extend(response.get("Items", []))
+
+            # Ordena por visit_count decrescente
+            top_visited_items = sorted(
+                all_account_items, 
+                key=lambda x: int(x.get('visit_count') or 0), 
+                reverse=True
+            )[:30]
+            
+        except Exception as e:
+            print(f"Erro ao buscar top itens visualizados: {e}")
+
         return render_template(
             "reports.html",
             total_paid=total_paid,
@@ -2008,7 +2204,7 @@ def init_item_routes(
             total_itens=total_itens,
             current_stripe_transaction=current_stripe_transaction,
             fields_all_entities=fields_all_entities,
-
+            top_visited_items=top_visited_items,
         )
 
     @app.route("/query", methods=["POST"])
@@ -2058,6 +2254,19 @@ def init_item_routes(
         except Exception as e:
             print(f"Erro ao buscar item público: {str(e)}")
             return "Erro interno ao tentar carregar o item.", 500
+
+    @app.route("/api/item/<item_id>/visit", methods=["POST"])
+    def increment_visit_count(item_id):
+        try:
+            itens_table.update_item(
+                Key={"item_id": item_id},
+                UpdateExpression="ADD visit_count :inc",
+                ExpressionAttributeValues={":inc": 1}
+            )
+            return jsonify({"success": True}), 200
+        except Exception as e:
+            print(f"Error incrementing visit count for item {item_id}: {e}")
+            return jsonify({"error": str(e)}), 500
 
     from flask import request, session, redirect, url_for, render_template, flash
     from boto3.dynamodb.conditions import Key
@@ -3037,6 +3246,31 @@ def get_all_fields(account_id, field_config_table, entity):
     )
     fields_config = config_response.get("Item", {}).get("fields_config", {})
 
+    # Ensure mandatory fields for item entity
+    if entity == "item":
+        if "title" not in fields_config and "item_title" not in fields_config:
+            fields_config["title"] = {
+                "label": "Título do Item", 
+                "type": "text", 
+                "required": True, 
+                "visible": True, 
+                "order_sequence": 1, 
+                "f_type": "fixed"
+            }
+        
+        # Check for existing description fields (standard 'description' or legacy 'item_description')
+        has_description = "description" in fields_config or "item_description" in fields_config
+        
+        if not has_description:
+            fields_config["description"] = {
+                "label": "Descrição do Item", 
+                "type": "text", 
+                "required": True, 
+                "visible": True, 
+                "order_sequence": 2, 
+                "f_type": "fixed"
+            }
+
     all_fields = []
     for field_id, cfg in fields_config.items():
         label = cfg.get("label", field_id.replace("_", " ").capitalize())
@@ -3047,7 +3281,7 @@ def get_all_fields(account_id, field_config_table, entity):
                 "label": label,
                 "title": label,  # usado em outras rotas
                 "type": cfg.get("type", "string"),
-                "required": cfg.get("required", False),
+                "required": False if field_id in ["item_custom_id", "title", "item_title", "description", "item_description"] else cfg.get("required", False),
                 "visible": cfg.get("visible", True),
                 "preview": cfg.get("preview", False),
                 "filterable": cfg.get("filterable", False),

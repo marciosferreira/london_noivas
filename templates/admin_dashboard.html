@@ -1,8 +1,149 @@
-{% extends "base.html" %} {% block title %}LocaShop - Painel de Administração{% endblock %} {% block content %}
+{% extends "base.html" %} {% block title %}LocaShop - Painel de Administração{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    checkAIStatus();
+});
+
+function checkAIStatus() {
+    const loading = document.getElementById('aiStatusLoading');
+    const content = document.getElementById('aiStatusContent');
+    const alert = document.getElementById('aiSyncAlert');
+    const btn = document.getElementById('btnSyncAI');
+    
+    loading.classList.remove('d-none');
+    content.classList.add('d-none');
+    alert.classList.add('d-none');
+    btn.disabled = true;
+
+    fetch('/api/admin/ai-status')
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                console.error('Erro:', data.error);
+                return;
+            }
+
+            document.getElementById('aiDbCount').textContent = data.db_count;
+            document.getElementById('aiIndexCount').textContent = data.index_count;
+            document.getElementById('aiMissingCount').textContent = data.missing_count;
+            document.getElementById('aiDeletedCount').textContent = data.deleted_count;
+
+            loading.classList.add('d-none');
+            content.classList.remove('d-none');
+            btn.disabled = false;
+
+            if (data.missing_count > 0 || data.deleted_count > 0) {
+                alert.classList.remove('d-none');
+                const msg = [];
+                if (data.missing_count > 0) msg.push(`${data.missing_count} novos itens para adicionar`);
+                if (data.deleted_count > 0) msg.push(`${data.deleted_count} itens para remover`);
+                document.getElementById('aiSyncMsg').textContent = msg.join(' e ') + '.';
+            }
+        })
+        .catch(err => {
+            console.error('Erro ao buscar status IA:', err);
+            loading.innerHTML = '<p class="text-danger">Erro ao carregar status da IA.</p>';
+        });
+}
+
+function syncAIIndex() {
+    checkAIStatus(); // Apenas recarrega o status
+}
+
+function confirmSyncAI() {
+    if (!confirm('Esta operação pode levar alguns minutos dependendo do número de novos itens. Deseja continuar?')) {
+        return;
+    }
+
+    const btn = document.querySelector('#aiSyncAlert button');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processando...';
+
+    fetch('/api/admin/sync-ai-index', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            alert('Índice atualizado com sucesso!\n' + data.message);
+            checkAIStatus();
+        } else {
+            alert('Erro ao atualizar índice: ' + data.message);
+        }
+    })
+    .catch(err => {
+        alert('Erro de comunicação com o servidor.');
+        console.error(err);
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    });
+}
+</script>
+{% endblock %} {% block content %}
 <div class="container mt-5 pt-5">
   <h1 class="text-center mb-4">Painel de Administração Geral</h1>
 
   <div class="row mb-4">
+    <!-- Card de Status da IA -->
+    <div class="col-12 mb-4">
+      <div class="card border-info">
+        <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+          <h2 class="card-title h5 m-0"><i class="fas fa-robot me-2"></i>Status do Índice de IA</h2>
+          <button id="btnSyncAI" class="btn btn-light btn-sm" onclick="syncAIIndex()" disabled>
+            <i class="fas fa-sync me-1"></i> Verificar/Sincronizar
+          </button>
+        </div>
+        <div class="card-body">
+          <div class="row text-center" id="aiStatusLoading">
+            <div class="col">
+              <div class="spinner-border text-info" role="status">
+                <span class="visually-hidden">Carregando...</span>
+              </div>
+              <p class="mt-2">Verificando integridade do índice...</p>
+            </div>
+          </div>
+          
+          <div class="row text-center d-none" id="aiStatusContent">
+            <div class="col-md-3 border-end">
+              <h3 class="h2 text-primary" id="aiDbCount">-</h3>
+              <p class="text-muted mb-0">Itens no Banco</p>
+            </div>
+            <div class="col-md-3 border-end">
+              <h3 class="h2 text-success" id="aiIndexCount">-</h3>
+              <p class="text-muted mb-0">Itens no Índice IA</p>
+            </div>
+            <div class="col-md-3 border-end">
+              <h3 class="h2 text-warning" id="aiMissingCount">-</h3>
+              <p class="text-muted mb-0">Novos (Não indexados)</p>
+            </div>
+            <div class="col-md-3">
+              <h3 class="h2 text-danger" id="aiDeletedCount">-</h3>
+              <p class="text-muted mb-0">Deletados (No índice)</p>
+            </div>
+          </div>
+          
+          <div class="alert alert-warning mt-3 d-none" id="aiSyncAlert">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <strong>Atenção:</strong> O índice de IA está desatualizado. 
+            <span id="aiSyncMsg"></span>
+            <div class="mt-2">
+              <button class="btn btn-warning" onclick="confirmSyncAI()">
+                <i class="fas fa-sync me-2"></i>Atualizar Índice Agora
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="col">
       <div class="card">
         <div class="card-header bg-primary text-white">

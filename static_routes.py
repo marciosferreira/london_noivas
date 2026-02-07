@@ -482,19 +482,50 @@ def init_static_routes(
     @app.route("/")
     def index():
         try:
-            # Fetch available items for vitrine that are featured AND belong to the main account
+            # Fetch ALL available items for vitrine (filtered by account)
             response = itens_table.scan(
-                FilterExpression=Attr("status").eq("available") & Attr("featured").eq(True) & Attr("account_id").eq(LONDON_NOIVAS_ACCOUNT_ID)
+                FilterExpression=Attr("status").eq("available") & Attr("account_id").eq(LONDON_NOIVAS_ACCOUNT_ID)
             )
-            itens = response.get("Items", [])
+            all_items = response.get("Items", [])
             
             # Simple pagination handling
             while "LastEvaluatedKey" in response:
                 response = itens_table.scan(
-                    FilterExpression=Attr("status").eq("available") & Attr("featured").eq(True) & Attr("account_id").eq(LONDON_NOIVAS_ACCOUNT_ID),
+                    FilterExpression=Attr("status").eq("available") & Attr("account_id").eq(LONDON_NOIVAS_ACCOUNT_ID),
                     ExclusiveStartKey=response["LastEvaluatedKey"]
                 )
-                itens.extend(response.get("Items", []))
+                all_items.extend(response.get("Items", []))
+                
+            # Logic to show most visited items + random filler
+            import random
+            
+            def get_visits(item):
+                val = item.get("visit_count", 0)
+                try:
+                    return int(val)
+                except:
+                    return 0
+
+            # 1. Filter items with visits > 0 and sort desc
+            visited_items = [i for i in all_items if get_visits(i) > 0]
+            visited_items.sort(key=get_visits, reverse=True)
+            
+            # 2. Items with 0 visits
+            other_items = [i for i in all_items if get_visits(i) <= 0]
+            
+            # 3. Select top 12 visited
+            destaques = visited_items[:12]
+            
+            # 4. Fill with random items if needed
+            if len(destaques) < 12:
+                needed = 12 - len(destaques)
+                if other_items:
+                    if len(other_items) >= needed:
+                        destaques.extend(random.sample(other_items, needed))
+                    else:
+                        destaques.extend(other_items)
+            
+            itens = destaques
                 
             fields_config = []
             if itens:
