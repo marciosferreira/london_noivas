@@ -154,11 +154,11 @@
                     Aluguel de vestidos exclusivos para noivas, madrinhas e festas de gala. Viva uma experiência inesquecível com curadoria London Noivas.
                 </p>
                 <div class="flex flex-col md:flex-row gap-4 justify-center">
-                    <a href="#colecoes" class="bg-london-gold text-white px-10 py-4 rounded-sm font-semibold tracking-widest hover:bg-white hover:text-london-gold transition-all">
+                    <a href="#colecoes" class="bg-transparent border-2 border-white text-white px-10 py-4 rounded-sm font-semibold tracking-widest hover:bg-white hover:text-stone-900 transition-all">
                         VER DESTAQUES
                     </a>
-                    <a href="https://wa.me/5592993531943" onclick="trackWhatsAppClick('hero')" class="bg-transparent border-2 border-white text-white px-10 py-4 rounded-sm font-semibold tracking-widest hover:bg-white hover:text-stone-900 transition-all">
-                        FALAR COM CONSULTORA
+                    <a href="{{ url_for('catalogo') }}" class="bg-transparent border-2 border-white text-white px-10 py-4 rounded-sm font-semibold tracking-widest hover:bg-white hover:text-stone-900 transition-all">
+                        VER CATÁLOGO
                     </a>
                 </div>
             </div>
@@ -171,7 +171,7 @@
         </section>
 
         <!-- Intro Section -->
-        <section id="sobre" class="py-24 bg-white">
+        <section id="sobre" class="pt-12 pb-4 md:pt-24 md:pb-12 bg-white">
             <div class="container mx-auto px-6 flex flex-col md:flex-row items-center gap-16">
                 <div class="md:w-1/2 flex justify-center">
                     <div class="relative w-full md:w-[80%]">
@@ -225,7 +225,7 @@
         </section>
 
         <!-- Vitrine (Collections) Section -->
-        <section id="colecoes" class="py-24 bg-white">
+        <section id="colecoes" class="pt-4 pb-12 md:pt-12 md:pb-24 bg-white">
             <div class="container mx-auto px-6 text-center mb-16">
                 <h2 class="text-4xl md:text-6xl font-serif text-stone-800 mb-4">Destaques</h2>
                 <div class="w-24 h-1 bg-london-gold mx-auto mb-6"></div>
@@ -365,8 +365,8 @@
         <!-- Showroom AI Section (Static) -->
         <section id="showroom" class="py-20 bg-stone-100">
             <div class="container mx-auto px-6">
-                <div class="flex flex-col lg:flex-row items-center gap-12">
-                    <div class="lg:w-1/2 space-y-6">
+                <div class="flex flex-col lg:flex-row items-center gap-12 transition-all duration-500">
+                    <div id="chat-wrapper" class="w-full space-y-6 transition-all duration-500">
                         <span class="text-london-gold font-bold tracking-widest text-sm">BUSCA INTELIGENTE</span>
                         <h2 class="text-4xl md:text-5xl font-serif text-stone-800">Encontre seu vestido ideal</h2>
                         <p class="text-stone-600 leading-relaxed">
@@ -413,20 +413,9 @@
                         </div>
                     </div>
 
-                    <div class="lg:w-1/2 w-full aspect-[3/4] bg-white rounded-lg shadow-2xl overflow-hidden flex items-center justify-center border-4 border-white relative" id="result-frame">
-                        <!-- Default State -->
-                        <div id="default-state" class="text-center p-10">
-                            <div class="w-20 h-20 bg-stone-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor" class="w-10 h-10 text-stone-400">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15a2.25 2.25 0 002.25-2.25V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z" />
-                                </svg>
-                            </div>
-                            <p class="text-stone-400 font-serif italic">Sua recomendação aparecerá aqui</p>
-                        </div>
-                        
+                    <div class="hidden lg:w-1/2 w-full aspect-[3/4] bg-white rounded-lg shadow-2xl overflow-hidden flex items-center justify-center border-4 border-white relative transition-all duration-500" id="result-frame">
                         <!-- Result State (Hidden by default) -->
-                        <div id="result-state" class="hidden w-full h-full relative group">
+                        <div id="result-state" class="w-full h-full relative group">
                              <img id="result-image" src="" alt="Vestido Recomendado" class="w-full h-full object-contain" />
                              <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-6 text-white transform translate-y-full group-hover:translate-y-0 transition-transform duration-300">
                                 <h3 id="result-title" class="text-xl font-serif mb-2">Vestido Recomendado</h3>
@@ -501,8 +490,16 @@
                             </div>
                         </div>
                     `;
-                    document.getElementById('default-state').classList.remove('hidden');
-                    document.getElementById('result-state').classList.add('hidden');
+                    
+                    // Reset layout
+                    const chatWrapper = document.getElementById('chat-wrapper');
+                    const resultFrame = document.getElementById('result-frame');
+                    
+                    chatWrapper.classList.add('w-full');
+                    chatWrapper.classList.remove('lg:w-1/2');
+                    
+                    resultFrame.classList.add('hidden');
+                    
                     document.getElementById('suggestions-container').classList.add('hidden');
                 }
 
@@ -600,14 +597,17 @@
                 }
 
                 function showResult(dress, suggestions) {
-                    const defaultState = document.getElementById('default-state');
-                    const resultState = document.getElementById('result-state');
+                    const chatWrapper = document.getElementById('chat-wrapper');
+                    const resultFrame = document.getElementById('result-frame');
                     const img = document.getElementById('result-image');
                     const title = document.getElementById('result-title');
                     const desc = document.getElementById('result-desc');
 
-                    defaultState.classList.add('hidden');
-                    resultState.classList.remove('hidden');
+                    // Adjust layout
+                    chatWrapper.classList.remove('w-full');
+                    chatWrapper.classList.add('lg:w-1/2');
+                    
+                    resultFrame.classList.remove('hidden');
                     
                     img.src = dress.image_url;
                     title.textContent = "Recomendação Principal";
@@ -769,8 +769,9 @@
                     <h4 class="font-bold text-stone-800 mb-6 tracking-widest uppercase text-sm">Links Rápidos</h4>
                     <ul class="space-y-4 text-stone-500 text-sm">
                         <li><a href="#colecoes" class="hover:text-london-gold transition-colors">Destaques</a></li>
-                        <li><a href="#showroom" class="hover:text-london-gold transition-colors">Busca com IA</a></li>
-                        <li><a href="https://wa.me/5592993531943" target="_blank" onclick="trackWhatsAppClick('footer_link')" class="hover:text-london-gold transition-colors">Agendamento</a></li>
+                        <li><a href="{{ url_for('catalogo') }}" class="hover:text-london-gold transition-colors">Catálogo Completo</a></li>
+                        <li><a href="#showroom" class="hover:text-london-gold transition-colors">Estilista Virtual</a></li>
+                        <li><a href="https://wa.me/5592993531943" target="_blank" onclick="trackWhatsAppClick('footer_link')" class="hover:text-london-gold transition-colors">Agendamento/Dúvidas</a></li>
                         <li>
                              {% if not session.get('logged_in') %}
                              <a href="{{ url_for('login') }}" class="hover:text-london-gold transition-colors">Área Restrita</a>
@@ -787,10 +788,75 @@
             </div>
         </div>
         
+        <!-- Floating AI Stylist CTA -->
+        <div id="ai-stylist-cta" class="fixed bottom-32 right-8 z-50 group">
+            <!-- The Chat Bubble (Hidden by default, shown on hover/focus) -->
+            <div class="absolute bottom-full right-0 mb-4 bg-white p-5 rounded-lg shadow-2xl border-l-4 border-london-gold w-80 transform scale-0 opacity-0 group-hover:scale-100 group-hover:opacity-100 group-focus-within:scale-100 group-focus-within:opacity-100 transition-all duration-300 origin-bottom-right">
+                <div class="flex justify-between items-start mb-2">
+                    <h4 class="font-serif text-london-gold font-bold text-lg">Estilista Virtual</h4>
+                    <span class="text-xs bg-stone-100 text-stone-500 px-2 py-1 rounded-full">Beta</span>
+                </div>
+                <p class="text-sm text-stone-600 mb-4 font-light leading-relaxed">
+                    Olá! Sou a Bella. Vou te ajudar a escolher o vestido dos seus sonhos.
+                    <span class="block text-xs text-stone-400 mt-2 italic border-t border-stone-100 pt-2">Ex: "Procuro um vestido sereia com brilho para um casamento à noite"</span>
+                </p>
+                <div class="flex gap-2 relative">
+                    <input type="text" id="ai-cta-input" placeholder="Digite aqui..." 
+                           class="w-full text-sm border border-stone-200 rounded-sm px-3 py-2 pr-10 focus:border-london-gold focus:ring-1 focus:ring-london-gold outline-none transition-all"
+                           onkeypress="handleAiCtaEnter(event)">
+                    <button onclick="submitAiCta()" class="absolute right-2 top-1/2 -translate-y-1/2 text-london-gold hover:text-stone-800 transition-colors p-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        
+            <!-- The Icon Trigger -->
+            <button class="bg-stone-900 text-white p-4 rounded-full shadow-2xl hover:bg-london-gold transition-colors relative group-hover:rotate-12 duration-300">
+                <!-- Notification Dot -->
+                <span class="absolute -top-1 -right-1 flex h-4 w-4">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-london-gold opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-4 w-4 bg-london-gold border-2 border-white"></span>
+                </span>
+                
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 00-1.423 1.423z" />
+                </svg>
+            </button>
+        </div>
+
+        <script>
+            function handleAiCtaEnter(e) {
+                if (e.key === 'Enter') submitAiCta();
+            }
+        
+            function submitAiCta() {
+                const ctaInput = document.getElementById('ai-cta-input');
+                const mainInput = document.getElementById('chat-input');
+                const text = ctaInput.value.trim();
+        
+                if (text) {
+                    // Scroll to showroom
+                    const showroom = document.getElementById('showroom');
+                    showroom.scrollIntoView({ behavior: 'smooth' });
+        
+                    // Set value and send
+                    setTimeout(() => {
+                        mainInput.value = text;
+                        // Trigger input event to resize if needed (not needed here but good practice)
+                        mainInput.focus();
+                        sendMessage();
+                        ctaInput.value = ''; // clear cta
+                    }, 800);
+                }
+            }
+        </script>
+
         <!-- Floating WhatsApp CTA -->
         <a href="https://wa.me/5592993531943" onclick="trackWhatsAppClick('floating_cta')" class="fixed bottom-8 right-8 bg-green-500 text-white p-4 rounded-full shadow-2xl hover:scale-110 transition-transform z-50 flex items-center gap-2 group">
             <span class="max-w-0 overflow-hidden group-hover:max-w-xs transition-all duration-500 whitespace-nowrap font-bold">
-                Agendar no WhatsApp
+                Agendamento/Dúvidas
             </span>
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.588-5.946 0-6.556 5.332-11.891 11.891-11.891 3.181 0 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.481 8.403 0 6.556-5.332 11.892-11.891 11.892-1.999 0-3.956-.503-5.692-1.448l-6.301 1.666zm6.29-4.143c1.589.943 3.197 1.441 4.934 1.441 5.485 0 9.95-4.465 9.95-9.95 0-2.652-1.036-5.147-2.919-7.031-1.883-1.883-4.384-2.917-7.031-2.917-5.485 0-9.951 4.465-9.951 9.95 0 2.07.635 4.089 1.835 5.823l-1.101 4.022 4.133-1.092zm10.293-7.234c-.298-.15-1.764-.871-2.037-.972-.273-.102-.472-.152-.671.152-.199.303-.771 1.018-.944 1.219-.174.202-.348.227-.646.077-.298-.15-1.258-.464-2.396-1.48-.885-.789-1.483-1.763-1.656-2.064-.174-.302-.018-.465.132-.614.135-.133.298-.348.447-.521.149-.174.199-.298.298-.497.099-.198.05-.373-.025-.522-.075-.15-.671-1.616-.919-2.213-.242-.581-.486-.502-.671-.512-.174-.01-.373-.013-.572-.013-.199 0-.523.075-.795.373-.273.302-1.045 1.018-1.045 2.486s1.07 2.885 1.219 3.085c.149.202 2.105 3.214 5.099 4.507.712.308 1.268.491 1.701.628.715.227 1.365.195 1.879.118.573-.086 1.764-.72 2.013-1.417.248-.696.248-1.292.174-1.417-.074-.125-.272-.201-.57-.352z"/>
