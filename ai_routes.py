@@ -154,16 +154,48 @@ def validate_and_enrich_candidates(candidates_metadata):
             
     return valid_items
 
-@ai_bp.route('/api/ai-search', methods=['POST'])
-def ai_search():
+def execute_catalog_search(query, k=5):
+    """
+    Executa a busca semântica no catálogo.
+    Retorna uma lista de itens enriquecidos (dicionários).
+    """
     global index, metadata
     
     if not index or not metadata:
-        # Tenta carregar novamente se falhou na inicialização ou se foi criado depois
+        # Tenta recarregar
         load_resources()
         if not index or not metadata:
-            return jsonify({"error": "Sistema de busca indisponível no momento."}), 503
+            print("Erro: Índice não disponível para execute_catalog_search")
+            return []
 
+    try:
+        # 1. Gera embedding
+        query_embedding = get_embedding(query)
+        query_vector = np.array([query_embedding]).astype('float32')
+
+        # 2. Busca no FAISS
+        # Buscamos 2x mais para garantir itens suficientes após validação
+        search_k = k * 2
+        distances, indices = index.search(query_vector, search_k)
+        
+        # 3. Coleta metadados
+        raw_candidates = []
+        for idx in indices[0]:
+            if idx != -1:
+                raw_candidates.append(metadata[idx].copy())
+
+        # 4. Valida e Enriquece
+        valid_candidates = validate_and_enrich_candidates(raw_candidates)
+        
+        # Limita ao k solicitado
+        return valid_candidates[:k]
+
+    except Exception as e:
+        print(f"Erro em execute_catalog_search: {e}")
+        return []
+
+@ai_bp.route('/api/ai-search', methods=['POST'])
+def ai_search():
     data = request.get_json()
     user_message = data.get('message', '')
     history = data.get('history', [])
@@ -171,150 +203,131 @@ def ai_search():
     if not user_message:
         return jsonify({"error": "Mensagem vazia."}), 400
 
-    try:
-        # 1. Extração da essência com GPT-4o
-        extraction_prompt = (
-            "Você é um assistente de moda da London Noivas. "
-            "Sua tarefa é extrair as características chave para busca (Ocasião, Estilo, Material, Cor, Detalhes) baseando-se na conversa atual. "
-            "IMPORTANTE: Considere todo o histórico da conversa para entender o contexto. "
-            "Se o usuário disser 'tem azul desse?', você deve recuperar o estilo do vestido mencionado anteriormente e buscar por esse estilo na cor azul. "
-            "Se for apenas uma saudação ou conversa fiada sem intenção de busca, retorne 'search_query' vazio e um 'reply' amigável."
-            "Se houver intenção de busca, retorne 'search_query' com a descrição refinada e 'reply' vazio (será gerado depois)."
-            "Retorne a resposta SEMPRE em JSON no formato: {\"reply\": \"...\", \"search_query\": \"...\"}"
-        )
+    # System Prompt: Persona Bella (Agente Vendedora)
+    system_prompt = (
+        "Você é a Bella, consultora sênior e estilista da London Noivas. "
+        "Sua missão é entender o sonho da cliente e encontrar o vestido perfeito. "
+        "PERSONALIDADE:\n"
+        "- Empática, sofisticada e proativa. Use emojis com moderação (✨, 👗).\n"
+        "- Aja como uma consultora real: não apenas entregue links, mas 'venda' o vestido destacando detalhes que combinam com o pedido.\n"
+        "- Sempre faça perguntas de follow-up ('O que achou do decote?', 'Prefere algo mais armado?').\n"
+        "REGRAS DE RESPOSTA:\n"
+        "- Ao apresentar vestidos, descreva no texto APENAS O PRIMEIRO (o mais relevante). Não liste os outros por escrito.\n"
+        "- Diga algo como 'Separei esta opção principal que... e deixei mais sugestões nas imagens abaixo'.\n"
+        "- O foco do texto deve ser a conexão emocional com a escolha principal.\n"
+        "- SEMPRE finalize com uma pergunta de follow-up. Ex: 'Então, o que achou deste modelo? Gostaria de ver algo com mais brilho ou renda?'\n"
+        "USO DE FERRAMENTAS:\n"
+        "- Use a tool `search_dresses` quando o usuário pedir sugestões, descrever um estilo ou demonstrar intenção de compra.\n"
+        "- Se a busca não retornar nada, peça desculpas e sugira ampliar os critérios."
+    )
 
-        messages = [{"role": "system", "content": extraction_prompt}]
-        
-        # Adiciona histórico se existir, caso contrário usa apenas a mensagem atual
-        if history:
-            # Garante que o histórico está no formato correto
-            for msg in history:
-                if isinstance(msg, dict) and 'role' in msg and 'content' in msg:
-                    messages.append(msg)
-        else:
-            messages.append({"role": "user", "content": user_message})
+    # Constrói mensagens
+    messages = [{"role": "system", "content": system_prompt}]
+    
+    # Adiciona histórico (simplificado)
+    if history:
+        for msg in history:
+            if isinstance(msg, dict) and msg.get('role') in ['user', 'assistant'] and msg.get('content'):
+                messages.append({"role": msg['role'], "content": msg['content']})
+    
+    messages.append({"role": "user", "content": user_message})
 
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=messages,
-            response_format={"type": "json_object"}
-        )
-        
-        gpt_result = json.loads(response.choices[0].message.content)
-        search_query = gpt_result.get("search_query", "")
-        
-        # Se não houver query de busca (apenas papo furado), retorna a resposta do GPT imediatamente
-        if not search_query:
-            return jsonify({
-                "reply": gpt_result.get("reply", "Como posso ajudar?"),
-                "dress": None
-            })
-
-        # 2. Gera embedding da query refinada
-        query_embedding = get_embedding(search_query)
-        query_vector = np.array([query_embedding]).astype('float32')
-
-        # 3. Busca no FAISS (TOP 10 para garantir pelo menos 4 sugestões após filtros)
-        k = 10
-        distances, indices = index.search(query_vector, k)
-        
-        candidates = []
-        
-        # Coleta metadados brutos
-        raw_candidates = []
-        for idx in indices[0]:
-            if idx != -1:
-                raw_candidates.append(metadata[idx].copy()) # Copy para não alterar cache global
-
-        # Validação contra Banco de Dados (Check de Deletados + S3 URL)
-        candidates = validate_and_enrich_candidates(raw_candidates)
-
-        if not candidates:
-            return jsonify({
-                "reply": "Desculpe, não encontrei nenhum vestido correspondente no momento.",
-                "dress": None,
-                "suggestions": []
-            })
-            
-        # Formata os candidatos para o prompt
-        candidates_str = ""
-        for i, c in enumerate(candidates):
-            candidates_str += f"OPÇÃO {i}: {c['description']}\n\n"
-
-        # ... (rest of function)
-
-        # 4. Seleção Inteligente e Resposta Final
-        final_response_prompt = (
-            "Você é um consultor de moda experiente e elegante da London Noivas. "
-            f"O usuário solicitou: '{search_query}'. "
-            "Abaixo estão as melhores opções encontradas no nosso acervo:\n\n"
-            f"{candidates_str}"
-            "Sua tarefa é duplo: "
-            "1. ESCOLHER A MELHOR OPÇÃO entre as listadas que melhor atende ao pedido (considere cor, estilo, detalhes). "
-            "2. APRESENTAR essa opção escolhida ao usuário. "
-            "Regras de apresentação:"
-            "- JAMAIS mencione 'Opção 1', 'Opção 2', etc. O usuário verá apenas a imagem do vestido escolhido."
-            "- Comece apresentando diretamente: 'Encontrei este modelo que...' ou 'Veja esta opção maravilhosa...'."
-            "- ANALISE O VESTIDO ESCOLHIDO: Baseie seus comentários EXCLUSIVAMENTE nos detalhes dele."
-            "- COMPARE COM O PEDIDO: Se houver diferenças, explique de forma otimista."
-            "- SUGIRA ACESSÓRIOS COM RIGOR: "
-            "  * SE o vestido escolhido for DE NOIVA (branco, off-white, cauda longa): sugira véu, grinalda, buquê."
-            "  * SE o vestido for DE FESTA (colorido, madrinha, formatura): sugira brincos, clutch, estola, sapatos de gala. JAMAIS sugira véu ou buquê para vestidos de festa."
-            "- Mantenha tom sofisticado e acolhedor."
-            "Retorne a resposta EXCLUSIVAMENTE em JSON no formato: {\"selected_option_index\": 0, \"reply\": \"texto da resposta...\"}"
-            "Onde 'selected_option_index' deve ser o índice (0 a 4) da Opção escolhida."
-        )
-
-        final_response = client.chat.completions.create(
-            model="gpt-4o",
-            messages=[
-                {"role": "system", "content": final_response_prompt},
-                {"role": "user", "content": user_message}
-            ],
-            response_format={"type": "json_object"}
-        )
-        
-        final_json = json.loads(final_response.choices[0].message.content)
-        selected_index = final_json.get("selected_option_index", 0)
-        reply_text = final_json.get("reply", "")
-
-        # Garante que o índice é válido
-        if selected_index < 0 or selected_index >= len(candidates):
-            selected_index = 0
-            
-        chosen_item = candidates[selected_index]
-        
-        # Constrói objeto do vestido principal
-        result_dress = {
-            "image_url": chosen_item.get('imageUrl') or url_for('static', filename=f"dresses/{chosen_item['file_name']}"),
-            "description": chosen_item['description'],
-            "title": chosen_item.get('title', 'Sugestão Exclusiva'),
-            "price": chosen_item.get('price', "Consulte o preço do aluguel"),
-            "id": chosen_item.get('item_id') or chosen_item.get('custom_id') or f"ai_main_{selected_index}",
-            "customId": chosen_item.get('customId') or chosen_item.get('custom_id')
+    # Definição das Tools
+    tools = [
+        {
+            "type": "function",
+            "function": {
+                "name": "search_dresses",
+                "description": "Busca vestidos no catálogo por descrição visual, estilo, cor ou ocasião.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "query": {"type": "string", "description": "Descrição rica para busca semântica. Ex: 'vestido sereia renda ombro a ombro'"},
+                        "k": {"type": "integer", "default": 5}
+                    },
+                    "required": ["query"]
+                }
+            }
         }
+    ]
 
-        # Constrói lista de sugestões (todos exceto o escolhido)
-        suggestions = []
-        for i, item in enumerate(candidates):
-            if i != selected_index:
-                suggestions.append({
-                    "image_url": item.get('imageUrl') or url_for('static', filename=f"dresses/{item['file_name']}"),
-                    "description": item['description'],
-                    "title": item.get('title', 'Sugestão Exclusiva'),
-                    "price": item.get('price', "Consulte o preço do aluguel"),
-                    "id": item.get('item_id') or item.get('custom_id') or f"ai_sugg_{i}",
-                    "customId": item.get('customId') or item.get('custom_id')
-                })
+    found_suggestions = []
+    
+    try:
+        # 1. Decisão do Agente
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=messages,
+            tools=tools,
+            tool_choice="auto"
+        )
+        
+        response_message = response.choices[0].message
+        reply_text = ""
+
+        # 2. Execução de Tools (se houver)
+        if response_message.tool_calls:
+            messages.append(response_message) # Adiciona a intenção de tool call ao histórico
+            
+            for tool_call in response_message.tool_calls:
+                if tool_call.function.name == "search_dresses":
+                    args = json.loads(tool_call.function.arguments)
+                    query = args.get("query")
+                    k_val = args.get("k", 5)
+                    
+                    # Executa busca
+                    results = execute_catalog_search(query, k=k_val)
+                    
+                    # Formata para Frontend (Objetos Completos)
+                    for item in results:
+                        found_suggestions.append({
+                            "id": item.get('item_id') or item.get('custom_id'),
+                            "customId": item.get('customId'),
+                            "title": item.get('title', 'Vestido Exclusivo'),
+                            "description": item.get('description', ''),
+                            "price": item.get('price', "Consulte valor"),
+                            "image_url": item.get('imageUrl') or url_for('static', filename=f"dresses/{item['file_name']}")
+                        })
+                    
+                    # Formata para LLM (Resumo)
+                    summary = json.dumps([{
+                        "id": item.get('custom_id'),
+                        "title": item.get('title'),
+                        "desc": item.get('description')[:200]
+                    } for item in results], ensure_ascii=False)
+                    
+                    messages.append({
+                        "tool_call_id": tool_call.id,
+                        "role": "tool",
+                        "name": "search_dresses",
+                        "content": summary
+                    })
+            
+            # 3. Resposta Final Pós-Tool
+            final_response = client.chat.completions.create(
+                model="gpt-4o",
+                messages=messages
+            )
+            reply_text = final_response.choices[0].message.content
+            
+        else:
+            # Apenas conversa
+            reply_text = response_message.content
+
+        # 4. Retorno ao Frontend
+        # Separa o principal das sugestões para evitar duplicidade na grid
+        main_dress = found_suggestions[0] if found_suggestions else None
+        # Limita a 4 sugestões adicionais (índices 1 a 4)
+        other_suggestions = found_suggestions[1:5] if len(found_suggestions) > 1 else []
 
         return jsonify({
             "reply": reply_text,
-            "dress": result_dress,
-            "suggestions": suggestions
+            "suggestions": other_suggestions,
+            "dress": main_dress
         })
 
     except Exception as e:
-        print(f"Erro no processamento AI: {e}")
+        print(f"Erro no Agente Bella: {e}")
         return jsonify({"error": str(e)}), 500
 
 @ai_bp.route('/api/ai-similar/<item_id>', methods=['GET'])
