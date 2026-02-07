@@ -197,3 +197,93 @@ def ai_search():
     except Exception as e:
         print(f"Erro no processamento AI: {e}")
         return jsonify({"error": str(e)}), 500
+
+@ai_bp.route('/api/ai-similar/<item_id>', methods=['GET'])
+def ai_similar(item_id):
+    global index, metadata
+    
+    if not index or not metadata:
+        load_resources()
+        if not index or not metadata:
+            return jsonify({"error": "Sistema indisponível"}), 503
+
+    # Encontrar índice do item
+    target_idx = -1
+    for i, item in enumerate(metadata):
+        # Comparação robusta (str vs str)
+        if str(item.get('custom_id')) == str(item_id):
+            target_idx = i
+            break
+    
+    if target_idx == -1:
+        return jsonify({"error": "Item não encontrado no índice"}), 404
+
+    try:
+        # Reconstruir vetor do item (assumindo IndexFlatL2 ou similar que suporte reconstruct)
+        # Se o índice não suportar, precisaríamos recalcular o embedding via OpenAI (custo extra)
+        # ou armazenar os vetores separadamente.
+        # IndexFlatL2 suporta reconstruct.
+        query_vector = index.reconstruct(target_idx).reshape(1, -1)
+        
+        # Busca
+        k = 5 # 1 (ele mesmo) + 4 similares
+        distances, indices = index.search(query_vector, k)
+        
+        suggestions = []
+        for idx in indices[0]:
+            if idx != -1 and idx != target_idx:
+                item = metadata[idx]
+                suggestions.append({
+                    "id": item.get('custom_id'),
+                    "title": item.get('title', 'Vestido'),
+                    "image_url": url_for('static', filename=f"dresses/{item['file_name']}"),
+                    "description": item.get('description', '')
+                })
+                
+        return jsonify({"suggestions": suggestions})
+
+    except Exception as e:
+        print(f"Erro ao buscar similares: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@ai_bp.route('/api/ai-catalog-search', methods=['POST'])
+def ai_catalog_search():
+    global index, metadata
+    
+    if not index or not metadata:
+        load_resources()
+        if not index or not metadata:
+            return jsonify({"error": "Sistema indisponível"}), 503
+
+    data = request.get_json()
+    query = data.get('query', '')
+    
+    if not query:
+        return jsonify({"error": "Query vazia"}), 400
+
+    try:
+        # 1. Gera embedding da query
+        query_embedding = get_embedding(query)
+        query_vector = np.array([query_embedding]).astype('float32')
+        
+        # 2. Busca no FAISS (TOP 50 para preencher a página)
+        k = 50
+        distances, indices = index.search(query_vector, k)
+        
+        results = []
+        for idx in indices[0]:
+            if idx != -1:
+                item = metadata[idx]
+                results.append({
+                    "item_id": item.get('custom_id'),
+                    "title": item.get('title', 'Vestido'),
+                    "imageUrl": url_for('static', filename=f"dresses/{item['file_name']}"),
+                    "description": item.get('description', ''),
+                    "price": "Consulte o preço do aluguel"
+                })
+                
+        return jsonify({"results": results})
+
+    except Exception as e:
+        print(f"Erro na busca do catálogo: {e}")
+        return jsonify({"error": str(e)}), 500

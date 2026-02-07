@@ -109,6 +109,37 @@
     <main class="pt-32 pb-24 min-h-screen">
         <div class="container mx-auto px-6">
             
+            <!-- AI Search Section -->
+            <div class="max-w-3xl mx-auto mb-16 animate-fadeIn">
+                <div class="text-center mb-6">
+                    <span class="text-london-gold font-bold tracking-widest text-xs uppercase mb-2 block">London AI</span>
+                    <h3 class="font-serif text-2xl text-stone-800">Encontre o vestido dos seus sonhos</h3>
+                </div>
+                <div class="relative group">
+                    <input type="text" 
+                           id="ai-catalog-search-input"
+                           placeholder="Descreva o que você procura (ex: vestido sereia com renda e mangas longas)..." 
+                           class="w-full bg-white border border-stone-200 text-stone-700 text-lg rounded-full py-4 pl-8 pr-16 focus:outline-none focus:border-london-gold focus:ring-1 focus:ring-london-gold transition-all shadow-lg group-hover:shadow-xl font-serif placeholder:font-sans placeholder:text-stone-400 placeholder:text-base"
+                           onkeypress="handleEnterSearch(event)">
+                    
+                    <button onclick="performCatalogSearch()" 
+                            class="absolute right-2 top-2 bottom-2 bg-stone-900 text-white w-12 h-12 rounded-full flex items-center justify-center hover:bg-london-gold transition-colors duration-300 shadow-md group-hover:scale-105">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                        </svg>
+                    </button>
+                </div>
+                <div id="search-loading" class="hidden text-center mt-4">
+                    <span class="text-london-gold text-sm animate-pulse font-bold tracking-widest uppercase flex items-center justify-center gap-2">
+                        <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Buscando o vestido ideal...
+                    </span>
+                </div>
+            </div>
+
             <!-- Page Title -->
             <div class="text-center mb-16 animate-fadeIn">
                 <h2 class="text-4xl md:text-5xl font-serif text-stone-800 mb-2">Acervo para Aluguel</h2>
@@ -120,7 +151,7 @@
             </div>
 
             <!-- Grid -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 mb-16">
+            <div id="catalog-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 mb-16">
                 {% if itens %}
                     {% for item in itens %}
                         {# Image Logic #}
@@ -193,7 +224,7 @@
 
             <!-- Pagination -->
             {% if total_pages > 1 %}
-            <div class="flex justify-center items-center gap-4">
+            <div id="catalog-pagination" class="flex justify-center items-center gap-4">
                 {% if page > 1 %}
                 <a href="{{ url_for('catalogo', page=page-1) }}" class="px-6 py-3 border border-stone-300 text-stone-600 hover:bg-stone-800 hover:text-white hover:border-stone-800 transition-all font-medium rounded-sm">
                     &larr; Anterior
@@ -317,6 +348,15 @@
                                     <h4 class="font-serif text-lg text-stone-800 mb-2">Descrição da Peça</h4>
                                     <p id="modal-desc" class="text-stone-600 font-light leading-relaxed text-lg mb-8"></p>
                                 </div>
+
+                                <!-- Similar Items Section -->
+                                <div id="modal-similar-section" class="hidden mb-8">
+                                    <div class="w-12 h-1 bg-stone-200 mb-6"></div>
+                                    <h4 class="font-serif text-lg text-stone-800 mb-4">Você também pode gostar</h4>
+                                    <div id="modal-similar-grid" class="grid grid-cols-2 gap-4">
+                                        <!-- Similar items injected here -->
+                                    </div>
+                                </div>
                             </div>
                             
                             <div class="mt-8 pt-8 border-t border-stone-100">
@@ -345,7 +385,7 @@
             }
         }
 
-        function openCatalogModal(imageUrl, title, description, itemId, price) {
+        function openCatalogModal(imageUrl, title, description, itemId, price, source) {
             document.getElementById('modal-img').src = imageUrl || 'https://via.placeholder.com/600x800?text=Sem+Imagem';
             document.getElementById('modal-title').textContent = title;
             document.getElementById('modal-desc').textContent = description;
@@ -368,6 +408,36 @@
             
             document.getElementById('catalog-modal').classList.remove('hidden');
             document.body.style.overflow = 'hidden'; // Prevent scrolling
+
+            // Reset and fetch similar items
+            const similarSection = document.getElementById('modal-similar-section');
+            const similarGrid = document.getElementById('modal-similar-grid');
+            similarSection.classList.add('hidden');
+            similarGrid.innerHTML = '';
+
+            if (itemId) {
+                fetch(`/api/ai-similar/${itemId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.suggestions && data.suggestions.length > 0) {
+                            data.suggestions.forEach(item => {
+                                const div = document.createElement('div');
+                                div.className = 'cursor-pointer group';
+                                div.onclick = () => openCatalogModal(item.image_url, item.title, item.description, item.id, 'Consulte o preço do aluguel', 'similar');
+                                div.innerHTML = `
+                                    <div class="aspect-[3/4] bg-stone-100 overflow-hidden mb-2 rounded-sm relative">
+                                        <img src="${item.image_url}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" alt="${item.title}">
+                                        <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300"></div>
+                                    </div>
+                                    <p class="text-xs font-bold text-stone-800 uppercase tracking-wide truncate">${item.title}</p>
+                                `;
+                                similarGrid.appendChild(div);
+                            });
+                            similarSection.classList.remove('hidden');
+                        }
+                    })
+                    .catch(err => console.error('Erro ao buscar similares:', err));
+            }
         }
 
         function closeCatalogModal() {
@@ -378,6 +448,103 @@
             const url = new URL(window.location);
             url.searchParams.delete('item');
             window.history.pushState({}, '', url);
+        }
+
+        // AI Search Logic
+        function handleEnterSearch(event) {
+            if (event.key === 'Enter') {
+                performCatalogSearch();
+            }
+        }
+
+        function performCatalogSearch() {
+            const input = document.getElementById('ai-catalog-search-input');
+            const loading = document.getElementById('search-loading');
+            const query = input.value.trim();
+
+            if (!query) return;
+
+            loading.classList.remove('hidden');
+            
+            // Track search event
+            trackEvent('ai_catalog_search', {
+                'search_term': query
+            });
+
+            fetch('/api/ai-catalog-search', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ query: query })
+            })
+            .then(response => response.json())
+            .then(data => {
+                loading.classList.add('hidden');
+                if (data.results) {
+                    updateCatalogGrid(data.results);
+                } else if (data.error) {
+                    console.error('Search error:', data.error);
+                    alert('Erro na busca. Tente novamente.');
+                }
+            })
+            .catch(err => {
+                loading.classList.add('hidden');
+                console.error('Fetch error:', err);
+                alert('Erro de conexão.');
+            });
+        }
+
+        function updateCatalogGrid(items) {
+            const grid = document.getElementById('catalog-grid');
+            const pagination = document.getElementById('catalog-pagination');
+            
+            grid.innerHTML = ''; // Clear current items
+            if (pagination) pagination.classList.add('hidden');
+
+            if (items.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full text-center py-20 bg-stone-100 rounded-lg">
+                        <p class="text-stone-500 text-xl font-serif">Nenhum vestido encontrado para sua descrição.</p>
+                        <button onclick="window.location.reload()" class="mt-4 text-london-gold hover:underline">Ver todos os vestidos</button>
+                    </div>
+                `;
+                return;
+            }
+
+            items.forEach(item => {
+                // Register item data globally for modal
+                window.catalogData = window.catalogData || {};
+                window.catalogData[item.item_id] = {
+                    imageUrl: item.imageUrl,
+                    title: item.title,
+                    description: item.description,
+                    price: item.price
+                };
+
+                const div = document.createElement('div');
+                div.className = 'group bg-white rounded-sm shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden animate-fadeIn';
+                div.onclick = () => openCatalogModal(item.imageUrl, item.title, item.description, item.item_id, item.price, 'ai_search');
+                
+                div.innerHTML = `
+                    <div class="aspect-[3/4] overflow-hidden bg-stone-200 relative">
+                        <img src="${item.imageUrl}" alt="${item.title}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700">
+                        <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors"></div>
+                        <div class="absolute bottom-4 right-4 bg-white/90 p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-stone-800">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                            </svg>
+                        </div>
+                    </div>
+                    
+                    <div class="p-6">
+                        <h3 class="font-serif text-lg text-stone-800 mb-2 truncate">${item.title}</h3>
+                        <p class="text-xs text-london-gold tracking-widest font-bold uppercase">Ver Detalhes</p>
+                    </div>
+                `;
+                
+                grid.appendChild(div);
+            });
         }
 
         // Check URL for item param on load

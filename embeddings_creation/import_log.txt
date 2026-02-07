@@ -1,0 +1,164 @@
+[2026-02-07 11:23:12] === Iniciando Importação de Vestidos (Atualização de Campos) ===
+[2026-02-07 11:23:13] Usuário identificado: testerrr (ID: fde5d0d5-cb58-4f9a-8ecb-c7b0da8af15c)
+[2026-02-07 11:23:13] Total de itens para processar: 158
+[2026-02-07 11:23:14] Item 1 já existe (ID: 43c7ee9be7e4). Pulando.
+[2026-02-07 11:23:14] Item 2 já existe (ID: 5404c1738c64). Pulando.
+[2026-02-07 11:23:14] Item 3 já existe (ID: 7e33a04304d9). Pulando.
+[2026-02-07 11:23:14] Item 4 já existe (ID: 7375aca52373). Pulando.
+[2026-02-07 11:23:14] Item 5 já existe (ID: 3cb1aeb7e72b). Pulando.
+[2026-02-07 11:23:15] Item 6 já existe (ID: 4261e5b63268). Pulando.
+[2026-02-07 11:23:15] Item 7 já existe (ID: 00af0c1565f1). Pulando.
+[2026-02-07 11:23:15] Item 8 já existe (ID: 2c2c7ee31050). Pulando.
+[2026-02-07 11:23:15] Item 9 já existe (ID: a2d2debcf981). Pulando.
+[2026-02-07 11:23:15] Item 10 já existe (ID: 9c4fe1ad1ab6). Pulando.
+[2026-02-07 11:23:16] Item 11 já existe (ID: f68ce750251c). Pulando.
+[2026-02-07 11:23:16] Item 12 já existe (ID: a818c400eb67). Pulando.
+[2026-02-07 11:23:16] Item 13 já existe (ID: 15c1dfe565ea). Pulando.
+[2026-02-07 11:23:16] Item 14 já existe (ID: dc4c55f795f5). Pulando.
+[2026-02-07 11:23:16] Item 15 já existe (ID: 639c7a4fbec6). Pulando.
+[2026-02-07 11:23:17] Item 16 já existe (ID: 313a31b78020). Pulando.
+[2026-02-07 11:23:17] Item 17 já existe (ID: 82a8b642dd58). Pulando.
+[2026-02-07 11:23:17] Item 18 já existe (ID: db686c915a00). Pulando.
+[2026-02-07 11:23:17] Item 19 já existe (ID: d7f5f93b51e7). Pulando.
+[2026-02-07 11:23:18] Item 20 já existe (ID: ee58609b3e5b). Pulando.
+[2026-02-07 11:23:18] Item 21 já existe (ID: 63d9e9287fac). Pulando.
+[2026-02-07 11:23:18] Item 22 já existe (ID: 104b03fae24b). Pulando.
+[2026-02-07 11:23:18] Item 23 já existe (ID: 2098150faf1c). Pulando.
+[2026-02-07 11:23:18] Item 24 já existe (ID: 41131b04ed90). Pulando.
+[2026-02-07 11:23:19] Item 25 já existe (ID: 3b6fb5a4b9ed). Pulando.
+[2026-02-07 11:23:19] Item 26 já existe (ID: a44cbd342680). Pulando.
+[2026-02-07 11:23:19] Item 27 já existe (ID: 9e39abc68d9a). Pulando.
+[2026-02-07 11:23:19] Item 28 já existe (ID: 1638702991c8). Pulando.
+[2026-02-07 11:23:19] Item 29 já existe (ID: 5e23cbf92625). Pulando.
+[2026-02-07 11:23:20] Item 30 já existe (ID: 0d56fc840824). Pulando.
+[2026-02-07 11:23:20] Item 31 já existe (ID: 2a7de03d1075). Pulando.
+[2026-02-07 11:23:20] Item 32 já existe (ID: eeffc9697cfe). Pulando.
+[2026-02-07 11:23:20] Item 33 já existe (ID: bcbde5886c60). Pulando.
+[2026-02-07 11:23:20] Item 34 já existe (ID: 5d0279154986). Pulando.
+[2026-02-07 11:23:21] Item 35 já existe (ID: c0d6ebcfd774). Pulando.
+[2026-02-07 11:23:21] Item 36 já existe (ID: ca5c354c59e4). Pulando.
+[2026-02-07 11:23:21] Item 37 já existe (ID: b2317f5c6bfd). Pulando.
+[2026-02-07 11:23:21] Item 38 já existe (ID: b85621d92501). Pulando.
+[2026-02-07 11:23:22] Item 39 já existe (ID: 68d39e03ee45). Pulando.
+[2026-02-07 11:23:22] Item 40 já existe (ID: e1d4adef8a51). Pulando.
+[2026-02-07 11:23:22] Item 41 já existe (ID: 997a122ce027). Pulando.
+[2026-02-07 11:23:22] Item 42 já existe (ID: bb274bf3b2d0). Pulando.
+[2026-02-07 11:23:22] Item 43 já existe (ID: 3aee7180083c). Pulando.
+[2026-02-07 11:23:23] Item 44 já existe (ID: 4f1115467a88). Pulando.
+[2026-02-07 11:23:23] Item 45 já existe (ID: 1a47a25f5cdf). Pulando.
+[2026-02-07 11:23:23] Item 46 já existe (ID: ba6346aaf2b5). Pulando.
+[2026-02-07 11:23:23] Item 47 já existe (ID: 2fd6c93da285). Pulando.
+[2026-02-07 11:23:23] Item 48 já existe (ID: d00aef01bef6). Pulando.
+[2026-02-07 11:23:24] Item 49 já existe (ID: 97c8f810bda6). Pulando.
+[2026-02-07 11:23:24] Item 50 já existe (ID: 2c1e56f52001). Pulando.
+[2026-02-07 11:23:24] Item 51 já existe (ID: 1836a63b669c). Pulando.
+[2026-02-07 11:23:24] Item 52 já existe (ID: 7a7eb43d334e). Pulando.
+[2026-02-07 11:23:24] Item 53 já existe (ID: 2e36a9afafd7). Pulando.
+[2026-02-07 11:23:25] Item 54 já existe (ID: 5de4bc336339). Pulando.
+[2026-02-07 11:23:25] Item 55 já existe (ID: 099f762262e5). Pulando.
+[2026-02-07 11:23:25] Item 56 já existe (ID: eb11b8410c12). Pulando.
+[2026-02-07 11:23:25] Item 57 já existe (ID: c0c6a42a7dfc). Pulando.
+[2026-02-07 11:23:25] Item 58 já existe (ID: f083b648e598). Pulando.
+[2026-02-07 11:23:26] Item 59 já existe (ID: 981e4159226d). Pulando.
+[2026-02-07 11:23:26] Item 60 já existe (ID: 8934e796bafd). Pulando.
+[2026-02-07 11:23:26] Item 61 já existe (ID: 34052f3bc864). Pulando.
+[2026-02-07 11:23:26] Item 62 já existe (ID: 248fe986b9ed). Pulando.
+[2026-02-07 11:23:26] Item 63 já existe (ID: be1698f1e5c2). Pulando.
+[2026-02-07 11:23:27] Item 64 já existe (ID: e002885a549c). Pulando.
+[2026-02-07 11:23:27] Item 65 já existe (ID: 51ca61aca2e8). Pulando.
+[2026-02-07 11:23:27] Item 66 já existe (ID: 47b3344ef16f). Pulando.
+[2026-02-07 11:23:27] Item 67 já existe (ID: 1b2463a52113). Pulando.
+[2026-02-07 11:23:28] Item 68 já existe (ID: e4a71d2a9081). Pulando.
+[2026-02-07 11:23:28] Item 69 já existe (ID: add27f331b11). Pulando.
+[2026-02-07 11:23:28] Item 70 já existe (ID: 3deab0460c07). Pulando.
+[2026-02-07 11:23:28] Item 71 já existe (ID: f16a81ddffdf). Pulando.
+[2026-02-07 11:23:28] Item 72 já existe (ID: c4ac7ec043e9). Pulando.
+[2026-02-07 11:23:29] Item 73 já existe (ID: 28862b41469c). Pulando.
+[2026-02-07 11:23:29] Item 74 já existe (ID: 8e8aeec3ee9f). Pulando.
+[2026-02-07 11:23:29] Item 75 já existe (ID: 2f52f2730e63). Pulando.
+[2026-02-07 11:23:29] Item 76 já existe (ID: 9308e5d1461c). Pulando.
+[2026-02-07 11:23:30] Item 77 já existe (ID: 987cf568ba62). Pulando.
+[2026-02-07 11:23:30] Item 78 já existe (ID: 55e135244f47). Pulando.
+[2026-02-07 11:23:30] Item 79 já existe (ID: 16b9311ab33d). Pulando.
+[2026-02-07 11:23:30] Item 80 já existe (ID: a74c20b3a6d3). Pulando.
+[2026-02-07 11:23:30] Item 81 já existe (ID: cd649b5988c9). Pulando.
+[2026-02-07 11:23:31] Item 82 já existe (ID: 05388290e3e1). Pulando.
+[2026-02-07 11:23:31] Item 83 já existe (ID: 2664dd98fa80). Pulando.
+[2026-02-07 11:23:31] Item 84 já existe (ID: 214797c92fa7). Pulando.
+[2026-02-07 11:23:31] Item 85 já existe (ID: 6cad9e4fb4c6). Pulando.
+[2026-02-07 11:23:31] Item 86 já existe (ID: 4d6ace37be21). Pulando.
+[2026-02-07 11:23:32] Item 87 já existe (ID: 59b529bab0c9). Pulando.
+[2026-02-07 11:23:32] Item 88 já existe (ID: 357fe44af733). Pulando.
+[2026-02-07 11:23:32] Item 89 já existe (ID: d881c2e74c59). Pulando.
+[2026-02-07 11:23:32] Item 90 já existe (ID: 362c5b94a425). Pulando.
+[2026-02-07 11:23:32] Item 91 já existe (ID: 6d41f65413b5). Pulando.
+[2026-02-07 11:23:33] Item 92 já existe (ID: 3b91f0435480). Pulando.
+[2026-02-07 11:23:33] Item 93 já existe (ID: d08ea92b76da). Pulando.
+[2026-02-07 11:23:33] Item 94 já existe (ID: 1af2ae80a635). Pulando.
+[2026-02-07 11:23:33] Item 95 já existe (ID: cb1d3f8f0248). Pulando.
+[2026-02-07 11:23:33] Item 96 já existe (ID: f7ca49047815). Pulando.
+[2026-02-07 11:23:34] Item 97 já existe (ID: f1a5605b92cc). Pulando.
+[2026-02-07 11:23:34] Item 98 já existe (ID: cbec29cde1ab). Pulando.
+[2026-02-07 11:23:34] Item 99 já existe (ID: c2587c10d95f). Pulando.
+[2026-02-07 11:23:34] Item 100 já existe (ID: 3d6f1acdd163). Pulando.
+[2026-02-07 11:23:34] Item 101 já existe (ID: 110f15407696). Pulando.
+[2026-02-07 11:23:35] Item 102 já existe (ID: ef8d7c7d0ef4). Pulando.
+[2026-02-07 11:23:35] Item 103 já existe (ID: a45165b0a05f). Pulando.
+[2026-02-07 11:23:35] Item 104 já existe (ID: 2e75488043ab). Pulando.
+[2026-02-07 11:23:35] Item 105 já existe (ID: 206bcf79c29b). Pulando.
+[2026-02-07 11:23:35] Item 106 já existe (ID: 548ddb5a3899). Pulando.
+[2026-02-07 11:23:36] Item 107 já existe (ID: 8db6b07fe564). Pulando.
+[2026-02-07 11:23:36] Item 108 já existe (ID: 4f49872090b4). Pulando.
+[2026-02-07 11:23:36] Item 109 já existe (ID: 2d809f42adf0). Pulando.
+[2026-02-07 11:23:36] Item 110 já existe (ID: 1e635a664ffb). Pulando.
+[2026-02-07 11:23:36] Item 111 já existe (ID: d12f3d7fba03). Pulando.
+[2026-02-07 11:23:37] Item 112 já existe (ID: 92fd4a7f7e09). Pulando.
+[2026-02-07 11:23:37] Item 113 já existe (ID: c3cfc296a856). Pulando.
+[2026-02-07 11:23:37] Item 114 já existe (ID: 2920c2f3b001). Pulando.
+[2026-02-07 11:23:37] Item 115 já existe (ID: 3b2b6f4fe12e). Pulando.
+[2026-02-07 11:23:37] Item 116 já existe (ID: 260fa6a33833). Pulando.
+[2026-02-07 11:23:38] Item 117 já existe (ID: a5207befc8d5). Pulando.
+[2026-02-07 11:23:38] Item 118 já existe (ID: 67194d548c4e). Pulando.
+[2026-02-07 11:23:38] Item 119 já existe (ID: 203263c7ef91). Pulando.
+[2026-02-07 11:23:38] Item 120 já existe (ID: 1701cacb6d71). Pulando.
+[2026-02-07 11:23:39] Item 121 já existe (ID: cfc2cff2ee60). Pulando.
+[2026-02-07 11:23:39] Item 122 já existe (ID: 5d6b10f497d9). Pulando.
+[2026-02-07 11:23:39] Item 123 já existe (ID: aece2359b5a3). Pulando.
+[2026-02-07 11:23:39] Item 124 já existe (ID: 189ff839cf8b). Pulando.
+[2026-02-07 11:23:39] Item 125 já existe (ID: 6e6d94425d8e). Pulando.
+[2026-02-07 11:23:39] Item 126 já existe (ID: 2d4a7f2cb1c8). Pulando.
+[2026-02-07 11:23:40] Item 127 já existe (ID: 586c73776afe). Pulando.
+[2026-02-07 11:23:40] Item 128 já existe (ID: f453096eb33d). Pulando.
+[2026-02-07 11:23:40] Item 129 já existe (ID: 0e102cfc202f). Pulando.
+[2026-02-07 11:23:40] Item 130 já existe (ID: 19caa10e7a17). Pulando.
+[2026-02-07 11:23:40] Item 131 já existe (ID: 8781e898c1a2). Pulando.
+[2026-02-07 11:23:41] Item 132 já existe (ID: 2b8a128a0221). Pulando.
+[2026-02-07 11:23:41] Item 133 já existe (ID: 6cc661d23368). Pulando.
+[2026-02-07 11:23:41] Item 134 já existe (ID: a5ea89734a59). Pulando.
+[2026-02-07 11:23:41] Item 135 já existe (ID: f13c265e2f96). Pulando.
+[2026-02-07 11:23:41] Item 136 já existe (ID: 07ef6a8d8d05). Pulando.
+[2026-02-07 11:23:41] Item 137 já existe (ID: 6e17dcefd075). Pulando.
+[2026-02-07 11:23:42] Item 138 já existe (ID: 71b387636ff7). Pulando.
+[2026-02-07 11:23:42] Item 139 já existe (ID: 78058724147f). Pulando.
+[2026-02-07 11:23:42] Item 140 já existe (ID: cefc26d7bd3e). Pulando.
+[2026-02-07 11:23:42] Item 141 já existe (ID: efd67ca4f1aa). Pulando.
+[2026-02-07 11:23:42] Item 142 já existe (ID: 909195db2849). Pulando.
+[2026-02-07 11:23:42] Item 143 já existe (ID: fd9cd0580fea). Pulando.
+[2026-02-07 11:23:43] Item 144 já existe (ID: 847f7f06a0c8). Pulando.
+[2026-02-07 11:23:43] Item 145 já existe (ID: 86191b6bde42). Pulando.
+[2026-02-07 11:23:43] Item 146 já existe (ID: 450033aae86b). Pulando.
+[2026-02-07 11:23:43] Item 147 já existe (ID: b93cefee66f4). Pulando.
+[2026-02-07 11:23:47] Item 148 atualizado: Princesa do Dia: Vestido Nupcial (ID: 35c2c8592e17)
+[2026-02-07 11:23:47] Item 149 atualizado: Clássico Cetim para Noivas (ID: 62b66b17d7d1)
+[2026-02-07 11:23:48] Item 150 atualizado: Sonho de Princesa: Vestido Ideal (ID: f4b05f4220c8)
+[2026-02-07 11:23:49] Item 151 atualizado: Noiva Elegância Branca: Vestido de Gala (ID: d3b0fcf22bef)
+[2026-02-07 11:23:50] Item 152 atualizado: Elegância Clássica para Noivas (ID: fcea2390d469)
+[2026-02-07 11:23:51] Item 153 atualizado: Vestido Princesa: Elegância Nupcial (ID: 5f6a31ad7c74)
+[2026-02-07 11:23:51] Item 154 atualizado: Elegância Nupcial em Cetim (ID: 5211690416d0)
+[2026-02-07 11:23:52] Item 155 atualizado: Sonho de Noiva em Tule (ID: 5d85a738849e)
+[2026-02-07 11:23:53] Item 156 atualizado: Vestido de Noiva Princesa Luxo (ID: 51ed12a88abc)
+[2026-02-07 11:23:54] Item 157 atualizado: Princesa de Renda Marfim (ID: ae5d66a152a1)
+[2026-02-07 11:23:55] Item 158 atualizado: Vestido de Noiva Princesa Elegante (ID: 3b675c39177c)
+[2026-02-07 11:23:55] === Atualização Concluída ===
+[2026-02-07 11:23:55] Sucessos: 11
+[2026-02-07 11:23:55] Erros: 0

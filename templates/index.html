@@ -861,6 +861,15 @@
                                     <h4 class="font-serif text-lg text-stone-800 mb-2">Descrição da Peça</h4>
                                     <p id="catalog-modal-desc" class="text-stone-600 font-light leading-relaxed text-lg mb-8"></p>
                                 </div>
+
+                                <!-- Similar Items Section -->
+                                <div id="catalog-modal-similar-section" class="hidden mb-8">
+                                    <div class="w-12 h-1 bg-stone-200 mb-6"></div>
+                                    <h4 class="font-serif text-lg text-stone-800 mb-4">Você também pode gostar</h4>
+                                    <div id="catalog-modal-similar-grid" class="grid grid-cols-2 gap-4">
+                                        <!-- Similar items injected here -->
+                                    </div>
+                                </div>
                             </div>
                             
                             <div class="mt-8 pt-8 border-t border-stone-100">
@@ -928,6 +937,36 @@
             
             document.getElementById('catalog-modal').classList.remove('hidden');
             document.body.style.overflow = 'hidden'; // Prevent scrolling
+
+            // Reset and fetch similar items
+            const similarSection = document.getElementById('catalog-modal-similar-section');
+            const similarGrid = document.getElementById('catalog-modal-similar-grid');
+            similarSection.classList.add('hidden');
+            similarGrid.innerHTML = '';
+
+            if (itemId && !isAiItem) {
+                fetch(`/api/ai-similar/${itemId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.suggestions && data.suggestions.length > 0) {
+                            data.suggestions.forEach(item => {
+                                const div = document.createElement('div');
+                                div.className = 'cursor-pointer group';
+                                div.onclick = () => openCatalogModal(item.image_url, item.title, item.description, item.id, 'Consulte o preço do aluguel', 'similar');
+                                div.innerHTML = `
+                                    <div class="aspect-[3/4] bg-stone-100 overflow-hidden mb-2 rounded-sm relative">
+                                        <img src="${item.image_url}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" alt="${item.title}">
+                                        <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300"></div>
+                                    </div>
+                                    <p class="text-xs font-bold text-stone-800 uppercase tracking-wide truncate">${item.title}</p>
+                                `;
+                                similarGrid.appendChild(div);
+                            });
+                            similarSection.classList.remove('hidden');
+                        }
+                    })
+                    .catch(err => console.error('Erro ao buscar similares:', err));
+            }
         }
 
         function closeCatalogModal() {

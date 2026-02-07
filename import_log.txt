@@ -110,3 +110,309 @@
 [2026-02-04 23:52:02] === Atualização Concluída ===
 [2026-02-04 23:52:02] Sucessos: 50
 [2026-02-04 23:52:02] Erros: 0
+[2026-02-06 00:05:12] === Iniciando Importação de Vestidos (Atualização de Campos) ===
+[2026-02-06 00:05:13] Usuário identificado: testerrr (ID: fde5d0d5-cb58-4f9a-8ecb-c7b0da8af15c)
+[2026-02-06 00:05:13] Total de itens para processar: 147
+[2026-02-06 00:05:13] Item 1 ignorado: Imagem não encontrada em static\dresses\23966124559642625.jpg
+[2026-02-06 00:05:13] Item 2 ignorado: Imagem não encontrada em static\dresses\24015465031373521.jpg
+[2026-02-06 00:05:13] Item 3 ignorado: Imagem não encontrada em static\dresses\24049458881395476.jpg
+[2026-02-06 00:05:13] Item 4 ignorado: Imagem não encontrada em static\dresses\24566500166362125.jpg
+[2026-02-06 00:05:13] Item 5 ignorado: Imagem não encontrada em static\dresses\24611334105209042.jpg
+[2026-02-06 00:05:13] Item 6 ignorado: Imagem não encontrada em static\dresses\24621911990838532.jpg
+[2026-02-06 00:05:13] Item 7 ignorado: Imagem não encontrada em static\dresses\24629783470038653.jpg
+[2026-02-06 00:05:13] Item 8 ignorado: Imagem não encontrada em static\dresses\24707437045609219.jpg
+[2026-02-06 00:05:13] Item 9 ignorado: Imagem não encontrada em static\dresses\24734277732921143.jpg
+[2026-02-06 00:05:13] Item 10 ignorado: Imagem não encontrada em static\dresses\24779480835085039.jpg
+[2026-02-06 00:05:13] Item 11 ignorado: Imagem não encontrada em static\dresses\24781386021560538.jpg
+[2026-02-06 00:05:13] Item 12 ignorado: Imagem não encontrada em static\dresses\24891038323932494.jpg
+[2026-02-06 00:05:13] Item 13 ignorado: Imagem não encontrada em static\dresses\24913546341611006.jpg
+[2026-02-06 00:05:13] Item 14 ignorado: Imagem não encontrada em static\dresses\24974341585591999.jpg
+[2026-02-06 00:05:13] Item 15 ignorado: Imagem não encontrada em static\dresses\24975722068768755.jpg
+[2026-02-06 00:05:13] Item 16 ignorado: Imagem não encontrada em static\dresses\24993790926949176.jpg
+[2026-02-06 00:05:13] Item 17 ignorado: Imagem não encontrada em static\dresses\24997085973302302.jpg
+[2026-02-06 00:05:13] Item 18 ignorado: Imagem não encontrada em static\dresses\25022042450807238.jpg
+[2026-02-06 00:05:13] Item 19 ignorado: Imagem não encontrada em static\dresses\25031257856526296.jpg
+[2026-02-06 00:05:13] Item 20 ignorado: Imagem não encontrada em static\dresses\25090778587248055.jpg
+[2026-02-06 00:05:13] Item 21 ignorado: Imagem não encontrada em static\dresses\25103451649338668.jpg
+[2026-02-06 00:05:13] Item 22 ignorado: Imagem não encontrada em static\dresses\25149490554685031.jpg
+[2026-02-06 00:05:13] Item 23 ignorado: Imagem não encontrada em static\dresses\25234907762878936.jpg
+[2026-02-06 00:05:13] Item 24 ignorado: Imagem não encontrada em static\dresses\25244327558551929.jpg
+[2026-02-06 00:05:13] Item 25 ignorado: Imagem não encontrada em static\dresses\25262337003448788.jpg
+[2026-02-06 00:05:13] Item 26 ignorado: Imagem não encontrada em static\dresses\25263814296588938.jpg
+[2026-02-06 00:05:13] Item 27 ignorado: Imagem não encontrada em static\dresses\25295834800048649.jpg
+[2026-02-06 00:05:13] Item 28 ignorado: Imagem não encontrada em static\dresses\25299291049773698.jpg
+[2026-02-06 00:05:13] Item 29 ignorado: Imagem não encontrada em static\dresses\25309214752047468.jpg
+[2026-02-06 00:05:13] Item 30 ignorado: Imagem não encontrada em static\dresses\25367255286278171.jpg
+[2026-02-06 00:05:13] Item 31 ignorado: Imagem não encontrada em static\dresses\25436130982753220.jpg
+[2026-02-06 00:05:13] Item 32 ignorado: Imagem não encontrada em static\dresses\25436467459381375.jpg
+[2026-02-06 00:05:13] Item 33 ignorado: Imagem não encontrada em static\dresses\25445449078452657.jpg
+[2026-02-06 00:05:13] Item 34 ignorado: Imagem não encontrada em static\dresses\25450150011313993.jpg
+[2026-02-06 00:05:13] Item 35 ignorado: Imagem não encontrada em static\dresses\25455779667449998.jpg
+[2026-02-06 00:05:13] Item 36 ignorado: Imagem não encontrada em static\dresses\25460621273579681.jpg
+[2026-02-06 00:05:13] Item 37 ignorado: Imagem não encontrada em static\dresses\25486817050948340.jpg
+[2026-02-06 00:05:13] Item 38 ignorado: Imagem não encontrada em static\dresses\25502324292730216.jpg
+[2026-02-06 00:05:13] Item 39 ignorado: Imagem não encontrada em static\dresses\25533651906287542.jpg
+[2026-02-06 00:05:13] Item 40 ignorado: Imagem não encontrada em static\dresses\25536639949296257.jpg
+[2026-02-06 00:05:13] Item 41 ignorado: Imagem não encontrada em static\dresses\25544654238539492.jpg
+[2026-02-06 00:05:13] Item 42 ignorado: Imagem não encontrada em static\dresses\25558753463792673.jpg
+[2026-02-06 00:05:13] Item 43 ignorado: Imagem não encontrada em static\dresses\25586811837647544.jpg
+[2026-02-06 00:05:13] Item 44 ignorado: Imagem não encontrada em static\dresses\25589268210669118.jpg
+[2026-02-06 00:05:13] Item 45 ignorado: Imagem não encontrada em static\dresses\25611060788560795.jpg
+[2026-02-06 00:05:13] Item 46 ignorado: Imagem não encontrada em static\dresses\25615693628093685.jpg
+[2026-02-06 00:05:13] Item 47 ignorado: Imagem não encontrada em static\dresses\25637535892524481.jpg
+[2026-02-06 00:05:13] Item 48 ignorado: Imagem não encontrada em static\dresses\25663544086597513.jpg
+[2026-02-06 00:05:13] Item 49 ignorado: Imagem não encontrada em static\dresses\25664607669833016.jpg
+[2026-02-06 00:05:13] Item 50 ignorado: Imagem não encontrada em static\dresses\25668650602754100.jpg
+[2026-02-06 00:05:13] Item 51 ignorado: Imagem não encontrada em static\dresses\25696116846744391.jpg
+[2026-02-06 00:05:13] Item 52 ignorado: Imagem não encontrada em static\dresses\25697023206597783.jpg
+[2026-02-06 00:05:13] Item 53 ignorado: Imagem não encontrada em static\dresses\25697863299869987.jpg
+[2026-02-06 00:05:13] Item 54 ignorado: Imagem não encontrada em static\dresses\25719933167634378.jpg
+[2026-02-06 00:05:13] Item 55 ignorado: Imagem não encontrada em static\dresses\25733732772933071.jpg
+[2026-02-06 00:05:13] Item 56 ignorado: Imagem não encontrada em static\dresses\25737185262542465.jpg
+[2026-02-06 00:05:13] Item 57 ignorado: Imagem não encontrada em static\dresses\25755206214075464.jpg
+[2026-02-06 00:05:13] Item 58 ignorado: Imagem não encontrada em static\dresses\25764449919813291.jpg
+[2026-02-06 00:05:13] Item 59 ignorado: Imagem não encontrada em static\dresses\25814587428171461.jpg
+[2026-02-06 00:05:13] Item 60 ignorado: Imagem não encontrada em static\dresses\25847596931538838.jpg
+[2026-02-06 00:05:13] Item 61 ignorado: Imagem não encontrada em static\dresses\25867403919516457.jpg
+[2026-02-06 00:05:13] Item 62 ignorado: Imagem não encontrada em static\dresses\25909962508615249.jpg
+[2026-02-06 00:05:13] Item 63 ignorado: Imagem não encontrada em static\dresses\25924790810461014.jpg
+[2026-02-06 00:05:13] Item 64 ignorado: Imagem não encontrada em static\dresses\25988472717454971.jpg
+[2026-02-06 00:05:13] Item 65 ignorado: Imagem não encontrada em static\dresses\25991940047070548.jpg
+[2026-02-06 00:05:13] Item 66 ignorado: Imagem não encontrada em static\dresses\25994129203544499.jpg
+[2026-02-06 00:05:13] Item 67 ignorado: Imagem não encontrada em static\dresses\25994285863504762.jpg
+[2026-02-06 00:05:13] Item 68 ignorado: Imagem não encontrada em static\dresses\26007699952188648.jpg
+[2026-02-06 00:05:13] Item 69 ignorado: Imagem não encontrada em static\dresses\26076618081954484.jpg
+[2026-02-06 00:05:13] Item 70 ignorado: Imagem não encontrada em static\dresses\26131979713107025.jpg
+[2026-02-06 00:05:13] Item 71 ignorado: Imagem não encontrada em static\dresses\26259319106994202.jpg
+[2026-02-06 00:05:13] Item 72 ignorado: Imagem não encontrada em static\dresses\26285887340995220.jpg
+[2026-02-06 00:05:13] Item 73 ignorado: Imagem não encontrada em static\dresses\26412972901623769.jpg
+[2026-02-06 00:05:13] Item 74 ignorado: Imagem não encontrada em static\dresses\26598889823032157.jpg
+[2026-02-06 00:05:13] Item 75 ignorado: Imagem não encontrada em static\dresses\26605824492338455.jpg
+[2026-02-06 00:05:13] Item 76 ignorado: Imagem não encontrada em static\dresses\26641073248814735.jpg
+[2026-02-06 00:05:13] Item 77 ignorado: Imagem não encontrada em static\dresses\26884283804548344.jpg
+[2026-02-06 00:05:13] Item 78 ignorado: Imagem não encontrada em static\dresses\27915112234799140.jpg
+[2026-02-06 00:05:13] Item 79 ignorado: Imagem não encontrada em static\dresses\27937397459237570.jpg
+[2026-02-06 00:05:13] Item 80 ignorado: Imagem não encontrada em static\dresses\28091191247162190.jpg
+[2026-02-06 00:05:13] Item 81 ignorado: Imagem não encontrada em static\dresses\28255530214045530.jpg
+[2026-02-06 00:05:13] Item 82 ignorado: Imagem não encontrada em static\dresses\28781033754844979.jpg
+[2026-02-06 00:05:13] Item 83 ignorado: Imagem não encontrada em static\dresses\28807809108866546.jpg
+[2026-02-06 00:05:13] Item 84 ignorado: Imagem não encontrada em static\dresses\28839900772291757.jpg
+[2026-02-06 00:05:13] Item 85 ignorado: Imagem não encontrada em static\dresses\29014334041498753.jpg
+[2026-02-06 00:05:13] Item 86 ignorado: Imagem não encontrada em static\dresses\29346683528256218.jpg
+[2026-02-06 00:05:13] Item 87 ignorado: Imagem não encontrada em static\dresses\31593837050261621.jpg
+[2026-02-06 00:05:13] Item 88 ignorado: Imagem não encontrada em static\dresses\32063209829993664.jpg
+[2026-02-06 00:05:13] Item 89 ignorado: Imagem não encontrada em static\dresses\32162600740055360.jpg
+[2026-02-06 00:05:13] Item 90 ignorado: Imagem não encontrada em static\dresses\32286750784306774.jpg
+[2026-02-06 00:05:13] Item 91 ignorado: Imagem não encontrada em static\dresses\32703812509233629.jpg
+[2026-02-06 00:05:13] Item 92 ignorado: Imagem não encontrada em static\dresses\32745042865087097.jpg
+[2026-02-06 00:05:13] Item 93 ignorado: Imagem não encontrada em static\dresses\32786138690999725.jpg
+[2026-02-06 00:05:13] Item 94 ignorado: Imagem não encontrada em static\dresses\32850804727868510.jpg
+[2026-02-06 00:05:13] Item 95 ignorado: Imagem não encontrada em static\dresses\32884987724480402.jpg
+[2026-02-06 00:05:13] Item 96 ignorado: Imagem não encontrada em static\dresses\33099834706328395.jpg
+[2026-02-06 00:05:13] Item 97 ignorado: Imagem não encontrada em static\dresses\33119393317704498.jpg
+[2026-02-06 00:05:13] Item 98 ignorado: Imagem não encontrada em static\dresses\33182461434686526.jpg
+[2026-02-06 00:05:13] Item 99 ignorado: Imagem não encontrada em static\dresses\33264508643194287.jpg
+[2026-02-06 00:05:13] Item 100 ignorado: Imagem não encontrada em static\dresses\33432836376307719.jpg
+[2026-02-06 00:05:13] Item 101 ignorado: Imagem não encontrada em static\dresses\33513799751569256.jpg
+[2026-02-06 00:05:13] Item 102 ignorado: Imagem não encontrada em static\dresses\33561356326789012.jpg
+[2026-02-06 00:05:13] Item 103 ignorado: Imagem não encontrada em static\dresses\33589240930721906.jpg
+[2026-02-06 00:05:13] Item 104 ignorado: Imagem não encontrada em static\dresses\33692933153654986.jpg
+[2026-02-06 00:05:13] Item 105 ignorado: Imagem não encontrada em static\dresses\34189648500634377.jpg
+[2026-02-06 00:05:13] Item 106 ignorado: Imagem não encontrada em static\dresses\7965175920273910.jpg
+[2026-02-06 00:05:13] Item 107 ignorado: Imagem não encontrada em static\dresses\8019155394876240.jpg
+[2026-02-06 00:05:13] Item 108 ignorado: Imagem não encontrada em static\dresses\8229525100427955.jpg
+[2026-02-06 00:05:13] Item 109 ignorado: Imagem não encontrada em static\dresses\8266945063407177.jpg
+[2026-02-06 00:05:13] Item 110 ignorado: Imagem não encontrada em static\dresses\8297873390331063.jpg
+[2026-02-06 00:05:13] Item 111 ignorado: Imagem não encontrada em static\dresses\8373804342709317.jpg
+[2026-02-06 00:05:13] Item 112 ignorado: Imagem não encontrada em static\dresses\8402552723157319.jpg
+[2026-02-06 00:05:13] Item 113 ignorado: Imagem não encontrada em static\dresses\8404884569591328.jpg
+[2026-02-06 00:05:13] Item 114 ignorado: Imagem não encontrada em static\dresses\8492359094191985.jpg
+[2026-02-06 00:05:13] Item 115 ignorado: Imagem não encontrada em static\dresses\8652485218194128.jpg
+[2026-02-06 00:05:13] Item 116 ignorado: Imagem não encontrada em static\dresses\8747894121933185.jpg
+[2026-02-06 00:05:13] Item 117 ignorado: Imagem não encontrada em static\dresses\8848954428520126.jpg
+[2026-02-06 00:05:13] Item 118 ignorado: Imagem não encontrada em static\dresses\8897254880322582.jpg
+[2026-02-06 00:05:13] Item 119 ignorado: Imagem não encontrada em static\dresses\8914667128651011.jpg
+[2026-02-06 00:05:13] Item 120 ignorado: Imagem não encontrada em static\dresses\8924834907552567.jpg
+[2026-02-06 00:05:13] Item 121 ignorado: Imagem não encontrada em static\dresses\8928418057239346.jpg
+[2026-02-06 00:05:13] Item 122 ignorado: Imagem não encontrada em static\dresses\8930456447075786.jpg
+[2026-02-06 00:05:13] Item 123 ignorado: Imagem não encontrada em static\dresses\8960981283982639.jpg
+[2026-02-06 00:05:13] Item 124 ignorado: Imagem não encontrada em static\dresses\8965636146847427.jpg
+[2026-02-06 00:05:13] Item 125 ignorado: Imagem não encontrada em static\dresses\8974071446041143.jpg
+[2026-02-06 00:05:13] Item 126 ignorado: Imagem não encontrada em static\dresses\9006282066149888.jpg
+[2026-02-06 00:05:13] Item 127 ignorado: Imagem não encontrada em static\dresses\9019590298094885.jpg
+[2026-02-06 00:05:13] Item 128 ignorado: Imagem não encontrada em static\dresses\9036303203071916.jpg
+[2026-02-06 00:05:13] Item 129 ignorado: Imagem não encontrada em static\dresses\9141979802488909.jpg
+[2026-02-06 00:05:13] Item 130 ignorado: Imagem não encontrada em static\dresses\9142155489176451.jpg
+[2026-02-06 00:05:13] Item 131 ignorado: Imagem não encontrada em static\dresses\9197969760270321.jpg
+[2026-02-06 00:05:13] Item 132 ignorado: Imagem não encontrada em static\dresses\9207198176059410.jpg
+[2026-02-06 00:05:13] Item 133 ignorado: Imagem não encontrada em static\dresses\9213433288714195.jpg
+[2026-02-06 00:05:13] Item 134 ignorado: Imagem não encontrada em static\dresses\9242303375890536.jpg
+[2026-02-06 00:05:13] Item 135 ignorado: Imagem não encontrada em static\dresses\9309336825780778.jpg
+[2026-02-06 00:05:13] Item 136 ignorado: Imagem não encontrada em static\dresses\9349267378461705.jpg
+[2026-02-06 00:05:13] Item 137 ignorado: Imagem não encontrada em static\dresses\9366528960051508.jpg
+[2026-02-06 00:05:13] Item 138 ignorado: Imagem não encontrada em static\dresses\9386337078054951.jpg
+[2026-02-06 00:05:13] Item 139 ignorado: Imagem não encontrada em static\dresses\9388182351293161.jpg
+[2026-02-06 00:05:13] Item 140 ignorado: Imagem não encontrada em static\dresses\9539623372749048.jpg
+[2026-02-06 00:05:13] Item 141 ignorado: Imagem não encontrada em static\dresses\9549478791736950.jpg
+[2026-02-06 00:05:13] Item 142 ignorado: Imagem não encontrada em static\dresses\9550637694969252.jpg
+[2026-02-06 00:05:13] Item 143 ignorado: Imagem não encontrada em static\dresses\9616689778455531.jpg
+[2026-02-06 00:05:13] Item 144 ignorado: Imagem não encontrada em static\dresses\9812983175399236.jpg
+[2026-02-06 00:05:13] Item 145 ignorado: Imagem não encontrada em static\dresses\9838727439475741.jpg
+[2026-02-06 00:05:13] Item 146 ignorado: Imagem não encontrada em static\dresses\9922473021101918.jpg
+[2026-02-06 00:05:13] Item 147 ignorado: Imagem não encontrada em static\dresses\9988299377892267.jpg
+[2026-02-06 00:05:13] === Atualização Concluída ===
+[2026-02-06 00:05:13] Sucessos: 0
+[2026-02-06 00:05:13] Erros: 147
+[2026-02-06 00:14:43] === Iniciando Importação de Vestidos (Atualização de Campos) ===
+[2026-02-06 00:14:44] Usuário identificado: testerrr (ID: fde5d0d5-cb58-4f9a-8ecb-c7b0da8af15c)
+[2026-02-06 00:14:44] Total de itens para processar: 147
+[2026-02-06 00:14:46] Item 1 atualizado: Elegância Azul: Vestido de Gala (ID: 43c7ee9be7e4)
+[2026-02-06 00:14:46] Item 2 atualizado: Elegância Rosa Antigo (ID: 5404c1738c64)
+[2026-02-06 00:14:47] Item 3 atualizado: Elegância Esmeralda para Gala (ID: 7e33a04304d9)
+[2026-02-06 00:14:47] Item 4 atualizado: Bordô Elegância: Vestido de Gala (ID: 7375aca52373)
+[2026-02-06 00:14:48] Item 5 atualizado: Vestido Gala Azul Elegante (ID: 3cb1aeb7e72b)
+[2026-02-06 00:14:48] Item 6 atualizado: Princesa em Tule Azul (ID: 4261e5b63268)
+[2026-02-06 00:14:49] Item 7 atualizado: Gala Verde: Elegância Clássica (ID: 00af0c1565f1)
+[2026-02-06 00:14:49] Item 8 atualizado: Elegância Assimétrica em Preto (ID: 2c2c7ee31050)
+[2026-02-06 00:14:50] Item 9 atualizado: Elegância Verde com Fenda (ID: a2d2debcf981)
+[2026-02-06 00:14:50] Item 10 atualizado: Vestido Princesa Azul Marinho (ID: 9c4fe1ad1ab6)
+[2026-02-06 00:14:51] Item 11 atualizado: Elegância Esvoaçante em Verde (ID: f68ce750251c)
+[2026-02-06 00:14:51] Item 12 atualizado: Elegância em Cetim Marrom (ID: a818c400eb67)
+[2026-02-06 00:14:52] Item 13 atualizado: Sereia Clássica: Elegância Nupcial (ID: 15c1dfe565ea)
+[2026-02-06 00:14:52] Item 14 atualizado: Elegância Azul: Vestido de Gala (ID: dc4c55f795f5)
+[2026-02-06 00:14:53] Item 15 atualizado: Vestido Ciganinha Rosa Elegante (ID: 639c7a4fbec6)
+[2026-02-06 00:14:53] Item 16 atualizado: Elegância Azul: Vestido de Gala (ID: 313a31b78020)
+[2026-02-06 00:14:54] Item 17 atualizado: Elegância Metálica em Bronze (ID: 82a8b642dd58)
+[2026-02-06 00:14:54] Item 18 atualizado: Vestido Gala Azul Real (ID: db686c915a00)
+[2026-02-06 00:14:55] Item 19 atualizado: Elegância em Verde Petróleo (ID: d7f5f93b51e7)
+[2026-02-06 00:14:55] Item 20 atualizado: Verde Glamour: Elegância em Foco (ID: ee58609b3e5b)
+[2026-02-06 00:14:56] Item 21 atualizado: Elegância Azul Royal (ID: 63d9e9287fac)
+[2026-02-06 00:14:56] Item 22 atualizado: Vestido Princesa Verde Glamour (ID: 104b03fae24b)
+[2026-02-06 00:14:57] Item 23 atualizado: Deslumbrante Vestido Princesa Esmeralda (ID: 2098150faf1c)
+[2026-02-06 00:14:57] Item 24 atualizado: Vinho Elegante: Glamour Sofisticado (ID: 41131b04ed90)
+[2026-02-06 00:14:58] Item 25 atualizado: Elegância Azul Marinho Glamour (ID: 3b6fb5a4b9ed)
+[2026-02-06 00:14:58] Item 26 atualizado: Magenta Glam: Elegância Sofisticada (ID: a44cbd342680)
+[2026-02-06 00:14:59] Item 27 atualizado: Elegância Verde Menta Fluida (ID: 9e39abc68d9a)
+[2026-02-06 00:14:59] Item 28 atualizado: Vestido Princesa Roxo Brilhante (ID: 1638702991c8)
+[2026-02-06 00:15:00] Item 29 atualizado: Verde Menta: Glamour e Elegância (ID: 5e23cbf92625)
+[2026-02-06 00:15:00] Item 30 atualizado: Elegância em Preto Luxuoso (ID: 0d56fc840824)
+[2026-02-06 00:15:01] Item 31 atualizado: Rosa Glam: Vestido de Gala (ID: 2a7de03d1075)
+[2026-02-06 00:15:01] Item 32 atualizado: Elegância Vinho: Vestido Halter (ID: eeffc9697cfe)
+[2026-02-06 00:15:02] Item 33 atualizado: Elegância Esmeralda em Movimento (ID: bcbde5886c60)
+[2026-02-06 00:15:02] Item 34 atualizado: Elegância Azul Cobalto (ID: 5d0279154986)
+[2026-02-06 00:15:03] Item 35 atualizado: Elegância Azul Royal (ID: c0d6ebcfd774)
+[2026-02-06 00:15:03] Item 36 atualizado: Cobre Glam: Elegância Brilhante (ID: ca5c354c59e4)
+[2026-02-06 00:15:04] Item 37 atualizado: Elegância Azul Royal Fluida (ID: b2317f5c6bfd)
+[2026-02-06 00:15:05] Item 38 atualizado: Vestido Esmeralda Chic e Sofisticado (ID: b85621d92501)
+[2026-02-06 00:15:05] Item 39 atualizado: Elegância Verde Menta (ID: 68d39e03ee45)
+[2026-02-06 00:15:05] Item 40 atualizado: Vestido Princesa Roxo Brilhante (ID: e1d4adef8a51)
+[2026-02-06 00:15:06] Item 41 atualizado: Elegância Esmeralda para Festas (ID: 997a122ce027)
+[2026-02-06 00:15:06] Item 42 atualizado: Elegância Verde Oliva (ID: bb274bf3b2d0)
+[2026-02-06 00:15:07] Item 43 atualizado: Sereia Elegante em Verde Oliva (ID: 3aee7180083c)
+[2026-02-06 00:15:07] Item 44 atualizado: Sereia Azul: Glamour em Festa (ID: 4f1115467a88)
+[2026-02-06 00:15:08] Item 45 atualizado: Elegância Verde Esmeralda (ID: 1a47a25f5cdf)
+[2026-02-06 00:15:09] Item 46 atualizado: Vermelho Glamouroso para Gala (ID: ba6346aaf2b5)
+[2026-02-06 00:15:09] Item 47 atualizado: Elegância Terracota: Vestido de Gala (ID: 2fd6c93da285)
+[2026-02-06 00:15:09] Item 48 atualizado: Elegância Azul Royal (ID: d00aef01bef6)
+[2026-02-06 00:15:10] Item 49 atualizado: Brilho Elegante em Verde Água (ID: 97c8f810bda6)
+[2026-02-06 00:15:11] Item 50 atualizado: Vestido Cetim Azul Royal (ID: 2c1e56f52001)
+[2026-02-06 00:15:11] Item 51 atualizado: Elegância Azul: Vestido Gala (ID: 1836a63b669c)
+[2026-02-06 00:15:12] Item 52 atualizado: Elegância Rosa: Vestido de Gala (ID: 7a7eb43d334e)
+[2026-02-06 00:15:12] Item 53 atualizado: Elegância Verde Oliva (ID: 2e36a9afafd7)
+[2026-02-06 00:15:13] Item 54 atualizado: Elegância em Verde Oliva (ID: 5de4bc336339)
+[2026-02-06 00:15:13] Item 55 atualizado: Elegância Fluida em Azul (ID: 099f762262e5)
+[2026-02-06 00:15:14] Item 56 atualizado: Elegância Azul Cobalto (ID: eb11b8410c12)
+[2026-02-06 00:15:14] Item 57 atualizado: Vestido Gala Fúcsia Assimétrico (ID: c0c6a42a7dfc)
+[2026-02-06 00:15:15] Item 58 atualizado: Elegância em Azul Royal (ID: f083b648e598)
+[2026-02-06 00:15:15] Item 59 atualizado: Gala em Cetim Preto Elegante (ID: 981e4159226d)
+[2026-02-06 00:15:16] Item 60 atualizado: Elegância Mostarda para Gala (ID: 8934e796bafd)
+[2026-02-06 00:15:16] Item 61 atualizado: Elegância Assimétrica em Verde (ID: 34052f3bc864)
+[2026-02-06 00:15:17] Item 62 atualizado: Vestido Gala Fenda Elegante (ID: 248fe986b9ed)
+[2026-02-06 00:15:17] Item 63 atualizado: Elegância Azul Royal (ID: be1698f1e5c2)
+[2026-02-06 00:15:18] Item 64 atualizado: Princesa Vermelha: Glamour Elegante (ID: e002885a549c)
+[2026-02-06 00:15:18] Item 65 atualizado: Elegância Amarela: Vestido de Gala (ID: 51ca61aca2e8)
+[2026-02-06 00:15:19] Item 66 atualizado: Vestido Gala Roxo Elegante (ID: 47b3344ef16f)
+[2026-02-06 00:15:19] Item 67 atualizado: Vestido Sereia Esmeralda Elegante (ID: 1b2463a52113)
+[2026-02-06 00:15:20] Item 68 atualizado: Elegância Verde Água Reluzente (ID: e4a71d2a9081)
+[2026-02-06 00:15:20] Item 69 atualizado: Elegância Celeste em Cetim (ID: add27f331b11)
+[2026-02-06 00:15:21] Item 70 atualizado: Glamour Sereia em Verde-Água (ID: 3deab0460c07)
+[2026-02-06 00:15:21] Item 71 atualizado: Deslumbrante Sereia Ametista (ID: f16a81ddffdf)
+[2026-02-06 00:15:22] Item 72 atualizado: Elegância Prateada em Cetim (ID: c4ac7ec043e9)
+[2026-02-06 00:15:22] Item 73 atualizado: Elegância em Vermelho Vibrante (ID: 28862b41469c)
+[2026-02-06 00:15:23] Item 74 atualizado: Elegância Rosa: Vestido de Gala (ID: 8e8aeec3ee9f)
+[2026-02-06 00:15:23] Item 75 atualizado: Elegância Lilás para Gala (ID: 2f52f2730e63)
+[2026-02-06 00:15:24] Item 76 atualizado: Vestido Sereia Azul Glamouroso (ID: 9308e5d1461c)
+[2026-02-06 00:15:24] Item 77 atualizado: Elegância Rosa: Vestido de Gala (ID: 987cf568ba62)
+[2026-02-06 00:15:25] Item 78 atualizado: Elegância Vinho: Vestido de Gala (ID: 55e135244f47)
+[2026-02-06 00:15:25] Item 79 atualizado: Vestido Lavanda Elegância Fluida (ID: 16b9311ab33d)
+[2026-02-06 00:15:26] Item 80 atualizado: Brilho Sereia: Glamour em Azul (ID: a74c20b3a6d3)
+[2026-02-06 00:15:26] Item 81 atualizado: Sereia Dourada: Glamour e Elegância (ID: cd649b5988c9)
+[2026-02-06 00:15:27] Item 82 atualizado: Elegância Verde Menta Sereia (ID: 05388290e3e1)
+[2026-02-06 00:15:27] Item 83 atualizado: Vestido Princesa em Vermelho (ID: 2664dd98fa80)
+[2026-02-06 00:15:28] Item 84 atualizado: Bordô Glam: Elegância em Movimento (ID: 214797c92fa7)
+[2026-02-06 00:15:28] Item 85 atualizado: Elegância Glamourosa: Vestido Preto (ID: 6cad9e4fb4c6)
+[2026-02-06 00:15:29] Item 86 atualizado: Princesa Esmeralda: Elegância Eterna (ID: 4d6ace37be21)
+[2026-02-06 00:15:29] Item 87 atualizado: Elegância Lilás para Gala (ID: 59b529bab0c9)
+[2026-02-06 00:15:30] Item 88 atualizado: Elegância Lilás: Sofisticação em Festa (ID: 357fe44af733)
+[2026-02-06 00:15:30] Item 89 atualizado: Elegância Azul Royal Glam (ID: d881c2e74c59)
+[2026-02-06 00:15:31] Item 90 atualizado: Vestido Gala Cetim Azul (ID: 362c5b94a425)
+[2026-02-06 00:15:31] Item 91 atualizado: Elegância Azul Royal (ID: 6d41f65413b5)
+[2026-02-06 00:15:32] Item 92 atualizado: Elegância em Verde Petróleo (ID: 3b91f0435480)
+[2026-02-06 00:15:32] Item 93 atualizado: Vestido Glamour Azul Cetim (ID: d08ea92b76da)
+[2026-02-06 00:15:33] Item 94 atualizado: Elegância Azul: Vestido de Gala (ID: 1af2ae80a635)
+[2026-02-06 00:15:33] Item 95 atualizado: Elegância Rubi: Vestido de Gala (ID: cb1d3f8f0248)
+[2026-02-06 00:15:34] Item 96 atualizado: Elegância Azul: Vestido Clássico (ID: f7ca49047815)
+[2026-02-06 00:15:34] Item 97 atualizado: Elegância Rosa Antiga (ID: f1a5605b92cc)
+[2026-02-06 00:15:35] Item 98 atualizado: Vestido Gala Azul Marinho Elegante (ID: cbec29cde1ab)
+[2026-02-06 00:15:35] Item 99 atualizado: Elegância Vinho: Glamour Sofisticado (ID: c2587c10d95f)
+[2026-02-06 00:15:36] Item 100 atualizado: Princesa em Azul Real (ID: 3d6f1acdd163)
+[2026-02-06 00:15:38] Item 101 atualizado: Deslumbrante Sereia Azul Gala (ID: 110f15407696)
+[2026-02-06 00:15:38] Item 102 atualizado: Elegância Floral em Azul Claro (ID: ef8d7c7d0ef4)
+[2026-02-06 00:15:39] Item 103 atualizado: Vestido Princesa Cetim Azul (ID: a45165b0a05f)
+[2026-02-06 00:15:39] Item 104 atualizado: Elegância Verde Esmeralda (ID: 2e75488043ab)
+[2026-02-06 00:15:40] Item 105 atualizado: Vestido Sereia Verde Esmeralda (ID: 206bcf79c29b)
+[2026-02-06 00:15:41] Item 106 atualizado: Vestido Gala Assimétrico Elegante (ID: 548ddb5a3899)
+[2026-02-06 00:15:41] Item 107 atualizado: Elegância em Verde Sofisticado (ID: 8db6b07fe564)
+[2026-02-06 00:15:42] Item 108 atualizado: Elegância Romântica em Azul (ID: 4f49872090b4)
+[2026-02-06 00:15:42] Item 109 atualizado: Vestido Gala Vermelho Elegante (ID: 2d809f42adf0)
+[2026-02-06 00:15:43] Item 110 atualizado: Elegância Bordô em Camadas (ID: 1e635a664ffb)
+[2026-02-06 00:15:43] Item 111 atualizado: Elegância em Tule Preto (ID: d12f3d7fba03)
+[2026-02-06 00:15:44] Item 112 atualizado: Elegância Verde Menta (ID: 92fd4a7f7e09)
+[2026-02-06 00:15:44] Item 113 atualizado: Elegância Esmeralda em Movimento (ID: c3cfc296a856)
+[2026-02-06 00:15:45] Item 114 atualizado: Elegância Azul: Vestido de Gala (ID: 2920c2f3b001)
+[2026-02-06 00:15:45] Item 115 atualizado: Vestido Sereia Azul Cintilante (ID: 3b2b6f4fe12e)
+[2026-02-06 00:15:46] Item 116 atualizado: Vestido Princesa Laranja Glamouroso (ID: 260fa6a33833)
+[2026-02-06 00:15:46] Item 117 atualizado: Vestido Coral Princesa Glamour (ID: a5207befc8d5)
+[2026-02-06 00:15:47] Item 118 atualizado: Vestido Sereia Preto Brilhante (ID: 67194d548c4e)
+[2026-02-06 00:15:47] Item 119 atualizado: Elegância Azul: Vestido de Gala (ID: 203263c7ef91)
+[2026-02-06 00:15:48] Item 120 atualizado: Vestido Sereia Glamouroso Preto (ID: 1701cacb6d71)
+[2026-02-06 00:15:48] Item 121 atualizado: Sereia Glamour: Preto Brilhante (ID: cfc2cff2ee60)
+[2026-02-06 00:15:49] Item 122 atualizado: Elegância Azul Royal (ID: 5d6b10f497d9)
+[2026-02-06 00:15:49] Item 123 atualizado: Elegância Lilás: Vestido de Gala (ID: aece2359b5a3)
+[2026-02-06 00:15:50] Item 124 atualizado: Elegância Verde: Vestido de Gala (ID: 189ff839cf8b)
+[2026-02-06 00:15:51] Item 125 atualizado: Elegância Verde Musgo em Gala (ID: 6e6d94425d8e)
+[2026-02-06 00:15:51] Item 126 atualizado: Brilho e Elegância Assimétrica (ID: 2d4a7f2cb1c8)
+[2026-02-06 00:15:52] Item 127 atualizado: Vestido Sereia Azul Royal (ID: 586c73776afe)
+[2026-02-06 00:15:53] Item 128 atualizado: Brilho Dourado: Vestido Sereia Elegante (ID: f453096eb33d)
+[2026-02-06 00:15:53] Item 129 atualizado: Sereia Glam: Preto Brilhante (ID: 0e102cfc202f)
+[2026-02-06 00:15:54] Item 130 atualizado: Elegância Verde Oliva Cintilante (ID: 19caa10e7a17)
+[2026-02-06 00:15:54] Item 131 atualizado: Deslumbrante Vestido Sereia Rubi (ID: 8781e898c1a2)
+[2026-02-06 00:15:55] Item 132 atualizado: Elegância Lavanda: Festa Perfeita (ID: 2b8a128a0221)
+[2026-02-06 00:15:55] Item 133 atualizado: Elegância Verde Oliva (ID: 6cc661d23368)
+[2026-02-06 00:15:56] Item 134 atualizado: Brilho Elegante em Bordô (ID: a5ea89734a59)
+[2026-02-06 00:15:56] Item 135 atualizado: Vestido Vinho Gala Elegância (ID: f13c265e2f96)
+[2026-02-06 00:15:57] Item 136 atualizado: Elegância Esmeralda: Vestido Gala (ID: 07ef6a8d8d05)
+[2026-02-06 00:15:57] Item 137 atualizado: Elegância Verde Menta (ID: 6e17dcefd075)
+[2026-02-06 00:15:58] Item 138 atualizado: Elegância Assimétrica em Verde (ID: 71b387636ff7)
+[2026-02-06 00:15:58] Item 139 atualizado: Encanto Verde: Vestido de Gala (ID: 78058724147f)
+[2026-02-06 00:15:59] Item 140 atualizado: Sereia Azul-Petróleo Elegante (ID: cefc26d7bd3e)
+[2026-02-06 00:15:59] Item 141 atualizado: Dourado Glamour: Vestido Princesa (ID: efd67ca4f1aa)
+[2026-02-06 00:16:00] Item 142 atualizado: Elegância Azul Royal Gala (ID: 909195db2849)
+[2026-02-06 00:16:00] Item 143 atualizado: Vinho Elegante: Glamour Clássico (ID: fd9cd0580fea)
+[2026-02-06 00:16:01] Item 144 atualizado: Elegância Verde: Vestido de Gala (ID: 847f7f06a0c8)
+[2026-02-06 00:16:01] Item 145 atualizado: Elegância Azul: Vestido Esvoaçante (ID: 86191b6bde42)
+[2026-02-06 00:16:02] Item 146 atualizado: Vermelho Glamour: Vestido Sereia (ID: 450033aae86b)
+[2026-02-06 00:16:02] Item 147 atualizado: Bordô Elegante: Clássico e Fluido (ID: b93cefee66f4)
+[2026-02-06 00:16:02] === Atualização Concluída ===
+[2026-02-06 00:16:02] Sucessos: 147
+[2026-02-06 00:16:02] Erros: 0
