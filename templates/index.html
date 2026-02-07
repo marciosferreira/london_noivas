@@ -417,7 +417,7 @@
                         <!-- Result State (Hidden by default) -->
                         <div id="result-state" class="w-full h-full relative group">
                              <img id="result-image" src="" alt="Vestido Recomendado" class="w-full h-full object-contain" />
-                             <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-6 text-white transform translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+                             <div id="result-overlay" class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-6 text-white">
                                 <h3 id="result-title" class="text-xl font-serif mb-2">Vestido Recomendado</h3>
                                 <p id="result-desc" class="text-sm font-light opacity-90 line-clamp-3"></p>
                              </div>
@@ -613,10 +613,18 @@
                     title.textContent = "Recomendação Principal";
                     desc.textContent = dress.description;
 
+                    // Ensure overlay is visible when new result comes in
+                    const overlay = document.getElementById('result-overlay');
+                    if (overlay) overlay.classList.remove('hidden');
+
                     // Add click handler to open details
                     const imgContainer = img.parentElement;
                     imgContainer.style.cursor = "pointer";
-                    imgContainer.onclick = () => openCatalogModal(
+                    imgContainer.onclick = () => {
+                        // Hide overlay on click
+                        if (overlay) overlay.classList.add('hidden');
+                        
+                        openCatalogModal(
                         dress.image_url, 
                         dress.title || "Sugestão Exclusiva", 
                         dress.description, 
@@ -624,7 +632,7 @@
                         dress.price || "Consulte o preço do aluguel",
                         'ai_result',
                         dress.customId
-                    );
+                    )};
 
                     if (suggestions && suggestions.length > 0) {
                         showSuggestions(suggestions);
@@ -834,6 +842,7 @@
             }
         
             function submitAiCta() {
+                const ctaContainer = document.getElementById('ai-stylist-cta');
                 const ctaInput = document.getElementById('ai-cta-input');
                 const mainInput = document.getElementById('chat-input');
                 const bubble = document.getElementById('ai-cta-bubble');
@@ -857,15 +866,23 @@
                         // Trigger input event to resize if needed (not needed here but good practice)
                         mainInput.focus();
                         sendMessage();
-                        ctaInput.value = ''; // clear cta
-
-                        // Reset bubble styles after delay
-                        setTimeout(() => {
-                            if (bubble) {
-                                bubble.style.removeProperty('transform');
-                                bubble.style.removeProperty('opacity');
+                        
+                        // Fix for mobile sticky hover: Replace the element to clear state
+                        if (ctaContainer) {
+                            const newCta = ctaContainer.cloneNode(true);
+                            // Clear input in the new element
+                            const newInput = newCta.querySelector('#ai-cta-input');
+                            if (newInput) newInput.value = '';
+                            
+                            // Reset styles in the new element (remove inline overrides so CSS takes over, but clean state)
+                            const newBubble = newCta.querySelector('#ai-cta-bubble');
+                            if (newBubble) {
+                                newBubble.style.removeProperty('transform');
+                                newBubble.style.removeProperty('opacity');
                             }
-                        }, 1000);
+                            
+                            ctaContainer.parentNode.replaceChild(newCta, ctaContainer);
+                        }
                     }, 800);
                 }
             }
