@@ -72,7 +72,7 @@
                     type="text" 
                     id="ai-catalog-search-input"
                     class="w-full pl-12 pr-4 py-4 bg-white border-2 border-stone-200 rounded-full focus:outline-none focus:border-london-gold focus:ring-1 focus:ring-london-gold transition-all shadow-sm text-stone-700 placeholder-stone-400"
-                    placeholder="Encontre o vestido dos seus sonhos (ex: 'vestido sereia com renda e manga longa')"
+                    placeholder="ex: vestido sereia com renda e manga longa"
                     onkeypress="handleEnterSearch(event)"
                 >
                 <button 
@@ -165,8 +165,13 @@
                 </button>
 
                 <!-- Image Side -->
-                <div class="md:w-1/2 bg-stone-100 relative h-[40vh] md:h-auto">
-                    <img id="modal-img" src="" alt="Detail" class="w-full h-full object-contain">
+                <div class="md:w-1/2 bg-stone-100 relative h-[40vh] md:h-auto group cursor-zoom-in" onclick="openFullImage(document.getElementById('modal-img').src)">
+                    <img id="modal-img" src="" alt="Detail" class="w-full h-full object-contain transition-transform duration-500 hover:scale-105">
+                    <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 pointer-events-none">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="white" class="w-12 h-12 drop-shadow-lg">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607zM10.5 7.5v6m3-3h-6" />
+                        </svg>
+                    </div>
                 </div>
                 
                 <!-- Content Side -->
@@ -237,18 +242,22 @@
             document.getElementById('modal-id-value').textContent = idToShow;
             
             const phoneNumber = "5592993531943";
-            let text = `Olá, gostaria de mais informações sobre o vestido do catálogo: ${title} (Cód: ${idToShow})`;
+            
+            // Construct message with Title and ID
+            let text = `Olá, gostaria de mais informações sobre o vestido do catálogo: ${title}`;
+            text += `\nCód: ${idToShow}`;
             
             const isAiItem = itemId && itemId.toString().startsWith('ai_');
+            
+            // Always include Image URL
+            const fullImageUrl = new URL(imageUrl, window.location.origin).href;
+            text += `\nImagem: ${fullImageUrl}`;
 
             if (!isAiItem) {
                 const url = new URL(window.location);
                 url.searchParams.set('item', itemId);
                 window.history.pushState({}, '', url);
                 text += `\nLink: ${url.toString()}`;
-            } else {
-                const fullImageUrl = new URL(imageUrl, window.location.origin).href;
-                text += `\nImagem: ${fullImageUrl}`;
             }
 
             const encodedText = encodeURIComponent(text);
@@ -483,6 +492,88 @@
                 'transport_type': 'beacon'
             });
         }
+    </script>
+    <!-- Full Screen Image Modal -->
+    <div id="full-image-modal" class="fixed inset-0 z-[200] hidden" role="dialog" aria-modal="true">
+        <div class="absolute inset-0 bg-black/95 backdrop-blur-md" onclick="closeFullImage()"></div>
+        
+        <button onclick="closeFullImage()" class="absolute top-4 right-4 z-[210] text-white/70 hover:text-white transition-colors p-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+        </button>
+
+        <div class="absolute inset-0 flex items-center justify-center p-4 pointer-events-none">
+            <img id="full-image-img" src="" alt="Full Screen" class="max-w-full max-h-full object-contain shadow-2xl pointer-events-auto rounded-sm">
+        </div>
+    </div>
+
+    <script>
+        function openFullImage(src) {
+            if (!src || src.includes('placeholder')) return;
+            const modal = document.getElementById('full-image-modal');
+            const img = document.getElementById('full-image-img');
+            img.src = src;
+            modal.classList.remove('hidden');
+            // document.body.style.overflow = 'hidden'; // Already hidden by catalog modal
+        }
+
+        function closeFullImage() {
+            const modal = document.getElementById('full-image-modal');
+            modal.classList.add('hidden');
+        }
+
+        // Close on Escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                const fullModal = document.getElementById('full-image-modal');
+                if (!fullModal.classList.contains('hidden')) {
+                    closeFullImage();
+                    // Prevent event propagation so catalog modal doesn't close too if it listens to Esc
+                    event.stopPropagation();
+                }
+            }
+        });
+    </script>
+    <!-- Full Screen Image Modal -->
+    <div id="full-image-modal" class="fixed inset-0 z-[200] hidden" role="dialog" aria-modal="true">
+        <div class="absolute inset-0 bg-black/95 backdrop-blur-md" onclick="closeFullImage()"></div>
+        
+        <button onclick="closeFullImage()" class="absolute top-4 right-4 z-[210] text-white/70 hover:text-white transition-colors p-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+        </button>
+
+        <div class="absolute inset-0 flex items-center justify-center p-4 pointer-events-none">
+            <img id="full-image-img" src="" alt="Full Screen" class="max-w-full max-h-full object-contain shadow-2xl pointer-events-auto rounded-sm">
+        </div>
+    </div>
+
+    <script>
+        function openFullImage(src) {
+            if (!src || src.includes('placeholder')) return;
+            const modal = document.getElementById('full-image-modal');
+            const img = document.getElementById('full-image-img');
+            img.src = src;
+            modal.classList.remove('hidden');
+        }
+
+        function closeFullImage() {
+            const modal = document.getElementById('full-image-modal');
+            modal.classList.add('hidden');
+        }
+
+        // Close on Escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                const fullModal = document.getElementById('full-image-modal');
+                if (!fullModal.classList.contains('hidden')) {
+                    closeFullImage();
+                    event.stopPropagation();
+                }
+            }
+        });
     </script>
 </body>
 </html>

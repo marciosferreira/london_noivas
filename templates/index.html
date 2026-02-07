@@ -791,7 +791,7 @@
         <!-- Floating AI Stylist CTA -->
         <div id="ai-stylist-cta" class="fixed bottom-32 right-8 z-50 group">
             <!-- The Chat Bubble (Hidden by default, shown on hover/focus) -->
-            <div class="absolute bottom-full right-0 mb-4 bg-white p-5 rounded-lg shadow-2xl border-l-4 border-london-gold w-80 transform scale-0 opacity-0 group-hover:scale-100 group-hover:opacity-100 group-focus-within:scale-100 group-focus-within:opacity-100 transition-all duration-300 origin-bottom-right">
+            <div id="ai-cta-bubble" class="absolute bottom-full right-0 mb-4 bg-white p-5 rounded-lg shadow-2xl border-l-4 border-london-gold w-80 transform scale-0 opacity-0 group-hover:scale-100 group-hover:opacity-100 group-focus-within:scale-100 group-focus-within:opacity-100 transition-all duration-300 origin-bottom-right">
                 <div class="flex justify-between items-start mb-2">
                     <h4 class="font-serif text-london-gold font-bold text-lg">Estilista Virtual</h4>
                     <span class="text-xs bg-stone-100 text-stone-500 px-2 py-1 rounded-full">Beta</span>
@@ -834,9 +834,17 @@
             function submitAiCta() {
                 const ctaInput = document.getElementById('ai-cta-input');
                 const mainInput = document.getElementById('chat-input');
+                const bubble = document.getElementById('ai-cta-bubble');
                 const text = ctaInput.value.trim();
         
                 if (text) {
+                    // Close bubble and remove focus
+                    ctaInput.blur();
+                    if (bubble) {
+                        bubble.style.setProperty('transform', 'scale(0)', 'important');
+                        bubble.style.setProperty('opacity', '0', 'important');
+                    }
+
                     // Scroll to showroom
                     const showroom = document.getElementById('showroom');
                     showroom.scrollIntoView({ behavior: 'smooth' });
@@ -848,6 +856,14 @@
                         mainInput.focus();
                         sendMessage();
                         ctaInput.value = ''; // clear cta
+
+                        // Reset bubble styles after delay
+                        setTimeout(() => {
+                            if (bubble) {
+                                bubble.style.removeProperty('transform');
+                                bubble.style.removeProperty('opacity');
+                            }
+                        }, 1000);
                     }, 800);
                 }
             }
@@ -915,9 +931,14 @@
 
                     <div class="flex flex-col md:flex-row h-full md:h-[80vh]">
                         <!-- Image Side -->
-                        <div class="md:w-1/2 bg-stone-100 relative h-[50vh] md:h-full">
-                            <img id="catalog-modal-img" src="" alt="Detalhe" class="absolute inset-0 w-full h-full object-contain">
-                        </div>
+                <div class="md:w-1/2 bg-stone-100 relative h-[50vh] md:h-full group cursor-zoom-in" onclick="openFullImage(document.getElementById('catalog-modal-img').src)">
+                    <img id="catalog-modal-img" src="" alt="Detalhe" class="absolute inset-0 w-full h-full object-contain transition-transform duration-500 hover:scale-105">
+                    <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 pointer-events-none">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="white" class="w-12 h-12 drop-shadow-lg">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607zM10.5 7.5v6m3-3h-6" />
+                        </svg>
+                    </div>
+                </div>
                         
                         <!-- Content Side -->
                         <div class="md:w-1/2 p-8 md:p-12 flex flex-col overflow-y-auto bg-white">
@@ -987,10 +1008,17 @@
             document.getElementById('catalog-modal-id-value').textContent = idToShow;
             
             const phoneNumber = "5592993531943";
-            let text = `Olá, gostaria de mais informações sobre o vestido: ${title} (Cód: ${idToShow})`;
+            
+            // Construct message with Title and ID
+            let text = `Olá, gostaria de mais informações sobre o vestido: ${title}`;
+            text += `\nCód: ${idToShow}`;
             
             // Check if it's an AI item (starts with ai_) or regular item
             const isAiItem = itemId && itemId.toString().startsWith('ai_');
+
+            // Always include Image URL
+            const fullImageUrl = new URL(imageUrl, window.location.origin).href;
+            text += `\nImagem: ${fullImageUrl}`;
 
             if (!isAiItem) {
                 // Update URL to include item_id (UUID) for regular items
@@ -998,10 +1026,6 @@
                 url.searchParams.set('item', itemId);
                 window.history.pushState({}, '', url);
                 text += `\nLink: ${url.toString()}`;
-            } else {
-                // For AI items, include the image URL since there is no persistent page URL
-                const fullImageUrl = new URL(imageUrl, window.location.origin).href;
-                text += `\nImagem: ${fullImageUrl}`;
             }
 
             const encodedText = encodeURIComponent(text);
@@ -1127,6 +1151,100 @@
 
         if(mobileMenuBtn) mobileMenuBtn.addEventListener('click', openMobileMenu);
         if(closeMenuBtn) closeMenuBtn.addEventListener('click', closeMobileMenu);
+    </script>
+    <!-- Full Screen Image Modal -->
+    <div id="full-image-modal" class="fixed inset-0 z-[200] hidden" role="dialog" aria-modal="true">
+        <div class="absolute inset-0 bg-black/95 backdrop-blur-md" onclick="closeFullImage()"></div>
+        
+        <button onclick="closeFullImage()" class="absolute top-4 right-4 z-[210] text-white/70 hover:text-white transition-colors p-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+        </button>
+
+        <div class="absolute inset-0 flex items-center justify-center p-4 pointer-events-none">
+            <img id="full-image-img" src="" alt="Full Screen" class="max-w-full max-h-full object-contain shadow-2xl pointer-events-auto rounded-sm">
+        </div>
+    </div>
+
+    <script>
+        function openFullImage(src) {
+            if (!src || src.includes('placeholder')) return;
+            const modal = document.getElementById('full-image-modal');
+            const img = document.getElementById('full-image-img');
+            img.src = src;
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden'; // Prevent scrolling
+        }
+
+        function closeFullImage() {
+            const modal = document.getElementById('full-image-modal');
+            modal.classList.add('hidden');
+            // Only restore scrolling if catalog modal is not open, but since catalog modal also locks scrolling, 
+            // we should check if catalog modal is open.
+            // However, simplistically, if catalog modal is open, it handles its own overflow.
+            // But we can just set it back to hidden, which usually defaults to 'auto' on body remove,
+            // but here we are stacking modals.
+            
+            // If catalog modal is open, keep body overflow hidden.
+            const catalogModal = document.getElementById('catalog-modal');
+            if (catalogModal && !catalogModal.classList.contains('hidden')) {
+                // Keep hidden
+            } else {
+                document.body.style.overflow = '';
+            }
+        }
+
+        // Close on Escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                const fullModal = document.getElementById('full-image-modal');
+                if (!fullModal.classList.contains('hidden')) {
+                    closeFullImage();
+                }
+            }
+        });
+    </script>
+    <!-- Full Screen Image Modal -->
+    <div id="full-image-modal" class="fixed inset-0 z-[200] hidden" role="dialog" aria-modal="true">
+        <div class="absolute inset-0 bg-black/95 backdrop-blur-md" onclick="closeFullImage()"></div>
+        
+        <button onclick="closeFullImage()" class="absolute top-4 right-4 z-[210] text-white/70 hover:text-white transition-colors p-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+        </button>
+
+        <div class="absolute inset-0 flex items-center justify-center p-4 pointer-events-none">
+            <img id="full-image-img" src="" alt="Full Screen" class="max-w-full max-h-full object-contain shadow-2xl pointer-events-auto rounded-sm">
+        </div>
+    </div>
+
+    <script>
+        function openFullImage(src) {
+            if (!src || src.includes('placeholder')) return;
+            const modal = document.getElementById('full-image-modal');
+            const img = document.getElementById('full-image-img');
+            img.src = src;
+            modal.classList.remove('hidden');
+            // Keep body overflow hidden (already set by catalog modal)
+        }
+
+        function closeFullImage() {
+            const modal = document.getElementById('full-image-modal');
+            modal.classList.add('hidden');
+        }
+
+        // Close on Escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                const fullModal = document.getElementById('full-image-modal');
+                if (!fullModal.classList.contains('hidden')) {
+                    closeFullImage();
+                    event.stopPropagation(); // Prevent closing the underlying catalog modal
+                }
+            }
+        });
     </script>
 </body>
 </html>
