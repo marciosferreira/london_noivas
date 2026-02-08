@@ -10,6 +10,7 @@ from flask import (
 
 import stripe
 import os
+import random
 
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 endpoint_secret = os.getenv("STRIPE_WEBHOOK_SECRET")  # ← este é o certo
@@ -572,6 +573,17 @@ def init_static_routes(
                     ExclusiveStartKey=response["LastEvaluatedKey"]
                 )
                 itens.extend(response.get("Items", []))
+            
+            # Embaralhamento consistente baseado na sessão (Seed)
+            # Garante que a ordem se mantém durante a navegação/paginação do usuário
+            if "catalog_seed" not in session:
+                session["catalog_seed"] = random.randint(1, 100000)
+            
+            # 1. Ordenar por ID para garantir estado inicial determinístico (scan do Dynamo pode variar)
+            itens.sort(key=lambda x: x.get("item_id", ""))
+            
+            # 2. Embaralhar usando o seed da sessão
+            random.Random(session["catalog_seed"]).shuffle(itens)
             
             # Configuração de campos para imagens
             fields_config = []
