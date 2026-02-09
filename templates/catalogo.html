@@ -91,6 +91,18 @@
             <p class="mt-4 text-stone-500 font-serif animate-pulse">Consultando nossa estilista virtual...</p>
         </div>
 
+        <!-- Category Tabs -->
+        <div class="flex justify-center mb-10 border-b border-stone-200" id="category-tabs">
+            <a href="{{ url_for('catalogo', category='noiva') }}" 
+               class="px-8 py-4 text-lg font-serif tracking-widest border-b-2 transition-all duration-300 {{ 'border-london-gold text-stone-900 font-bold' if active_category == 'noiva' else 'border-transparent text-stone-400 hover:text-stone-600 hover:border-stone-200' }}">
+                NOIVAS
+            </a>
+            <a href="{{ url_for('catalogo', category='festa') }}" 
+               class="px-8 py-4 text-lg font-serif tracking-widest border-b-2 transition-all duration-300 {{ 'border-london-gold text-stone-900 font-bold' if active_category == 'festa' else 'border-transparent text-stone-400 hover:text-stone-600 hover:border-stone-200' }}">
+                FESTA
+            </a>
+        </div>
+
         <!-- Catalog Grid -->
         <div id="catalog-grid" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-8">
             {% if itens %}
@@ -120,7 +132,8 @@
                         title: '{{ item.title | replace("'", "\\'") }}',
                         description: '{{ item.item_description | replace("'", "\\'") | replace("\n", " ") }}',
                         price: '{{ item.item_value }}',
-                        customId: '{{ item.item_custom_id }}'
+                        customId: '{{ item.item_custom_id }}',
+                        category: '{{ item.category | default("Festa") }}'
                     };
                 </script>
                 {% endfor %}
@@ -134,7 +147,7 @@
         <!-- Pagination Controls -->
         <div id="catalog-pagination" class="{% if total_pages and total_pages > 1 %}flex{% else %}hidden{% endif %} justify-center items-center mt-12 gap-4">
             {% if page and page > 1 %}
-            <a href="{{ url_for('catalogo', page=page-1) }}" class="px-6 py-3 border border-stone-300 text-stone-600 hover:bg-stone-800 hover:text-white hover:border-stone-800 transition-all font-medium rounded-sm">
+            <a href="{{ url_for('catalogo', page=page-1, category=active_category) }}" class="px-6 py-3 border border-stone-300 text-stone-600 hover:bg-stone-800 hover:text-white hover:border-stone-800 transition-all font-medium rounded-sm">
                 &larr; Anterior
             </a>
             {% endif %}
@@ -144,7 +157,7 @@
             </span>
             
             {% if page and total_pages and page < total_pages %}
-            <a href="{{ url_for('catalogo', page=page+1) }}" class="px-6 py-3 border border-stone-300 text-stone-600 hover:bg-stone-800 hover:text-white hover:border-stone-800 transition-all font-medium rounded-sm">
+            <a href="{{ url_for('catalogo', page=page+1, category=active_category) }}" class="px-6 py-3 border border-stone-300 text-stone-600 hover:bg-stone-800 hover:text-white hover:border-stone-800 transition-all font-medium rounded-sm">
                 Próxima &rarr;
             </a>
             {% endif %}
@@ -179,6 +192,7 @@
                     <div class="flex-1">
                         <span class="text-london-gold font-bold tracking-widest text-xs uppercase mb-2 block">London Noivas Collection</span>
                         <h3 id="modal-title" class="text-3xl md:text-4xl font-serif text-stone-900 mb-2 leading-tight"></h3>
+                        <p id="modal-category" class="text-stone-500 font-serif mb-2">Categoria: <span id="modal-category-value"></span></p>
                         <p id="modal-price" class="text-2xl text-stone-600 font-serif mb-2"></p>
                         <p class="text-xs text-stone-400 mb-6 font-mono">ID: <span id="modal-id-value"></span></p>
                         
@@ -220,13 +234,13 @@
         function openCatalogModalById(itemId, source) {
             const data = window.catalogData && window.catalogData[itemId];
             if (data) {
-                openCatalogModal(data.imageUrl, data.title, data.description, itemId, data.price, source, data.customId);
+                openCatalogModal(data.imageUrl, data.title, data.description, itemId, data.price, source, data.customId, data.category);
             } else {
                 console.error('Dados do item não encontrados para ID:', itemId);
             }
         }
 
-        function openCatalogModal(imageUrl, title, description, itemId, price, source, customDisplayId) {
+        function openCatalogModal(imageUrl, title, description, itemId, price, source, customDisplayId, category) {
             const idToShow = customDisplayId || itemId;
             
             // Handle Price Display Logic
@@ -240,6 +254,7 @@
             document.getElementById('modal-desc').textContent = description;
             document.getElementById('modal-price').textContent = displayPrice;
             document.getElementById('modal-id-value').textContent = idToShow;
+            document.getElementById('modal-category-value').textContent = category || 'Festa';
             
             const phoneNumber = "5592993531943";
             
@@ -290,7 +305,7 @@
                             data.suggestions.forEach(item => {
                                 const div = document.createElement('div');
                                 div.className = 'cursor-pointer group';
-                                div.onclick = () => openCatalogModal(item.image_url, item.title, item.description, item.id, 'Consulte o preço do aluguel', 'similar', item.customId);
+                                div.onclick = () => openCatalogModal(item.image_url, item.title, item.description, item.id, 'Consulte o preço do aluguel', 'similar', item.customId, item.category);
                                 div.innerHTML = `
                                     <div class="aspect-[3/4] bg-stone-100 overflow-hidden mb-2 rounded-sm relative">
                                         <img src="${item.image_url}" class="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110" alt="${item.title}">
@@ -318,6 +333,7 @@
 
         // AI Search Logic
         let currentSearchQuery = '';
+        const activeCategory = "{{ active_category }}";
 
         function handleEnterSearch(event) {
             if (event.key === 'Enter') {
@@ -347,7 +363,12 @@
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ query: currentSearchQuery, page: page, limit: 12 })
+                body: JSON.stringify({ 
+                    query: currentSearchQuery, 
+                    page: page, 
+                    limit: 12,
+                    category: activeCategory
+                })
             })
             .then(response => response.json())
             .then(data => {
@@ -407,12 +428,13 @@
                     title: item.title,
                     description: item.description,
                     price: item.price,
-                    customId: item.customId || item.item_id
+                    customId: item.customId || item.item_id,
+                    category: item.category
                 };
 
                 const div = document.createElement('div');
                 div.className = 'group bg-white rounded-sm shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden animate-fadeIn';
-                div.onclick = () => openCatalogModal(item.imageUrl, item.title, item.description, item.item_id, item.price, 'ai_search', item.customId);
+                div.onclick = () => openCatalogModal(item.imageUrl, item.title, item.description, item.item_id, item.price, 'ai_search', item.customId, item.category);
                 
                 div.innerHTML = `
                     <div class="aspect-[3/4] overflow-hidden bg-stone-200 relative">
@@ -469,7 +491,7 @@
             const itemId = urlParams.get('item');
             if (itemId && window.catalogData && window.catalogData[itemId]) {
                 const item = window.catalogData[itemId];
-                openCatalogModal(item.imageUrl, item.title, item.description, itemId, item.price, 'direct', item.customId);
+                openCatalogModal(item.imageUrl, item.title, item.description, itemId, item.price, 'direct', item.customId, item.category);
             }
         });
     </script>

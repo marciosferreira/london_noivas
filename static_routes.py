@@ -507,31 +507,49 @@ def init_static_routes(
                 except:
                     return 0
 
-            # 1. Filter items with visits > 0 and sort desc
-            visited_items = [i for i in all_items if get_visits(i) > 0]
-            visited_items.sort(key=get_visits, reverse=True)
+            # Split into Noiva and Festa
+            noiva_candidates = []
+            festa_candidates = []
             
-            # 2. Items with 0 visits
-            other_items = [i for i in all_items if get_visits(i) <= 0]
-            
-            # 3. Select top 12 visited
-            destaques = visited_items[:12]
-            
-            # 4. Fill with random items if needed
-            if len(destaques) < 12:
-                needed = 12 - len(destaques)
-                if other_items:
-                    if len(other_items) >= needed:
-                        destaques.extend(random.sample(other_items, needed))
-                    else:
-                        destaques.extend(other_items)
-            
-            itens = destaques
+            for item in all_items:
+                cat = item.get('category', '').lower().strip()
+                # Also check 'categoria' for legacy support, though we updated it
+                if not cat:
+                    cat = item.get('categoria', '').lower().strip()
                 
+                if cat in ['noiva', 'noivas']:
+                    noiva_candidates.append(item)
+                else:
+                    # Default to Festa for anything else, or specifically 'festa'
+                    # Given the user's request, let's assume everything else fits into Festa 
+                    # or explicitly check. To be safe and show items, let's put everything else in Festa
+                    # but maybe prioritize explicit 'festa'. 
+                    # For now, let's put everything else in Festa to avoid hiding items.
+                    festa_candidates.append(item)
+
+            # Sort by visits
+            noiva_candidates.sort(key=get_visits, reverse=True)
+            festa_candidates.sort(key=get_visits, reverse=True)
+            
+            # Select top 6 for each
+            noivas_itens = noiva_candidates[:6]
+            festa_itens = festa_candidates[:6]
+            
+            # Fill logic is implicit: we take up to 6. 
+            # If we want to force 6 by random filling from the rest (if they have 0 visits),
+            # the sort already puts 0 visits at the end. 
+            # So taking top 6 gives us the most visited, then 0 visited.
+            # If we have fewer than 6 total items in a category, we just show what we have.
+            
+            # Prepare fields_config (using any item to get account_id)
             fields_config = []
-            if itens:
+            sample_item = None
+            if all_items:
+                sample_item = all_items[0]
+            
+            if sample_item:
                 # Use account_id from first item to get config
-                account_id = itens[0].get("account_id")
+                account_id = sample_item.get("account_id")
                 if account_id:
                     config_response = field_config_table.get_item(
                         Key={"account_id": account_id, "entity": "item"}
@@ -549,7 +567,7 @@ def init_static_routes(
                         })
                     fields_config.sort(key=lambda x: x["order_sequence"])
             
-            return render_template("index.html", itens=itens, fields_config=fields_config)
+            return render_template("index.html", noivas_itens=noivas_itens, festa_itens=festa_itens, fields_config=fields_config)
             
         except Exception as e:
             print(f"Error loading vitrine: {e}")
@@ -559,21 +577,40 @@ def init_static_routes(
     def catalogo():
         try:
             page = request.args.get('page', 1, type=int)
+            active_category = request.args.get('category', 'noiva').lower() # Default to noiva
             per_page = 12
             
             # Fetch all available items (same as index) but filtered by account
             response = itens_table.scan(
                 FilterExpression=Attr("status").eq("available") & Attr("account_id").eq(LONDON_NOIVAS_ACCOUNT_ID)
             )
-            itens = response.get("Items", [])
+            all_items = response.get("Items", [])
             
             while "LastEvaluatedKey" in response:
                 response = itens_table.scan(
                     FilterExpression=Attr("status").eq("available") & Attr("account_id").eq(LONDON_NOIVAS_ACCOUNT_ID),
                     ExclusiveStartKey=response["LastEvaluatedKey"]
                 )
-                itens.extend(response.get("Items", []))
+                all_items.extend(response.get("Items", []))
             
+            # Filter by Category
+            filtered_items = []
+            for item in all_items:
+                cat = item.get('category', '').lower().strip()
+                if not cat:
+                    cat = item.get('categoria', '').lower().strip()
+                
+                is_noiva = cat in ['noiva', 'noivas']
+                
+                if active_category == 'noiva':
+                    if is_noiva:
+                        filtered_items.append(item)
+                else: # festa (everything else)
+                    if not is_noiva:
+                        filtered_items.append(item)
+            
+            itens = filtered_items
+
             # Embaralhamento consistente baseado na sessão (Seed)
             # Garante que a ordem se mantém durante a navegação/paginação do usuário
             if "catalog_seed" not in session:
@@ -619,12 +656,13 @@ def init_static_routes(
                 fields_config=fields_config,
                 page=page,
                 total_pages=total_pages,
-                total_items=total_items
+                total_items=total_items,
+                active_category=active_category
             )
             
         except Exception as e:
             print(f"Error loading catalogo: {e}")
-            return render_template("catalogo.html", itens=[], fields_config=[], page=1, total_pages=1)
+            return render_template("catalogo.html", itens=[], fields_config=[], page=1, total_pages=1, active_category='noiva')
 
     @app.route("/home")
     def home():

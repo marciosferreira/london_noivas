@@ -7,6 +7,7 @@ import pickle
 import shutil
 import base64
 import subprocess
+import faiss # Import faiss for direct index checking
 from botocore.exceptions import ClientError
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -18,6 +19,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DRESSES_DIR = os.path.join(BASE_DIR, 'static', 'dresses')
 DATASET_FILE = os.path.join(BASE_DIR, 'embeddings_creation', 'vestidos_dataset.jsonl')
 METADATA_FILE = os.path.join(BASE_DIR, 'vector_store_metadata.pkl')
+INDEX_FILE = os.path.join(BASE_DIR, 'vector_store.index')
 CREATE_VECTOR_SCRIPT = os.path.join(BASE_DIR, 'embeddings_creation', 'create_vector_store.py')
 
 # AWS & OpenAI
@@ -76,8 +78,12 @@ def get_index_status():
         print(f"Erro ao escanear DynamoDB: {e}")
         return {"error": str(e)}
 
-    # 2. Get all IDs from Metadata
+    # 2. Get all IDs from Metadata & Check Index Integrity
     index_ids = set()
+    index_total = 0
+    integrity_error = None
+
+    # Check Metadata
     if os.path.exists(METADATA_FILE):
         try:
             with open(METADATA_FILE, 'rb') as f:
@@ -87,24 +93,48 @@ def get_index_status():
                         index_ids.add(m['custom_id'])
         except Exception as e:
             print(f"Erro ao ler metadata: {e}")
+            integrity_error = f"Erro leitura metadata: {e}"
 
-    # 3. Compare
+    # Check FAISS Index (Strict Count Check)
+    if os.path.exists(INDEX_FILE):
+        try:
+            index = faiss.read_index(INDEX_FILE)
+            index_total = index.ntotal
+        except Exception as e:
+            print(f"Erro ao ler índice FAISS: {e}")
+            integrity_error = f"Erro leitura índice: {e}"
+    else:
+        integrity_error = "Arquivo de índice não encontrado."
+
+    # Consistency Check: Metadata vs Index
+    if not integrity_error and len(index_ids) != index_total:
+        integrity_error = f"Inconsistência Interna: Metadata tem {len(index_ids)} itens, Índice tem {index_total}."
+
+    # 3. Compare DB vs Metadata
     missing_in_index = db_ids - index_ids # Needs Add
     deleted_in_db = index_ids - db_ids    # Needs Remove
     
     # Remove pending from missing to avoid duplication if they are both
     missing_in_index = missing_in_index - pending_ids
 
-    return {
+    # Final Status Construction
+    status = {
         "db_count": len(db_ids),
-        "index_count": len(index_ids),
+        "index_count": index_total,
+        "metadata_count": len(index_ids),
         "missing_count": len(missing_in_index),
         "deleted_count": len(deleted_in_db),
-        "pending_count": len(pending_ids),
         "missing_ids": list(missing_in_index),
         "deleted_ids": list(deleted_in_db),
-        "pending_ids": list(pending_ids)
+        "pending_ids": list(pending_ids),
+        "integrity_error": integrity_error
     }
+
+    # If significant mismatch in counts, add warning
+    if abs(len(db_ids) - index_total) > 0 and not integrity_error:
+        status["warning"] = f"Desbalanço: DB({len(db_ids)}) vs Index({index_total})"
+
+    return status
 
 def encode_image(image_input):
     """Encodes image from path (str) or bytes to base64 string"""
@@ -191,10 +221,11 @@ def sync_index():
     deleted_ids = status['deleted_ids']
     pending_ids = status.get('pending_ids', [])
 
-    if not missing_ids and not deleted_ids and not pending_ids:
+    # Se houver erro de integridade, CONTINUA a execução para reconstruir o índice
+    if not missing_ids and not deleted_ids and not pending_ids and not status.get('integrity_error'):
         return {"status": "success", "message": "Índice já está atualizado."}
 
-    print(f"Iniciando sincronização: +{len(missing_ids)} novos, -{len(deleted_ids)} deletados, ~{len(pending_ids)} atualizações.")
+    print(f"Iniciando sincronização: +{len(missing_ids)} novos, -{len(deleted_ids)} deletados, ~{len(pending_ids)} atualizações. Integridade: {status.get('integrity_error') or 'OK'}")
 
     # A. Carregar dados existentes
     existing_data = []
@@ -308,7 +339,11 @@ def sync_index():
     except subprocess.CalledProcessError as e:
         return {"status": "error", "message": f"Falha na reconstrução do índice: {e}"}
     
-    message = f"Sincronização concluída. +{new_items_count} adicionados, -{len(deleted_ids)} removidos."
+    # Mensagem final ajustada
+    if status.get('integrity_error'):
+        message = f"Reparo de integridade concluído. +{new_items_count} adicionados, -{len(deleted_ids)} removidos."
+    else:
+        message = f"Sincronização concluída. +{new_items_count} adicionados, -{len(deleted_ids)} removidos."
     if failed_items:
         message += f" ATENÇÃO: {len(failed_items)} itens falharam e não foram salvos: " + "; ".join(failed_items)
 

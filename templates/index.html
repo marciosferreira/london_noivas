@@ -225,6 +225,78 @@
         </section>
 
         <!-- Vitrine (Collections) Section -->
+        {% macro render_item(item, fields_config) %}
+            {# Image Logic #}
+            {% set ns = namespace(found=false, image_url='') %}
+            {% for field in fields_config if field.type == 'item_image_url' and field.preview and field.visible %}
+               {% set image_value = item.key_values[field.id] if item.key_values is defined and field.id in item.key_values else item[field.id] if field.id in item else '' %}
+               {% if image_value and image_value != 'N/A' and not ns.found %}
+                   {% set ns.image_url = image_value %}
+                   {% set ns.found = true %}
+               {% endif %}
+            {% endfor %}
+            
+            {# Price Logic #}
+            {% set ns.price_display = 'Consulte o preço do aluguel' %}
+            {% for field in fields_config if field.type in ['value', 'item_value'] %}
+               {% set price_val = item.key_values[field.id] if item.key_values is defined and field.id in item.key_values else item[field.id] if field.id in item else 0 %}
+               {% if price_val|float == 0 %}
+                   {% set ns.price_display = 'Consulte o preço do aluguel' %}
+               {% else %}
+                   {% set ns.price_display = 'R$ ' + (price_val|format_brl) + ' (aluguel)' %}
+               {% endif %}
+            {% endfor %}
+            
+            {# Title and Description Logic #}
+            {% set display_title = (item.title | default('') | string | trim) or (item.nome | default('') | string | trim) or (item.item_custom_id | default('') | string | trim) or 'Peça Exclusiva' %}
+            {% set display_desc = (item.item_description | default('') | string | trim) or (item.description | default('') | string | trim) or (item.item_obs | default('') | string | trim) or 'Sem descrição detalhada.' %}
+            
+            <div class="group relative overflow-hidden cursor-pointer shadow-lg hover:shadow-2xl transition-all duration-500"
+                 onclick="openCatalogModalById('{{ item.item_id }}', 'featured')">
+                <script>
+                    (function() {
+                        window.catalogData = window.catalogData || {};
+                        window.catalogData['{{ item.item_id }}'] = {
+                            imageUrl: {{ ns.image_url | tojson }},
+                            title: {{ display_title | tojson }},
+                            description: {{ display_desc | tojson }},
+                            price: {{ ns.price_display | tojson }},
+                            customId: {{ item.item_custom_id | default(item.item_id) | tojson }},
+                            category: {{ item.category | default('Festa') | tojson }}
+                        };
+                    })();
+                </script>
+
+                <div class="aspect-[3/4] overflow-hidden bg-stone-200">
+                     {% if ns.found %}
+                        <img src="{{ ns.image_url }}" alt="Item Image" class="w-full h-full object-contain bg-gray-50 grayscale-[0.2] group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700">
+                     {% else %}
+                        <div class="w-full h-full flex items-center justify-center text-stone-400 bg-stone-100">
+                            <span class="font-serif italic">Sem imagem</span>
+                        </div>
+                     {% endif %}
+                </div>
+                
+                <div class="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-all"></div>
+                
+                <div class="absolute bottom-0 left-0 right-0 p-8 text-white transform translate-y-4 group-hover:translate-y-0 transition-all">
+                    <span class="text-xs tracking-[0.3em] uppercase mb-2 block text-london-gold font-bold">
+                        {% if item.categoria %}
+                            {{ item.categoria }}
+                        {% else %}
+                            EXCLUSIVO
+                        {% endif %}
+                    </span>
+                    <h3 class="text-2xl font-serif mb-2 leading-tight">
+                        {{ display_title }}
+                    </h3>
+                    <p class="text-sm opacity-0 group-hover:opacity-100 transition-opacity font-light">
+                        Ver Detalhes
+                    </p>
+                </div>
+            </div>
+        {% endmacro %}
+
         <section id="colecoes" class="pt-4 pb-12 md:pt-12 md:pb-24 bg-white">
             <div class="container mx-auto px-6 text-center mb-16">
                 <h2 class="text-4xl md:text-6xl font-serif text-stone-800 mb-4">Destaques</h2>
@@ -234,82 +306,36 @@
                 </p>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 px-6 container mx-auto">
-                {% if itens %}
-                    {% for item in itens %}
-                    {# Image Logic #}
-                    {% set ns = namespace(found=false, image_url='') %}
-                    {% for field in fields_config if field.type == 'item_image_url' and field.preview and field.visible %}
-                       {% set image_value = item.key_values[field.id] if item.key_values is defined and field.id in item.key_values else item[field.id] if field.id in item else '' %}
-                       {% if image_value and image_value != 'N/A' and not ns.found %}
-                           {% set ns.image_url = image_value %}
-                           {% set ns.found = true %}
-                       {% endif %}
-                    {% endfor %}
-                    
-                    {# Price Logic #}
-                    {% set ns.price_display = 'Consulte o preço do aluguel' %}
-                    {% for field in fields_config if field.type in ['value', 'item_value'] %}
-                       {% set price_val = item.key_values[field.id] if item.key_values is defined and field.id in item.key_values else item[field.id] if field.id in item else 0 %}
-                       {% if price_val|float == 0 %}
-                           {% set ns.price_display = 'Consulte o preço do aluguel' %}
-                       {% else %}
-                           {% set ns.price_display = 'R$ ' + (price_val|format_brl) + ' (aluguel)' %}
-                       {% endif %}
-                    {% endfor %}
-                    
-                    {# Title and Description Logic #}
-                    {% set display_title = (item.title | default('') | string | trim) or (item.nome | default('') | string | trim) or (item.item_custom_id | default('') | string | trim) or 'Peça Exclusiva' %}
-                    {% set display_desc = (item.item_description | default('') | string | trim) or (item.description | default('') | string | trim) or (item.item_obs | default('') | string | trim) or 'Sem descrição detalhada.' %}
-                    
-                    <div class="group relative overflow-hidden cursor-pointer shadow-lg hover:shadow-2xl transition-all duration-500"
-                         onclick="openCatalogModalById('{{ item.item_id }}', 'featured')">
-                        <script>
-                            (function() {
-                                window.catalogData = window.catalogData || {};
-                                window.catalogData['{{ item.item_id }}'] = {
-                                    imageUrl: {{ ns.image_url | tojson }},
-                                    title: {{ display_title | tojson }},
-                                    description: {{ display_desc | tojson }},
-                                    price: {{ ns.price_display | tojson }},
-                                    customId: {{ item.item_custom_id | default(item.item_id) | tojson }}
-                                };
-                            })();
-                        </script>
-
-                        <div class="aspect-[3/4] overflow-hidden bg-stone-200">
-                             {% if ns.found %}
-                                <img src="{{ ns.image_url }}" alt="Item Image" class="w-full h-full object-contain bg-gray-50 grayscale-[0.2] group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700">
-                             {% else %}
-                                <div class="w-full h-full flex items-center justify-center text-stone-400 bg-stone-100">
-                                    <span class="font-serif italic">Sem imagem</span>
-                                </div>
-                             {% endif %}
-                        </div>
-                        
-                        <div class="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-all"></div>
-                        
-                        <div class="absolute bottom-0 left-0 right-0 p-8 text-white transform translate-y-4 group-hover:translate-y-0 transition-all">
-                            <span class="text-xs tracking-[0.3em] uppercase mb-2 block text-london-gold font-bold">
-                                {% if item.categoria %}
-                                    {{ item.categoria }}
-                                {% else %}
-                                    EXCLUSIVO
-                                {% endif %}
-                            </span>
-                            <h3 class="text-2xl font-serif mb-2 leading-tight">
-                                {{ display_title }}
-                            </h3>
-                            <!-- Opcional: Mostrar preço ou outro detalhe no subtitle -->
-                            <p class="text-sm opacity-0 group-hover:opacity-100 transition-opacity font-light">
-                                Ver Detalhes
-                            </p>
-                        </div>
-                    </div>
+            <!-- Noivas Section -->
+            <div class="container mx-auto px-6 mb-10">
+                <h3 class="text-3xl md:text-4xl font-serif text-stone-800 mb-4 border-l-4 border-london-gold pl-4">Noivas</h3>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 px-6 container mx-auto mb-20">
+                {% if noivas_itens %}
+                    {% for item in noivas_itens %}
+                        {{ render_item(item, fields_config) }}
                     {% endfor %}
                 {% else %}
-                    <div class="col-span-full text-center py-12">
-                        <p class="text-stone-500 text-lg">Nenhum item disponível no momento. Visite-nos em breve!</p>
+                    <div class="col-span-full text-center py-4">
+                        <p class="text-stone-500 text-lg">Nenhum vestido de noiva em destaque no momento.</p>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Festa Section -->
+             <div class="container mx-auto px-6 mb-10">
+                <h3 class="text-3xl md:text-4xl font-serif text-stone-800 mb-4 border-l-4 border-london-gold pl-4">Festa</h3>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 px-6 container mx-auto">
+                 {% if festa_itens %}
+                    {% for item in festa_itens %}
+                        {{ render_item(item, fields_config) }}
+                    {% endfor %}
+                {% else %}
+                    <div class="col-span-full text-center py-4">
+                        <p class="text-stone-500 text-lg">Nenhum vestido de festa em destaque no momento.</p>
                     </div>
                 {% endif %}
             </div>
@@ -974,7 +1000,8 @@
                             <div class="flex-1">
                                 <span class="text-london-gold font-bold tracking-widest text-xs uppercase mb-2 block">London Noivas Collection</span>
                                 <h3 id="catalog-modal-title" class="text-3xl md:text-4xl font-serif text-stone-900 mb-2 leading-tight"></h3>
-                                <p id="catalog-modal-price" class="text-2xl text-stone-600 font-serif mb-2"></p>
+                        <p id="catalog-modal-category" class="text-stone-500 font-serif mb-2">Categoria: <span id="catalog-modal-category-value"></span></p>
+                        <p id="catalog-modal-price" class="text-2xl text-stone-600 font-serif mb-2"></p>
                                 <p class="text-xs text-stone-400 mb-6 font-mono">ID: <span id="catalog-modal-id-value"></span></p>
                                 
                                 <div class="w-12 h-1 bg-stone-200 mb-8"></div>
@@ -1015,13 +1042,13 @@
             const data = window.catalogData && window.catalogData[itemId];
             if (data) {
                 // Pass UUID as itemId, and customId as display param
-                openCatalogModal(data.imageUrl, data.title, data.description, itemId, data.price, source, data.customId);
+                openCatalogModal(data.imageUrl, data.title, data.description, itemId, data.price, source, data.customId, data.category);
             } else {
                 console.error('Dados do item não encontrados para ID:', itemId);
             }
         }
 
-        function openCatalogModal(imageUrl, title, description, itemId, price, source, customDisplayId) {
+        function openCatalogModal(imageUrl, title, description, itemId, price, source, customDisplayId, category) {
             const idToShow = customDisplayId || itemId;
 
             // Handle Price Display Logic
@@ -1035,6 +1062,7 @@
             document.getElementById('catalog-modal-desc').textContent = description;
             document.getElementById('catalog-modal-price').textContent = displayPrice;
             document.getElementById('catalog-modal-id-value').textContent = idToShow;
+            document.getElementById('catalog-modal-category-value').textContent = category || 'Festa';
             
             const phoneNumber = "5592993531943";
             
@@ -1091,7 +1119,7 @@
                             data.suggestions.forEach(item => {
                                 const div = document.createElement('div');
                                 div.className = 'cursor-pointer group';
-                                div.onclick = () => openCatalogModal(item.image_url, item.title, item.description, item.id, 'Consulte o preço do aluguel', 'similar', item.customId);
+                                div.onclick = () => openCatalogModal(item.image_url, item.title, item.description, item.id, 'Consulte o preço do aluguel', 'similar', item.customId, item.category);
                                 div.innerHTML = `
                                     <div class="aspect-[3/4] bg-stone-100 overflow-hidden mb-2 rounded-sm relative">
                                         <img src="${item.image_url}" class="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110" alt="${item.title}">
@@ -1124,7 +1152,7 @@
             const itemId = urlParams.get('item');
             if (itemId && window.catalogData && window.catalogData[itemId]) {
                 const item = window.catalogData[itemId];
-                openCatalogModal(item.imageUrl, item.title, item.description, itemId, item.price, 'url_load', item.customId);
+                openCatalogModal(item.imageUrl, item.title, item.description, itemId, item.price, 'url_load', item.customId, item.category);
             }
         });
     </script>

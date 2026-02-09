@@ -195,20 +195,30 @@
             // Verifica se há itens faltando (missing), deletados ou pendentes
             const pendingCount = (data.pending_ids && Array.isArray(data.pending_ids)) ? data.pending_ids.length : 0;
             
-            if (data.missing_count > 0 || data.deleted_count > 0 || pendingCount > 0) {
+            if (data.integrity_error || data.warning || data.missing_count > 0 || data.deleted_count > 0 || pendingCount > 0) {
                 const alert = document.getElementById('aiSyncAlert');
                 if(alert) {
                     alert.classList.remove('d-none');
                     alert.classList.add('d-flex');
                     
                     const msgEl = document.getElementById('aiSyncMsg');
-                    const msg = [];
-                    if (data.missing_count > 0) msg.push(`${data.missing_count} novos`);
-                    if (data.deleted_count > 0) msg.push(`${data.deleted_count} removidos`);
-                    if (pendingCount > 0) msg.push(`${pendingCount} pendentes`);
                     
-                    if(msg.length > 0) {
-                        msgEl.textContent = `Alterações detectadas: ${msg.join(', ')}. Atualize o índice para refletir na busca.`;
+                    if (data.integrity_error) {
+                        alert.classList.remove('alert-warning');
+                        alert.classList.add('alert-danger');
+                        msgEl.innerHTML = `<strong>ERRO CRÍTICO:</strong> ${data.integrity_error}`;
+                    } else if (data.warning) {
+                         msgEl.innerHTML = `<strong>AVISO:</strong> ${data.warning}`;
+                    } else {
+                        // Normal sync needed
+                        const msg = [];
+                        if (data.missing_count > 0) msg.push(`${data.missing_count} novos`);
+                        if (data.deleted_count > 0) msg.push(`${data.deleted_count} removidos`);
+                        if (pendingCount > 0) msg.push(`${pendingCount} pendentes`);
+                        
+                        if(msg.length > 0) {
+                            msgEl.textContent = `Alterações detectadas: ${msg.join(', ')}. Atualize o índice para refletir na busca.`;
+                        }
                     }
                 }
             }

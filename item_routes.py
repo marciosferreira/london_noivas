@@ -39,64 +39,7 @@ def allowed_file(filename):
 from utils import upload_image_to_s3, aplicar_filtro, copy_image_in_s3
 
 
-"""
-def get_all_fields(account_id, field_config_table):
 
-    config_response = field_config_table.get_item(
-        Key={"account_id": account_id, "entity": "item"}
-    )
-    fields_config = config_response.get("Item", {}).get("fields_config", {})
-
-    # Ensure mandatory fields for item entity
-    if entity == "item":
-        if "title" not in fields_config and "item_title" not in fields_config:
-            fields_config["title"] = {
-                "label": "Título do Item", 
-                "type": "text", 
-                "required": True, 
-                "visible": True, 
-                "order_sequence": 1, 
-                "f_type": "fixed"
-            }
-        
-        # Check for existing description fields (standard 'description' or legacy 'item_description')
-        has_description = "description" in fields_config or "item_description" in fields_config
-        
-        if not has_description:
-            fields_config["description"] = {
-                "label": "Descrição do Item", 
-                "type": "text", 
-                "required": True, 
-                "visible": True, 
-                "order_sequence": 2, 
-                "f_type": "fixed"
-            }
-
-    all_fields = []
-    for field_id, cfg in fields_config.items():
-        label = cfg.get("label", field_id.replace("_", " ").capitalize())
-
-        all_fields.append(
-            {
-                "id": field_id,
-                "label": label,
-                "title": label,  # usado em outras rotas
-                "type": cfg.get("type", "string"),
-                "required": False if field_id in ["item_custom_id", "title", "item_title", "description", "item_description"] else cfg.get("required", False),
-                "visible": cfg.get("visible", True),
-                "preview": cfg.get("preview", False),
-                "filterable": cfg.get("filterable", False),
-                "order_sequence": int(cfg.get("order_sequence", 999)),
-                "options": (
-                    cfg.get("options", [])
-                    if cfg.get("type") in ["dropdown", "transaction_status"]
-                    else []
-                ),
-                "fixed": cfg.get("f_type", "custom") == "fixed",
-            }
-        )
-    return sorted(all_fields, key=lambda x: x["order_sequence"])
-"""
 
 
 def init_item_routes(
@@ -3268,6 +3211,20 @@ def get_all_fields(account_id, field_config_table, entity):
                 "required": True, 
                 "visible": True, 
                 "order_sequence": 2, 
+                "f_type": "fixed"
+            }
+
+        # Ensure category field exists
+        if "category" not in fields_config:
+            fields_config["category"] = {
+                "label": "Categoria",
+                "type": "dropdown",
+                "options": ["Noiva", "Festa"],
+                "required": True,
+                "visible": True,
+                "filterable": True,
+                "preview": True,
+                "order_sequence": 3,
                 "f_type": "fixed"
             }
 

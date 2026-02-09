@@ -94,7 +94,7 @@ def validate_and_enrich_candidates(candidates_metadata):
                 RequestItems={
                     'alugueqqc_itens': {
                         'Keys': chunk,
-                        'ProjectionExpression': 'item_id, #st, title, item_description, item_image_url, item_value, item_custom_id',
+                        'ProjectionExpression': 'item_id, #st, title, item_description, item_image_url, item_value, item_custom_id, category',
                         'ExpressionAttributeNames': {'#st': 'status'}
                     }
                 }
@@ -149,6 +149,8 @@ def validate_and_enrich_candidates(candidates_metadata):
             meta['customId'] = db_item.get('item_custom_id')
             # UUID (System ID)
             meta['item_id'] = db_item.get('item_id')
+            # Category
+            meta['category'] = db_item.get('category', 'Festa')
             
             valid_items.append(meta)
             
@@ -286,6 +288,7 @@ def ai_search():
                             "title": item.get('title', 'Vestido Exclusivo'),
                             "description": item.get('description', ''),
                             "price": item.get('price', "Consulte valor"),
+                            "category": item.get('category', 'Festa'),
                             "image_url": item.get('imageUrl') or url_for('static', filename=f"dresses/{item['file_name']}")
                         })
                     
@@ -377,7 +380,8 @@ def ai_similar(item_id):
                 "customId": item.get('customId'),
                 "title": item.get('title', 'Vestido'),
                 "image_url": item.get('imageUrl') or url_for('static', filename=f"dresses/{item['file_name']}"),
-                "description": item.get('description', '')
+                "description": item.get('description', ''),
+                "category": item.get('category', 'Festa')
             })
                 
         return jsonify({"suggestions": suggestions})
@@ -424,6 +428,24 @@ def ai_catalog_search():
         # Isso é rápido mesmo para 100 itens (~1 call DynamoDB)
         valid_results = validate_and_enrich_candidates(raw_results)
 
+        # Filtragem por Categoria (Aba Ativa)
+        target_category = data.get('category', '').lower().strip()
+        
+        if target_category:
+            filtered_results = []
+            for item in valid_results:
+                item_cat = item.get('category', '').lower().strip()
+                is_noiva = item_cat in ['noiva', 'noivas']
+                
+                if target_category == 'noiva':
+                    if is_noiva:
+                        filtered_results.append(item)
+                else: # festa (padrão para qualquer outra categoria)
+                    if not is_noiva:
+                        filtered_results.append(item)
+            
+            valid_results = filtered_results
+
         # 3. Paginação em memória
         total_valid = len(valid_results)
         total_pages = (total_valid + limit - 1) // limit
@@ -445,7 +467,8 @@ def ai_catalog_search():
                 "imageUrl": item.get('imageUrl') or url_for('static', filename=f"dresses/{item['file_name']}"),
                 "description": item.get('description', ''),
                 "price": item.get('price', "Consulte o preço do aluguel"),
-                "customId": item.get('customId') # Adicionado para consistência
+                "customId": item.get('customId'), # Adicionado para consistência
+                "category": item.get('category', 'Festa')
             })
                 
         return jsonify({

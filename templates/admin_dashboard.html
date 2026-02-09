@@ -34,8 +34,20 @@ function checkAIStatus() {
             content.classList.remove('d-none');
             btn.disabled = false;
 
-            if (data.missing_count > 0 || data.deleted_count > 0) {
+            // Reset alert classes
+            alert.classList.remove('alert-danger', 'alert-warning');
+            
+            if (data.integrity_error) {
                 alert.classList.remove('d-none');
+                alert.classList.add('alert-danger');
+                document.getElementById('aiSyncMsg').innerHTML = `<strong>ERRO DE INTEGRIDADE:</strong> ${data.integrity_error}`;
+            } else if (data.warning) {
+                alert.classList.remove('d-none');
+                alert.classList.add('alert-warning');
+                document.getElementById('aiSyncMsg').innerHTML = `<strong>ATENÇÃO:</strong> ${data.warning}`;
+            } else if (data.missing_count > 0 || data.deleted_count > 0) {
+                alert.classList.remove('d-none');
+                alert.classList.add('alert-warning');
                 const msg = [];
                 if (data.missing_count > 0) msg.push(`${data.missing_count} novos itens para adicionar`);
                 if (data.deleted_count > 0) msg.push(`${data.deleted_count} itens para remover`);
