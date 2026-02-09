@@ -3,12 +3,16 @@ import json
 import pickle
 import faiss
 import numpy as np
+import re
+import time
+import unicodedata
+import threading
 import boto3
 from boto3.dynamodb.conditions import Key
 from flask import Blueprint, request, jsonify, url_for, current_app
 from openai import OpenAI
 from dotenv import load_dotenv
-from ai_sync_service import get_index_status, sync_index as service_sync_index
+from ai_sync_service import get_index_status, sync_index as service_sync_index, get_progress
 
 # Configuração
 load_dotenv()
@@ -36,26 +40,304 @@ EMBEDDING_MODEL = "text-embedding-3-small"
 # Carrega recursos globais
 index = None
 metadata = []
+inventory_digest = {}
+_query_rewrite_cache = {}
+_QUERY_REWRITE_CACHE_TTL_SECONDS = 15 * 60
+
+def _normalize_text(text):
+    text = str(text or "").lower()
+    text = unicodedata.normalize("NFKD", text)
+    text = "".join([c for c in text if not unicodedata.combining(c)])
+    text = re.sub(r"\s+", " ", text).strip()
+    return text
 
 def load_resources():
-    global index, metadata
+    global index, metadata, inventory_digest
     try:
         if os.path.exists(INDEX_FILE) and os.path.exists(METADATA_FILE):
             index = faiss.read_index(INDEX_FILE)
             with open(METADATA_FILE, "rb") as f:
                 metadata = pickle.load(f)
+            inventory_digest = _build_inventory_digest(metadata)
             print("Recursos de IA carregados com sucesso.")
         else:
             print("Arquivos de índice/metadata não encontrados. A busca AI pode não funcionar.")
     except Exception as e:
         print(f"Erro ao carregar recursos de IA: {e}")
 
-# Carrega na inicialização
-load_resources()
-
 def get_embedding(text):
     text = text.replace("\n", " ")
     return client.embeddings.create(input=[text], model=EMBEDDING_MODEL).data[0].embedding
+
+def _category_slug_from_raw(raw):
+    raw = str(raw or "").lower().strip()
+    if "noiv" in raw:
+        return "noiva"
+    return "festa"
+
+def _category_slug(meta):
+    if not isinstance(meta, dict):
+        return "festa"
+    raw = meta.get("category_slug") or meta.get("item_category") or meta.get("category") or meta.get("categoria")
+    return _category_slug_from_raw(raw)
+
+def _seed_inventory_context():
+    return {
+        "noiva": {
+            "estilos": ["Sereia", "Princesa", "Evasê", "Boho Chic", "Minimalista", "Clássico"],
+            "tecidos": ["Zibelina", "Renda", "Tule", "Cetim", "Seda", "Crepe"],
+            "decotes": ["Tomara que caia", "Decote em V", "Canoa", "Ombro a ombro", "Frente única"],
+            "detalhes": ["Brilho", "Pedraria", "Cauda longa", "Fenda", "Manga longa", "Costas abertas"],
+            "cores": ["Off-white", "Branco", "Pérola", "Champagne"],
+            "ocasioes": ["Noiva"],
+        },
+        "festa": {
+            "estilos": ["Sereia", "Princesa", "Evasê", "Reto", "Clássico", "Moderno"],
+            "tecidos": ["Renda", "Tule", "Cetim", "Seda", "Crepe", "Chiffon"],
+            "decotes": ["Tomara que caia", "Decote em V", "Ombro a ombro", "Frente única"],
+            "detalhes": ["Brilho", "Pedraria", "Fenda", "Manga longa", "Costas abertas"],
+            "cores": ["Azul royal", "Azul marinho", "Verde esmeralda", "Vermelho", "Rosa", "Preto", "Prata"],
+            "ocasioes": ["Madrinha", "Formatura", "Debutante", "Gala", "Convidada"],
+        },
+    }
+
+def _top_values(counts, limit=12):
+    items = sorted(counts.items(), key=lambda x: (-x[1], x[0]))
+    return [v for v, _ in items[:limit]]
+
+def _build_inventory_digest(meta_list):
+    seed = _seed_inventory_context()
+
+    by_cat = {
+        "noiva": {k: {} for k in seed["noiva"].keys()},
+        "festa": {k: {} for k in seed["festa"].keys()},
+    }
+
+    for m in meta_list or []:
+        if not isinstance(m, dict):
+            continue
+        cat = _category_slug(m)
+        mf = m.get("metadata_filters")
+        if not isinstance(mf, dict):
+            mf = {}
+
+        def bump(facet, values):
+            if not values:
+                return
+            target = by_cat.get(cat, {}).get(facet)
+            if target is None:
+                return
+            for v in values:
+                key = str(v).strip()
+                if not key:
+                    continue
+                target[key] = target.get(key, 0) + 1
+
+        bump("tecidos", mf.get("fabrics"))
+        bump("estilos", mf.get("silhouette"))
+        bump("decotes", mf.get("neckline"))
+        bump("detalhes", mf.get("details"))
+        bump("cores", mf.get("colors"))
+        bump("ocasioes", mf.get("occasions"))
+
+    digest = {}
+    for cat in ["noiva", "festa"]:
+        digest[cat] = {}
+        for facet, seed_values in seed[cat].items():
+            counts = by_cat[cat].get(facet, {})
+            observed = _top_values(counts, limit=12)
+            combined = list(dict.fromkeys(seed_values + observed))
+            digest[cat][facet] = combined[:16]
+
+    return digest
+
+def _extract_json_object(text):
+    if not isinstance(text, str):
+        return None
+    start = text.find("{")
+    end = text.rfind("}")
+    if start == -1 or end == -1 or end <= start:
+        return None
+    return text[start : end + 1]
+
+def _rewrite_catalog_query(query, target_category):
+    if not isinstance(query, str):
+        return {"query_reescrita": ""}
+    query = query.strip()
+    if not query:
+        return {"query_reescrita": ""}
+
+    target_slug = (target_category or "").lower().strip()
+    if target_slug not in ["noiva", "festa"]:
+        target_slug = "ambigua"
+
+    cache_key = f"{target_slug}|{_normalize_text(query)}"
+    now = time.time()
+    cached = _query_rewrite_cache.get(cache_key)
+    if cached and (now - cached.get("ts", 0)) <= _QUERY_REWRITE_CACHE_TTL_SECONDS:
+        return cached.get("data") or {"query_reescrita": query}
+
+    digest_for_prompt = inventory_digest.get("noiva" if target_slug == "noiva" else "festa" if target_slug == "festa" else "noiva") or {}
+    if target_slug == "ambigua":
+        digest_for_prompt = {"noiva": inventory_digest.get("noiva", {}), "festa": inventory_digest.get("festa", {})}
+
+    system_prompt = (
+        "Você reescreve consultas para busca semântica em um catálogo de vestidos.\n"
+        "Objetivo: transformar a mensagem do usuário em uma consulta curta, explícita e útil para embeddings.\n"
+        "O contexto do inventário é apenas exemplos observados; não se restrinja a ele.\n"
+        "Se o usuário pedir um atributo/valor que não aparece nos exemplos, mantenha mesmo assim e liste em atributos_novos.\n"
+        "Não invente que o inventário possui algo; apenas descreva preferências do usuário.\n"
+        "Responda apenas com JSON válido (sem markdown)."
+    )
+
+    user_payload = {
+        "categoria_alvo": target_slug,
+        "inventario_contexto_exemplos": digest_for_prompt,
+        "consulta_usuario": query,
+        "saida": {
+            "categoria_detectada": "noiva|festa|ambigua",
+            "confianca_categoria": "0-1",
+            "query_reescrita": "string",
+            "atributos_extraidos": "obj",
+            "atributos_novos": "lista",
+            "termos_excluir": "lista"
+        }
+    }
+
+    try:
+        resp = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": json.dumps(user_payload, ensure_ascii=False)},
+            ],
+            temperature=0.1,
+            max_tokens=300,
+        )
+        content = (resp.choices[0].message.content or "").strip()
+        try:
+            data = json.loads(content)
+        except Exception:
+            obj = _extract_json_object(content)
+            data = json.loads(obj) if obj else {}
+
+        if not isinstance(data, dict):
+            data = {}
+        if not isinstance(data.get("query_reescrita"), str) or not data.get("query_reescrita").strip():
+            data["query_reescrita"] = query
+
+        _query_rewrite_cache[cache_key] = {"ts": now, "data": data}
+        return data
+    except Exception as e:
+        print(f"Erro ao reescrever query: {e}")
+        return {"query_reescrita": query}
+
+def _query_embedding_text_from_rewrite(data):
+    if not isinstance(data, dict):
+        return None
+    attrs = data.get("atributos_extraidos")
+    cat = str(data.get("categoria_detectada", "")).lower().strip()
+    tokens = []
+    order = ["silhouette","neckline","sleeves","details","fabrics","colors","occasions"]
+    alt = {"cor":"colors","estilo":"silhouette","decote":"neckline","mangas":"sleeves","detalhes":"details","tecido":"fabrics","ocasiao":"occasions"}
+    if isinstance(attrs, dict):
+        for k in order:
+            v = attrs.get(k) if k in attrs else attrs.get(next((kk for kk, vv in alt.items() if vv == k), None))
+            if isinstance(v, list):
+                for x in v:
+                    s = str(x).strip()
+                    if s:
+                        tokens.append(s)
+            elif isinstance(v, str) and v.strip():
+                tokens.append(v.strip())
+    if not tokens:
+        return None
+    if cat in ["noiva", "festa"]:
+        tokens.append(cat)
+    return " ".join(tokens)
+
+def _apply_facet_constraints(candidates, rewrite_data):
+    if not candidates:
+        return candidates
+    if not isinstance(rewrite_data, dict):
+        return candidates
+    attrs = rewrite_data.get("atributos_extraidos")
+    if not isinstance(attrs, dict):
+        return candidates
+    def norm(x):
+        return _normalize_text(x)
+    req = {}
+    key_map = {"cor":"colors","estilo":"silhouette","decote":"neckline","mangas":"sleeves","detalhes":"details","tecido":"fabrics","ocasiao":"occasions"}
+    for k in ["colors","silhouette","neckline","sleeves","details","fabrics","occasions"]:
+        v = attrs.get(k)
+        if v is None:
+            for kk, vv in key_map.items():
+                if vv == k and kk in attrs:
+                    v = attrs.get(kk)
+                    break
+        if isinstance(v, list):
+            vv = [norm(s) for s in v if str(s).strip()]
+            if vv:
+                req[k] = set(vv)
+        elif isinstance(v, str) and v.strip():
+            req[k] = {norm(v)}
+    if not req:
+        return candidates
+    def has_intersection(values, needed):
+        if not isinstance(values, list):
+            return False
+        nv = set(norm(x) for x in values if str(x).strip())
+        return bool(nv.intersection(needed))
+    filtered = []
+    for c in candidates:
+        mf = c.get("metadata_filters", {}) or {}
+        ok = True
+        for k in ["colors","silhouette"]:
+            if k in req and not has_intersection(mf.get(k), req[k]):
+                ok = False
+                break
+        if ok:
+            filtered.append(c)
+    return filtered if filtered else candidates
+
+def _rerank_by_facets(candidates, rewrite_data):
+    if not candidates or not isinstance(rewrite_data, dict):
+        return candidates
+    attrs = rewrite_data.get("atributos_extraidos")
+    if not isinstance(attrs, dict):
+        return candidates
+    def norm(x):
+        return _normalize_text(x)
+    need = {}
+    key_map = {"cor":"colors","estilo":"silhouette","decote":"neckline","mangas":"sleeves","detalhes":"details","tecido":"fabrics","ocasiao":"occasions"}
+    for k in ["colors","silhouette","neckline","sleeves","details","fabrics","occasions"]:
+        v = attrs.get(k)
+        if v is None:
+            for kk, vv in key_map.items():
+                if vv == k and kk in attrs:
+                    v = attrs.get(kk)
+                    break
+        if isinstance(v, list):
+            need[k] = set(norm(s) for s in v if str(s).strip())
+        elif isinstance(v, str) and v.strip():
+            need[k] = {norm(v)}
+    weights = {"colors":2,"silhouette":2,"neckline":1,"sleeves":1,"details":1,"fabrics":1,"occasions":1}
+    def score(c):
+        mf = c.get("metadata_filters", {}) or {}
+        s = 0
+        for k, req in need.items():
+            vals = mf.get(k)
+            if isinstance(vals, list):
+                nv = set(norm(x) for x in vals if str(x).strip())
+                if nv.intersection(req):
+                    s += weights.get(k, 1)
+        return s
+    ranked = sorted(
+        [(score(c), i, c) for i, c in enumerate(candidates)],
+        key=lambda x: (-x[0], x[1])
+    )
+    return [c for _, _, c in ranked]
+load_resources()
 
 def validate_and_enrich_candidates(candidates_metadata):
     """
@@ -94,7 +376,7 @@ def validate_and_enrich_candidates(candidates_metadata):
                 RequestItems={
                     'alugueqqc_itens': {
                         'Keys': chunk,
-                        'ProjectionExpression': 'item_id, #st, title, item_description, item_image_url, item_value, item_custom_id, category',
+                        'ProjectionExpression': 'item_id, #st, title, item_title, item_description, item_image_url, item_value, item_custom_id, category, item_category',
                         'ExpressionAttributeNames': {'#st': 'status'}
                     }
                 }
@@ -123,8 +405,8 @@ def validate_and_enrich_candidates(candidates_metadata):
         db_item = fetched_items.get(item_id)
         
         if db_item:
-            # Verificar status (apenas available)
-            if db_item.get('status') != 'available':
+            # Verificar status (ignorar deletados)
+            if db_item.get('status') == 'deleted':
                 continue
 
             # Item válido! Enriquecer.
@@ -137,7 +419,7 @@ def validate_and_enrich_candidates(candidates_metadata):
                 meta['file_name'] = None
             
             # Metadata frescos
-            meta['title'] = db_item.get('title', meta.get('title'))
+            meta['title'] = db_item.get('title') or db_item.get('item_title') or meta.get('title')
             meta['description'] = db_item.get('item_description', meta.get('description'))
             
             # Preço
@@ -149,8 +431,12 @@ def validate_and_enrich_candidates(candidates_metadata):
             meta['customId'] = db_item.get('item_custom_id')
             # UUID (System ID)
             meta['item_id'] = db_item.get('item_id')
-            # Category
-            meta['category'] = db_item.get('category', 'Festa')
+            cat_raw = db_item.get('item_category') or db_item.get('category') or meta.get('item_category') or meta.get('category')
+            cat_slug = _category_slug_from_raw(cat_raw)
+            meta['item_category'] = db_item.get('item_category', meta.get('item_category'))
+            meta['category_raw'] = cat_raw
+            meta['category_slug'] = cat_slug
+            meta['category'] = 'Noiva' if cat_slug == 'noiva' else 'Festa'
             
             valid_items.append(meta)
             
@@ -172,12 +458,14 @@ def execute_catalog_search(query, k=5):
 
     try:
         # 1. Gera embedding
-        query_embedding = get_embedding(query)
+        rewrite = _rewrite_catalog_query(query, "")
+        q_text = _query_embedding_text_from_rewrite(rewrite) or rewrite.get("query_reescrita") or query
+        query_embedding = get_embedding(q_text)
         query_vector = np.array([query_embedding]).astype('float32')
 
         # 2. Busca no FAISS
-        # Buscamos 2x mais para garantir itens suficientes após validação
-        search_k = k * 2
+        # Buscamos mais itens para garantir candidatos após validação de status/DB
+        search_k = 220
         distances, indices = index.search(query_vector, search_k)
         
         # 3. Coleta metadados
@@ -189,8 +477,13 @@ def execute_catalog_search(query, k=5):
         # 4. Valida e Enriquece
         valid_candidates = validate_and_enrich_candidates(raw_candidates)
         
-        # Limita ao k solicitado
-        return valid_candidates[:k]
+        cat = str(rewrite.get("categoria_detectada", "")).lower().strip()
+        if cat in ["noiva", "festa"]:
+            valid_candidates = [c for c in valid_candidates if _category_slug(c) == cat]
+        
+        constrained = _apply_facet_constraints(valid_candidates, rewrite)
+        ranked = _rerank_by_facets(constrained, rewrite) if constrained else valid_candidates
+        return ranked[:k]
 
     except Exception as e:
         print(f"Erro em execute_catalog_search: {e}")
@@ -408,14 +701,19 @@ def ai_catalog_search():
         return jsonify({"error": "Query vazia"}), 400
 
     try:
-        # 1. Gera embedding da query
-        query_embedding = get_embedding(query)
+        target_category = data.get('category', '').lower().strip()
+        rewritten = _rewrite_catalog_query(query, target_category)
+        query_for_embedding = rewritten.get("query_reescrita") if isinstance(rewritten, dict) else None
+        if not isinstance(query_for_embedding, str) or not query_for_embedding.strip():
+            query_for_embedding = query
+
+        query_embedding = get_embedding(query_for_embedding)
         query_vector = np.array([query_embedding]).astype('float32')
         
         # 2. Busca no FAISS
         # Buscamos mais itens (100) para garantir que após o filtro de status/DB
         # ainda tenhamos itens suficientes para preencher as páginas.
-        k = 100 
+        k = 220 if target_category else 100
         distances, indices = index.search(query_vector, k)
         
         # Coleta metadados brutos
@@ -429,21 +727,18 @@ def ai_catalog_search():
         valid_results = validate_and_enrich_candidates(raw_results)
 
         # Filtragem por Categoria (Aba Ativa)
-        target_category = data.get('category', '').lower().strip()
-        
         if target_category:
             filtered_results = []
             for item in valid_results:
-                item_cat = item.get('category', '').lower().strip()
-                is_noiva = item_cat in ['noiva', 'noivas']
-                
+                is_noiva = _category_slug(item) == 'noiva'
+
                 if target_category == 'noiva':
                     if is_noiva:
                         filtered_results.append(item)
-                else: # festa (padrão para qualquer outra categoria)
+                else:
                     if not is_noiva:
                         filtered_results.append(item)
-            
+
             valid_results = filtered_results
 
         # 3. Paginação em memória
@@ -491,14 +786,26 @@ def admin_ai_status():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@ai_bp.route('/api/admin/sync-progress', methods=['GET'])
+def admin_sync_progress():
+    """Retorna progresso de sincronização do índice IA"""
+    try:
+        return jsonify(get_progress())
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 @ai_bp.route('/api/admin/sync-ai-index', methods=['POST'])
 def admin_sync_ai_index():
     """Aciona a sincronização do índice IA"""
     try:
-        result = service_sync_index()
-        if result.get('status') == 'success':
-            # Recarrega os recursos na memória da aplicação
-            load_resources()
-        return jsonify(result)
+        data = request.get_json(silent=True) or {}
+        reset_local = bool(data.get("reset_local"))
+        force_regenerate = bool(data.get("force_regenerate"))
+        def _run():
+            res = service_sync_index(reset_local=reset_local, force_regenerate=force_regenerate)
+            if res.get('status') == 'success':
+                load_resources()
+        threading.Thread(target=_run, daemon=True).start()
+        return jsonify({"status": "started"})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500

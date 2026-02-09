@@ -58,7 +58,8 @@ def create_index():
         for line in f:
             try:
                 item = json.loads(line)
-                descriptions.append(item["description"])
+                desc = item.get("embedding_text") or item.get("description")
+                descriptions.append(desc)
                 metadata.append(item)
             except json.JSONDecodeError:
                 continue

@@ -69,34 +69,151 @@ function confirmSyncAI() {
         return;
     }
 
-    const btn = document.querySelector('#aiSyncAlert button');
-    const originalText = btn.innerHTML;
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processando...';
+    const btnSync = document.getElementById('btnRunSyncAI');
+    const btnReset = document.getElementById('btnResetAIIndex');
+    const alertEl = document.getElementById('aiSyncAlert');
+    const originalTextSync = btnSync.innerHTML;
+    btnSync.disabled = true;
+    if (btnReset) btnReset.disabled = true;
+    btnSync.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processando...';
+    if (alertEl) {
+        alertEl.classList.remove('d-none');
+        alertEl.classList.add('alert-warning');
+    }
 
     fetch('/api/admin/sync-ai-index', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        }
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({})
     })
-    .then(response => response.json())
+    .then(r => r.json())
     .then(data => {
-        if (data.status === 'success') {
-            alert('Índice atualizado com sucesso!\n' + data.message);
-            checkAIStatus();
+        if (data.status === 'started') {
+            startProgressPolling(() => {
+                btnSync.disabled = false;
+                if (btnReset) btnReset.disabled = false;
+                btnSync.innerHTML = originalTextSync;
+                checkAIStatus();
+            });
         } else {
-            alert('Erro ao atualizar índice: ' + data.message);
+            alert('Erro ao iniciar sincronização.');
+            btnSync.disabled = false;
+            if (btnReset) btnReset.disabled = false;
+            btnSync.innerHTML = originalTextSync;
         }
     })
     .catch(err => {
         alert('Erro de comunicação com o servidor.');
         console.error(err);
-    })
-    .finally(() => {
-        btn.disabled = false;
-        btn.innerHTML = originalText;
+        btnSync.disabled = false;
+        if (btnReset) btnReset.disabled = false;
+        btnSync.innerHTML = originalTextSync;
     });
+}
+
+function confirmResetAI() {
+    if (!confirm('Isto vai apagar o índice local e reconstruir tudo do zero (sem apagar itens cadastrados). Deseja continuar?')) {
+        return;
+    }
+
+    const btnSync = document.getElementById('btnRunSyncAI');
+    const btnReset = document.getElementById('btnResetAIIndex');
+    const originalTextReset = btnReset.innerHTML;
+    btnReset.disabled = true;
+    if (btnSync) btnSync.disabled = true;
+    btnReset.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Resetando...';
+
+    fetch('/api/admin/sync-ai-index', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({reset_local: true, force_regenerate: true})
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.status === 'started') {
+            startProgressPolling(() => {
+                btnReset.disabled = false;
+                if (btnSync) btnSync.disabled = false;
+                btnReset.innerHTML = originalTextReset;
+                checkAIStatus();
+            });
+        } else {
+            alert('Erro ao iniciar reset.');
+            btnReset.disabled = false;
+            if (btnSync) btnSync.disabled = false;
+            btnReset.innerHTML = originalTextReset;
+        }
+    })
+    .catch(err => {
+        alert('Erro de comunicação com o servidor.');
+        console.error(err);
+        btnReset.disabled = false;
+        if (btnSync) btnSync.disabled = false;
+        btnReset.innerHTML = originalTextReset;
+    });
+}
+function startProgressPolling(onFinish) {
+    const bar = document.getElementById('aiProgressBar');
+    const text = document.getElementById('aiProgressText');
+    let stop = false;
+    let lastMsg = '';
+
+    function render(p) {
+        const total = p.total || 0;
+        const processed = p.processed || 0;
+        const pct = total > 0 ? Math.round((processed / total) * 100) : 0;
+        bar.style.width = pct + '%';
+        bar.textContent = pct + '%';
+        const eta = typeof p.eta_seconds === 'number' ? p.eta_seconds : null;
+        const current = p.current || '';
+        if (p.running) {
+            text.textContent = `[${processed}/${total}] ${current ? 'Processando ' + current : ''}${eta !== null ? ' • ETA ~' + eta + 's' : ''}`;
+        } else if (p.done) {
+            bar.classList.remove('progress-bar-animated');
+            bar.classList.remove('bg-warning');
+            bar.classList.add('bg-success');
+            text.textContent = p.message || 'Concluído';
+            lastMsg = p.message || 'Concluído';
+        }
+        if (p.error) {
+            bar.classList.add('bg-danger');
+            text.textContent = 'Erro: ' + p.error;
+            lastMsg = 'Erro: ' + p.error;
+        }
+    }
+
+    function poll() {
+        if (stop) return;
+        fetch('/api/admin/sync-progress')
+            .then(r => r.json())
+            .then(p => {
+                render(p);
+                if (p.done && !p.running) {
+                    stop = true;
+                    if (!p.error) {
+                        alert(lastMsg || 'Índice atualizado com sucesso!');
+                        const alertEl = document.getElementById('aiSyncAlert');
+                        if (alertEl) {
+                            alertEl.classList.add('d-none');
+                            alertEl.classList.remove('alert-danger', 'alert-warning');
+                        }
+                    } else {
+                        alert(lastMsg);
+                    }
+                    if (typeof onFinish === 'function') onFinish();
+                } else {
+                    setTimeout(poll, 1000);
+                }
+            })
+            .catch(() => setTimeout(poll, 2000));
+    }
+
+    bar.classList.add('bg-warning');
+    bar.classList.add('progress-bar-animated');
+    bar.style.width = '0%';
+    bar.textContent = '0%';
+    text.textContent = 'Iniciando...';
+    poll();
 }
 </script>
 {% endblock %} {% block content %}
@@ -147,9 +264,18 @@ function confirmSyncAI() {
             <strong>Atenção:</strong> O índice de IA está desatualizado. 
             <span id="aiSyncMsg"></span>
             <div class="mt-2">
-              <button class="btn btn-warning" onclick="confirmSyncAI()">
+              <button id="btnRunSyncAI" class="btn btn-warning me-2" onclick="confirmSyncAI()">
                 <i class="fas fa-sync me-2"></i>Atualizar Índice Agora
               </button>
+              <button id="btnResetAIIndex" class="btn btn-danger" onclick="confirmResetAI()">
+                <i class="fas fa-trash-alt me-2"></i>Resetar e Recriar
+              </button>
+            </div>
+            <div class="mt-3">
+              <div class="progress" style="height: 20px;">
+                <div id="aiProgressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%">0%</div>
+              </div>
+              <small id="aiProgressText" class="text-muted d-block mt-1"></small>
             </div>
           </div>
         </div>

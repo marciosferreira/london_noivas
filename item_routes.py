@@ -301,7 +301,7 @@ def init_item_routes(
                     from ai_sync_service import generate_dress_metadata
                     
                     print("Gerando metadados IA em tempo real...")
-                    gen_desc, gen_title = generate_dress_metadata(image_bytes_for_ai, description_value, title_value)
+                    gen_desc, gen_title, _ = generate_dress_metadata(image_bytes_for_ai, description_value, title_value)
                     
                     # Atualiza os campos
                     if "description" in item_data: item_data["description"] = gen_desc
@@ -635,7 +635,7 @@ def init_item_routes(
                     if image_bytes_for_ai:
                         from ai_sync_service import generate_dress_metadata
                         print("Gerando metadados IA em edição...")
-                        gen_desc, gen_title = generate_dress_metadata(image_bytes_for_ai, curr_desc, curr_title)
+                        gen_desc, gen_title, _ = generate_dress_metadata(image_bytes_for_ai, curr_desc, curr_title)
                         
                         # Aplica os valores gerados
                         updates[desc_id] = gen_desc
@@ -1159,7 +1159,7 @@ def init_item_routes(
                 # Atualizar o status do item para "deleted"
                 itens_table.update_item(
                     Key={"item_id": item_id},
-                    UpdateExpression="SET previous_status = #status, #status = :deleted, deleted_date = :deleted_date, deleted_by = :deleted_by",
+                    UpdateExpression="SET previous_status = #status, #status = :deleted, deleted_date = :deleted_date, deleted_by = :deleted_by, embedding_status = :pending_remove",
                     ExpressionAttributeNames={
                         "#status": "status"  # Alias para evitar conflito com palavra reservada
                     },
@@ -1167,6 +1167,7 @@ def init_item_routes(
                         ":deleted": "deleted",
                         ":deleted_date": deleted_date,
                         ":deleted_by": deleted_by,
+                        ":pending_remove": "pending_remove",
                     },
                 )
 
@@ -1373,9 +1374,9 @@ def init_item_routes(
             # 🔹 Atualizar o status do item no banco
             itens_table.update_item(
                 Key={"item_id": item_id},
-                UpdateExpression="SET #status = :previous_status",
+                UpdateExpression="SET #status = :previous_status, embedding_status = :pending",
                 ExpressionAttributeNames={"#status": "status"},
-                ExpressionAttributeValues={":previous_status": previous_status},
+                ExpressionAttributeValues={":previous_status": previous_status, ":pending": "pending"},
             )
 
             # flash(f"Item {item_id} restaurado para {previous_status}.", "success")
