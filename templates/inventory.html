@@ -40,7 +40,7 @@
 
         <!-- Imagem do item -->
         {% for field in fields_config if field.type == 'item_image_url' and field.preview and field.visible %} {% set image_value =
-        item.key_values[field.id] if item.key_values is defined and field.id in item.key_values else item[field.id] if field.id in item else '' %}
+        item[field.id] if field.id in item else '' %}
         <div class="text-center mt-2">
           <img
             src="{{ image_value if image_value and image_value != 'N/A' else url_for('static', filename='item-placeholder.png') }}"
@@ -94,8 +94,7 @@
                 {% set title = item.item_title if item.item_title is defined and item.item_title else 
                               item.title if item.title is defined and item.title else 
                               item.titulo if item.titulo is defined and item.titulo else 
-                              (item.key_values['item_title'] if item.key_values is defined and 'item_title' in item.key_values else 
-                              (item.key_values['title'] if item.key_values is defined and 'title' in item.key_values else '')) %}
+                              '' %}
                 {{ title if title else '-' }}
               </span>
             </div>
@@ -108,8 +107,7 @@
             <div class="d-flex justify-content-between small border-bottom pb-1">
               <span class="text-muted">{{ field.label }}</span>
               <span class="text-end">
-                {% set value = item.key_values[field.id] if item.key_values is defined and field.id in item.key_values else item[field.id] if field.id
-                in item else '' %} {% if value == 'None' or value is none %}
+                {% set value = item[field.id] if field.id in item else '' %} {% if value == 'None' or value is none %}
                 <span class="text-muted">-</span>
                 {% else %} {% if field.type == "date" %} {{ value | format_date }} {% elif field.type in ["value", "item_value"] %} {% if value|float == 0 %} Consulte o preço do aluguel {% else %} {{ value |
                 format_brl }} {% endif %} {% else %} {{ value | truncate(30, True) }} {% endif %} {% endif %}

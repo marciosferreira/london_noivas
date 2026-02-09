@@ -53,16 +53,10 @@
           </td>
 
           <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Data exclusão/edição">
-            {% if item.transaction_status == "deleted" %}
-              {{ item.deleted_date }}
-            {% elif item.transaction_status == "version" %}
-              {{ item.edited_date }}
-            {% else %}
-              N/A
-            {% endif %}
+            {{ item.deleted_date }}
           </td>
           <td class="open-modal" data-item='{{ item | tojson | safe }}' data-label="Tipo de evento">
-            {% set status_map = {"deleted": "Original", "version": "Versão"} %}
+            {% set status_map = {"deleted": "Original"} %}
             {{ status_map.get(item.transaction_status, "Inválido") }}
           </td>
 
@@ -98,19 +92,16 @@
       "historic": "Histórico",
       "available": "Inventário",
       "deleted": "Deletado",
-      "version": "Versão",
       "archive": "Arquivado"
   };
 
-  function definirMensagemEConfirmar(itemData, parentData, mensagem, form) {
-      if (!["deleted", "version"].includes(itemData.transaction_status)) {
+  function definirMensagemEConfirmar(itemData, mensagem, form) {
+      if (itemData.transaction_status !== "deleted") {
           alert("Status inválido para restauração.");
           return;
       }
 
-      form.action = itemData.transaction_status === "deleted"
-          ? "{{ url_for('restore_deleted_transaction') }}"
-          : "{{ url_for('restore_version_transaction') }}";
+      form.action = "{{ url_for('restore_deleted_transaction') }}";
 
       if (confirm(mensagem)) {
           // 🔹 Serializar os dados como JSON antes de enviar via POST
@@ -124,42 +115,11 @@
     let form = document.getElementById("form-restore");
 
     let previousStatusTranslated = statusMap[itemData.transaction_previous_status] || "Indefinido";
-
-    if (itemData.transaction_status !== "version") {
-        definirMensagemEConfirmar(itemData, {}, `Restaurar este item para o status anterior: ${previousStatusTranslated}?`, form);
-        return;
-    }
-
-    fetch("/query", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ db_name: "transactions_table", key: "transaction_id", value: itemData.parent_transaction_id })
-    })
-    .then(response => response.json())
-    .then(parentData => {
-        if (parentData.transaction_status === "not_found" || !parentData.data) {
-            alert("Transação pai não encontrada.");
-            return;
-        }
-
-        if (!parentData.data.transaction_status) {
-            console.error("❌ Erro: status da transação pai está indefinido ou nulo!");
-            alert("Erro ao restaurar: status da transação pai inválido.");
-            return;
-        }
-
-        let parentStatusTranslated = statusMap[parentData.data.transaction_status] || "Indefinido";
-
-        let mensagem = parentData.data.transaction_status === "deleted"
-            ? `Esta é uma versão de uma transação deletada. Restaurar esta versão para o status: ${previousStatusTranslated}?`
-            : `Há uma transação pai desta versão com o status: ${parentStatusTranslated}. Deseja substituir a transação pai com esta versão?`;
-
-        definirMensagemEConfirmar(itemData, parentData.data, mensagem, form);
-    })
-    .catch(error => {
-        alert("Erro ao consultar o banco de dados.");
-        console.error("🔹 Erro na requisição:", error);
-    });
+    definirMensagemEConfirmar(
+      itemData,
+      `Restaurar esta transação para o status anterior: ${previousStatusTranslated}?`,
+      form,
+    );
 }
 </script>
 

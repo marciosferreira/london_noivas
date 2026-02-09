@@ -165,7 +165,7 @@ def process_import():
 
             now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-            # Construir objeto DynamoDB com mapeamento CORRETO baseado no field_config
+            # Construir objeto DynamoDB com mapeamento baseado no schema atual
             dynamo_item = {
                 "account_id": account_id,
                 "item_id": item_id,
@@ -193,7 +193,6 @@ def process_import():
                 
                 # Metadados
                 "original_filename": file_name,
-                "key_values": {} # Inicializar vazio se necessário
             }
 
             itens_table.put_item(Item=dynamo_item)

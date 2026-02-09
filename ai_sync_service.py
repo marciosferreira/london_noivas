@@ -294,9 +294,8 @@ def sync_index():
             # Gera Metadados
             print(f"Gerando metadados IA para {item_id}...")
             
-            # Extrair metadados existentes (do item raiz ou key_values)
-            existing_desc = item.get('description') or item.get('key_values', {}).get('description')
-            existing_title = item.get('title') or item.get('key_values', {}).get('title')
+            existing_desc = item.get("description") or item.get("item_description")
+            existing_title = item.get("title") or item.get("item_title")
 
             # Passa os bytes da imagem diretamente
             description, title = generate_dress_metadata(image_bytes, existing_desc, existing_title)

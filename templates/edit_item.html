@@ -56,17 +56,13 @@
                 </label>
 
                 {# Lógica de valor para Edit Item #}
-                {% set key_values = item.get('key_values', {}) %}
                 {% set valor = item.get(field.id) %}
-                {% if valor is none %}
-                    {% set valor = key_values.get(field.id) %}
-                {% endif %}
-
+                
                 {# Fallback for legacy fields #}
                 {% if valor is none and field.id == 'title' %}
-                    {% set valor = item.get('item_title') or key_values.get('item_title') %}
+                    {% set valor = item.get('item_title') %}
                 {% elif valor is none and field.id == 'description' %}
-                    {% set valor = item.get('item_description') or key_values.get('item_description') %}
+                    {% set valor = item.get('item_description') %}
                 {% endif %}
 
                 {% if valor is none %}{% set valor = '' %}{% endif %}

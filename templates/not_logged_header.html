@@ -13,11 +13,7 @@
 
       <!-- Botões removidos da página inicial -->
       {% if request.endpoint != 'index' %}
-          {% if request.endpoint == 'login'%}
-          <div class="position-absolute end-0 me-3">
-             <a class="btn-index-register" href="{{ url_for('register') }}">Cadastro</a>
-          </div>
-          {% else %}
+          {% if request.endpoint != 'login'%}
           <div class="position-absolute end-0 me-3">
              <a class="btn-header-login-outline" href="{{ url_for('login') }}">Login</a>
           </div>

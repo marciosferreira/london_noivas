@@ -1,0 +1,248 @@
+# schemas.py
+
+# Definição dos campos para cada entidade (Item, Cliente, Transação)
+# Isso substitui a configuração dinâmica no DynamoDB (field_config_table)
+
+ITEM_FIELDS = [
+    {
+        "id": "item_custom_id",
+        "label": "Código do Item",
+        "type": "text",
+        "visible": True,
+        "fixed": True,
+        "required": False, # Gerado automaticamente se vazio
+        "order": 1,
+        "order_sequence": 1,
+        "filterable": True,
+        "preview": True,
+        "f_type": "fixed",
+    },
+    {
+        "id": "item_title",
+        "label": "Título",
+        "type": "text",
+        "visible": True,
+        "fixed": True,
+        "required": False,
+        "order": 2,
+        "order_sequence": 2,
+        "filterable": True,
+        "preview": True,
+        "f_type": "fixed",
+    },
+    {
+        "id": "item_category",
+        "label": "Categoria",
+        "type": "dropdown",
+        "options": ["Noiva", "Festa", "Acessório", "Outro"], # Ajustar conforme necessidade
+        "visible": True,
+        "fixed": True,
+        "required": True,
+        "order": 3,
+        "order_sequence": 3,
+        "filterable": True,
+        "preview": False,
+        "f_type": "fixed",
+    },
+    {
+        "id": "item_description",
+        "label": "Descrição",
+        "type": "text",
+        "visible": True,
+        "fixed": True,
+        "required": False,
+        "order": 4,
+        "order_sequence": 4,
+        "filterable": True,
+        "preview": True,
+        "f_type": "fixed",
+    },
+    {
+        "id": "item_value",
+        "label": "Valor de Aluguel (R$)",
+        "type": "value",
+        "visible": True,
+        "fixed": True,
+        "required": True,
+        "order": 5,
+        "order_sequence": 5,
+        "filterable": True,
+        "preview": True,
+        "f_type": "fixed",
+    },
+    {
+        "id": "item_image_url",
+        "label": "Foto do Item",
+        "type": "item_image_url",
+        "visible": True,
+        "fixed": True,
+        "required": False,
+        "order": 6,
+        "order_sequence": 6,
+        "filterable": False,
+        "preview": True,
+        "f_type": "fixed",
+    },
+    {
+        "id": "item_obs",
+        "label": "Observações",
+        "type": "item_obs",
+        "visible": True,
+        "fixed": True,
+        "required": False,
+        "order": 7,
+        "order_sequence": 7,
+        "filterable": True,
+        "preview": False,
+        "f_type": "fixed",
+    },
+    {
+        "id": "featured",
+        "label": "Destaque na Home",
+        "type": "boolean",
+        "visible": False, # Geralmente gerenciado por checkbox separado, mas mantido aqui para registro
+        "fixed": True,
+        "required": False,
+        "order": 8,
+        "order_sequence": 8,
+        "filterable": False,
+        "preview": False,
+        "f_type": "fixed",
+    }
+]
+
+CLIENT_FIELDS = [
+    {
+        "id": "client_name",
+        "label": "Nome Completo",
+        "type": "text",
+        "visible": True,
+        "fixed": True,
+        "required": True,
+        "order": 1,
+        "order_sequence": 1,
+        "filterable": True,
+        "preview": True,
+        "f_type": "fixed",
+    },
+    {
+        "id": "client_phone",
+        "label": "Telefone / WhatsApp",
+        "type": "phone",
+        "visible": True,
+        "fixed": True,
+        "required": True,
+        "order": 2,
+        "order_sequence": 2,
+        "filterable": True,
+        "preview": True,
+        "f_type": "fixed",
+    },
+    {
+        "id": "client_email",
+        "label": "Email",
+        "type": "email",
+        "visible": True,
+        "fixed": True,
+        "required": False,
+        "order": 3,
+        "order_sequence": 3,
+        "filterable": True,
+        "preview": False,
+        "f_type": "fixed",
+    },
+    {
+        "id": "client_cpf",
+        "label": "CPF",
+        "type": "cpf",
+        "visible": True,
+        "fixed": True,
+        "required": False,
+        "order": 4,
+        "order_sequence": 4,
+        "filterable": True,
+        "preview": False,
+        "f_type": "fixed",
+    },
+    {
+        "id": "client_address",
+        "label": "Endereço",
+        "type": "text",
+        "visible": True,
+        "fixed": True,
+        "required": False,
+        "order": 5,
+        "order_sequence": 5,
+        "filterable": True,
+        "preview": False,
+        "f_type": "fixed",
+    }
+]
+
+TRANSACTION_FIELDS = [
+    {
+        "id": "transaction_date",
+        "label": "Data de Retirada",
+        "type": "date",
+        "visible": True,
+        "fixed": True,
+        "required": True,
+        "order": 1,
+        "order_sequence": 1,
+        "filterable": True,
+        "preview": True,
+        "f_type": "fixed",
+    },
+    {
+        "id": "return_date",
+        "label": "Data de Devolução",
+        "type": "date",
+        "visible": True,
+        "fixed": True,
+        "required": True,
+        "order": 2,
+        "order_sequence": 2,
+        "filterable": True,
+        "preview": True,
+        "f_type": "fixed",
+    },
+    {
+        "id": "transaction_value",
+        "label": "Valor Acordado (R$)",
+        "type": "value",
+        "visible": True,
+        "fixed": True,
+        "required": True,
+        "order": 3,
+        "order_sequence": 3,
+        "filterable": True,
+        "preview": True,
+        "f_type": "fixed",
+    },
+    {
+        "id": "transaction_obs",
+        "label": "Observações da Transação",
+        "type": "item_obs",
+        "visible": True,
+        "fixed": True,
+        "required": False,
+        "order": 4,
+        "order_sequence": 4,
+        "filterable": True,
+        "preview": False,
+        "f_type": "fixed",
+    }
+]
+
+def get_schema_fields(entity_type):
+    """
+    Retorna a lista de campos para a entidade solicitada.
+    entity_type: 'item', 'client', ou 'transaction'
+    """
+    if entity_type == 'item':
+        return sorted(ITEM_FIELDS, key=lambda x: x.get('order_sequence', x.get('order', 0)))
+    elif entity_type == 'client':
+        return sorted(CLIENT_FIELDS, key=lambda x: x.get('order_sequence', x.get('order', 0)))
+    elif entity_type == 'transaction':
+        return sorted(TRANSACTION_FIELDS, key=lambda x: x.get('order_sequence', x.get('order', 0)))
+    return []

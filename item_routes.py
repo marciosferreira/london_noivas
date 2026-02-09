@@ -20,6 +20,7 @@ from decimal import Decimal
 from utils import get_user_timezone
 
 from boto3.dynamodb.conditions import Key, Attr
+import schemas
 
 ALLOWED_EXTENSIONS = {"jpeg", "jpg", "png", "gif", "webp"}
 
@@ -37,6 +38,7 @@ def allowed_file(filename):
 
 
 from utils import upload_image_to_s3, aplicar_filtro, copy_image_in_s3
+import schemas
 
 
 
@@ -128,9 +130,9 @@ def init_item_routes(
     @app.route("/trash_itens")
     def trash_itens():
         return list_raw_itens(
-            ["deleted", "version"],
+            ["deleted"],
             "trash_itens.html",
-            "Histórico de alterações",
+            "Lixeira de itens",
             itens_table,
             transactions_table,
             users_table,
@@ -141,7 +143,7 @@ def init_item_routes(
     @app.route("/trash_transactions")
     def trash_transactions():
         return list_transactions(
-            ["deleted", "version"],
+            ["deleted"],
             "trash_transactions.html",
             "Lixeira de transações",
             transactions_table,
@@ -221,7 +223,7 @@ def init_item_routes(
             from decimal import Decimal, InvalidOperation
             import re
 
-            all_fields = get_all_fields(account_id, field_config_table, "item")
+            all_fields = schemas.get_schema_fields("item")
 
             item_data = {
                 "user_id": user_id,
@@ -247,12 +249,11 @@ def init_item_routes(
                 flash("É obrigatório enviar uma foto do item.", "danger")
                 return redirect(request.url)
             
-            key_values = {}
 
             for field in all_fields:
                 field_id = field["id"]
                 field_type = field.get("type")
-                is_fixed = field.get("fixed", False)
+                # is_fixed ignorado pois tudo agora é raiz
                 raw_value = request.form.get(field_id, "").strip()
                 value = raw_value
 
@@ -275,13 +276,9 @@ def init_item_routes(
                     elif field_type in ["cpf", "cnpj", "phone"]:
                         value = re.sub(r"\D", "", value)
 
-                # Decide onde armazenar
-                if is_fixed:
-                    item_data[field_id] = value
-                else:
-                    key_values[field_id] = value
+                # Salva tudo na raiz
+                item_data[field_id] = value
 
-            item_data["key_values"] = key_values
 
             # ---------------------------------------------------------
             # Regra de Negócio: ID Automático
@@ -296,26 +293,24 @@ def init_item_routes(
             # Se não foi informado Título ou Descrição, gera via IA
             # Se falhar, BLOQUEIA o salvamento.
             # ---------------------------------------------------------
-            description = item_data.get("description") or item_data.get("item_description") or key_values.get("description") or key_values.get("item_description", "")
-            title = item_data.get("title") or item_data.get("item_title") or key_values.get("title") or key_values.get("item_title", "")
+            description_value = item_data.get("description") or item_data.get("item_description")
+            title_value = item_data.get("title") or item_data.get("item_title")
             
-            if not description or not title:
+            if not description_value or not title_value:
                 try:
                     from ai_sync_service import generate_dress_metadata
                     
                     print("Gerando metadados IA em tempo real...")
-                    gen_desc, gen_title = generate_dress_metadata(image_bytes_for_ai, description, title)
+                    gen_desc, gen_title = generate_dress_metadata(image_bytes_for_ai, description_value, title_value)
                     
-                    # Atualiza os campos (respeitando onde estavam ou padrão key_values)
+                    # Atualiza os campos
                     if "description" in item_data: item_data["description"] = gen_desc
                     elif "item_description" in item_data: item_data["item_description"] = gen_desc
-                    else: key_values["description"] = gen_desc
+                    else: item_data["item_description"] = gen_desc # Default
                     
                     if "title" in item_data: item_data["title"] = gen_title
                     elif "item_title" in item_data: item_data["item_title"] = gen_title
-                    else: key_values["title"] = gen_title
-                    
-                    item_data["key_values"] = key_values # Atualiza no dict principal
+                    else: item_data["item_title"] = gen_title # Default
                     
                 except Exception as e:
                     flash(f"Erro ao gerar descrição/título via IA: {str(e)}. O item não foi salvo.", "danger")
@@ -325,7 +320,7 @@ def init_item_routes(
                         all_fields=all_fields,
                         current_stripe_transaction=get_latest_transaction(user_id, users_table, payment_transactions_table),
                         title=title,
-                        item={**item_data, "key_values": key_values}
+                        item={**item_data}
                     )
 
             # 🔒 Verifica se item_custom_id já existe **ANTES** de salvar
@@ -347,7 +342,7 @@ def init_item_routes(
                         all_fields=all_fields,
                         current_stripe_transaction=get_latest_transaction(user_id, users_table, payment_transactions_table),
                         title=title,
-                        item={**item_data, "key_values": key_values}
+                        item={**item_data}
                     )
 
 
@@ -403,7 +398,7 @@ def init_item_routes(
         item = itens_table.get_item(Key={"item_id": item_id}).get("Item", {})
         client = clients_table.get_item(Key={"client_id": client_id}).get("Item", {})
 
-        fields_transaction = get_all_fields(account_id, field_config_table, entity="transaction")
+        fields_transaction = schemas.get_schema_fields("transaction")
 
 
         print(fields_transaction)
@@ -429,8 +424,7 @@ def init_item_routes(
             from decimal import Decimal, InvalidOperation
             import json
 
-            fixed_fields = {}
-            key_values = {}
+            updated_values = {}
 
             try:
                 rental_str, return_str = request.form.get("transaction_period", "").split(" - ")
@@ -440,8 +434,8 @@ def init_item_routes(
                 flash("Formato de data inválido. Use DD/MM/AAAA.", "danger")
                 return redirect(request.url)
 
-            fixed_fields["rental_date"] = rental_date
-            fixed_fields["return_date"] = return_date
+            updated_values["rental_date"] = rental_date
+            updated_values["return_date"] = return_date
 
             for field in fields_transaction:
                 field_id = field["id"]
@@ -459,23 +453,18 @@ def init_item_routes(
                 else:
                     value = raw_value
 
-                if field.get("fixed"):
-                    fixed_fields[field_id] = value
-                else:
-                    key_values[field_id] = value
+                updated_values[field_id] = value
 
             # Monta a expressão de atualização
             update_expr_parts = []
             expr_attr_values = {}
             expr_attr_names = {}
 
-            for key, val in fixed_fields.items():
-                update_expr_parts.append(f"{key} = :{key}")
+            for key, val in updated_values.items():
+                update_expr_parts.append(f"#{key} = :{key}")
                 expr_attr_values[f":{key}"] = val
+                expr_attr_names[f"#{key}"] = key
 
-            # Atualiza o key_values como um todo
-            update_expr_parts.append("key_values = :kv")
-            expr_attr_values[":kv"] = key_values
 
             update_args = {
                 "Key": {"transaction_id": transaction_id},
@@ -483,7 +472,6 @@ def init_item_routes(
                 "ExpressionAttributeValues": expr_attr_values,
             }
 
-            # Corrigido aqui: expr_attr_names em vez de expr_names
             if expr_attr_names:
                 update_args["ExpressionAttributeNames"] = expr_attr_names
 
@@ -535,66 +523,6 @@ def init_item_routes(
 
     ####################################################################################################
 
-    from decimal import Decimal, InvalidOperation
-
-    def process_form_data(request, item_before):
-        account_id = session.get("account_id")
-
-        # Recupera todos os campos para esta conta
-        config_response = field_config_table.get_item(
-            Key={"account_id": account_id, "entity": "item"}
-        )
-        fields_config = config_response.get("Item", {}).get("fields_config", {})
-
-        # Campos fixos conhecidos
-        DEFAULT_FIELDS = [
-            {"id": "item_custom_id", "type": "string"},
-            {"id": "description", "type": "string"},
-            {"id": "item_obs", "type": "string"},
-            {"id": "valor", "type": "number"},
-            {"id": "image_url", "type": "string"},
-        ]
-
-        # Campos customizados
-        custom_fields = custom_fields_table.query(
-            IndexName="account_id-entity-index",
-            KeyConditionExpression=Key("account_id").eq(account_id)
-            & Key("entity").eq("item"),
-        ).get("Items", [])
-
-        all_fields = DEFAULT_FIELDS + [
-            {"id": f["field_id"], "type": f["type"]} for f in custom_fields
-        ]
-
-        # Cria um dicionário para lookup rápido por tipo
-        field_type_map = {f["id"]: f["type"] for f in all_fields}
-
-        new_data = {}
-
-        for field_id in field_type_map:
-            raw_value = request.form.get(field_id, "").strip()
-
-            if raw_value == "":
-                new_data[field_id] = ""
-                continue
-
-            field_type = field_type_map[field_id]
-
-            if field_type == "number":
-                try:
-                    # Converte "1.234,56" para "1234.56"
-                    cleaned_value = raw_value.replace(".", "").replace(",", ".")
-                    new_data[field_id] = Decimal(cleaned_value)
-                except InvalidOperation:
-                    flash(f"O campo '{field_id}' possui um número inválido.", "danger")
-                    raise Exception("Número inválido")
-            else:
-                new_data[field_id] = raw_value
-
-        return new_data
-
-    ########################################################################################################
-
     @app.route("/edit_item/<item_id>", methods=["GET", "POST"])
     def edit_item(item_id):
         if not session.get("logged_in"):
@@ -610,7 +538,6 @@ def init_item_routes(
             flash("Item não encontrado.", "danger")
             return redirect(url_for("inventory"))
 
-        key_values = item.get("key_values", {})
 
         all_fields = get_all_fields(account_id, field_config_table, "item")
 
@@ -625,7 +552,7 @@ def init_item_routes(
                 image_file.seek(0)
 
             image_url_field = request.form.get("item_image_url", "").strip()
-            old_image_url = item.get("item_image_url") or key_values.get("item_image_url", "N/A")
+            old_image_url = item.get("item_image_url") or "N/A"
             new_image_url = (
                 "N/A" if image_url_field == "DELETE_IMAGE" else handle_image_upload(image_file, old_image_url)
             )
@@ -633,13 +560,13 @@ def init_item_routes(
             import re
             from decimal import Decimal, InvalidOperation
 
-            new_values = {}
-            fixed_updates = {}
+            # new_values = {} # Removido
+            updates = {}
             form_keys = set(request.form.keys())
 
             for field in all_fields:
                 field_id = field["id"]
-                field_type = field["type"]
+                field_type = field.get("type")
 
                 # 🚫 Proibir alteração de Item Custom ID na edição
                 if field_id == "item_custom_id":
@@ -665,32 +592,25 @@ def init_item_routes(
                 elif field_type in ["cpf", "cnpj", "phone"]:
                     value = re.sub(r"\D", "", value)
 
-                if field["fixed"]:
-                    fixed_updates[field_id] = value
-                else:
-                    new_values[field_id] = value
+                # Salva tudo em updates
+                updates[field_id] = value
 
             # ---------------------------------------------------------
             # Regra de Negócio: Geração de Metadados IA (Obrigatória em Edição)
             # ---------------------------------------------------------
-            # Identifica se campos são fixos ou custom
+            # Identifica campos de descrição e título
             desc_cfg = next((f for f in all_fields if f["id"] in ["description", "item_description"]), None)
             title_cfg = next((f for f in all_fields if f["id"] in ["title", "item_title"]), None)
             
-            desc_id = desc_cfg["id"] if desc_cfg else "description"
-            title_id = title_cfg["id"] if title_cfg else "title"
-            
-            desc_fixed = desc_cfg["fixed"] if desc_cfg else False
-            title_fixed = title_cfg["fixed"] if title_cfg else False
+            desc_id = desc_cfg["id"] if desc_cfg else "item_description"
+            title_id = title_cfg["id"] if title_cfg else "item_title"
             
             # Helper para pegar valor atual (novo ou existente)
-            def get_val(fid, is_fixed):
-                if is_fixed: 
-                    return fixed_updates.get(fid) or item.get(fid)
-                return new_values.get(fid) or key_values.get(fid)
+            def get_val(fid):
+                return updates.get(fid) or item.get(fid)
 
-            curr_desc = get_val(desc_id, desc_fixed)
-            curr_title = get_val(title_id, title_fixed)
+            curr_desc = get_val(desc_id)
+            curr_title = get_val(title_id)
             
             # Checa se o usuário limpou explicitamente os campos
             # Se o campo existe no form e está vazio, considera como "quero gerar via IA"
@@ -718,17 +638,14 @@ def init_item_routes(
                         gen_desc, gen_title = generate_dress_metadata(image_bytes_for_ai, curr_desc, curr_title)
                         
                         # Aplica os valores gerados
-                        if desc_fixed: fixed_updates[desc_id] = gen_desc
-                        else: new_values[desc_id] = gen_desc
-                        
-                        if title_fixed: fixed_updates[title_id] = gen_title
-                        else: new_values[title_id] = gen_title
+                        updates[desc_id] = gen_desc
+                        updates[title_id] = gen_title
                         
                 except Exception as e:
                     flash(f"Erro ao gerar descrição/título via IA: {str(e)}. O item não foi salvo.", "danger")
                     return render_template(
                         "edit_item.html",
-                        item={**item, **fixed_updates, "key_values": {**key_values, **new_values}},
+                        item={**item, **updates},
                         all_fields=all_fields,
                         next=next_page,
                         title="Editar item",
@@ -742,21 +659,10 @@ def init_item_routes(
             if item.get("featured", False) != featured:
                 changes["featured"] = featured
 
-            for k, v in new_values.items():
-                if key_values.get(k) != v:
-                    # Coletar tudo em um novo key_values completo
-                    pass  # nada aqui
-
-            for k, v in fixed_updates.items():
+            # Compara updates com item existente
+            for k, v in updates.items():
                 if item.get(k) != v:
                     changes[k] = v
-
-            # Monta o novo key_values final (se tiver algum update)
-            if new_values:
-                key_values_updated = {**key_values, **new_values}
-                # Compara se houve mudança real no key_values
-                if key_values != key_values_updated:
-                    changes["key_values"] = key_values_updated
 
             # ---------------------------------------------------------
             # Regra de Negócio: Sincronização de Campos Legados (GSI)
@@ -778,13 +684,9 @@ def init_item_routes(
                 return redirect(next_page)
             
             # Se houve alterações relevantes (Título, Descrição ou Imagem), marca para re-embedding
-            # Verifica se houve mudança na imagem (item_image_url é geralmente fixo ou root)
-            image_changed = "item_image_url" in changes or "item_image_url" in changes.get("key_values", {})
-            
-            # Verifica título e descrição
-            # Eles podem estar no nível raiz (se fixos) ou dentro de key_values
-            title_changed = "title" in changes or "title" in changes.get("key_values", {})
-            desc_changed = "description" in changes or "description" in changes.get("key_values", {})
+            image_changed = "item_image_url" in changes
+            title_changed = "title" in changes or "item_title" in changes
+            desc_changed = "description" in changes or "item_description" in changes
             
             # Se algum dos 3 mudou, marca como pending
             if image_changed or title_changed or desc_changed:
@@ -793,15 +695,19 @@ def init_item_routes(
             # Atualiza item no DynamoDB
             update_expression = []
             expression_values = {}
+            expression_names = {}
             for key, value in changes.items():
-                update_expression.append(f"{key} = :{key}")
+                update_expression.append(f"#{key} = :{key}")
                 expression_values[f":{key}"] = value
+                expression_names[f"#{key}"] = key
 
-            itens_table.update_item(
-                Key={"item_id": item_id},
-                UpdateExpression="SET " + ", ".join(update_expression),
-                ExpressionAttributeValues=expression_values,
-            )
+            update_kwargs = {
+                "Key": {"item_id": item_id},
+                "UpdateExpression": "SET " + ", ".join(update_expression),
+                "ExpressionAttributeValues": expression_values,
+                "ExpressionAttributeNames": expression_names,
+            }
+            itens_table.update_item(**update_kwargs)
 
 
             # Atualizar transações relacionadas, se marcado
@@ -818,23 +724,17 @@ def init_item_routes(
                     expression_names = {}
 
                     for key, value in changes.items():
-                        if key == "key_values" and isinstance(value, dict) and value:
-                            # Só adiciona se tiver dados
-                            update_expression.append("#ikv = :ikv")
-                            expression_values[":ikv"] = value
-                            expression_names["#ikv"] = "item_key_values"
-                        elif key != "key_values":
-                            update_expression.append(f"{key} = :{key}")
-                            expression_values[f":{key}"] = value
+                        update_expression.append(f"#{key} = :{key}")
+                        expression_values[f":{key}"] = value
+                        expression_names[f"#{key}"] = key
 
                     if update_expression:  # Só faz update se houver algo
                         update_kwargs = {
                             "Key": {"transaction_id": tx["transaction_id"]},
                             "UpdateExpression": "SET " + ", ".join(update_expression),
                             "ExpressionAttributeValues": expression_values,
+                            "ExpressionAttributeNames": expression_names,
                         }
-                        if expression_names:
-                            update_kwargs["ExpressionAttributeNames"] = expression_names
 
                         transactions_table.update_item(**update_kwargs)
 
@@ -848,13 +748,9 @@ def init_item_routes(
         prepared = {}
         for f in all_fields:
             field_id = f["id"]
-            if f["fixed"]:
-                prepared[field_id] = item.get(field_id, "")
-            else:
-                prepared[field_id] = key_values.get(field_id, "")
+            prepared[field_id] = item.get(field_id, "")
 
         prepared["item_id"] = item["item_id"]
-        prepared["key_values"] = key_values  # ← isso garante que o template poderá usar item.key_values
         prepared["featured"] = item.get("featured", False)
 
 
@@ -913,7 +809,6 @@ def init_item_routes(
 
             form_data = {}
             transaction_fixed_fields = {}
-            key_values = {}
 
             item_id = request.form.get("item_id")
             client_id = request.form.get("client_id")
@@ -954,13 +849,12 @@ def init_item_routes(
 
                 form_data[field_id] = value
 
-                # 👇 Lógica para diferenciar campos de transação
+                # 👇 Lógica para diferenciar campos de transação (agora tudo é raiz)
                 if field_id.startswith("transaction_"):
-                    if field.get("fixed"):
-                        transaction_fixed_fields[field_id] = value
-                    else:
-                        # novo padrão: usar key_values diretamente
-                        form_data.setdefault("key_values", {})[field_id] = value
+                    transaction_fixed_fields[field_id] = value
+                    # if field.get("fixed"):
+                    #    transaction_fixed_fields[field_id] = value
+                    # else:
 
 
             # 📅 Validação do período
@@ -1032,9 +926,6 @@ def init_item_routes(
                 "return_date": return_date,
                 "created_at": datetime.datetime.now(user_utc).strftime("%Y-%m-%d %H:%M:%S"),
                 **transaction_fixed_fields,
-                "key_values": key_values,
-                "client_key_values": client.get("key_values", {}),
-                "item_key_values": item.get("key_values", {}),
             }
 
             # Snapshot dos campos fixos de cliente/item
@@ -1460,104 +1351,6 @@ def init_item_routes(
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
-    ##################################################################################################################
-    @app.route("/restore_version_item", methods=["POST"])
-    def restore_version_item():
-        if not session.get("logged_in"):
-            return redirect(url_for("login"))
-
-        next_page = request.args.get("next", url_for("trash_itens"))
-
-        try:
-            # 🔹 Pegar os dados do formulário e converter de JSON para dicionário
-            item_data = request.form.get("item_data")
-
-            if not item_data:
-                flash("Erro: Nenhum dado do item foi recebido.", "danger")
-                return redirect(url_for("trash_itens"))
-
-            item = json.loads(item_data)
-
-            item_id = item.get("item_id")
-            parent_item_id = item.get("parent_item_id")
-            current_status = item.get("status")
-            previous_status = item.get("previous_status")
-
-            parent_response = itens_table.get_item(Key={"item_id": parent_item_id})
-            parent_data = parent_response.get("Item")
-
-            if not parent_data:
-                flash("Item pai não encontrado.", "danger")
-                return redirect(next_page)
-
-            # 🔹 Verificar o status do item pai
-            parent_status = parent_data.get("status")
-
-            # Se o item pai estiver deletado, restauramos o status
-            if parent_status == "deleted":
-                itens_table.update_item(
-                    Key={"item_id": parent_item_id},
-                    UpdateExpression="SET #status = :prev_status",
-                    ExpressionAttributeNames={"#status": "status"},
-                    ExpressionAttributeValues={":prev_status": previous_status},
-                )
-
-            # 🔹 Trocar todos os campos, exceto item_id, previous_status e status
-            swap_fields = [
-                field
-                for field in item.keys()
-                if field
-                not in {"item_id", "previous_status", "status", "parent_item_id"}
-            ]
-
-            update_expression_parent = []
-            update_expression_version = []
-            expression_values_parent = {}
-            expression_values_version = {}
-
-            for field in swap_fields:
-                update_expression_parent.append(f"{field} = :v_{field}")
-                update_expression_version.append(f"{field} = :p_{field}")
-
-                expression_values_parent[f":v_{field}"] = item.get(field, "")
-                expression_values_version[f":p_{field}"] = parent_data.get(field, "")
-            # 🔹 Atualizar o item pai com os valores do item versão
-            itens_table.update_item(
-                Key={"item_id": parent_item_id},
-                UpdateExpression="SET " + ", ".join(update_expression_parent),
-                ExpressionAttributeValues=expression_values_parent,
-            )
-
-            # 🔹 Atualizar o item versão com os valores do item pai
-            itens_table.update_item(
-                Key={"item_id": item_id},
-                UpdateExpression="SET " + ", ".join(update_expression_version),
-                ExpressionAttributeValues=expression_values_version,
-            )
-
-            previous_status = (
-                "inventory" if previous_status == "available" else previous_status
-            )
-
-            status_map = {
-                "rented": "Retirados",
-                "returned": "Devolvidos",
-                "historic": "Histórico",
-                "inventory": "Inventário",
-                "archive": "Arquivados",
-            }
-
-            flash(
-                f"Item restaurado para <a href='{previous_status}'>{status_map[previous_status]}</a>.",
-                "success",
-            )
-
-            return redirect(next_page)
-
-        except Exception as e:
-            flash(f"Erro ao restaurar a versão do item: {str(e)}", "danger")
-            return redirect(next_page)
-
 
     ###################################################################################################
     @app.route("/restore_deleted_item", methods=["POST"])
@@ -1653,159 +1446,6 @@ def init_item_routes(
             flash(f"Erro ao restaurar transaction: {str(e)}", "danger")
             return redirect(url_for("trash_transactions"))
 
-    @app.route("/restore_version_transaction", methods=["POST"])
-    def restore_version_transaction():
-        if not session.get("logged_in"):
-            return redirect(url_for("login"))
-
-        next_page = request.args.get("next", url_for("trash_transactions"))
-
-        try:
-            # 🔹 Pegar os dados do formulário e converter de JSON para dicionário
-            transaction_data = request.form.get("item_data")
-
-            if not transaction_data:
-                flash("Erro: Nenhum dado do item foi recebido.", "danger")
-                return redirect(url_for("trash_transactions"))
-
-            transaction_data = json.loads(transaction_data)
-
-            # pega os dados originais da transaçao no banco, uma vez que os dados recebidos pelo form são misturados com iten_data
-            transaction_id = transaction_data.get("transaction_id")
-            transaction_response = transactions_table.get_item(
-                Key={"transaction_id": transaction_id}
-            )
-            transaction_data = transaction_response.get("Item")
-
-            parent_transaction_id = transaction_data.get("parent_transaction_id")
-            previous_transaction_status = transaction_data.get(
-                "transaction_previous_status"
-            )
-
-            parent_response = transactions_table.get_item(
-                Key={"transaction_id": parent_transaction_id}
-            )
-            parent_data = parent_response.get("Item")
-
-            if not parent_data:
-                flash("Transação pai não encontrada.", "danger")
-                return redirect(next_page)
-
-            # 🔹 Verificar o status do item pai
-            parent_status = parent_data.get("transaction_status")
-
-            # Se o item pai estiver deletado, restauramos o status
-            if parent_status == "deleted":
-                print("Transaçao pai estava deletada. Restaurando...")
-                transactions_table.update_item(
-                    Key={"transaction_id": parent_transaction_id},
-                    UpdateExpression="SET #transaction_status = :prev_status",
-                    ExpressionAttributeNames={
-                        "#transaction_status": "transaction_status"
-                    },
-                    ExpressionAttributeValues={
-                        ":prev_status": previous_transaction_status
-                    },
-                )
-
-            # 🔹 Passo 1: Definir os campos que podem ser trocados
-            allowed_fields = {
-                "valor",
-                "item_custom_id",
-                "client_email",
-                "client_name",
-                "client_tel",
-                "edited_by",
-                "item_obs",
-                "rental_date",
-                "return_date",
-                "client_address",
-                "client_tel",
-                "client_cpf",
-                "image_url",
-                "description",
-                "rental_date_formatted",
-                "rental_date_obj",
-                "return_date_formatted",
-                "return_date_obj",
-                "dev_date_formatted",
-            }  # Pode crescer no futuro
-
-            # 🔹 Passo 2: Criar dicionários contendo APENAS os campos que serão trocados
-            parent_filtered = {
-                key: parent_data[key] for key in allowed_fields if key in parent_data
-            }
-            transaction_filtered = {
-                key: transaction_data[key]
-                for key in allowed_fields
-                if key in transaction_data
-            }
-
-            # 🔹 Função para atualizar um item no banco de dados
-            def update_transaction(transaction_id, new_values):
-                update_expression = "SET " + ", ".join(
-                    f"{k} = :{k}" for k in new_values.keys()
-                )
-                expression_values = {f":{k}": v for k, v in new_values.items()}
-
-                transactions_table.update_item(
-                    Key={"transaction_id": transaction_id},  # Mantemos a chave primária
-                    UpdateExpression=update_expression,
-                    ExpressionAttributeValues=expression_values,
-                )
-
-            # 🔹 Passo 4: Atualizar os registros no banco, invertendo os valores
-            update_transaction(
-                parent_transaction_id, transaction_filtered
-            )  # Parent recebe valores de transaction
-            update_transaction(
-                transaction_id, parent_filtered
-            )  # Transaction recebe valores de parent
-
-            # 🔹 Passo 5: Verificar se os dados foram realmente trocados
-            updated_parent = transactions_table.get_item(
-                Key={"transaction_id": parent_transaction_id}
-            ).get("Item", {})
-            updated_transaction = transactions_table.get_item(
-                Key={"transaction_id": transaction_id}
-            ).get("Item", {})
-
-            print("✅ Após a troca de valores:")
-            print(f"Parent atualizado: {updated_parent}")
-            print(f"Transaction atualizado: {updated_transaction}")
-
-            # 🔹 Passo 6: Verificar se os novos registros foram criados corretamente
-            print(
-                "Novo parent_item inserido:",
-                transactions_table.get_item(
-                    Key={"transaction_id": f"new_{parent_transaction_id}"}
-                ),
-            )
-            print(
-                "Novo transaction_item inserido:",
-                transactions_table.get_item(
-                    Key={"transaction_id": f"new_{transaction_id}"}
-                ),
-            )
-
-            print("✅ Registros trocados com sucesso, mantendo os campos protegidos!")
-
-            status_map = {
-                "rented": "Retirados",
-                "returned": "Devolvidos",
-            }
-
-            flash(
-                f"Item restaurado para <a href='{previous_transaction_status}'>{status_map[previous_transaction_status]}</a>.",  # status_map[previous_status]
-                "success",
-            )
-
-            return redirect(next_page)
-
-        except Exception as e:
-            flash(f"Erro ao restaurar a versão do item: {str(e)}", "danger")
-            return redirect(next_page)
-
     @app.route("/reports", methods=["GET", "POST"])
     def reports():
         if not session.get("logged_in"):
@@ -1819,30 +1459,7 @@ def init_item_routes(
         # 🔥 Carrega configuração de campos
         fields_all_entities = {}
         for ent in ["item", "client", "transaction"]:
-            response = field_config_table.get_item(Key={"account_id": account_id, "entity": ent})
-            config_map = response.get("Item", {}).get("fields_config", {})
-
-            fields = []
-            for field_id, cfg in config_map.items():
-                fields.append({
-                    "id": field_id,
-                    "label": cfg.get("label", field_id.replace("_", " ").capitalize()),
-                    "type": cfg.get("type"),
-                    "f_type": cfg.get("f_type"),
-                    "preview": cfg.get("preview", False),
-                    "visible": cfg.get("visible", True),
-                    "required": cfg.get("required", False),
-                    "order_sequence": cfg.get("order_sequence", 0),
-                    "filterable": cfg.get("filterable", False),
-                    "options": cfg.get("options", []),
-                    "fixed": cfg.get("f_type", "") == "fixed",  # útil para lógica de filtros
-                })
-
-            # Ordena a lista da entidade atual
-            fields = sorted(fields, key=lambda x: x["order_sequence"])
-
-            # Associa a lista ao nome da entidade (ESSA LINHA PRECISA FICAR AQUI)
-            fields_all_entities[ent] = fields
+            fields_all_entities[ent] = schemas.get_schema_fields(ent)
 
 
         # Coletar todos os IDs já usados em client e item
@@ -2286,318 +1903,17 @@ def init_item_routes(
             print(f"Error incrementing visit count for item {item_id}: {e}")
             return jsonify({"error": str(e)}), 500
 
-    from flask import request, session, redirect, url_for, render_template, flash
-    from boto3.dynamodb.conditions import Key
-    import uuid
-
-    # Assuma que as tabelas foram inicializadas antes:
-    # custom_fields_table = boto3.resource('dynamodb').Table('custom_fields_table')
-    # field_config_table = boto3.resource('dynamodb').Table('field_config_table')
-
-    DEFAULT_FIELDS = {
-        "item": [
-            {
-                "id": "nome",
-                "label": "Nome do item",
-                "type": "string",
-                "order_sequence": 0,
-            },
-            {"id": "valor", "label": "Valor", "type": "number", "order_sequence": 1},
-            {
-                "id": "descricao",
-                "label": "Descrição",
-                "type": "string",
-                "order_sequence": 2,
-            },
-            {
-                "id": "data_compra",
-                "label": "Data de compra",
-                "type": "date",
-                "order_sequence": 3,
-            },
-        ]
-    }
-
     @app.route("/custom_fields/<entity>", methods=["GET", "POST"])
     def custom_fields(entity):
-        account_id = session.get("account_id")
-        if not account_id:
-            flash("Sessão expirada. Faça login novamente.", "danger")
+        if not session.get("logged_in"):
             return redirect(url_for("login"))
 
-        table_mapping = {
-            "client": clients_table,
-            "transaction": transactions_table,
-            "item": itens_table,
-        }
-
-        data_table = table_mapping.get(entity)
-
         if request.method == "POST":
-            fields_config_map = {}
-
-            # Campos enviados a partir do template HTML (já existentes, fixed ou custom)
-            fields = []
-            i = 0
-            while f"fields[{i}][id]" in request.form:
-                f_type = request.form.get(f"fields[{i}][kind]", "custom")
-                if f_type not in ["fixed", "custom", "visual"]:
-                    f_type = "custom"
-
-                fields.append(
-                    {
-                        "field_id": request.form.get(f"fields[{i}][id]"),
-"f_type": request.form[f"fields[{i}][kind]"] if f"fields[{i}][kind]" in request.form else "custom",
-                        "label": request.form.get(f"fields[{i}][label]"),
-                        "label_original": request.form.get(
-                            f"fields[{i}][label_original]"
-                        ),
-                        "title": request.form.get(f"fields[{i}][title]"),
-                        "type": request.form.get(f"fields[{i}][type]"),
-                        "required": f"fields[{i}][required]" in request.form,
-                        "visible": f"fields[{i}][visible]" in request.form,
-                        "filterable": f"fields[{i}][filterable]" in request.form,
-                        "preview": f"fields[{i}][preview]" in request.form,
-                        "options": request.form.get(f"fields[{i}][options]", "").split(
-                            ","
-                        ),
-                        # Adiciona os metadados se forem enviados no form
-                        "source_entity": request.form.get(f"fields[{i}][source_entity]", None),
-                        "source_field_id": request.form.get(f"fields[{i}][source_field_id]", None),
-
-                    }
-                )
-
-                i += 1
-
-            print("#########################")
-            print(fields)
-            print("#########################")
-
-            # IDs ordenados
-            ordered_ids = request.form.get("ordered_ids", "[]")
-            try:
-                ordered_ids = json.loads(ordered_ids)
-            except Exception:
-                ordered_ids = []
-
-            # 🛑 Verifica campos custom antigos que ainda existem no banco
-            used_custom_fields = set()
-
-            if data_table:
-                if entity == "item":
-                    # Usa o índice com partition + sort key
-                    response = data_table.query(
-                        IndexName="account_id-status-index",
-                        KeyConditionExpression=Key("account_id").eq(account_id)
-                        & Key("status").eq("available"),
-                        ProjectionExpression="key_values",
-                    )
-                elif entity == "client":
-                    # Usa GSI apenas com partition key
-                    response = data_table.query(
-                        IndexName="account_id-index",
-                        KeyConditionExpression=Key("account_id").eq(account_id),
-                        ProjectionExpression="key_values",
-                    )
-                elif entity == "transaction":
-                    # Exemplo genérico, ajuste conforme o GSI usado na tabela de transações
-                    response = data_table.query(
-                        IndexName="account_id-index",
-                        KeyConditionExpression=Key("account_id").eq(account_id),
-                        ProjectionExpression="key_values",
-                    )
-                else:
-                    response = {"Items": []}
-
-                items = response.get("Items", [])
-
-                import re
-
-                for item in items:
-                    key_values = item.get("key_values", {})
-                    if isinstance(key_values, dict):
-                        pattern = re.compile(
-                            r"^\d{10,}$"
-                        )  # apenas dígitos, com no mínimo 10 caracteres
-                        for key, value in key_values.items():
-                            if pattern.match(key) and value:
-                                used_custom_fields.add(key)
-
-            # ➕ Processa os campos fixos e custom existentes
-            for idx, field in enumerate(fields):
-                field_id = field["field_id"]
-
-                # Corrige f_type apenas se não for um campo visual
-                if field.get("f_type") != "visual" and field_id in [
-                    "client_name", "client_phone", "client_cpf", "client_email", "client_address", "client_notes",
-                    "item_custom_id", "item_description", "item_value",
-                    "transaction_status", "transaction_period", "transaction_price", "transaction_value_paid"
-                ]:
-                    f_type = "fixed"
-                else:
-                    f_type = field["f_type"]  # mantém original se for visual
-
-
-                label = field.get("label", "").strip() or field.get(
-                    "label_original", field.get("title", "")
-                )
-                label_original = field.get("label_original", label)
-                type_ = field["type"]
-                required = field["required"]
-                visible = field["visible"]
-                filterable = field["filterable"]
-                preview = field["preview"]
-                options = [opt.strip() for opt in field["options"] if opt.strip()]
-                order = ordered_ids.index(field_id) if field_id in ordered_ids else idx
-
-                fields_config_map[field_id] = {
-                    "label": label,
-                    "label_original": label_original,
-                    "type": type_,
-                    "visible": visible,
-                    "required": required,
-                    "filterable": filterable,
-                    "preview": preview,
-                    "f_type": f_type,
-                    "options": (
-                        options if type_ in ["dropdown", "transaction_status"] else []
-                    ),
-                    "order_sequence": order,
-                    "source_entity": field.get("source_entity"),
-                    "source_field_id": field.get("source_field_id"),
-                }
-
-
-            # ⬇️ Aqui está o lugar ideal para inserir a checagem
-            if f_type == "visual":
-                if not field.get("source_entity") or not field.get("source_field_id"):
-                    print(f"[Aviso] Campo visual '{field_id}' está sem origem definida.")
-
-            # ➕ Processa os novos campos criados dinamicamente
-            combined_ids = request.form.getlist("combined_id[]")
-            combined_titles = request.form.getlist("combined_title[]")
-            combined_types = request.form.getlist("combined_type[]")
-            combined_required = request.form.getlist("combined_required[]")
-            combined_visible = request.form.getlist("combined_visible[]")
-            combined_filterable = request.form.getlist("combined_filterable[]")
-            combined_preview = request.form.getlist("combined_preview[]")
-            combined_options = request.form.getlist("combined_options[]")
-            combined_kinds = request.form.getlist("combined_kind[]")
-            combined_sources_entity = request.form.getlist("combined_source_entity[]")
-            combined_sources_field_id = request.form.getlist("combined_source_field_id[]")
-
-
-
-            # checa se o usuario esta tentando deletar um campo que ja foi preecnido
-            # Lista de IDs de campos que vieram do form
-            remaining_field_ids = [f["field_id"] for f in fields] + combined_ids
-
-            print("fcm")
-            print(fields_config_map)
-
-            # Descobre quais campos usados foram deletados
-            for used_field in used_custom_fields:
-                if used_field not in remaining_field_ids:
-                    label = fields_config_map.get(used_field, {}).get(
-                        "label", used_field
-                    )
-                    flash(
-                        f"Antes de deletar o campo de ID: '{label}' é necessário apagar seu conteúdo em todos os itens ou apagar os itens. Se preferir, apenas desabilite o campo.",
-                        "danger",
-                    )
-                    return redirect(request.url)
-
-            for idx, field_id in enumerate(combined_ids):
-                title = combined_titles[idx].strip()
-                type_ = combined_types[idx]
-                options = [
-                    opt.strip()
-                    for opt in combined_options[idx].split(",")
-                    if opt.strip()
-                ]
-                order = (
-                    ordered_ids.index(field_id)
-                    if field_id in ordered_ids
-                    else idx + 1000
-                )
-
-                fields_config_map[field_id] = {
-                    "label": title,
-                    "label_original": title,
-                    "type": type_,
-                    "visible": idx < len(combined_visible)
-                    and combined_visible[idx] == "true",
-                    "required": idx < len(combined_required)
-                    and combined_required[idx] == "true",
-                    "filterable": idx < len(combined_filterable)
-                    and combined_filterable[idx] == "true",
-                    "preview": idx < len(combined_preview)
-                    and combined_preview[idx] == "true",
-                    "f_type": combined_kinds[idx] if idx < len(combined_kinds) else "custom",
-                    "options": options if type_ == "dropdown" else [],
-                    "order_sequence": order,
-                    "source_entity": combined_sources_entity[idx] if idx < len(combined_sources_entity) else None,
-                    "source_field_id": combined_sources_field_id[idx] if idx < len(combined_sources_field_id) else None,
-
-                }
-
-                if fields_config_map[field_id]["f_type"] == "visual":
-                    if not fields_config_map[field_id]["source_entity"] or not fields_config_map[field_id]["source_field_id"]:
-                        print(f"[Aviso] Campo visual '{field_id}' criado dinamicamente está sem origem definida.")
-
-            # 🔄 Atualiza o item completo na tabela
-            field_config_table.put_item(
-                Item={
-                    "account_id": account_id,
-                    "entity": entity,
-                    "fields_config": fields_config_map,
-                    "updated_at": datetime.datetime.now().isoformat(),
-                }
-            )
-
-            flash("Campos salvos com sucesso!", "success")
+            flash("A configuração dinâmica de campos foi desativada.", "warning")
             return redirect(request.url)
 
-        # ----- GET -----
-        config_response = field_config_table.get_item(
-            Key={"account_id": account_id, "entity": entity}
-        )
-
-        fields_config_map = config_response.get("Item", {}).get("fields_config", {})
-        fields_to_show = []
-
-        for field_id, cfg in fields_config_map.items():
-            fields_to_show.append(
-                {
-                    "id": field_id,
-                    "label": cfg.get("label")
-                    or cfg.get("title")
-                    or field_id.replace("_", " ").capitalize(),
-                    "label_original": cfg.get("label_original", cfg.get("label")),
-                    "title": cfg.get("label", field_id.replace("_", " ").capitalize()),
-                    "type": cfg.get("type", "string"),
-                    "visible": cfg.get("visible", False),
-                    "required": cfg.get("required", False),
-                    "order_sequence": int(cfg.get("order_sequence", 999)),
-                    "filterable": cfg.get("filterable", False),
-                    "preview": cfg.get("preview", False),
-                    "f_type": cfg.get("f_type", "custom"),
-                    "fixed": cfg.get("f_type") == "fixed",
-                    "source_entity": cfg.get("source_entity"),
-                    "source_field_id": cfg.get("source_field_id"),
-                    "options": (
-                        cfg.get("options", [])
-                        if cfg.get("type") in ["dropdown", "transaction_status"]
-                        else []
-                    ),
-                }
-            )
-
-        all_fields = sorted(fields_to_show, key=lambda x: x["order_sequence"])
-        return render_template(
-            f"custom_fields.html", entity=entity, all_fields=all_fields
-        )
+        all_fields = schemas.get_schema_fields(entity)
+        return render_template("custom_fields.html", entity=entity, all_fields=all_fields)
 
 
 import base64
@@ -2638,34 +1954,11 @@ def list_transactions(
         flash("Erro: Usuário não autenticado corretamente.", "danger")
         return redirect(url_for("login"))
 
-    # 🔥 Carrega configuração de campos
+    # 🔥 Carrega configuração de campos (usando schemas estáticos)
+    from schemas import get_schema_fields
     fields_all_entities = {}
     for ent in ["item", "client", "transaction"]:
-        response = field_config_table.get_item(Key={"account_id": account_id, "entity": ent})
-        config_map = response.get("Item", {}).get("fields_config", {})
-
-        fields = []
-        for field_id, cfg in config_map.items():
-            fields.append({
-                "id": field_id,
-                "label": cfg.get("label", field_id.replace("_", " ").capitalize()),
-                "type": cfg.get("type"),
-                "f_type": cfg.get("f_type"),
-                "preview": cfg.get("preview", False),
-                "visible": cfg.get("visible", True),
-                "required": cfg.get("required", False),
-                "order_sequence": cfg.get("order_sequence", 0),
-                "filterable": cfg.get("filterable", False),
-                "options": cfg.get("options", []),
-                "fixed": cfg.get("f_type", "") in ("fixed", "visual"),
-                # útil para lógica de filtros
-            })
-
-        # Ordena a lista da entidade atual
-        fields = sorted(fields, key=lambda x: x["order_sequence"])
-
-        # Associa a lista ao nome da entidade
-        fields_all_entities[ent] = fields
+        fields_all_entities[ent] = get_schema_fields(ent)
 
     #cria um lista unica para filtros
     fields_config = (
@@ -2954,10 +2247,7 @@ def get_latest_transaction(user_id, users_table, payment_transactions_table):
 def get_valor_item(item, field):
 
     field_id = field["id"]
-    if field.get("fixed") == True:
-        return item.get(field_id, "")
-    else:
-        return (item.get("key_values") or {}).get(field_id, "")
+    return item.get(field_id, "")
 
 from utils import entidade_atende_filtros_dinamico  # certifique-se de importar isso corretamente
 from utils import converter_intervalo_data_br_para_iso  # certifique-se de importar isso corretamente
@@ -3227,104 +2517,15 @@ from boto3.dynamodb.conditions import Key
 
 def get_fields_config(account_id, field_config_table):
     """
-    Recupera a configuração dos campos personalizados da conta a partir da tabela DynamoDB.
-
-    Espera que exista um GSI chamado 'account_id-index' na tabela de campos.
+    Mantido por compatibilidade: a configuração agora é estática (schemas.py).
     """
-
-    try:
-        response = field_config_table.get_item(
-            Key={
-                "account_id": account_id,
-                "entity": "item",
-            }  # ← só se tiver sort key "entity"
-        )
-        item = response.get("Item")
-        if not item:
-            return []
-
-        fixed_fields = item.get("fixed_fields_config", {})
-
-        # Transforma em lista ordenada
-        ordered_fields = sorted(
-            [{**{"id": fid}, **cfg} for fid, cfg in fixed_fields.items()],
-            key=lambda x: x.get("order_sequence", 0),
-        )
-        return ordered_fields
-
-    except Exception as e:
-        print(f"Erro ao buscar campos configuráveis: {e}")
-        return []
+    return schemas.get_schema_fields("item")
 
 
 def get_all_fields(account_id, field_config_table, entity):
-
-    config_response = field_config_table.get_item(
-        Key={"account_id": account_id, "entity": entity}
-    )
-    fields_config = config_response.get("Item", {}).get("fields_config", {})
-
-    # Ensure mandatory fields for item entity
-    if entity == "item":
-        if "title" not in fields_config and "item_title" not in fields_config:
-            fields_config["title"] = {
-                "label": "Título do Item", 
-                "type": "text", 
-                "required": True, 
-                "visible": True, 
-                "order_sequence": 1, 
-                "f_type": "fixed"
-            }
-        
-        # Check for existing description fields (standard 'description' or legacy 'item_description')
-        has_description = "description" in fields_config or "item_description" in fields_config
-        
-        if not has_description:
-            fields_config["description"] = {
-                "label": "Descrição do Item", 
-                "type": "text", 
-                "required": True, 
-                "visible": True, 
-                "order_sequence": 2, 
-                "f_type": "fixed"
-            }
-
-        # Ensure category field exists
-        if "category" not in fields_config:
-            fields_config["category"] = {
-                "label": "Categoria",
-                "type": "dropdown",
-                "options": ["Noiva", "Festa"],
-                "required": True,
-                "visible": True,
-                "filterable": True,
-                "preview": True,
-                "order_sequence": 3,
-                "f_type": "fixed"
-            }
-
-    all_fields = []
-    for field_id, cfg in fields_config.items():
-        label = cfg.get("label", field_id.replace("_", " ").capitalize())
-
-        all_fields.append(
-            {
-                "id": field_id,
-                "label": label,
-                "title": label,  # usado em outras rotas
-                "type": cfg.get("type", "string"),
-                "required": False if field_id in ["item_custom_id", "title", "item_title", "description", "item_description"] else cfg.get("required", False),
-                "visible": cfg.get("visible", True),
-                "preview": cfg.get("preview", False),
-                "filterable": cfg.get("filterable", False),
-                "order_sequence": int(cfg.get("order_sequence", 999)),
-                "options": (
-                    cfg.get("options", [])
-                    if cfg.get("type") in ["dropdown", "transaction_status"]
-                    else []
-                ),
-                "fixed": cfg.get("f_type", "custom") == "fixed",
-                "f_type": cfg.get("f_type", "custom"),
-            }
-        )
-    return sorted(all_fields, key=lambda x: x["order_sequence"])
+    """
+    Retorna a lista de campos definida no schema estático (schemas.py).
+    Ignora field_config_table e account_id, mantendo a assinatura para compatibilidade
+    com chamadas existentes até refatoração completa.
+    """
+    return schemas.get_schema_fields(entity)

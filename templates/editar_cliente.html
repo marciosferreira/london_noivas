@@ -26,7 +26,7 @@
 
     <div class="row row-cols-1 row-cols-md-3 g-4">
 {% for field in all_fields if field.visible %}
-  {% set value = client.get(field.id) if field.fixed else client.key_values.get(field.id, '') %}
+  {% set value = client.get(field.id, '') %}
 
   <div class="col d-flex">
     <div class="bg-light shadow-sm rounded p-3 border w-100 h-100 d-flex flex-column justify-content-center">

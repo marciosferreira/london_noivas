@@ -12,7 +12,7 @@
             <div class="col-12 col-md-6">
               <strong>ID do Cliente:</strong>
               <br />
-              {% set client_id_value = item.key_values['client_id'] if item.key_values is defined and 'client_id' in item.key_values else item['client_id'] if 'client_id' in item else '' %}
+              {% set client_id_value = item['client_id'] if 'client_id' in item else '' %}
               {% if client_id_value == 'None' or client_id_value is none or client_id_value == '' %}
                 <span class="text-muted">-</span>
               {% else %}
@@ -24,8 +24,7 @@
             <div class="col-12 col-md-6">
               <strong>{{ field.label }}:</strong>
               <br />
-              {% set value = item.key_values[field.id] if item.key_values is defined and field.id in item.key_values else item[field.id] if field.id
-              in item else '' %} {% if value == 'None' or value is none %}
+              {% set value = item[field.id] if field.id in item else '' %} {% if value == 'None' or value is none %}
               <span class="text-muted">-</span>
               {% else %}
               <span>

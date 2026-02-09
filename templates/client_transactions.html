@@ -15,7 +15,7 @@
       <div class="card shadow-sm h-100 position-relative">
         <!-- Bloco da imagem com badges horizontais sobrepostos -->
         {% for field in fields_config if field.type == 'item_image_url' and field.preview and field.visible %} {% set image_value =
-        item.key_values[field.id] if item.key_values is defined and field.id in item.key_values else item[field.id] if field.id in item else '' %}
+        item[field.id] if field.id in item else '' %}
 
         <!-- Faixa de badges acima da imagem -->
         <div class="w-100 px-2 py-2 d-flex flex-wrap gap-2 justify-content-center align-items-center" style="background-color: #858688">
@@ -85,8 +85,7 @@
             <div class="d-flex justify-content-between small border-bottom pb-1">
               <span class="text-muted">{{ field.label }}</span>
               <span class="text-end">
-                {% set value = item.key_values[field.id] if item.key_values is defined and field.id in item.key_values else item[field.id] if field.id
-                in item else '' %} {% if value == 'None' or value is none %}
+                {% set value = item[field.id] if field.id in item else '' %} {% if value == 'None' or value is none %}
                 <span class="text-muted">-</span>
                 {% else %} {% if field.type == "phone" %} {{ value | format_phone }} {% elif field.type in ["date"] %} {{ value | format_date }} {%
                 elif field.type in ["transaction_ret_date"] %} {{ value | formatar_data_br }} {% elif field.type in ["value", "item_value",

@@ -10,8 +10,7 @@
         {% set show_image = (fields_config | selectattr("id", "equalto", "item_image_url") | selectattr("visible") | list | length) > 0 %} {% if
         show_image %}
         <div class="text-center mb-3">
-          {% set image = item.key_values['item_image_url'] if item.key_values is defined and 'item_image_url' in item.key_values else
-          item['item_image_url'] if 'item_image_url' in item else '' %} {% if image and image != "N/A" %}
+          {% set image = item['item_image_url'] if 'item_image_url' in item else '' %} {% if image and image != "N/A" %}
           <img
             src="{{ image }}"
             alt="Imagem do item"
@@ -36,8 +35,7 @@
             <div class="col-12 col-md-6">
               <strong>{{ field.label }}:</strong>
               <br />
-              {% set value = item.key_values[field.id] if item.key_values is defined and field.id in item.key_values else item[field.id] if field.id
-              in item else '' %} {% if value == 'None' or value is none %}
+              {% set value = item[field.id] if field.id in item else '' %} {% if value == 'None' or value is none %}
               <span class="text-muted">-</span>
               {% else %} {% if field.type == "date" %} {{ value | format_date }} {% elif field.type in ["value", "item_value"] %} {% if value|float == 0 %} Consulte o preço do aluguel {% else %} {{ value |
               format_brl }} {% endif %} {% else %} {{ value }} {% endif %} {% endif %}

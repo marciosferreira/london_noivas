@@ -28,6 +28,7 @@ import io
 import base64
 from flask import request
 import os
+import schemas
 
 
 # Account ID principal da London Noivas
@@ -44,6 +45,27 @@ def init_static_routes(
     payment_transactions_table,
     field_config_table,
 ):
+    env_ids = os.getenv("PUBLIC_CATALOG_ACCOUNT_IDS", "").strip()
+    public_account_ids = [
+        v.strip()
+        for v in ([env_ids] if env_ids and "," not in env_ids else env_ids.split(","))
+        if v.strip()
+    ]
+    if not public_account_ids:
+        public_account_ids = [LONDON_NOIVAS_ACCOUNT_ID, "london_noivas"]
+
+    def _category_slug(item):
+        raw = (
+            item.get("item_category")
+            or item.get("category")
+            or item.get("categoria")
+            or ""
+        )
+        raw = str(raw).lower().strip()
+        if "noiv" in raw:
+            return "noiva"
+        return "festa"
+
     # Static pages
     @app.route("/terms")
     def terms():
@@ -485,14 +507,14 @@ def init_static_routes(
         try:
             # Fetch ALL available items for vitrine (filtered by account)
             response = itens_table.scan(
-                FilterExpression=Attr("status").eq("available") & Attr("account_id").eq(LONDON_NOIVAS_ACCOUNT_ID)
+                FilterExpression=Attr("status").eq("available") & Attr("account_id").is_in(public_account_ids)
             )
             all_items = response.get("Items", [])
             
             # Simple pagination handling
             while "LastEvaluatedKey" in response:
                 response = itens_table.scan(
-                    FilterExpression=Attr("status").eq("available") & Attr("account_id").eq(LONDON_NOIVAS_ACCOUNT_ID),
+                    FilterExpression=Attr("status").eq("available") & Attr("account_id").is_in(public_account_ids),
                     ExclusiveStartKey=response["LastEvaluatedKey"]
                 )
                 all_items.extend(response.get("Items", []))
@@ -512,12 +534,7 @@ def init_static_routes(
             festa_candidates = []
             
             for item in all_items:
-                cat = item.get('category', '').lower().strip()
-                # Also check 'categoria' for legacy support, though we updated it
-                if not cat:
-                    cat = item.get('categoria', '').lower().strip()
-                
-                if cat in ['noiva', 'noivas']:
+                if _category_slug(item) == "noiva":
                     noiva_candidates.append(item)
                 else:
                     # Default to Festa for anything else, or specifically 'festa'
@@ -541,31 +558,7 @@ def init_static_routes(
             # So taking top 6 gives us the most visited, then 0 visited.
             # If we have fewer than 6 total items in a category, we just show what we have.
             
-            # Prepare fields_config (using any item to get account_id)
-            fields_config = []
-            sample_item = None
-            if all_items:
-                sample_item = all_items[0]
-            
-            if sample_item:
-                # Use account_id from first item to get config
-                account_id = sample_item.get("account_id")
-                if account_id:
-                    config_response = field_config_table.get_item(
-                        Key={"account_id": account_id, "entity": "item"}
-                    )
-                    fields_config_map = config_response.get("Item", {}).get("fields_config", {})
-                    
-                    for field_id, cfg in fields_config_map.items():
-                        fields_config.append({
-                            "id": field_id,
-                            "label": cfg.get("label", field_id),
-                            "type": cfg.get("type", "string"),
-                            "visible": cfg.get("visible", True),
-                            "preview": cfg.get("preview", False),
-                            "order_sequence": int(cfg.get("order_sequence", 999))
-                        })
-                    fields_config.sort(key=lambda x: x["order_sequence"])
+            fields_config = schemas.get_schema_fields("item")
             
             return render_template("index.html", noivas_itens=noivas_itens, festa_itens=festa_itens, fields_config=fields_config)
             
@@ -582,13 +575,13 @@ def init_static_routes(
             
             # Fetch all available items (same as index) but filtered by account
             response = itens_table.scan(
-                FilterExpression=Attr("status").eq("available") & Attr("account_id").eq(LONDON_NOIVAS_ACCOUNT_ID)
+                FilterExpression=Attr("status").eq("available") & Attr("account_id").is_in(public_account_ids)
             )
             all_items = response.get("Items", [])
             
             while "LastEvaluatedKey" in response:
                 response = itens_table.scan(
-                    FilterExpression=Attr("status").eq("available") & Attr("account_id").eq(LONDON_NOIVAS_ACCOUNT_ID),
+                    FilterExpression=Attr("status").eq("available") & Attr("account_id").is_in(public_account_ids),
                     ExclusiveStartKey=response["LastEvaluatedKey"]
                 )
                 all_items.extend(response.get("Items", []))
@@ -596,11 +589,7 @@ def init_static_routes(
             # Filter by Category
             filtered_items = []
             for item in all_items:
-                cat = item.get('category', '').lower().strip()
-                if not cat:
-                    cat = item.get('categoria', '').lower().strip()
-                
-                is_noiva = cat in ['noiva', 'noivas']
+                is_noiva = _category_slug(item) == "noiva"
                 
                 if active_category == 'noiva':
                     if is_noiva:
@@ -622,25 +611,7 @@ def init_static_routes(
             # 2. Embaralhar usando o seed da sessão
             random.Random(session["catalog_seed"]).shuffle(itens)
             
-            # Configuração de campos para imagens
-            fields_config = []
-            if itens:
-                account_id = itens[0].get("account_id")
-                if account_id:
-                    config_response = field_config_table.get_item(
-                        Key={"account_id": account_id, "entity": "item"}
-                    )
-                    fields_config_map = config_response.get("Item", {}).get("fields_config", {})
-                    for field_id, cfg in fields_config_map.items():
-                        fields_config.append({
-                            "id": field_id,
-                            "label": cfg.get("label", field_id),
-                            "type": cfg.get("type", "string"),
-                            "visible": cfg.get("visible", True),
-                            "preview": cfg.get("preview", False),
-                            "order_sequence": int(cfg.get("order_sequence", 999))
-                        })
-                    fields_config.sort(key=lambda x: x["order_sequence"])
+            fields_config = schemas.get_schema_fields("item")
 
             # Paginação em memória
             total_items = len(itens)
@@ -676,7 +647,6 @@ def init_static_routes(
 
     from flask import request
     import stripe
-    import os
     import time
     from boto3.dynamodb.conditions import Key
 

@@ -229,7 +229,7 @@
             {# Image Logic #}
             {% set ns = namespace(found=false, image_url='') %}
             {% for field in fields_config if field.type == 'item_image_url' and field.preview and field.visible %}
-               {% set image_value = item.key_values[field.id] if item.key_values is defined and field.id in item.key_values else item[field.id] if field.id in item else '' %}
+               {% set image_value = item[field.id] if field.id in item else '' %}
                {% if image_value and image_value != 'N/A' and not ns.found %}
                    {% set ns.image_url = image_value %}
                    {% set ns.found = true %}
@@ -239,7 +239,7 @@
             {# Price Logic #}
             {% set ns.price_display = 'Consulte o preço do aluguel' %}
             {% for field in fields_config if field.type in ['value', 'item_value'] %}
-               {% set price_val = item.key_values[field.id] if item.key_values is defined and field.id in item.key_values else item[field.id] if field.id in item else 0 %}
+               {% set price_val = item[field.id] if field.id in item else 0 %}
                {% if price_val|float == 0 %}
                    {% set ns.price_display = 'Consulte o preço do aluguel' %}
                {% else %}

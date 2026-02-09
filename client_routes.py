@@ -2,6 +2,7 @@ import datetime
 import uuid
 from boto3.dynamodb.conditions import Key
 from utils import get_user_timezone
+import schemas
 import os
 from decimal import Decimal, InvalidOperation
 
@@ -137,8 +138,8 @@ def init_client_routes(
         if not account_id:
             return redirect(url_for("login"))
 
-        # Campos configuráveis
-        fields_config = get_all_fields(account_id, field_config_table, entity="client")
+        # Campos fixos via Schema
+        fields_config = schemas.get_schema_fields("client")
         fields_config = sorted(fields_config, key=lambda x: x["order_sequence"])
         custom_fields_preview = [
             {"field_id": field["id"], "title": field["label"]}
@@ -311,7 +312,7 @@ def init_client_routes(
             flash("Cliente não encontrado ou acesso negado.", "danger")
             return redirect(next_page)
 
-        all_fields = get_all_fields(account_id, field_config_table, entity="client")
+        all_fields = schemas.get_schema_fields("client")
 
         if request.method == "POST":
             import re
@@ -322,12 +323,11 @@ def init_client_routes(
             new_cnpj = re.sub(r"\D", "", request.form.get("client_cnpj", ""))
 
             updated_values = {}
-            updated_key_values = cliente.get("key_values", {})
 
             for field in all_fields:
                 field_id = field["id"]
                 field_type = field.get("type")
-                is_fixed = field.get("fixed", False)
+                # is_fixed ignorado
                 value = request.form.get(field_id, "").strip()
 
                 if not value:
@@ -343,15 +343,11 @@ def init_client_routes(
                         flash(f"Valor inválido no campo {field.get('label', field_id)}.", "error")
                         return render_template("editar_cliente.html", client=cliente, all_fields=all_fields, next=next_page)
 
-                if is_fixed:
-                    updated_values[field_id] = value
-                else:
-                    updated_key_values[field_id] = value
+                updated_values[field_id] = value
 
             # Atualiza cliente
             for k, v in updated_values.items():
                 cliente[k] = v
-            cliente["key_values"] = updated_key_values
 
             # Verificações de unicidade com nomes de índices corretos
             index_map = {
@@ -394,17 +390,11 @@ def init_client_routes(
                         expr_values = {}
                         expr_names = {}
 
-                        # Atualiza campos fixos como client_name, client_cpf, etc.
+                        # Atualiza campos fixos e customizados (agora na raiz)
                         for k, v in updated_values.items():
                             update_expr.append(f"#{k} = :{k}")
                             expr_values[f":{k}"] = v
                             expr_names[f"#{k}"] = k
-
-                        # Atualiza snapshot inteiro de client_key_values apenas se houver conteúdo
-                        if updated_key_values and isinstance(updated_key_values, dict) and len(updated_key_values) > 0:
-                            expr_names["#ckv"] = "client_key_values"
-                            update_expr.append("#ckv = :ckv")
-                            expr_values[":ckv"] = updated_key_values
 
                         if update_expr:
                             update_kwargs = {
@@ -429,16 +419,13 @@ def init_client_routes(
                 return redirect(next_page)
 
         # ---------- GET ----------
-        key_values = cliente.get("key_values", {})
         prepared = {}
         for f in all_fields:
             fid = f["id"]
-            if f["fixed"]:
-                prepared[fid] = cliente.get(fid, "")
-            else:
-                prepared[fid] = key_values.get(fid, "")
+            # Busca sempre na raiz
+            prepared[fid] = cliente.get(fid, "")
+            
         prepared["client_id"] = cliente["client_id"]
-        prepared["key_values"] = key_values
 
         return render_template(
             "editar_cliente.html",
@@ -458,7 +445,7 @@ def init_client_routes(
         user_id = session.get("user_id")
         user_utc = get_user_timezone(users_table, user_id)
 
-        all_fields = get_all_fields(account_id, field_config_table, entity="client")
+        all_fields = schemas.get_schema_fields("client")
 
         if request.method == "POST":
             client_id = str(uuid.uuid4().hex[:12])
@@ -472,12 +459,10 @@ def init_client_routes(
 
             import re
 
-            key_values = {}
-
             for field in all_fields:
                 field_id = field["id"]
                 field_type = field.get("type")
-                is_fixed = field.get("fixed", False)
+                # is_fixed ignorado
                 value = request.form.get(field_id, "").strip()
 
                 if not value:
@@ -509,14 +494,8 @@ def init_client_routes(
                             client=request.form,
                         )
 
-                # Salva fixos no topo e os demais em key_values
-                if is_fixed:
-                    new_client[field_id] = value
-                else:
-                    key_values[field_id] = value
-
-            if key_values:
-                new_client["key_values"] = key_values
+                # Salva tudo na raiz
+                new_client[field_id] = value
 
             # Verificação de duplicatas
             existing_clients = clients_table.scan().get("Items", [])
@@ -831,35 +810,9 @@ def decode_dynamo_key(encoded_key):
 
 
 def get_all_fields(account_id, field_config_table, entity):
-
-    config_response = field_config_table.get_item(
-        Key={"account_id": account_id, "entity": entity}
-    )
-    fields_config = config_response.get("Item", {}).get("fields_config", {})
-
-    all_fields = []
-    for field_id, cfg in fields_config.items():
-        label = cfg.get("label", field_id.replace("_", " ").capitalize())
-        print(f"Field ID: {field_id}")
-        print(f"CFG: {cfg}")
-        print(f"Label: {cfg.get('label')}")
-        print(f"Title: {cfg.get('title')}")
-
-        all_fields.append(
-            {
-                "id": field_id,
-                "label": label,
-                "title": label,  # usado em outras rotas
-                "type": cfg.get("type", "string"),
-                "required": cfg.get("required", False),
-                "visible": cfg.get("visible", True),
-                "preview": cfg.get("preview", False),
-                "filterable": cfg.get("filterable", False),
-                "order_sequence": int(cfg.get("order_sequence", 999)),
-                "options": (
-                    cfg.get("options", []) if cfg.get("type") == "dropdown" else []
-                ),
-                "fixed": cfg.get("f_type", "custom") == "fixed",
-            }
-        )
-    return sorted(all_fields, key=lambda x: x["order_sequence"])
+    """
+    Retorna a lista de campos definida no schema estático (schemas.py).
+    Ignora field_config_table e account_id, mantendo a assinatura para compatibilidade
+    com chamadas existentes até refatoração completa.
+    """
+    return schemas.get_schema_fields(entity)

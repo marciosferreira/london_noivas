@@ -18,6 +18,7 @@ from flask import (
     url_for,
     session,
     flash,
+    abort,
 )
 from werkzeug.security import generate_password_hash, check_password_hash
 from botocore.exceptions import ClientError
@@ -38,151 +39,7 @@ def init_auth_routes(
     # Registration route
     @app.route("/register", methods=["GET", "POST"])
     def register():
-        # Verificar se o registro está habilitado
-        allow_registration = os.getenv('ALLOW_USER_REGISTRATION', 'false').lower() == 'true'
-        if not allow_registration:
-            flash("O registro de novos usuários está temporariamente desabilitado.", "warning")
-            return render_template("register.html", registration_disabled=True, register=True, recaptcha_site_key=os.getenv('RECAPTCHA_SITE_KEY'))
-        
-        if request.method == "POST":
-            # Primeiro, verificar o reCAPTCHA
-            email = request.form.get("email")
-            username = request.form.get("username")
-            if len(username) < 3 or len(username) > 15:
-                flash("O nome de usuário deve ter entre 3 e 15 caracteres.", "danger")
-                return redirect("/register")
-
-            password = request.form.get("password")
-            confirm_password = request.form.get("confirm_password")
-
-            if len(password) < 6 or len(password) > 64:
-                flash(
-                    "A nova senha deve ter mais que 8 e menos que 64 caracteres.",
-                    "danger",
-                )
-                return redirect(url_for("register"))
-
-            if not re.search(r"[A-Za-z]", password) or not re.search(r"\d", password):
-                flash("A senha deve conter ao menos uma letra e um número.", "danger")
-                return redirect("/register")
-
-
-            if password != confirm_password:
-                flash("As senhas não coincidem.", "danger")
-                return redirect("/register")
-
-            if not email or not password:
-                return render_template(
-                    "register.html",
-                    error="Todos os campos são obrigatórios",
-                    register=True,
-                )
-
-            # valida o reCAPTCHA
-            recaptcha_response = request.form.get("g-recaptcha-response")
-            
-            # Debug: verificar o que está sendo recebido
-            print(f"reCAPTCHA Debug - Received response: '{recaptcha_response}'")
-            print(f"reCAPTCHA Debug - Response length: {len(recaptcha_response) if recaptcha_response else 0}")
-
-            if not recaptcha_response:
-                flash("Por favor, confirme que você não é um robô.", "danger")
-                return redirect(url_for("register"))
-
-            # Validar no servidor do Google
-            secret_key = os.getenv('RECAPTCHA_SECRET_KEY')
-            if not secret_key:
-                flash("Erro de configuração do reCAPTCHA. Contate o administrador.", "danger")
-                return redirect(url_for("register"))
-                
-            print(f"reCAPTCHA Debug - Secret key exists: {bool(secret_key)}")
-            print(f"reCAPTCHA Debug - Remote IP: {request.remote_addr}")
-                
-            verify_url = "https://www.google.com/recaptcha/api/siteverify"
-            payload = {
-                "secret": secret_key,
-                "response": recaptcha_response,
-                "remoteip": request.remote_addr,
-            }
-            
-            print(f"reCAPTCHA Debug - Payload: {payload}")
-            
-            try:
-                r = requests.post(verify_url, data=payload, timeout=10)
-                result = r.json()
-                
-                # Log detalhado para debug
-                print(f"reCAPTCHA Debug - Status Code: {r.status_code}")
-                print(f"reCAPTCHA Debug - Response: {result}")
-                print(f"reCAPTCHA Debug - Success: {result.get('success')}")
-                print(f"reCAPTCHA Debug - Error codes: {result.get('error-codes', [])}")
-                
-                if not result.get("success"):
-                    error_codes = result.get('error-codes', [])
-                    error_msg = f"Falha na verificação do reCAPTCHA. Códigos de erro: {', '.join(error_codes)}"
-                    print(f"reCAPTCHA Error: {error_msg}")
-                    flash("Falha na verificação do reCAPTCHA. Tente novamente.", "danger")
-                    return redirect(url_for("register"))
-                    
-            except requests.exceptions.RequestException as e:
-                print(f"reCAPTCHA Request Error: {str(e)}")
-                flash("Erro de conexão com o serviço reCAPTCHA. Tente novamente.", "danger")
-                return redirect(url_for("register"))
-            except Exception as e:
-                print(f"reCAPTCHA Unexpected Error: {str(e)}")
-                flash("Erro inesperado na verificação do reCAPTCHA. Tente novamente.", "danger")
-                return redirect(url_for("register"))
-
-            # --- NOVO: Captura o IP do cliente
-            user_ip = get_user_ip()
-
-            # --- NOVO: Buscar registros por IP
-            now = datetime.datetime.now(datetime.timezone.utc)
-            five_minutes_ago = now - datetime.timedelta(minutes=5)
-
-            # Busca usuários com mesmo IP
-            response = users_table.query(
-                IndexName="ip-index",  # Vamos precisar criar um GSI no campo "ip"
-                KeyConditionExpression="ip = :ip",
-                ExpressionAttributeValues={":ip": user_ip},
-            )
-
-            items = response.get("Items", [])
-            for item in items:
-                created_at = item.get("created_at")
-                if created_at:
-                    created_at_time = datetime.datetime.fromisoformat(created_at)
-                    if created_at_time > five_minutes_ago:
-                        flash(
-                            "Você já criou uma conta recentemente. Aguarde 5 minutos minutos para tentar novamente.",
-                            "warning",
-                        )
-                        return redirect(url_for("register"))
-
-            success = create_user(
-                email,
-                username,
-                password,
-                users_table,
-                app,
-                payment_transactions_table,
-                field_config_table,
-                role="admin",
-                user_ip=user_ip,
-                status="active",
-            )
-            if success:
-                session["cadastro_sucesso"] = True
-                return redirect("/cadastro-sucesso")
-            else:
-                return render_template(
-                    "register.html",
-                    error="Já existe um cadastro com esse e-mail!",
-                    register=True,
-                    recaptcha_site_key=os.getenv('RECAPTCHA_SITE_KEY')
-                )
-
-        return render_template("register.html", register=True, recaptcha_site_key=os.getenv('RECAPTCHA_SITE_KEY'))
+        abort(404)
 
     # Login route
     @app.route("/login", methods=["GET", "POST"])
@@ -208,7 +65,7 @@ def init_auth_routes(
             items = response.get("Items", [])
             if not items:
                 flash(
-                    "E-mail ou senha incorretos. Se ainda não tem conta, clique em 'Cadastre-se'",
+                    "E-mail ou senha incorretos.",
                     "danger",
                 )
                 return redirect(url_for("login"))
@@ -219,7 +76,7 @@ def init_auth_routes(
             response = users_table.get_item(Key={"user_id": user_id})
             if "Item" not in response:
                 flash(
-                    "E-mail ou senha incorretos. Se ainda não tem conta, clique em 'Cadastre-se'",
+                    "E-mail ou senha incorretos.",
                     "danger",
                 )
                 return redirect(url_for("login"))
@@ -260,7 +117,7 @@ def init_auth_routes(
                 return redirect(url_for("index"))
 
             flash(
-                "E-mail ou senha incorretos. Se ainda não tem conta, clique em 'Cadastre-se'",
+                "E-mail ou senha incorretos.",
                 "danger",
             )
 
@@ -268,12 +125,7 @@ def init_auth_routes(
 
     @app.route("/cadastro-sucesso")
     def cadastro_sucesso():
-        if not session.get("cadastro_sucesso"):
-            return redirect("/login")  # ou para home, como preferir
-
-        # Limpa o flag da sessão para evitar acesso direto posterior
-        session.pop("cadastro_sucesso", None)
-        return render_template("cadastro_sucesso.html")
+        abort(404)
 
     # Email confirmation
     @app.route("/confirm_email/<token>")
@@ -1107,47 +959,8 @@ def init_auth_routes(
 
     @app.route("/admin/update_fields_config")
     def update_fields_config():
-        try:
-            # 🔍 Faz scan da tabela de configs e extrai account_ids únicos
-            response = field_config_table.scan(ProjectionExpression="account_id")
-            account_ids = set(item["account_id"] for item in response.get("Items", []))
-
-            total_updated = 0
-
-            for account_id in account_ids:
-                for entity in ["item", "client", "transaction"]:
-                    # 🔹 Busca campos existentes
-                    existing_response = field_config_table.get_item(Key={"account_id": account_id, "entity": entity})
-                    existing_fields = existing_response.get("Item", {}).get("fields_config", {})
-
-                    # 🔹 Mantém campos não-fixed
-                    preserved_fields = {
-                        fid: fdata for fid, fdata in existing_fields.items()
-                        if fdata.get("f_type") != "fixed"
-                    }
-
-                    # 🔹 Campos fixed default atualizados
-                    default_fixed_fields = get_default_fields_and_slugs(entity)
-
-                    # 🔹 Merge (fixed atualiza ou adiciona, preservados mantêm)
-                    merged_fields = {**preserved_fields, **default_fixed_fields}
-
-                    # 🔹 Grava no banco
-                    field_config_table.put_item(
-                        Item={
-                            "account_id": account_id,
-                            "entity": entity,
-                            "fields_config": merged_fields,
-                        }
-                    )
-                    total_updated += 1
-
-            flash(f"Atualização concluída ({total_updated} configs atualizadas).", "success")
-            return redirect(url_for("admin_dashboard"))
-
-        except Exception as e:
-            flash(f"Erro ao atualizar configs: {str(e)}", "danger")
-            return redirect(url_for("admin_dashboard"))
+        flash("A configuração dinâmica de campos foi desativada.", "warning")
+        return redirect(url_for("admin_dashboard"))
 
 
 
@@ -1201,17 +1014,6 @@ def create_user(
                     items=[{"price": os.getenv("STRIPE_PRICE_ID")}],
                     trial_period_days=30,
                     metadata={"account_id": account_id},
-                )
-
-            # ✅ Campos default para item e client
-            for entity in ["item", "client", "transaction"]:
-                fields_config = get_default_fields_and_slugs(entity)
-                field_config_table.put_item(
-                    Item={
-                        "account_id": account_id,
-                        "entity": entity,
-                        "fields_config": fields_config,
-                    }
                 )
 
             item = {

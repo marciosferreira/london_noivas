@@ -35,7 +35,7 @@
 
         <!-- Imagem -->
         {% for field in fields_config if field.type == 'item_image_url' and field.preview and field.visible %} {% set image_value =
-        item.key_values[field.id] if item.key_values is defined and field.id in item.key_values else item[field.id] if field.id in item else '' %}
+        item[field.id] if field.id in item else '' %}
         <div class="text-center">
           <img
             src="{{ image_value if image_value and image_value != 'N/A' else url_for('static', filename='item-placeholder.png') }}"
@@ -77,8 +77,7 @@
             <div class="d-flex justify-content-between small border-bottom pb-1">
               <span class="text-muted">{{ field.label }}</span>
               <span class="text-end">
-                {% set value = item.key_values[field.id] if item.key_values is defined and field.id in item.key_values else item[field.id] if field.id
-                in item else '' %} {% if value == 'None' or value is none %}
+                {% set value = item[field.id] if field.id in item else '' %} {% if value == 'None' or value is none %}
                 <span class="text-muted">-</span>
                 {% else %} {% if field.type in ["phone", "client_phone"] %} {{ value | format_phone }} {% elif field.type == "date" %} {{ value |
                 format_date }} {% elif field.type in ["transaction_ret_date", "created_at"] %} {{ value | formatar_data_br }} {% elif field.type in

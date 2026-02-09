@@ -448,10 +448,8 @@ def entidade_atende_filtros_dinamico(item, filtros, fields_config, image_url_req
 
     def get_valor(item, field):
         field_id = field["id"]
-        if field.get("fixed"):
-
-            return item.get(field_id, "")
-        return (item.get("key_values", {}) or {}).get(field_id, "")
+        # Tudo é raiz agora
+        return item.get(field_id, "")
 
     # Lógica especial para imagem (usado apenas em itens, mas é seguro ignorar para outros)
     if image_url_required is not None:
