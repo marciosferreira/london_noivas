@@ -187,6 +187,7 @@ def _rewrite_catalog_query(query, target_category):
         "O contexto do inventário é apenas exemplos observados; não se restrinja a ele.\n"
         "Se o usuário pedir um atributo/valor que não aparece nos exemplos, mantenha mesmo assim e liste em atributos_novos.\n"
         "Não invente que o inventário possui algo; apenas descreva preferências do usuário.\n"
+        "Trate negativas: quando houver 'sem X' ou 'não X', registre X em termos_excluir e também como 'não X' no facet apropriado em atributos_extraidos (ex.: 'não tomara que caia' em decote; 'sem fenda' em detalhes).\n"
         "Responda apenas com JSON válido (sem markdown)."
     )
 
@@ -267,6 +268,7 @@ def _apply_facet_constraints(candidates, rewrite_data):
     def norm(x):
         return _normalize_text(x)
     req = {}
+    req_neg = {}
     key_map = {"cor":"colors","estilo":"silhouette","decote":"neckline","mangas":"sleeves","detalhes":"details","tecido":"fabrics","ocasiao":"occasions"}
     for k in ["colors","silhouette","neckline","sleeves","details","fabrics","occasions"]:
         v = attrs.get(k)
@@ -276,11 +278,27 @@ def _apply_facet_constraints(candidates, rewrite_data):
                     v = attrs.get(kk)
                     break
         if isinstance(v, list):
-            vv = [norm(s) for s in v if str(s).strip()]
-            if vv:
-                req[k] = set(vv)
+            vals = [norm(s) for s in v if str(s).strip()]
+            if vals:
+                req[k] = set(vals)
+                neg = set()
+                for s in vals:
+                    if k == "details" and (s.startswith("sem ") or s.startswith("sem-")):
+                        neg.add(s.replace("sem ", "").replace("sem-", "").strip())
+                    if s.startswith("nao ") or s.startswith("não "):
+                        neg.add(s.replace("nao ", "").replace("não ", "").strip())
+                if neg:
+                    req_neg[k] = neg
         elif isinstance(v, str) and v.strip():
-            req[k] = {norm(v)}
+            val = norm(v)
+            req[k] = {val}
+            neg = set()
+            if k == "details" and (val.startswith("sem ") or val.startswith("sem-")):
+                neg.add(val.replace("sem ", "").replace("sem-", "").strip())
+            if val.startswith("nao ") or val.startswith("não "):
+                neg.add(val.replace("nao ", "").replace("não ", "").strip())
+            if neg:
+                req_neg[k] = neg
     if not req:
         return candidates
     def has_intersection(values, needed):
@@ -288,6 +306,14 @@ def _apply_facet_constraints(candidates, rewrite_data):
             return False
         nv = set(norm(x) for x in values if str(x).strip())
         return bool(nv.intersection(needed))
+    # termos_excluir globais
+    exclude_terms = set()
+    te = rewrite_data.get("termos_excluir")
+    if isinstance(te, list):
+        for t in te:
+            tt = norm(t)
+            if tt:
+                exclude_terms.add(tt)
     filtered = []
     for c in candidates:
         mf = c.get("metadata_filters", {}) or {}
@@ -296,6 +322,25 @@ def _apply_facet_constraints(candidates, rewrite_data):
             if k in req and not has_intersection(mf.get(k), req[k]):
                 ok = False
                 break
+        if ok and req_neg:
+            def unify_set(values):
+                return set(re.sub(r"[-\\s]+", "", norm(x)) for x in values if str(x).strip())
+            for facet, negs in req_neg.items():
+                vals = mf.get(facet)
+                if isinstance(vals, list):
+                    present = unify_set(vals)
+                    neg_unified = set(re.sub(r"[-\\s]+", "", s) for s in negs)
+                    if present.intersection(neg_unified):
+                        ok = False
+                        break
+        if ok and exclude_terms:
+            all_vals = []
+            for facet_vals in mf.values():
+                if isinstance(facet_vals, list):
+                    all_vals.extend(facet_vals)
+            present = set(norm(x) for x in all_vals if str(x).strip())
+            if present.intersection(exclude_terms):
+                ok = False
         if ok:
             filtered.append(c)
     return filtered if filtered else candidates
@@ -405,8 +450,7 @@ def validate_and_enrich_candidates(candidates_metadata):
         db_item = fetched_items.get(item_id)
         
         if db_item:
-            # Verificar status (ignorar deletados)
-            if db_item.get('status') == 'deleted':
+            if db_item.get('status') != 'available':
                 continue
 
             # Item válido! Enriquecer.
@@ -511,9 +555,16 @@ def ai_search():
         "- Diga algo como 'Separei esta opção principal que... e deixei mais sugestões nas imagens abaixo'.\n"
         "- O foco do texto deve ser a conexão emocional com a escolha principal.\n"
         "- SEMPRE finalize com uma pergunta de follow-up. Ex: 'Então, o que achou deste modelo? Gostaria de ver algo com mais brilho ou renda?'\n"
+        "- Quando a cliente mudar a preferência (ex.: 'mais discreto', 'sem fenda', 'menos brilho', 'decote fechado'), NUNCA repita a opção principal anterior: refaça a busca com esses critérios e escolha OUTRA peça como principal.\n"
+        "- Traduza adjetivos comuns em restrições do catálogo: 'discreto' → silhueta clássica (reto/evasê), decote discreto, sem fenda, poucos detalhes, cores neutras; 'chamativo' → brilho, fenda, decotes marcantes, cores vivas; 'romântico' → renda/volume; etc.\n"
+        "- Se não houver opções diferentes que atendam ao pedido, explique brevemente e sugira ajustar um critério (ex.: cor, decote, tecido), ao invés de repetir a mesma peça.\n"
         "USO DE FERRAMENTAS:\n"
         "- Use a tool `search_dresses` quando o usuário pedir sugestões, descrever um estilo ou demonstrar intenção de compra.\n"
-        "- Se a busca não retornar nada, peça desculpas e sugira ampliar os critérios."
+        "- Se a busca não retornar nada, peça desculpas e sugira ampliar os critérios.\n"
+        "SELEÇÃO DO PRINCIPAL:\n"
+        "- Escolha UM dos itens retornados pela ferramenta como principal.\n"
+        "- No FINAL da sua mensagem, inclua a linha: PRINCIPAL_ID: <id>\n"
+        "- O <id> deve ser exatamente o campo 'id' de um dos itens retornados pela tool (recebidos em JSON)."
     )
 
     # Constrói mensagens
@@ -605,14 +656,31 @@ def ai_search():
                 messages=messages
             )
             reply_text = final_response.choices[0].message.content
+            selected_id = None
+            try:
+                m = re.search(r"PRINCIPAL_ID:\s*([A-Za-z0-9_-]+)", reply_text)
+                if m:
+                    selected_id = m.group(1)
+                    reply_text = re.sub(r"\s*PRINCIPAL_ID:\s*[A-Za-z0-9_-]+\s*", "", reply_text).strip()
+            except Exception:
+                pass
             
         else:
             # Apenas conversa
             reply_text = response_message.content
+            selected_id = None
 
         # 4. Retorno ao Frontend
         # Separa o principal das sugestões para evitar duplicidade na grid
-        main_dress = found_suggestions[0] if found_suggestions else None
+        main_dress = None
+        if found_suggestions:
+            if selected_id:
+                for s in found_suggestions:
+                    if str(s.get("customId")) == str(selected_id) or str(s.get("id")) == str(selected_id):
+                        main_dress = s
+                        break
+            if not main_dress:
+                main_dress = found_suggestions[0]
         # Limita a 4 sugestões adicionais (índices 1 a 4)
         other_suggestions = found_suggestions[1:5] if len(found_suggestions) > 1 else []
 
@@ -665,6 +733,8 @@ def ai_similar(item_id):
 
         # Validação contra Banco de Dados
         valid_suggestions = validate_and_enrich_candidates(raw_suggestions)
+        principal_cat = _category_slug(metadata[target_idx])
+        valid_suggestions = [c for c in valid_suggestions if _category_slug(c) == principal_cat]
 
         suggestions = []
         for item in valid_suggestions:
