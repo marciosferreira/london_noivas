@@ -681,8 +681,18 @@ def ai_search():
                         break
             if not main_dress:
                 main_dress = found_suggestions[0]
-        # Limita a 4 sugestões adicionais (índices 1 a 4)
-        other_suggestions = found_suggestions[1:5] if len(found_suggestions) > 1 else []
+        # Limita a 4 sugestões adicionais, removendo o principal se aparecer na lista
+        other_suggestions = []
+        if found_suggestions:
+            principal_key = None
+            if main_dress:
+                principal_key = str(main_dress.get("id") or main_dress.get("customId"))
+            for s in found_suggestions:
+                sid = str(s.get("id") or s.get("customId"))
+                if principal_key and sid == principal_key:
+                    continue
+                other_suggestions.append(s)
+            other_suggestions = other_suggestions[:4]
 
         return jsonify({
             "reply": reply_text,
