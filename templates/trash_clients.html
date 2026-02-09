@@ -1,0 +1,81 @@
+{% extends "base.html" %} {% block title %}Lixeira de Clientes{% endblock %} {% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='style_trash_itens.css') }}" />
+{% endblock %} {% block content %}
+<div class="container mt-3">
+  <h2 class="mb-4">Lixeira de Clientes</h2>
+
+  {% if itens %}
+  <!-- Tabela -->
+  <div class="table-container mt-4">
+    <table class="table table-hover responsive-table align-middle rounded-table">
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>CPF</th>
+          <th>Email</th>
+          <th>Telefone</th>
+          <th>Data de Exclusão</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in itens %}
+        <tr>
+          <td data-label="Nome">{{ item.client_name }}</td>
+          <td data-label="CPF">{{ item.client_cpf }}</td>
+          <td data-label="Email">{{ item.client_email }}</td>
+          <td data-label="Telefone">{{ item.client_phone }}</td>
+          <td data-label="Data de Exclusão">{{ item.deleted_date }}</td>
+
+          <!-- Botão de Restaurar e Excluir Definitivamente -->
+          <td data-label="Ações">
+            <div class="d-flex gap-2">
+              <button
+                type="button"
+                class="btn btn-success btn-sm"
+                title="Restaurar Cliente"
+                onclick="restaurarCliente({{ item | tojson | forceescape }})"
+              >
+                Restaurar
+              </button>
+              <form
+                action="{{ url_for('permanently_delete_client', client_id=item.client_id) }}"
+                method="POST"
+                onsubmit="return confirm('Tem certeza que deseja excluir este cliente definitivamente? Esta ação não pode ser desfeita.');"
+              >
+                <button type="submit" class="btn btn-danger btn-sm" title="Excluir Definitivamente">
+                  Excluir
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Formulário Dinâmico FORA da tabela -->
+  <form id="form-restore" method="POST" action="{{ url_for('restore_deleted_client') }}">
+    <input type="hidden" name="client_data" id="restore_client_data" />
+  </form>
+
+  {% else %}
+  <p style="color: #308be3; font-weight: bold; font-size: 1.2rem; margin-top: -1rem; margin-left: 0.25rem">Nada por aqui ainda!</p>
+  {% endif %}
+
+  <!-- Paginação -->
+  {% set route_name = 'trash_clients' %} {% include 'components/pagination.html' with context %}
+  <div style="height: 3rem"></div>
+</div>
+
+{% endblock %} {% block scripts %}
+<script>
+  function restaurarCliente(clientData) {
+    if (confirm(`Restaurar o cliente ${clientData.client_name}?`)) {
+      document.getElementById('restore_client_data').value = JSON.stringify(clientData);
+      document.getElementById('form-restore').submit();
+    }
+  }
+</script>
+{% endblock %}

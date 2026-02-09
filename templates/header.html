@@ -147,6 +147,13 @@
               </li>
 
               <li>
+                <a class="dropdown-item {% if request.endpoint == 'trash_clients' %}active{% endif %}" href="{{ url_for('trash_clients') }}">
+                  <i class="fas fa-user-times me-2"></i>
+                  Lixeira de clientes
+                </a>
+              </li>
+
+              <li>
                 <a
                   class="dropdown-item {% if request.endpoint == 'trash_transactions' %}active{% endif %}"
                   href="{{ url_for('trash_transactions') }}"

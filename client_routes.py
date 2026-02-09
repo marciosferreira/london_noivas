@@ -224,6 +224,9 @@ def init_client_routes(
             from utils import entidade_atende_filtros_dinamico  # certifique-se de importar isso corretamente
 
             for cliente in clientes:
+                if cliente.get("status") == "deleted":
+                    continue
+
                 if not entidade_atende_filtros_dinamico(cliente, filtros, fields_config):
                     continue
 
@@ -587,10 +590,19 @@ def init_client_routes(
                 flash("Cliente não encontrado.", "danger")
                 return redirect(url_for("listar_clientes"))
 
-            # Remove do DynamoDB
-            clients_table.delete_item(Key={"client_id": client_id})
+            # Soft Delete
+            user_id = session.get("user_id")
+            user_utc = get_user_timezone(users_table, user_id)
+            deleted_date = datetime.datetime.now(user_utc).strftime("%Y-%m-%d %H:%M:%S")
 
-            flash("Cliente deletado com sucesso!", "success")
+            clients_table.update_item(
+                Key={"client_id": client_id},
+                UpdateExpression="SET #status = :deleted, deleted_date = :deleted_date",
+                ExpressionAttributeNames={"#status": "status"},
+                ExpressionAttributeValues={":deleted": "deleted", ":deleted_date": deleted_date},
+            )
+
+            flash("Cliente enviado para a lixeira!", "success")
         except Exception as e:
             print("Erro ao deletar cliente:", e)
             flash("Erro ao deletar cliente. Tente novamente.", "danger")
@@ -598,6 +610,175 @@ def init_client_routes(
         # return redirect(url_for("listar_clientes"))
         # return redirect(next_page)
         return redirect(request.referrer)
+
+    @app.route("/trash_clients")
+    def trash_clients():
+        if not session.get("logged_in"):
+            return redirect(url_for("login"))
+
+        account_id = session.get("account_id")
+        if not account_id:
+            return redirect(url_for("login"))
+
+        # Campos configuráveis
+        fields_config = get_all_fields(account_id, field_config_table, entity="client")
+        fields_config = sorted(fields_config, key=lambda x: x["order_sequence"])
+
+        force_no_next = request.args.get("force_no_next")
+        session["previous_path_trash_clients"] = request.path
+
+        filtros = request.args.to_dict()
+        page = int(filtros.pop("page", 1))
+
+        if page == 1:
+            session.pop("current_page_trash_clients", None)
+            session.pop("cursor_pages_trash_clients", None)
+            session.pop("last_page_trash_clients", None)
+
+        cursor_pages = session.get("cursor_pages_trash_clients", {"1": None})
+        if page == 1:
+            session["cursor_pages_trash_clients"] = {"1": None}
+            cursor_pages = {"1": None}
+
+        session["current_page_trash_clients"] = page
+        exclusive_start_key = (
+            decode_dynamo_key(cursor_pages.get(str(page)))
+            if str(page) in cursor_pages
+            else None
+        )
+
+        valid_clientes = []
+        limit = 6
+        batch_size = 10
+        last_valid_cliente = None
+        raw_last_evaluated_key = None
+
+        while len(valid_clientes) < limit:
+            query_kwargs = {
+                "IndexName": "account_id-created_at-index",
+                "KeyConditionExpression": Key("account_id").eq(account_id),
+                "ScanIndexForward": False,
+                "Limit": batch_size,
+            }
+            if exclusive_start_key:
+                query_kwargs["ExclusiveStartKey"] = exclusive_start_key
+
+            response = clients_table.query(**query_kwargs)
+            clientes = response.get("Items", [])
+            raw_last_evaluated_key = response.get("LastEvaluatedKey")
+
+            if not clientes:
+                break
+
+            for cliente in clientes:
+                # Apenas clientes deletados
+                if cliente.get("status") != "deleted":
+                    continue
+
+                valid_clientes.append(cliente)
+                last_valid_cliente = cliente
+
+                if len(valid_clientes) == limit:
+                    break
+
+            if len(valid_clientes) < limit:
+                if raw_last_evaluated_key:
+                    exclusive_start_key = raw_last_evaluated_key
+                else:
+                    break
+
+        next_cursor_token = None
+        if last_valid_cliente:
+            if all(
+                k in last_valid_cliente
+                for k in ("account_id", "created_at", "client_id")
+            ):
+                next_cursor_token = encode_dynamo_key(
+                    {
+                        "account_id": last_valid_cliente["account_id"],
+                        "created_at": last_valid_cliente["created_at"],
+                        "client_id": last_valid_cliente["client_id"],
+                    }
+                )
+
+        if next_cursor_token:
+            session["cursor_pages_trash_clients"][str(page + 1)] = next_cursor_token
+        else:
+            session["cursor_pages_trash_clients"].pop(str(page + 1), None)
+
+        last_page_clients = session.get("last_page_trash_clients")
+        current_page = session.get("current_page_trash_clients", 1)
+
+        has_next = False
+        if not force_no_next and (
+            len(valid_clientes) == limit
+            and (last_page_clients is None or current_page < last_page_clients)
+        ):
+            has_next = True
+
+        if not valid_clientes and page > 1:
+            flash("Não há mais clientes na lixeira.", "info")
+            last_valid_page = page - 1
+            session["current_page_trash_clients"] = last_valid_page
+            session["last_page_trash_clients"] = last_valid_page
+            return redirect(
+                url_for("trash_clients", page=last_valid_page, force_no_next=1)
+            )
+
+        return render_template(
+            "trash_clients.html",
+            itens=valid_clientes,
+            current_page=current_page,
+            has_next=has_next,
+            has_prev=current_page > 1,
+        )
+
+    @app.route("/restore_deleted_client", methods=["POST"])
+    def restore_deleted_client():
+        if not session.get("logged_in"):
+            return redirect(url_for("login"))
+
+        try:
+            client_data_json = request.form.get("client_data")
+            if not client_data_json:
+                flash("Dados do cliente inválidos.", "danger")
+                return redirect(url_for("trash_clients"))
+
+            client_data = json.loads(client_data_json)
+            client_id = client_data.get("client_id")
+
+            if not client_id:
+                flash("ID do cliente não encontrado.", "danger")
+                return redirect(url_for("trash_clients"))
+
+            # Remove status=deleted e deleted_date para restaurar
+            clients_table.update_item(
+                Key={"client_id": client_id},
+                UpdateExpression="REMOVE #status, deleted_date",
+                ExpressionAttributeNames={"#status": "status"},
+            )
+
+            flash("Cliente restaurado com sucesso!", "success")
+
+        except Exception as e:
+            print(f"Erro ao restaurar cliente: {e}")
+            flash(f"Erro ao restaurar cliente: {str(e)}", "danger")
+
+        return redirect(url_for("trash_clients"))
+
+    @app.route("/permanently_delete_client/<client_id>", methods=["POST"])
+    def permanently_delete_client(client_id):
+        if not session.get("logged_in"):
+            return redirect(url_for("login"))
+
+        try:
+            clients_table.delete_item(Key={"client_id": client_id})
+            flash("Cliente excluído definitivamente.", "success")
+        except Exception as e:
+            print(f"Erro ao excluir cliente definitivamente: {e}")
+            flash(f"Erro ao excluir cliente: {str(e)}", "danger")
+
+        return redirect(url_for("trash_clients"))
 
     @app.route("/client_transactions/<client_id>/")
     def client_transactions(client_id):
