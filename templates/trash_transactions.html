@@ -78,7 +78,7 @@
 <!-- Botão de Restaurar -->
 <td data-label="Ações">
   <button type="button" class="btn btn-success btn-sm" title="Restaurar Item"
-      onclick='restaurarItem({{ item | tojson }})'>
+      onclick="restaurarItem({{ item | tojson | forceescape }})">
       Restaurar
   </button>
 </td>

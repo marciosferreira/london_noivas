@@ -265,7 +265,7 @@ def sync_index():
                 print(f"Item {item_id} sem imagem, pulando.")
                 continue 
             
-            # Download da Imagem
+            # Download da Imagem (Em Memória)
             ext = 'jpg'
             if '.' in image_url:
                 parts = image_url.split('.')
@@ -273,21 +273,22 @@ def sync_index():
                     ext = parts[-1].split('?')[0]
                     if len(ext) > 4: ext = 'jpg' # Fallback
             
+            # Mantemos o nome do arquivo no JSON para referência (caso precise no futuro)
+            # mas NÃO salvamos o arquivo no disco.
             filename = f"{item_id}.{ext}"
-            filepath = os.path.join(DRESSES_DIR, filename)
-            
-            # Garante que diretório existe
-            os.makedirs(DRESSES_DIR, exist_ok=True)
 
-            print(f"Baixando imagem para {item_id}...")
-            r = requests.get(image_url, stream=True)
-            if r.status_code == 200:
-                with open(filepath, 'wb') as f:
-                    r.raw.decode_content = True
-                    shutil.copyfileobj(r.raw, f)
-            else:
-                print(f"Falha ao baixar imagem: {r.status_code}")
-                failed_items.append(f"{item_id}: Falha download imagem")
+            print(f"Baixando imagem para memória {item_id}...")
+            try:
+                r = requests.get(image_url, timeout=15)
+                if r.status_code == 200:
+                    image_bytes = r.content
+                else:
+                    print(f"Falha ao baixar imagem: {r.status_code}")
+                    failed_items.append(f"{item_id}: Falha download imagem status {r.status_code}")
+                    continue
+            except Exception as e:
+                print(f"Exceção no download: {e}")
+                failed_items.append(f"{item_id}: Exceção download")
                 continue
 
             # Gera Metadados
@@ -297,7 +298,8 @@ def sync_index():
             existing_desc = item.get('description') or item.get('key_values', {}).get('description')
             existing_title = item.get('title') or item.get('key_values', {}).get('title')
 
-            description, title = generate_dress_metadata(filepath, existing_desc, existing_title)
+            # Passa os bytes da imagem diretamente
+            description, title = generate_dress_metadata(image_bytes, existing_desc, existing_title)
             
             new_entry = {
                 "file_name": filename,

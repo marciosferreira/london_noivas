@@ -1292,6 +1292,80 @@ def init_item_routes(
 
         return redirect(next_page)
 
+    @app.route("/permanently_delete_item/<item_id>", methods=["POST"])
+    def permanently_delete_item(item_id):
+        if not session.get("logged_in"):
+            return redirect(url_for("login"))
+
+        try:
+            # Buscar o item
+            response = itens_table.get_item(Key={"item_id": item_id})
+            item = response.get("Item")
+
+            if not item:
+                flash("Item não encontrado.", "danger")
+                return redirect(url_for("trash_itens"))
+
+            # Verificar se o status é realmente 'deleted'
+            if item.get("status") != "deleted":
+                flash("Apenas itens marcados como deletados podem ser excluídos definitivamente.", "warning")
+                return redirect(url_for("trash_itens"))
+
+            user_id = item.get("user_id")
+            image_url = item.get("item_image_url") or item.get("image_url")
+
+            # Lógica de exclusão de imagem (similar ao purge)
+            deletar_imagem = True
+            if (
+                user_id
+                and image_url
+                and isinstance(image_url, str)
+                and image_url.strip()
+                and image_url != "N/A"
+            ):
+                # Buscar todos os itens com o mesmo user_id para verificar reutilização de imagem
+                response_scan = itens_table.scan(
+                    FilterExpression="user_id = :user_id",
+                    ExpressionAttributeValues={":user_id": user_id},
+                )
+
+                itens_do_usuario = response_scan.get("Items", [])
+
+                # Verificar se a imagem está em uso por outro item (que não seja este mesmo)
+                for outro_item in itens_do_usuario:
+                    if outro_item["item_id"] == item_id:
+                        continue
+                        
+                    other_img = outro_item.get("item_image_url") or outro_item.get("image_url")
+                    if other_img == image_url:
+                        deletar_imagem = False
+                        break
+
+            # Se não houver outro item usando a mesma imagem, deletar do S3
+            if (
+                deletar_imagem
+                and image_url
+                and isinstance(image_url, str)
+                and image_url.strip()
+                and image_url != "N/A"
+            ):
+                try:
+                    parsed_url = urlparse(image_url)
+                    object_key = parsed_url.path.lstrip("/")
+                    s3.delete_object(Bucket=s3_bucket_name, Key=object_key)
+                except Exception as e:
+                    print(f"Erro ao deletar imagem do S3: {e}")
+
+            # Remover o item do DynamoDB
+            itens_table.delete_item(Key={"item_id": item_id})
+
+            flash("Item excluído definitivamente.", "success")
+
+        except Exception as e:
+            flash(f"Erro ao excluir item definitivamente: {str(e)}", "danger")
+
+        return redirect(url_for("trash_itens"))
+
     @app.route("/purge_deleted_items", methods=["GET", "POST"])
     def purge_deleted_items():
         if not session.get("logged_in"):
@@ -1483,6 +1557,7 @@ def init_item_routes(
         except Exception as e:
             flash(f"Erro ao restaurar a versão do item: {str(e)}", "danger")
             return redirect(next_page)
+
 
     ###################################################################################################
     @app.route("/restore_deleted_item", methods=["POST"])

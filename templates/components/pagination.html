@@ -1,0 +1,74 @@
+{% if itens %}
+<nav aria-label="Navegação de página">
+  <ul class="pagination justify-content-center mt-4" id="pagination-container">
+    <!-- Links serão injetados via JavaScript -->
+  </ul>
+</nav>
+
+<script>
+  (function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    let currentPage = parseInt(urlParams.get('page') || '1');
+    
+    // Se o backend fornecer a página atual, usamos (fallback para URL param)
+    {% if current_page is defined %}
+    currentPage = {{ current_page }};
+    {% endif %}
+
+    const paginacao = document.getElementById('pagination-container');
+    if (!paginacao) return;
+
+    // Limpa conteúdo anterior (caso haja re-renderização)
+    paginacao.innerHTML = '';
+
+    // Remove o parâmetro 'page' para reconstruir a URL base
+    urlParams.delete('page');
+    const baseParams = urlParams.toString();
+    const prefix = baseParams ? `?${baseParams}&` : '?';
+
+    // Variáveis do backend
+    const hasNext = {{ 'true' if has_next else 'false' }};
+    const hasPrev = {{ 'true' if has_prev else 'false' }};
+
+    // Botão Anterior
+    const liPrev = document.createElement('li');
+    liPrev.className = `page-item ${!hasPrev ? 'disabled' : ''}`;
+    const aPrev = document.createElement('a');
+    aPrev.className = 'page-link';
+    aPrev.innerHTML = '<i class="fas fa-chevron-left"></i> Anterior';
+    if (hasPrev) {
+      aPrev.href = `${prefix}page=${currentPage - 1}`;
+    } else {
+      aPrev.href = '#';
+      aPrev.setAttribute('aria-disabled', 'true');
+    }
+    liPrev.appendChild(aPrev);
+    paginacao.appendChild(liPrev);
+
+    // Página Atual (Indicador)
+    const liCurrent = document.createElement('li');
+    liCurrent.className = 'page-item active';
+    const aCurrent = document.createElement('a');
+    aCurrent.className = 'page-link';
+    aCurrent.innerText = `Página ${currentPage}`;
+    aCurrent.href = "#";
+    liCurrent.appendChild(aCurrent);
+    paginacao.appendChild(liCurrent);
+
+    // Botão Próxima
+    const liNext = document.createElement('li');
+    liNext.className = `page-item ${!hasNext ? 'disabled' : ''}`;
+    const aNext = document.createElement('a');
+    aNext.className = 'page-link';
+    aNext.innerHTML = 'Próxima <i class="fas fa-chevron-right"></i>';
+    if (hasNext) {
+      aNext.href = `${prefix}page=${currentPage + 1}`;
+    } else {
+      aNext.href = '#';
+      aNext.setAttribute('aria-disabled', 'true');
+    }
+    liNext.appendChild(aNext);
+    paginacao.appendChild(liNext);
+  })();
+</script>
+{% endif %}

@@ -139,9 +139,9 @@
                   Agendar prova
                 </a>
               </li>
-              <!--
               <li>
                 <a class="dropdown-item {% if request.endpoint == 'trash_itens' %}active{% endif %}" href="{{ url_for('trash_itens') }}">
+                  <i class="fas fa-trash-alt me-2"></i>
                   Lixeira de itens
                 </a>
               </li>
@@ -151,10 +151,10 @@
                   class="dropdown-item {% if request.endpoint == 'trash_transactions' %}active{% endif %}"
                   href="{{ url_for('trash_transactions') }}"
                 >
+                  <i class="fas fa-trash-restore me-2"></i>
                   Lixeira de transações
                 </a>
               </li>
--->
               {% if session.get('logged_in') %} {% if session.get('role') == 'general_admin' %}
               <li><hr class="dropdown-divider" /></li>
               <li>

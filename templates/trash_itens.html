@@ -12,7 +12,7 @@
       <thead>
         <tr>
           <th>Imagem</th>
-          <th>Descrição</th>
+          <th>Título</th>
           <th>Valor (R$)</th>
           <th>Comentários</th>
           <th>Exclusão/edição</th>
@@ -25,8 +25,9 @@
         {% for item in itens %}
         <tr>
           <td data-label="Imagem">
-            {% if item.image_url and item.image_url != "N/A" %}
-            <img src="{{ item.image_url }}" alt="Imagem do vestido" class="img-fluid item-thumbnail" style="max-width: 100px" />
+            {% set img_url = item.item_image_url or item.image_url %}
+            {% if img_url and img_url != "N/A" %}
+            <img src="{{ img_url }}" alt="Imagem do vestido" class="img-fluid item-thumbnail" style="max-width: 100px" />
             {% else %}
             <img
               src="{{ url_for('static', filename='item-placeholder.png') }}"
@@ -37,7 +38,7 @@
             {% endif %}
           </td>
 
-          <td data-label="Descrição" style="white-space: pre-wrap">{{ item.description }}</td>
+          <td data-label="Título" style="white-space: pre-wrap">{{ item.title or item.item_title }}</td>
           <td data-label="Valor">{{ item.valor }}</td>
           <td data-label="Comentários" style="white-space: pre-wrap">{{ item.comments }}</td>
           <td data-label="Data do evento">{{ item.deleted_date }}</td>
@@ -51,11 +52,27 @@
             "Histórico"} %} {{ status_map.get(item.previous_status, "Inválido") }}
           </td>
 
-          <!-- Botão de Restaurar -->
+          <!-- Botão de Restaurar e Excluir Definitivamente -->
           <td data-label="Ações">
-            <button type="button" class="btn btn-success btn-sm" title="Restaurar Item" onclick="restaurarItem({{ item | tojson }})">
-              Restaurar
-            </button>
+            <div class="d-flex gap-2">
+              <button
+                type="button"
+                class="btn btn-success btn-sm"
+                title="Restaurar Item"
+                onclick="restaurarItem({{ item | tojson | forceescape }})"
+              >
+                Restaurar
+              </button>
+              <form
+                action="{{ url_for('permanently_delete_item', item_id=item.item_id) }}"
+                method="POST"
+                onsubmit="return confirm('Tem certeza que deseja excluir este item definitivamente? Esta ação não pode ser desfeita.');"
+              >
+                <button type="submit" class="btn btn-danger btn-sm" title="Excluir Definitivamente">
+                  Excluir
+                </button>
+              </form>
+            </div>
           </td>
         </tr>
         {% endfor %}
