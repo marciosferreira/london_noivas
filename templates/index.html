@@ -121,7 +121,6 @@
         
         <nav class="flex flex-col gap-8 text-center">
             <a href="/" class="text-2xl font-serif text-white hover:text-london-gold transition-colors" onclick="closeMobileMenu()">INÍCIO</a>
-            <a href="#colecoes" class="text-2xl font-serif text-white hover:text-london-gold transition-colors" onclick="closeMobileMenu()">OCASIÕES</a>
             <a href="{{ url_for('catalogo') }}" class="text-2xl font-serif text-white hover:text-london-gold transition-colors" onclick="closeMobileMenu()">CATÁLOGO</a>
             <a href="#sobre" class="text-2xl font-serif text-white hover:text-london-gold transition-colors" onclick="closeMobileMenu()">SOBRE</a>
             <a href="#contato" class="text-2xl font-serif text-white hover:text-london-gold transition-colors" onclick="closeMobileMenu()">CONTATO</a>
@@ -540,7 +539,8 @@
                         dress.id, 
                         dress.price || "Consulte o preço do aluguel",
                         'ai_result',
-                        dress.customId
+                        dress.customId,
+                        dress.occasions
                     )};
 
                     if (suggestions && suggestions.length > 0) {
@@ -564,7 +564,8 @@
                             item.id, 
                             item.price || "Consulte o preço do aluguel",
                             'ai_suggestion',
-                            item.customId
+                            item.customId,
+                            item.occasions
                         );
                         
                         div.innerHTML = `
@@ -878,7 +879,7 @@
                             <div class="flex-1">
                                 <span class="text-london-gold font-bold tracking-widest text-xs uppercase mb-2 block">London Noivas Collection</span>
                                 <h3 id="catalog-modal-title" class="text-3xl md:text-4xl font-serif text-stone-900 mb-2 leading-tight"></h3>
-                        <p id="catalog-modal-category" class="text-stone-500 font-serif mb-2">Categoria: <span id="catalog-modal-category-value"></span></p>
+                        <p id="catalog-modal-occasions" class="text-stone-500 font-serif mb-2">Ocasiões: <span id="catalog-modal-occasions-value"></span></p>
                         <p id="catalog-modal-price" class="text-2xl text-stone-600 font-serif mb-2"></p>
                                 <p class="text-xs text-stone-400 mb-6 font-mono">ID: <span id="catalog-modal-id-value"></span></p>
                                 
@@ -916,17 +917,19 @@
     </div>
 
     <script>
+        window.catalogData = window.catalogData || {};
+
         function openCatalogModalById(itemId, source) {
             const data = window.catalogData && window.catalogData[itemId];
             if (data) {
                 // Pass UUID as itemId, and customId as display param
-                openCatalogModal(data.imageUrl, data.title, data.description, itemId, data.price, source, data.customId, data.category);
+                openCatalogModal(data.imageUrl, data.title, data.description, itemId, data.price, source, data.customId, data.occasions);
             } else {
                 console.error('Dados do item não encontrados para ID:', itemId);
             }
         }
 
-        function openCatalogModal(imageUrl, title, description, itemId, price, source, customDisplayId, category) {
+        function openCatalogModal(imageUrl, title, description, itemId, price, source, customDisplayId, occasions) {
             const idToShow = customDisplayId || itemId;
 
             // Handle Price Display Logic
@@ -940,7 +943,7 @@
             document.getElementById('catalog-modal-desc').textContent = description;
             document.getElementById('catalog-modal-price').textContent = displayPrice;
             document.getElementById('catalog-modal-id-value').textContent = idToShow;
-            document.getElementById('catalog-modal-category-value').textContent = category || 'Festa';
+            document.getElementById('catalog-modal-occasions-value').textContent = occasions || 'Várias';
             
             const phoneNumber = "5592993531943";
             
@@ -997,7 +1000,12 @@
                             data.suggestions.forEach(item => {
                                 const div = document.createElement('div');
                                 div.className = 'cursor-pointer group';
-                                div.onclick = () => openCatalogModal(item.image_url, item.title, item.description, item.id, 'Consulte o preço do aluguel', 'similar', item.customId, item.category);
+                                const itemOccasions = typeof item.occasions === 'string'
+                                    ? item.occasions
+                                    : Array.isArray(item.occasions)
+                                        ? item.occasions.join(', ')
+                                        : '';
+                                div.onclick = () => openCatalogModal(item.image_url, item.title, item.description, item.id, 'Consulte o preço do aluguel', 'similar', item.customId, itemOccasions);
                                 div.innerHTML = `
                                     <div class="aspect-[3/4] bg-stone-100 overflow-hidden mb-2 rounded-sm relative">
                                         <img src="${item.image_url}" class="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110" alt="${item.title}">
@@ -1030,7 +1038,7 @@
             const itemId = urlParams.get('item');
             if (itemId && window.catalogData && window.catalogData[itemId]) {
                 const item = window.catalogData[itemId];
-                openCatalogModal(item.imageUrl, item.title, item.description, itemId, item.price, 'url_load', item.customId, item.category);
+                openCatalogModal(item.imageUrl, item.title, item.description, itemId, item.price, 'url_load', item.customId, item.occasions);
             }
         });
     </script>

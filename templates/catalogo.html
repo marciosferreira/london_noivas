@@ -130,6 +130,16 @@
                     </div>
                 </div>
                 <script>
+                    {% set occs = [] %}
+                    {% if item.occasion_noiva == '1' %}{% set _ = occs.append('Noiva') %}{% endif %}
+                    {% if item.occasion_civil == '1' %}{% set _ = occs.append('Civil') %}{% endif %}
+                    {% if item.occasion_madrinha == '1' %}{% set _ = occs.append('Madrinha') %}{% endif %}
+                    {% if item.occasion_mae_dos_noivos == '1' %}{% set _ = occs.append('Mãe dos Noivos') %}{% endif %}
+                    {% if item.occasion_formatura == '1' %}{% set _ = occs.append('Formatura') %}{% endif %}
+                    {% if item.occasion_debutante == '1' %}{% set _ = occs.append('Debutante') %}{% endif %}
+                    {% if item.occasion_gala == '1' %}{% set _ = occs.append('Gala') %}{% endif %}
+                    {% if item.occasion_convidada == '1' %}{% set _ = occs.append('Convidada') %}{% endif %}
+                    
                     window.catalogData = window.catalogData || {};
                     window.catalogData['{{ item.item_id }}'] = {
                         imageUrl: '{{ item.item_image_url }}',
@@ -137,7 +147,7 @@
                         description: '{{ item.item_description | replace("'", "\\'") | replace("\n", " ") }}',
                         price: '{{ item.item_value }}',
                         customId: '{{ item.item_custom_id }}',
-                        category: '{{ item.category | default("Outros") }}'
+                        occasions: '{{ occs | join(", ") }}'
                     };
                 </script>
                 {% endfor %}
@@ -196,7 +206,7 @@
                     <div class="flex-1">
                         <span class="text-london-gold font-bold tracking-widest text-xs uppercase mb-2 block">London Noivas Collection</span>
                         <h3 id="modal-title" class="text-3xl md:text-4xl font-serif text-stone-900 mb-2 leading-tight"></h3>
-                        <p id="modal-category" class="text-stone-500 font-serif mb-2">Categoria: <span id="modal-category-value"></span></p>
+                        <p id="modal-occasions" class="text-stone-500 font-serif mb-2">Ocasiões: <span id="modal-occasions-value"></span></p>
                         <p id="modal-price" class="text-2xl text-stone-600 font-serif mb-2"></p>
                         <p class="text-xs text-stone-400 mb-6 font-mono">ID: <span id="modal-id-value"></span></p>
                         
@@ -238,13 +248,13 @@
         function openCatalogModalById(itemId, source) {
             const data = window.catalogData && window.catalogData[itemId];
             if (data) {
-                openCatalogModal(data.imageUrl, data.title, data.description, itemId, data.price, source, data.customId, data.category);
+                openCatalogModal(data.imageUrl, data.title, data.description, itemId, data.price, source, data.customId, data.occasions);
             } else {
                 console.error('Dados do item não encontrados para ID:', itemId);
             }
         }
 
-        function openCatalogModal(imageUrl, title, description, itemId, price, source, customDisplayId, category) {
+        function openCatalogModal(imageUrl, title, description, itemId, price, source, customDisplayId, occasions) {
             const idToShow = customDisplayId || itemId;
             
             // Handle Price Display Logic
@@ -258,7 +268,7 @@
             document.getElementById('modal-desc').textContent = description;
             document.getElementById('modal-price').textContent = displayPrice;
             document.getElementById('modal-id-value').textContent = idToShow;
-            document.getElementById('modal-category-value').textContent = category || 'Festa';
+            document.getElementById('modal-occasions-value').textContent = occasions || 'Várias';
             
             const phoneNumber = "5592993531943";
             
@@ -309,7 +319,14 @@
                             data.suggestions.forEach(item => {
                                 const div = document.createElement('div');
                                 div.className = 'cursor-pointer group';
-                                div.onclick = () => openCatalogModal(item.image_url, item.title, item.description, item.id, 'Consulte o preço do aluguel', 'similar', item.customId, item.category);
+                                // Note: item.occasions needs to be available in suggestions response, if not we default to empty string or handle it
+                                // Assuming API returns occasions or we handle it gracefully. For now passing empty/default if missing.
+                                const itemOccasions = typeof item.occasions === 'string'
+                                    ? item.occasions
+                                    : Array.isArray(item.occasions)
+                                        ? item.occasions.join(', ')
+                                        : '';
+                                div.onclick = () => openCatalogModal(item.image_url, item.title, item.description, item.id, 'Consulte o preço do aluguel', 'similar', item.customId, itemOccasions);
                                 div.innerHTML = `
                                     <div class="aspect-[3/4] bg-stone-100 overflow-hidden mb-2 rounded-sm relative">
                                         <img src="${item.image_url}" class="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110" alt="${item.title}">
@@ -427,18 +444,23 @@
 
             items.forEach(item => {
                 window.catalogData = window.catalogData || {};
+                const itemOccasions = typeof item.occasions === 'string'
+                    ? item.occasions
+                    : Array.isArray(item.occasions)
+                        ? item.occasions.join(', ')
+                        : '';
                 window.catalogData[item.item_id] = {
                     imageUrl: item.imageUrl,
                     title: item.title,
                     description: item.description,
                     price: item.price,
                     customId: item.customId || item.item_id,
-                    category: item.category
+                    occasions: itemOccasions
                 };
 
                 const div = document.createElement('div');
                 div.className = 'group bg-white rounded-sm shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden animate-fadeIn';
-                div.onclick = () => openCatalogModal(item.imageUrl, item.title, item.description, item.item_id, item.price, 'ai_search', item.customId, item.category);
+                div.onclick = () => openCatalogModal(item.imageUrl, item.title, item.description, item.item_id, item.price, 'ai_search', item.customId, itemOccasions);
                 
                 div.innerHTML = `
                     <div class="aspect-[3/4] overflow-hidden bg-stone-200 relative">
@@ -495,7 +517,7 @@
             const itemId = urlParams.get('item');
             if (itemId && window.catalogData && window.catalogData[itemId]) {
                 const item = window.catalogData[itemId];
-                openCatalogModal(item.imageUrl, item.title, item.description, itemId, item.price, 'direct', item.customId, item.category);
+                openCatalogModal(item.imageUrl, item.title, item.description, itemId, item.price, 'direct', item.customId, item.occasions);
             }
         });
     </script>

@@ -82,6 +82,18 @@ def _has_occasion(meta, target_occasion):
             return True
     return False
 
+def _get_occasions_list(item):
+    occasions = []
+    if item.get('occasion_noiva') == '1': occasions.append('Noiva')
+    if item.get('occasion_civil') == '1': occasions.append('Civil')
+    if item.get('occasion_madrinha') == '1': occasions.append('Madrinha')
+    if item.get('occasion_mae_dos_noivos') == '1': occasions.append('Mãe dos Noivos')
+    if item.get('occasion_formatura') == '1': occasions.append('Formatura')
+    if item.get('occasion_debutante') == '1': occasions.append('Debutante')
+    if item.get('occasion_gala') == '1': occasions.append('Gala')
+    if item.get('occasion_convidada') == '1': occasions.append('Convidada')
+    return ", ".join(occasions)
+
 def load_resources():
     global index, metadata, inventory_digest
     try:
@@ -197,31 +209,38 @@ def _extract_json_object(text):
         return None
     return text[start : end + 1]
 
-def _rewrite_catalog_query(query, target_category):
+def _rewrite_catalog_query(query, target_occasion):
     if not isinstance(query, str):
         return {"query_reescrita": ""}
     query = query.strip()
     if not query:
         return {"query_reescrita": ""}
 
-    target_slug = (target_category or "").lower().strip()
-    if target_slug not in ["noiva", "festa"]:
-        target_slug = "ambigua"
-
-    cache_key = f"{target_slug}|{_normalize_text(query)}"
+    target_slug = _canonical_occasion(target_occasion)
+    cache_key = f"{target_slug or 'all'}|{_normalize_text(query)}"
     now = time.time()
     cached = _query_rewrite_cache.get(cache_key)
     if cached and (now - cached.get("ts", 0)) <= _QUERY_REWRITE_CACHE_TTL_SECONDS:
         return cached.get("data") or {"query_reescrita": query}
 
-    digest_for_prompt = inventory_digest.get("noiva" if target_slug == "noiva" else "festa" if target_slug == "festa" else "noiva") or {}
-    if target_slug == "ambigua":
-        digest_for_prompt = {"noiva": inventory_digest.get("noiva", {}), "festa": inventory_digest.get("festa", {})}
+    digest_for_prompt = {}
+    for cat in ["noiva", "festa"]:
+        by_cat = inventory_digest.get(cat)
+        if not isinstance(by_cat, dict):
+            continue
+        for facet, values in by_cat.items():
+            if not isinstance(values, list):
+                continue
+            digest_for_prompt.setdefault(facet, [])
+            digest_for_prompt[facet].extend([str(v) for v in values if str(v).strip()])
+    for facet, values in list(digest_for_prompt.items()):
+        digest_for_prompt[facet] = list(dict.fromkeys(values))[:32]
 
     system_prompt = (
         "Você reescreve consultas para busca semântica em um catálogo de vestidos.\n"
         "Objetivo: transformar a mensagem do usuário em uma consulta curta, explícita e útil para embeddings.\n"
         "O contexto do inventário é apenas exemplos observados; não se restrinja a ele.\n"
+        "Se existir uma ocasião alvo (aba ativa), use-a como pista para priorizar termos e desambiguar, mas não invente restrições que o usuário não pediu.\n"
         "Se o usuário pedir um atributo/valor que não aparece nos exemplos, mantenha mesmo assim e liste em atributos_novos.\n"
         "Não invente que o inventário possui algo; apenas descreva preferências do usuário.\n"
         "Trate negativas: quando houver 'sem X' ou 'não X', registre X em termos_excluir e também como 'não X' no facet apropriado em atributos_extraidos (ex.: 'não tomara que caia' em decote; 'sem fenda' em detalhes).\n"
@@ -229,12 +248,10 @@ def _rewrite_catalog_query(query, target_category):
     )
 
     user_payload = {
-        "categoria_alvo": target_slug,
+        "ocasiao_alvo": target_slug,
         "inventario_contexto_exemplos": digest_for_prompt,
         "consulta_usuario": query,
         "saida": {
-            "categoria_detectada": "noiva|festa|ambigua",
-            "confianca_categoria": "0-1",
             "query_reescrita": "string",
             "atributos_extraidos": "obj",
             "atributos_novos": "lista",
@@ -264,17 +281,17 @@ def _rewrite_catalog_query(query, target_category):
         if not isinstance(data.get("query_reescrita"), str) or not data.get("query_reescrita").strip():
             data["query_reescrita"] = query
 
+        data["ocasiao_alvo"] = target_slug
         _query_rewrite_cache[cache_key] = {"ts": now, "data": data}
         return data
     except Exception as e:
         print(f"Erro ao reescrever query: {e}")
-        return {"query_reescrita": query}
+        return {"query_reescrita": query, "ocasiao_alvo": target_slug}
 
-def _query_embedding_text_from_rewrite(data):
+def _query_embedding_text_from_rewrite(data, target_occasion=None):
     if not isinstance(data, dict):
         return None
     attrs = data.get("atributos_extraidos")
-    cat = str(data.get("categoria_detectada", "")).lower().strip()
     tokens = []
     order = ["silhouette","neckline","sleeves","details","fabrics","colors","occasions"]
     alt = {"cor":"colors","estilo":"silhouette","decote":"neckline","mangas":"sleeves","detalhes":"details","tecido":"fabrics","ocasiao":"occasions"}
@@ -288,10 +305,16 @@ def _query_embedding_text_from_rewrite(data):
                         tokens.append(s)
             elif isinstance(v, str) and v.strip():
                 tokens.append(v.strip())
+
+    occ = _canonical_occasion(target_occasion)
+    if occ:
+        tokens.append(occ)
+
+    tokens = [t for t in tokens if t]
     if not tokens:
         return None
-    if cat in ["noiva", "festa"]:
-        tokens.append(cat)
+
+    tokens = list(dict.fromkeys(tokens))
     return " ".join(tokens)
 
 def _apply_facet_constraints(candidates, rewrite_data):
@@ -548,8 +571,8 @@ def execute_catalog_search(query, k=5):
 
     try:
         # 1. Gera embedding
-        rewrite = _rewrite_catalog_query(query, "")
-        q_text = _query_embedding_text_from_rewrite(rewrite) or rewrite.get("query_reescrita") or query
+        rewrite = _rewrite_catalog_query(query, None)
+        q_text = _query_embedding_text_from_rewrite(rewrite, rewrite.get("ocasiao_alvo")) or rewrite.get("query_reescrita") or query
         query_embedding = get_embedding(q_text)
         query_vector = np.array([query_embedding]).astype('float32')
 
@@ -557,7 +580,7 @@ def execute_catalog_search(query, k=5):
         # Buscamos mais itens para garantir candidatos após validação de status/DB
         search_k = 220
         distances, indices = index.search(query_vector, search_k)
-        
+
         # 3. Coleta metadados
         raw_candidates = []
         for idx in indices[0]:
@@ -566,11 +589,7 @@ def execute_catalog_search(query, k=5):
 
         # 4. Valida e Enriquece
         valid_candidates = validate_and_enrich_candidates(raw_candidates)
-        
-        cat = str(rewrite.get("categoria_detectada", "")).lower().strip()
-        if cat in ["noiva", "festa"]:
-            valid_candidates = [c for c in valid_candidates if _category_slug(c) == cat]
-        
+
         constrained = _apply_facet_constraints(valid_candidates, rewrite)
         ranked = _rerank_by_facets(constrained, rewrite) if constrained else valid_candidates
         return ranked[:k]
@@ -672,6 +691,16 @@ def ai_search():
                     
                     # Formata para Frontend (Objetos Completos)
                     for item in results:
+                        occs = []
+                        if item.get('occasion_noiva') == '1': occs.append('Noiva')
+                        if item.get('occasion_civil') == '1': occs.append('Civil')
+                        if item.get('occasion_madrinha') == '1': occs.append('Madrinha')
+                        if item.get('occasion_mae_dos_noivos') == '1': occs.append('Mãe dos Noivos')
+                        if item.get('occasion_formatura') == '1': occs.append('Formatura')
+                        if item.get('occasion_debutante') == '1': occs.append('Debutante')
+                        if item.get('occasion_gala') == '1': occs.append('Gala')
+                        if item.get('occasion_convidada') == '1': occs.append('Convidada')
+
                         found_suggestions.append({
                             "id": item.get('item_id') or item.get('custom_id'),
                             "customId": item.get('customId'),
@@ -679,6 +708,7 @@ def ai_search():
                             "description": item.get('description', ''),
                             "price": item.get('price', "Consulte valor"),
                             "category": item.get('category', 'Festa'),
+                            "occasions": ", ".join(occs) if occs else "Várias",
                             "image_url": item.get('imageUrl') or url_for('static', filename=f"dresses/{item['file_name']}")
                         })
                     
@@ -800,7 +830,8 @@ def ai_similar(item_id):
                 "title": item.get('title', 'Vestido'),
                 "image_url": item.get('imageUrl') or url_for('static', filename=f"dresses/{item['file_name']}"),
                 "description": item.get('description', ''),
-                "category": item.get('category', 'Outros')
+                "category": item.get('category', 'Outros'),
+                "occasions": _get_occasions_list(item)
             })
                 
         return jsonify({"suggestions": suggestions})
@@ -829,19 +860,22 @@ def ai_catalog_search():
     try:
         target_occasion = (data.get("occasion") or data.get("category") or "").lower().strip()
         rewritten = _rewrite_catalog_query(query, target_occasion)
-        query_for_embedding = rewritten.get("query_reescrita") if isinstance(rewritten, dict) else None
+
+        query_for_embedding = _query_embedding_text_from_rewrite(rewritten, target_occasion) if isinstance(rewritten, dict) else None
+        if not isinstance(query_for_embedding, str) or not query_for_embedding.strip():
+            query_for_embedding = rewritten.get("query_reescrita") if isinstance(rewritten, dict) else None
         if not isinstance(query_for_embedding, str) or not query_for_embedding.strip():
             query_for_embedding = query
 
         query_embedding = get_embedding(query_for_embedding)
         query_vector = np.array([query_embedding]).astype('float32')
-        
+
         # 2. Busca no FAISS
         # Buscamos mais itens (100) para garantir que após o filtro de status/DB
         # ainda tenhamos itens suficientes para preencher as páginas.
         k = 220 if target_occasion else 100
         distances, indices = index.search(query_vector, k)
-        
+
         # Coleta metadados brutos
         raw_results = []
         for idx in indices[0]:
@@ -852,29 +886,16 @@ def ai_catalog_search():
         # Isso é rápido mesmo para 100 itens (~1 call DynamoDB)
         valid_results = validate_and_enrich_candidates(raw_results)
 
-        # Filtragem por Ocasião / Categoria (Aba Ativa)
+        # Filtragem por Ocasião (Aba Ativa)
         if target_occasion:
-            if target_occasion in ["noiva", "festa"]:
-                filtered_results = []
-                for item in valid_results:
-                    is_noiva = _category_slug(item) == "noiva"
-                    if target_occasion == "noiva":
-                        if is_noiva:
-                            filtered_results.append(item)
-                    else:
-                        if not is_noiva:
-                            filtered_results.append(item)
-                valid_results = filtered_results
+            target_slug = target_occasion.replace("-", "_")
+            db_field = f"occasion_{target_slug}"
+            known_occasions = ["occasion_noiva", "occasion_civil", "occasion_madrinha", "occasion_mae_dos_noivos", "occasion_formatura", "occasion_debutante", "occasion_gala", "occasion_convidada"]
+
+            if db_field in known_occasions:
+                valid_results = [item for item in valid_results if item.get(db_field) == "1"]
             else:
-                # Filtragem estrita pelas flags do DynamoDB (solicitado pelo usuário)
-                target_slug = target_occasion.replace("-", "_")
-                db_field = f"occasion_{target_slug}"
-                known_occasions = ["occasion_noiva", "occasion_civil", "occasion_madrinha", "occasion_mae_dos_noivos", "occasion_formatura", "occasion_debutante", "occasion_gala", "occasion_convidada"]
-                
-                if db_field in known_occasions:
-                    valid_results = [item for item in valid_results if item.get(db_field) == "1"]
-                else:
-                    valid_results = [item for item in valid_results if _has_occasion(item, target_occasion)]
+                valid_results = [item for item in valid_results if _has_occasion(item, target_occasion)]
 
         # 3. Paginação em memória
         total_valid = len(valid_results)
@@ -898,7 +919,8 @@ def ai_catalog_search():
                 "description": item.get('description', ''),
                 "price": item.get('price', "Consulte o preço do aluguel"),
                 "customId": item.get('customId'), # Adicionado para consistência
-                "category": item.get('category', 'Outros')
+                "category": item.get('category', 'Outros'),
+                "occasions": _get_occasions_list(item)
             })
                 
         return jsonify({
