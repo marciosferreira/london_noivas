@@ -3,8 +3,8 @@ test_flask_app.py
 .env
 
 # AI & Vector Store Artifacts (Generated from DB)
-vector_store.index
-vector_store_metadata.pkl
+#vector_store.index
+#vector_store_metadata.pkl
 embeddings_creation/vestidos_dataset.jsonl
 embeddings_creation/embeddings_cache.pkl
 
