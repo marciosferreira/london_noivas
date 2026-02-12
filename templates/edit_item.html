@@ -126,6 +126,41 @@
                             <input class="form-check-input" type="checkbox" id="update_all_transactions" name="update_all_transactions">
                             <label class="form-check-label" for="update_all_transactions">Atualizar em todas as transações?</label>
                         </div>
+                        <div class="w-100"></div>
+                        <div class="d-flex flex-wrap gap-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="occasion_madrinha" name="occasion_madrinha" {% if item.get('occasion_madrinha') %}checked{% endif %}>
+                                <label class="form-check-label" for="occasion_madrinha">Madrinha</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="occasion_formatura" name="occasion_formatura" {% if item.get('occasion_formatura') %}checked{% endif %}>
+                                <label class="form-check-label" for="occasion_formatura">Formatura</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="occasion_gala" name="occasion_gala" {% if item.get('occasion_gala') %}checked{% endif %}>
+                                <label class="form-check-label" for="occasion_gala">Gala</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="occasion_debutante" name="occasion_debutante" {% if item.get('occasion_debutante') %}checked{% endif %}>
+                                <label class="form-check-label" for="occasion_debutante">Debutante</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="occasion_convidada" name="occasion_convidada" {% if item.get('occasion_convidada') %}checked{% endif %}>
+                                <label class="form-check-label" for="occasion_convidada">Convidada</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="occasion_mae_dos_noivos" name="occasion_mae_dos_noivos" {% if item.get('occasion_mae_dos_noivos') %}checked{% endif %}>
+                                <label class="form-check-label" for="occasion_mae_dos_noivos">Mãe dos Noivos</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="occasion_noiva" name="occasion_noiva" {% if item.get('occasion_noiva') %}checked{% endif %}>
+                                <label class="form-check-label" for="occasion_noiva">Noiva</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="occasion_civil" name="occasion_civil" {% if item.get('occasion_civil') %}checked{% endif %}>
+                                <label class="form-check-label" for="occasion_civil">Civil</label>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

@@ -44,23 +44,28 @@ def _progress_finish(message=None, error=None):
 def get_progress():
     return PROGRESS.copy()
 
-def _category_slug_from_raw(raw):
-    raw = str(raw or "").lower().strip()
-    if "noiv" in raw:
-        return "noiva"
+def _category_slug_from_occasions(occasions):
+    for o in _to_list(occasions):
+        oo = _normalize_text(o)
+        if "noiv" in oo or "civil" in oo:
+            return "noiva"
     return "festa"
 
-def _infer_category_slug(item, description=None, title=None):
-    if isinstance(item, dict):
-        raw = item.get("item_category") or item.get("category") or item.get("categoria")
-        if raw:
-            return _category_slug_from_raw(raw), raw
+def _category_slug_from_entry(entry, description=None, title=None):
+    if isinstance(entry, dict):
+        mf = entry.get("metadata_filters")
+        if isinstance(mf, dict):
+            occ = mf.get("occasions")
+            if occ:
+                return _category_slug_from_occasions(occ)
+        occ2 = entry.get("occasions") or entry.get("ocasiao")
+        if occ2:
+            return _category_slug_from_occasions(occ2)
 
     blob = " ".join([str(title or ""), str(description or "")]).lower()
-    if "noiv" in blob:
-        return "noiva", "Noiva"
-
-    return "festa", "Festa"
+    if "noiv" in blob or "civil" in blob:
+        return "noiva"
+    return "festa"
 
 def _normalize_text(text):
     text = str(text or "").lower()
@@ -91,6 +96,10 @@ def _metadata_filters_from_structured(structured, category_slug):
     if not isinstance(structured, dict):
         return None
 
+    occasions_value = structured.get("occasions")
+    if occasions_value is None:
+        occasions_value = structured.get("ocasiao")
+
     filters = {
         "colors": _to_list(structured.get("cor")),
         "fabrics": _to_list(structured.get("tecido")),
@@ -100,8 +109,7 @@ def _metadata_filters_from_structured(structured, category_slug):
         "details": _to_list(structured.get("detalhes")),
     }
 
-    if category_slug == "festa":
-        filters["occasions"] = _to_list(structured.get("ocasiao"))
+    filters["occasions"] = _to_list(occasions_value)
 
     return {k: v for k, v in filters.items() if v}
 
@@ -144,10 +152,10 @@ def _build_inventory_examples(existing_data, limit_per_facet=8):
     for entry in existing_data or []:
         if not isinstance(entry, dict):
             continue
-        cat = _category_slug_from_raw(entry.get("category_slug") or entry.get("category_raw") or entry.get("item_category"))
         mf = entry.get("metadata_filters")
         if not isinstance(mf, dict):
             continue
+        cat = _category_slug_from_occasions(mf.get("occasions"))
         for src_key, dst_key in facet_map.items():
             values = mf.get(src_key)
             if not isinstance(values, list):
@@ -257,6 +265,8 @@ def _extract_metadata_filters(description, category_slug):
         ("madrinha", ["madrinha"]),
         ("gala", ["gala", "festa de gala"]),
         ("convidada", ["convidada"]),
+        ("noiva", ["noiva", "noivas"]),
+        ("civil", ["civil", "pre wedding", "pre-wedding", "pre wedding", "pre-wedding"]),
         ("casamento", ["casamento"]),
     ]
 
@@ -278,20 +288,17 @@ def _extract_metadata_filters(description, category_slug):
         "colors": collect(colors),
     }
 
-    if category_slug == "festa":
-        filters["occasions"] = collect(occasions)
+    filters["occasions"] = collect(occasions)
 
     return {k: v for k, v in filters.items() if v}
 
-def _synthesize_embedding_text(metadata_filters, title, category_slug):
+def _synthesize_embedding_text(metadata_filters, title):
     parts = []
     if isinstance(metadata_filters, dict):
         for k in ["silhouette", "neckline", "fabrics", "details", "colors", "sleeves", "occasions"]:
             vals = metadata_filters.get(k)
             if isinstance(vals, list):
                 parts.extend([str(v).strip() for v in vals if str(v).strip()])
-    if category_slug:
-        parts.append(str(category_slug).strip())
     if title:
         parts.append(str(title).strip())
     seen = set()
@@ -321,7 +328,8 @@ def get_index_status():
         for item in response.get('Items', []):
             # Considera imagem em item_image_url OU image_url
             has_image = bool(item.get('item_image_url') or item.get('image_url'))
-            if item.get('status') == 'deleted':
+            status = str(item.get('status') or '').lower().strip()
+            if status in ['deleted', 'archived', 'inactive']:
                 # Mesmo deletado, se marcado como pending_remove e tiver imagem,
                 # coletamos para remoção explícita.
                 if has_image and item.get('embedding_status') == 'pending_remove':
@@ -344,7 +352,8 @@ def get_index_status():
             )
             for item in response.get('Items', []):
                 has_image = bool(item.get('item_image_url') or item.get('image_url'))
-                if item.get('status') == 'deleted':
+                status = str(item.get('status') or '').lower().strip()
+                if status in ['deleted', 'archived', 'inactive']:
                     if has_image and item.get('embedding_status') == 'pending_remove':
                         pending_remove_ids.add(item['item_id'])
                     continue
@@ -478,28 +487,37 @@ def generate_dress_metadata(image_input, existing_desc=None, existing_title=None
                                 "text": (
                                     "Analise a imagem e retorne um JSON com este schema:\n"
                                     "{\n"
-                                    "  \"descricao\": \"string (máx 50 palavras, objetiva, para busca)\",\n"
+                                    "  \"descricao\": \"string (máx 70 palavras, objetiva, para busca)\",\n"
                                     "  \"titulo\": \"string (máx 5 palavras)\",\n"
-                                    "  \"categoria\": \"Noiva|Festa\",\n"
-                                    "  \"ocasiao\": [\"...\"] (apenas para Festa; exemplos: Madrinha, Formatura, Debutante, Gala, Convidada),\n"
+                                    "  \"occasions\": [\"...\"] (multi-label; pode ter 0, 1 ou várias; exemplos: Noiva, Civil, Madrinha, Formatura, Debutante, Gala, Convidada, Mae dos Noivos),\n"
                                     "  \"cor\": [\"...\"],\n"
                                     "  \"tecido\": [\"...\"],\n"
                                     "  \"estilo\": [\"...\"],\n"
                                     "  \"decote\": [\"...\"],\n"
                                     "  \"mangas\": [\"...\"],\n"
-                                    "  \"detalhes\": [\"...\"]\n"
+                                    "  \"detalhes\": [\"...\"],\n"
+                                    "  \"keywords\": [\"...\"]\n"
                                     "}\n"
                                     "Exemplos observados no inventário (use como referência de vocabulário; não restrinja a isso):\n"
                                     f"{json.dumps(inventory_examples or {}, ensure_ascii=False)}\n"
                                     "Se algum campo não for possível inferir com segurança, retorne lista vazia.\n"
-                                    "Se parecer vestido de noiva, use categoria \"Noiva\"."
+                                    "Regras de classificação (occasions):\n"
+                                    "- Formatura: brilho intenso, fendas, recortes, cores vibrantes, sexy/moderno.\n"
+                                    "- Madrinha: elegante/romântico, tons pastéis/terrosos, sem protagonismo excessivo.\n"
+                                    "- Gala: luxo, estruturado, cauda, bordado pesado, red carpet/black tie.\n"
+                                    "- Debutante: princesa volumoso ou balada curto/brilho.\n"
+                                    "- Mae dos Noivos: sofisticado, mais cobertura, renda nobre, cores clássicas.\n"
+                                    "- Convidada: bonito mas menos protagonista.\n"
+                                    "- Noiva e Civil podem coexistir (um mesmo vestido pode servir para ambos).\n"
                                 ),
                             },
                             {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}},
                         ],
                     }
                 ],
-                max_tokens=260,
+                max_tokens=520,
+                temperature=0.2,
+                response_format={"type": "json_object"},
             )
             content = (response.choices[0].message.content or "").strip()
             try:
@@ -519,6 +537,12 @@ def generate_dress_metadata(image_input, existing_desc=None, existing_title=None
                     raw_cat = None
                     if isinstance(structured, dict):
                         raw_cat = structured.get("categoria")
+                        if not raw_cat:
+                            occ = structured.get("occasions")
+                            if occ is None:
+                                occ = structured.get("ocasiao")
+                            if isinstance(occ, list) and occ:
+                                raw_cat = str(occ[0]).strip() or None
                     response_copy = client.chat.completions.create(
                         model="gpt-4o-mini",
                         messages=[
@@ -720,16 +744,9 @@ def sync_index(reset_local=False, force_regenerate=False):
                 copywriting=True,
             )
             
-            category_slug = None
-            category_raw = None
-            if isinstance(structured, dict) and structured.get("categoria"):
-                category_raw = structured.get("categoria")
-                category_slug = _category_slug_from_raw(category_raw)
-            if not category_slug:
-                category_slug, category_raw = _infer_category_slug(item, description=description, title=title)
-
-            metadata_filters = _metadata_filters_from_structured(structured, category_slug) or _extract_metadata_filters(description, category_slug)
-            embedding_text = _synthesize_embedding_text(metadata_filters, title, category_slug) or description
+            group_slug = _category_slug_from_entry({"metadata_filters": _metadata_filters_from_structured(structured, None) or {}}, description=description, title=title)
+            metadata_filters = _metadata_filters_from_structured(structured, group_slug) or _extract_metadata_filters(description, group_slug)
+            embedding_text = _synthesize_embedding_text(metadata_filters, title) or description
             
             try:
                 itens_table.update_item(
@@ -748,8 +765,6 @@ def sync_index(reset_local=False, force_regenerate=False):
                 "custom_id": item_id,
                 "description": description,
                 "title": title,
-                "category_raw": category_raw,
-                "category_slug": category_slug,
                 "metadata_filters": metadata_filters,
                 "embedding_text": embedding_text
             }
@@ -778,14 +793,11 @@ def sync_index(reset_local=False, force_regenerate=False):
     with open(DATASET_FILE, 'w', encoding='utf-8') as f:
         for entry in existing_data:
             if isinstance(entry, dict):
-                if not entry.get("category_slug"):
-                    entry_slug, entry_raw = _infer_category_slug(None, description=entry.get("description"), title=entry.get("title"))
-                    entry["category_slug"] = entry_slug
-                    entry["category_raw"] = entry.get("category_raw") or entry_raw
                 if "metadata_filters" not in entry or not isinstance(entry.get("metadata_filters"), dict) or not entry.get("metadata_filters"):
-                    entry["metadata_filters"] = _extract_metadata_filters(entry.get("description"), entry.get("category_slug"))
+                    group_slug = _category_slug_from_entry(entry, description=entry.get("description"), title=entry.get("title"))
+                    entry["metadata_filters"] = _extract_metadata_filters(entry.get("description"), group_slug)
                 if not entry.get("embedding_text"):
-                    entry["embedding_text"] = _synthesize_embedding_text(entry.get("metadata_filters"), entry.get("title"), entry.get("category_slug")) or entry.get("description")
+                    entry["embedding_text"] = _synthesize_embedding_text(entry.get("metadata_filters"), entry.get("title")) or entry.get("description")
             f.write(json.dumps(entry, ensure_ascii=False) + '\n')
 
     # E. Reconstruir Índice (Chama o script existente)
@@ -833,3 +845,126 @@ def sync_index(reset_local=False, force_regenerate=False):
         "status": "success", 
         "message": message
     }
+
+def rebuild_dataset_from_reprocessed_db(src_path=None, dst_path=None):
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    default_src = os.path.join(base_dir, "embeddings_creation", "vestidos_dataset_reprocessed_db.jsonl")
+    default_dst = os.path.join(base_dir, "embeddings_creation", "vestidos_dataset.jsonl")
+    src_path = src_path or default_src
+    dst_path = dst_path or default_dst
+
+    def _normalize_occasions(values):
+        if values is None:
+            return []
+        if isinstance(values, str):
+            values = [values]
+        if not isinstance(values, list):
+            return []
+
+        out = []
+        for v in values:
+            s = str(v or "").strip()
+            if not s:
+                continue
+            parts = re.split(r"[/,]|\s+e\s+", s)
+            for p in parts:
+                p = str(p or "").strip()
+                if not p:
+                    continue
+                pl = _normalize_text(p)
+                if "black tie" in pl or "gala" in pl:
+                    out.append("Gala")
+                elif "noiv" in pl:
+                    out.append("Noiva")
+                elif "civil" in pl:
+                    out.append("Civil")
+                elif "madrinha" in pl:
+                    out.append("Madrinha")
+                elif "formatura" in pl:
+                    out.append("Formatura")
+                elif "debut" in pl or "15 anos" in pl:
+                    out.append("Debutante")
+                elif ("mae" in pl or "mãe" in pl) and "noiv" in pl:
+                    out.append("Mae dos Noivos")
+                elif "convid" in pl:
+                    out.append("Convidada")
+                else:
+                    out.append(p[:1].upper() + p[1:])
+
+        seen = set()
+        deduped = []
+        for v in out:
+            if v in seen:
+                continue
+            seen.add(v)
+            deduped.append(v)
+        return deduped
+
+    def _uniq_text(seq):
+        seen = set()
+        out = []
+        for x in seq:
+            s = str(x or "").strip()
+            if not s or s in seen:
+                continue
+            seen.add(s)
+            out.append(s)
+        return out
+
+    rows = []
+    seen_ids = set()
+    with open(src_path, "r", encoding="utf-8") as f:
+        for line in f:
+            line = (line or "").strip()
+            if not line:
+                continue
+            try:
+                item = json.loads(line)
+            except Exception:
+                continue
+            cid = item.get("custom_id") or item.get("item_id")
+            if not cid or cid in seen_ids:
+                continue
+            seen_ids.add(cid)
+
+            mf = item.get("metadata_filters") if isinstance(item.get("metadata_filters"), dict) else {}
+            occ = _normalize_occasions(mf.get("occasions"))
+            mf = dict(mf)
+            if occ:
+                mf["occasions"] = occ
+            else:
+                mf.pop("occasions", None)
+
+            title = item.get("title") or ""
+            desc = item.get("description") or ""
+            embedding_text = " ".join(
+                _uniq_text(
+                    [title]
+                    + occ
+                    + (mf.get("colors") if isinstance(mf.get("colors"), list) else [])
+                    + (mf.get("fabrics") if isinstance(mf.get("fabrics"), list) else [])
+                    + (mf.get("silhouette") if isinstance(mf.get("silhouette"), list) else [])
+                    + (mf.get("neckline") if isinstance(mf.get("neckline"), list) else [])
+                    + (mf.get("sleeves") if isinstance(mf.get("sleeves"), list) else [])
+                    + (mf.get("details") if isinstance(mf.get("details"), list) else [])
+                    + (item.get("keywords") if isinstance(item.get("keywords"), list) else [])
+                    + [desc]
+                )
+            )
+
+            rows.append(
+                {
+                    "file_name": item.get("file_name") or f"{cid}.jpg",
+                    "custom_id": cid,
+                    "description": desc,
+                    "title": title,
+                    "metadata_filters": {k: v for k, v in mf.items() if v},
+                    "embedding_text": embedding_text,
+                }
+            )
+
+    with open(dst_path, "w", encoding="utf-8") as f:
+        for r in rows:
+            f.write(json.dumps(r, ensure_ascii=False) + "\n")
+
+    return {"status": "success", "count": len(rows), "output": dst_path}

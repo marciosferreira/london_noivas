@@ -11,6 +11,9 @@ from flask import (
 import stripe
 import os
 import random
+import pickle
+import re
+import unicodedata
 
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 endpoint_secret = os.getenv("STRIPE_WEBHOOK_SECRET")  # ← este é o certo
@@ -54,16 +57,114 @@ def init_static_routes(
     if not public_account_ids:
         public_account_ids = [LONDON_NOIVAS_ACCOUNT_ID, "london_noivas"]
 
+    ai_meta_cache = {"mtime": None, "by_id": None}
+
+    def _normalize_text(text):
+        text = str(text or "").lower()
+        text = unicodedata.normalize("NFKD", text)
+        text = "".join([c for c in text if not unicodedata.combining(c)])
+        text = re.sub(r"\s+", " ", text).strip()
+        return text
+
+    def _slugify(text):
+        text = _normalize_text(text)
+        text = re.sub(r"[^a-z0-9]+", "-", text).strip("-")
+        return text
+
+    def _get_item_occasions(item):
+        if not isinstance(item, dict):
+            return []
+            
+        # Check DynamoDB flags first
+        slugs_map = {
+            "madrinha": "Madrinha",
+            "formatura": "Formatura",
+            "gala": "Gala",
+            "debutante": "Debutante",
+            "convidada": "Convidada",
+            "mae_dos_noivos": "Mãe dos Noivos",
+            "noiva": "Noiva",
+            "civil": "Civil"
+        }
+        
+        occasions = []
+        for slug, label in slugs_map.items():
+            if item.get(f"occasion_{slug}") == "1":
+                occasions.append(label)
+                
+        if occasions:
+            return occasions
+
+        # Fallback to AI metadata if no flags are set (backward compatibility)
+        meta_by_id = _load_ai_meta_by_id()
+        item_id = item.get("item_id")
+        if item_id and str(item_id) in meta_by_id:
+            meta = meta_by_id.get(str(item_id)) or {}
+            mf = meta.get("metadata_filters")
+            if isinstance(mf, dict):
+                occ = mf.get("occasions")
+                if isinstance(occ, list):
+                    return [str(o) for o in occ if str(o).strip()]
+        return []
+
+    def _load_ai_meta_by_id():
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        pkl_path = os.path.join(base_dir, "vector_store_metadata.pkl")
+        if not os.path.exists(pkl_path):
+            ai_meta_cache["mtime"] = None
+            ai_meta_cache["by_id"] = {}
+            return ai_meta_cache["by_id"]
+
+        try:
+            mtime = os.path.getmtime(pkl_path)
+            if ai_meta_cache["by_id"] is not None and ai_meta_cache["mtime"] == mtime:
+                return ai_meta_cache["by_id"]
+
+            with open(pkl_path, "rb") as f:
+                raw = pickle.load(f)
+
+            by_id = {}
+            if isinstance(raw, list):
+                for entry in raw:
+                    if not isinstance(entry, dict):
+                        continue
+                    cid = entry.get("custom_id") or entry.get("item_id")
+                    if cid:
+                        by_id[str(cid)] = entry
+
+            ai_meta_cache["mtime"] = mtime
+            ai_meta_cache["by_id"] = by_id
+            return by_id
+        except Exception:
+            ai_meta_cache["mtime"] = None
+            ai_meta_cache["by_id"] = {}
+            return ai_meta_cache["by_id"]
+
     def _category_slug(item):
-        raw = (
-            item.get("item_category")
-            or item.get("category")
-            or item.get("categoria")
-            or ""
-        )
-        raw = str(raw).lower().strip()
-        if "noiv" in raw:
-            return "noiva"
+        if isinstance(item, dict):
+            meta_by_id = _load_ai_meta_by_id()
+            item_id = item.get("item_id")
+            if item_id and str(item_id) in meta_by_id:
+                meta = meta_by_id.get(str(item_id)) or {}
+                mf = meta.get("metadata_filters")
+                if isinstance(mf, dict):
+                    occ = mf.get("occasions")
+                    if isinstance(occ, list):
+                        for o in occ:
+                            oo = _normalize_text(o)
+                            if "noiv" in oo or "civil" in oo:
+                                return "noiva"
+                        return "festa"
+
+            raw = item.get("item_category") or item.get("category") or item.get("categoria") or ""
+            rr = _normalize_text(raw)
+            if "noiv" in rr or "civil" in rr:
+                return "noiva"
+
+            blob = _normalize_text(f"{item.get('title') or item.get('item_title') or ''} {item.get('item_description') or item.get('description') or ''}")
+            if "noiv" in blob or "civil" in blob:
+                return "noiva"
+
         return "festa"
 
     # Static pages
@@ -511,66 +612,37 @@ def init_static_routes(
             )
             all_items = response.get("Items", [])
             
-            # Simple pagination handling
             while "LastEvaluatedKey" in response:
                 response = itens_table.scan(
                     FilterExpression=Attr("status").eq("available") & Attr("account_id").is_in(public_account_ids),
                     ExclusiveStartKey=response["LastEvaluatedKey"]
                 )
                 all_items.extend(response.get("Items", []))
-                
-            # Logic to show most visited items + random filler
-            import random
-            
-            def get_visits(item):
-                val = item.get("visit_count", 0)
-                try:
-                    return int(val)
-                except:
-                    return 0
 
-            # Split into Noiva and Festa
-            noiva_candidates = []
-            festa_candidates = []
-            
-            for item in all_items:
-                if _category_slug(item) == "noiva":
-                    noiva_candidates.append(item)
-                else:
-                    # Default to Festa for anything else, or specifically 'festa'
-                    # Given the user's request, let's assume everything else fits into Festa 
-                    # or explicitly check. To be safe and show items, let's put everything else in Festa
-                    # but maybe prioritize explicit 'festa'. 
-                    # For now, let's put everything else in Festa to avoid hiding items.
-                    festa_candidates.append(item)
-
-            # Sort by visits
-            noiva_candidates.sort(key=get_visits, reverse=True)
-            festa_candidates.sort(key=get_visits, reverse=True)
-            
-            # Select top 6 for each
-            noivas_itens = noiva_candidates[:6]
-            festa_itens = festa_candidates[:6]
-            
-            # Fill logic is implicit: we take up to 6. 
-            # If we want to force 6 by random filling from the rest (if they have 0 visits),
-            # the sort already puts 0 visits at the end. 
-            # So taking top 6 gives us the most visited, then 0 visited.
-            # If we have fewer than 6 total items in a category, we just show what we have.
+            occasion_tabs = [
+                {"slug": "noiva", "label": "Noiva"},
+                {"slug": "civil", "label": "Civil"},
+                {"slug": "madrinha", "label": "Madrinha"},
+                {"slug": "mae-dos-noivos", "label": "Mãe dos Noivos"},
+                {"slug": "formatura", "label": "Formatura"},
+                {"slug": "debutante", "label": "Debutante"},
+                {"slug": "gala", "label": "Gala"},
+                {"slug": "convidada", "label": "Convidada"},
+            ]
             
             fields_config = schemas.get_schema_fields("item")
             
-            return render_template("index.html", noivas_itens=noivas_itens, festa_itens=festa_itens, fields_config=fields_config)
+            return render_template("index.html", fields_config=fields_config, occasion_tabs=occasion_tabs)
             
         except Exception as e:
             print(f"Error loading vitrine: {e}")
-            return render_template("index.html", itens=[], fields_config=[])
+            return render_template("index.html", itens=[], fields_config=[], occasion_tabs=[])
 
     @app.route("/catalogo")
     def catalogo():
         try:
             page = request.args.get('page', 1, type=int)
-            active_category = request.args.get('category', 'noiva').lower() # Default to noiva
+            active_occasion = request.args.get("occasion", "", type=str)
             per_page = 12
             
             # Fetch all available items (same as index) but filtered by account
@@ -586,19 +658,52 @@ def init_static_routes(
                 )
                 all_items.extend(response.get("Items", []))
             
-            # Filter by Category
+            occasion_tabs = [
+                {"slug": "noiva", "label": "Noiva"},
+                {"slug": "civil", "label": "Civil"},
+                {"slug": "madrinha", "label": "Madrinha"},
+                {"slug": "mae-dos-noivos", "label": "Mãe dos Noivos"},
+                {"slug": "formatura", "label": "Formatura"},
+                {"slug": "debutante", "label": "Debutante"},
+                {"slug": "gala", "label": "Gala"},
+                {"slug": "convidada", "label": "Convidada"},
+            ]
+            if not active_occasion:
+                active_occasion = occasion_tabs[0]["slug"] if occasion_tabs else ""
+
+            valid_slugs = {t["slug"] for t in occasion_tabs}
+            if active_occasion not in valid_slugs:
+                active_occasion = occasion_tabs[0]["slug"] if occasion_tabs else ""
+
+            active_occasion_label = next((t["label"] for t in occasion_tabs if t["slug"] == active_occasion), "Catálogo")
+
+            occasion_descriptions = {
+                "noiva": "Este é o seu dia — e o seu vestido deve refletir isso. A noiva é o centro de todas as atenções, e não há motivo para ter medo de brilhar. Escolha um vestido que faça você se sentir a mulher mais bonita da sala, porque neste dia, você será. Aposte em detalhes que traduzam a sua personalidade: se você é clássica, renda e corte princesa; se é moderna, linhas limpas e tecidos fluidos. O segredo é simples — quando você se olhar no espelho e sentir um frio na barriga, é esse o vestido certo.",
+                "civil": "O casamento civil pede elegância com leveza. Aqui, a ideia não é um vestido de baile, mas uma peça sofisticada que diga \"estou celebrando algo especial\". Midi, curto ou longo — todos funcionam. O importante é que o vestido transmita a alegria do momento sem exagero. Pense nele como aquele look que você usaria para a noite mais importante da sua vida, mas com a naturalidade de quem sabe exatamente o que está fazendo. Tecidos como crepe, cetim e musseline são escolhas certeiras.",
+                "madrinha": "Ser madrinha é uma honra — e o seu vestido deve estar à altura desse papel. Você faz parte do cenário mais importante do dia, ao lado dos noivos, nas fotos, no altar. O ideal é um vestido elegante e harmonioso, que converse com a paleta da cerimônia sem competir com a noiva. Uma boa madrinha brilha no tom certo: presente, linda, mas sempre complementando a cena principal. Na dúvida, alinhe com a noiva a cor ou o estilo — ela vai agradecer, e você vai arrasar com confiança.",
+                "mae-dos-noivos": "A mãe do noivo e a mãe da noiva têm um lugar de destaque absoluto. O vestido precisa transmitir sofisticação e emoção na medida certa — afinal, todos os olhos também estarão em vocês. Escolha peças estruturadas, com caimento impecável e tecidos nobres. Evite competir com a noiva, mas jamais se apague: você criou uma das pessoas mais importantes daquela celebração, e merece estar deslumbrante. Tons como azul-marinho, marsala, verde-esmeralda e nude são clássicos que nunca erram.",
+                "formatura": "A formatura marca o encerramento de um ciclo e o começo de outro — e o vestido deve celebrar essa conquista com toda a grandiosidade que ela merece. Este é um dos poucos momentos da vida em que você pode (e deve!) ousar sem medo. Brilho, fendas, decotes, cores vibrantes — aqui vale tudo, porque a protagonista é você. Escolha algo que represente quem você é hoje e quem você está se tornando. Quando você subir aquele palco, o vestido deve fazer você se sentir tão poderosa quanto o diploma nas suas mãos.",
+                "debutante": "Quinze anos se comemoram uma vez só — e esse vestido vai estar nas suas memórias (e nas fotos da família) para sempre. É o momento de realizar aquele sonho de princesa sem nenhuma culpa. Rodado, justo, com brilho, com volume — o estilo é seu, e não existe regra. O que importa é que, ao descer a escada ou entrar no salão, você sinta que o mundo parou para te ver. Escolha com o coração, porque esse vestido não é só tecido — é a marca de uma noite mágica.",
+                "gala": "Evento de gala é sinônimo de sofisticação máxima. Aqui, o vestido precisa comunicar poder, elegância e presença. Pense em red carpet: tecidos que caem com perfeição, cortes que valorizam a silhueta e detalhes que revelam bom gosto sem esforço aparente. Menos é mais — mas o \"menos\" precisa ser impecável. Um vestido de gala bem escolhido fala por você antes mesmo de você abrir a boca. Aposte em cores profundas, modelagens clássicas e aquele acabamento que faz as pessoas virarem a cabeça quando você passa.",
+                "convidada": "A regra de ouro da convidada: esteja linda, mas nunca mais que a noiva. Parece simples, mas é aqui que muita gente erra. O truque é encontrar o equilíbrio entre glamour e bom senso — um vestido que mostre que você se arrumou para a ocasião, sem roubar a cena de quem deve brilhar mais. Evite branco e tons muito claros (território da noiva), fuja do exagero nos brilhos e aposte em cores que valorizem você sem gritar. O vestido perfeito de convidada é aquele que rende elogios a noite toda — mas nunca ofusca a protagonista do dia."
+            }
+
+            active_occasion_description = occasion_descriptions.get(active_occasion, "")
+
             filtered_items = []
             for item in all_items:
-                is_noiva = _category_slug(item) == "noiva"
-                
-                if active_category == 'noiva':
-                    if is_noiva:
-                        filtered_items.append(item)
-                else: # festa (everything else)
-                    if not is_noiva:
-                        filtered_items.append(item)
-            
+                occ = item.get("_occasions") if isinstance(item, dict) else None
+                if not isinstance(occ, list):
+                    occ = _get_item_occasions(item)
+
+                if any(_slugify(o) == active_occasion for o in occ):
+                    filtered_items.append(item)
+
             itens = filtered_items
+            for item in itens:
+                if isinstance(item, dict):
+                    occ = item.get("_occasions") or []
+                    item["category"] = occ[0] if occ else "Outros"
 
             # Embaralhamento consistente baseado na sessão (Seed)
             # Garante que a ordem se mantém durante a navegação/paginação do usuário
@@ -628,12 +733,15 @@ def init_static_routes(
                 page=page,
                 total_pages=total_pages,
                 total_items=total_items,
-                active_category=active_category
+                active_occasion=active_occasion,
+                active_occasion_label=active_occasion_label,
+                active_occasion_description=active_occasion_description,
+                occasion_tabs=occasion_tabs,
             )
             
         except Exception as e:
             print(f"Error loading catalogo: {e}")
-            return render_template("catalogo.html", itens=[], fields_config=[], page=1, total_pages=1, active_category='noiva')
+            return render_template("catalogo.html", itens=[], fields_config=[], page=1, total_pages=1, active_occasion="", occasion_tabs=[])
 
     @app.route("/home")
     def home():

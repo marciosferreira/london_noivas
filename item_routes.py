@@ -279,14 +279,18 @@ def init_item_routes(
                 # Salva tudo na raiz
                 item_data[field_id] = value
 
+            for slug in ["madrinha","formatura","gala","debutante","convidada","mae_dos_noivos","noiva","civil"]:
+                if request.form.get(f"occasion_{slug}") == "on":
+                    item_data[f"occasion_{slug}"] = "1"
+
 
             # ---------------------------------------------------------
             # Regra de Negócio: ID Automático
             # Se não foi informado, gera um ID curto único (6 chars)
             # ---------------------------------------------------------
+            # Gera um ID curto (ex: A1B2C3) se não existir
             if not item_data.get("item_custom_id"):
-                 # Gera um ID curto (ex: A1B2C3)
-                 item_data["item_custom_id"] = str(uuid.uuid4().hex[:6]).upper()
+                item_data["item_custom_id"] = str(uuid.uuid4().hex[:6]).upper()
 
             # ---------------------------------------------------------
             # Regra de Negócio: Geração de Metadados IA (Obrigatória)
@@ -540,6 +544,9 @@ def init_item_routes(
 
 
         all_fields = get_all_fields(account_id, field_config_table, "item")
+        
+        # Filtra campos indesejados (ex: category_raw)
+        all_fields = [f for f in all_fields if f["id"] not in ["category_raw", "category", "categoria", "category_label", "item_category"]]
 
         # ---------------- POST ----------------
         if request.method == "POST":
@@ -679,7 +686,24 @@ def init_item_routes(
             elif "item_title" in changes:
                 changes["title"] = changes["item_title"]
 
-            if not changes:
+            # Verifica alterações em ocasiões
+            occasion_changes = False
+            occasion_set = {}
+            occasion_remove = []
+
+            for slug in ["madrinha","formatura","gala","debutante","convidada","mae_dos_noivos","noiva","civil"]:
+                attr = f"occasion_{slug}"
+                is_checked = request.form.get(attr) == "on"
+                was_checked = item.get(attr) == "1"
+
+                if is_checked and not was_checked:
+                    occasion_set[attr] = "1"
+                    occasion_changes = True
+                elif not is_checked and was_checked:
+                    occasion_remove.append(attr)
+                    occasion_changes = True
+
+            if not changes and not occasion_changes:
                 flash("Nenhuma alteração foi feita.", "warning")
                 return redirect(next_page)
             
@@ -693,20 +717,42 @@ def init_item_routes(
                 changes["embedding_status"] = "pending"
 
             # Atualiza item no DynamoDB
-            update_expression = []
+            set_parts = []
+            remove_parts = []
             expression_values = {}
             expression_names = {}
+            
+            # Campos normais
             for key, value in changes.items():
-                update_expression.append(f"#{key} = :{key}")
+                set_parts.append(f"#{key} = :{key}")
                 expression_values[f":{key}"] = value
                 expression_names[f"#{key}"] = key
 
+            # Ocasiões (Set)
+            for key, value in occasion_set.items():
+                set_parts.append(f"#{key} = :{key}")
+                expression_values[f":{key}"] = value
+                expression_names[f"#{key}"] = key
+            
+            # Ocasiões (Remove)
+            for key in occasion_remove:
+                remove_parts.append(f"#{key}")
+                expression_names[f"#{key}"] = key
+
+            update_expr = []
+            if set_parts:
+                update_expr.append("SET " + ", ".join(set_parts))
+            if remove_parts:
+                update_expr.append("REMOVE " + ", ".join(remove_parts))
+
             update_kwargs = {
                 "Key": {"item_id": item_id},
-                "UpdateExpression": "SET " + ", ".join(update_expression),
-                "ExpressionAttributeValues": expression_values,
-                "ExpressionAttributeNames": expression_names,
+                "UpdateExpression": " ".join(update_expr),
             }
+            if expression_values:
+                update_kwargs["ExpressionAttributeValues"] = expression_values
+            if expression_names:
+                update_kwargs["ExpressionAttributeNames"] = expression_names
             itens_table.update_item(**update_kwargs)
 
 
@@ -752,6 +798,13 @@ def init_item_routes(
 
         prepared["item_id"] = item["item_id"]
         prepared["featured"] = item.get("featured", False)
+        
+        # Adiciona flags de ocasião manualmente
+        occasions = ["madrinha", "formatura", "gala", "debutante", "convidada", "mae_dos_noivos", "noiva", "civil"]
+        for occ in occasions:
+            key = f"occasion_{occ}"
+            if item.get(key) == "1":
+                prepared[key] = "1"
 
 
         origin = next_page.rstrip("/").split("/")[-1]
@@ -2342,13 +2395,35 @@ def list_raw_itens(
     last_valid_item = None
     raw_last_evaluated_key = None
 
+    
+    # Detecção de filtro por ocasião (usando novos GSIs)
+    # Exemplo de filtro: ?filter=madrinha
+    occasion_filter = filtros.get("filter")
+    valid_occasions = ["madrinha", "formatura", "gala", "debutante", "convidada", "mae_dos_noivos", "noiva", "civil"]
+    
+    use_occasion_gsi = False
+    occasion_index_name = ""
+    
+    if occasion_filter in valid_occasions:
+        use_occasion_gsi = True
+        occasion_index_name = f"occasion_{occasion_filter}-index"
+
     while len(valid_itens) < limit:
-        query_kwargs = {
-            "IndexName": "account_id-created_at-index",
-            "KeyConditionExpression": Key("account_id").eq(account_id),
-            "ScanIndexForward": False,
-            "Limit": batch_size,
-        }
+        if use_occasion_gsi:
+            # Query otimizada pelo GSI da ocasião
+            query_kwargs = {
+                "IndexName": occasion_index_name,
+                "KeyConditionExpression": Key(f"occasion_{occasion_filter}").eq("1") & Key("account_id").eq(account_id),
+                "Limit": batch_size,
+            }
+        else:
+            # Query padrão por data de criação
+            query_kwargs = {
+                "IndexName": "account_id-created_at-index",
+                "KeyConditionExpression": Key("account_id").eq(account_id),
+                "ScanIndexForward": False,
+                "Limit": batch_size,
+            }
 
         if exclusive_start_key:
             query_kwargs["ExclusiveStartKey"] = exclusive_start_key
@@ -2361,7 +2436,19 @@ def list_raw_itens(
             break
 
         for item in itens_batch:
-            if item.get("status") not in status_list:
+            # Se for filtro de ocasião, precisamos verificar status manualmente
+            # Pois o GSI não tem status na chave, apenas projeção ALL
+            # Mas itens deletados devem ser ignorados.
+            if item.get("status") == "deleted":
+                continue
+                
+            # Se NÃO for filtro de ocasião, aplica filtro de status_list (available/archive)
+            if not use_occasion_gsi and item.get("status") not in status_list:
+                continue
+                
+            # Se for filtro de ocasião e o item estiver arquivado, talvez queira mostrar?
+            # Por padrão da função, respeitamos status_list.
+            if use_occasion_gsi and item.get("status") not in status_list:
                 continue
 
             if entidade_atende_filtros_dinamico(item, filtros, fields_config, image_url_required):
@@ -2379,11 +2466,24 @@ def list_raw_itens(
 
     next_cursor_token = None
     if last_valid_item:
-        next_cursor_token = encode_dynamo_key({
-            "account_id": last_valid_item["account_id"],
-            "created_at": last_valid_item["created_at"],
-            "item_id": last_valid_item["item_id"],
-        })
+        # Cursor precisa ser compatível com o índice usado
+        if use_occasion_gsi:
+            # PK: occasion_X, SK: account_id -> Mas GSI cursor pode exigir chaves da tabela base também
+            # Na verdade, ExclusiveStartKey do GSI precisa das chaves do GSI + chaves da tabela
+            # GSI PK: occasion_slug, GSI SK: account_id
+            # Table PK: item_id
+            cursor_data = {
+                f"occasion_{occasion_filter}": "1",
+                "account_id": last_valid_item["account_id"],
+                "item_id": last_valid_item["item_id"]
+            }
+            next_cursor_token = encode_dynamo_key(cursor_data)
+        else:
+            next_cursor_token = encode_dynamo_key({
+                "account_id": last_valid_item["account_id"],
+                "created_at": last_valid_item["created_at"],
+                "item_id": last_valid_item["item_id"],
+            })
 
     if next_cursor_token:
         session["cursor_pages_itens"][str(page + 1)] = next_cursor_token

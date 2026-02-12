@@ -9,7 +9,7 @@ import unicodedata
 import threading
 import boto3
 from boto3.dynamodb.conditions import Key
-from flask import Blueprint, request, jsonify, url_for, current_app
+from flask import Blueprint, request, jsonify, url_for, current_app, session
 from openai import OpenAI
 from dotenv import load_dotenv
 from ai_sync_service import get_index_status, sync_index as service_sync_index, get_progress
@@ -51,6 +51,37 @@ def _normalize_text(text):
     text = re.sub(r"\s+", " ", text).strip()
     return text
 
+def _slugify(text):
+    text = _normalize_text(text)
+    text = re.sub(r"[^a-z0-9]+", "-", text).strip("-")
+    return text
+
+
+def _canonical_occasion(value):
+    v = _slugify(value)
+    if not v:
+        return ""
+    if v in ["black-tie", "blacktie", "gala"]:
+        return "gala"
+    if v in ["mae-dos-noivos", "mae-dos-noivas", "mae-do-noivo", "mae-da-noiva"]:
+        return "mae-dos-noivos"
+    return v
+
+def _has_occasion(meta, target_occasion):
+    if not isinstance(meta, dict):
+        return False
+    target = _canonical_occasion(target_occasion)
+    if not target:
+        return False
+    mf = meta.get("metadata_filters") or {}
+    occ = mf.get("occasions")
+    if not isinstance(occ, list):
+        return False
+    for o in occ:
+        if _canonical_occasion(o) == target:
+            return True
+    return False
+
 def load_resources():
     global index, metadata, inventory_digest
     try:
@@ -69,17 +100,23 @@ def get_embedding(text):
     text = text.replace("\n", " ")
     return client.embeddings.create(input=[text], model=EMBEDDING_MODEL).data[0].embedding
 
-def _category_slug_from_raw(raw):
-    raw = str(raw or "").lower().strip()
-    if "noiv" in raw:
-        return "noiva"
-    return "festa"
-
 def _category_slug(meta):
     if not isinstance(meta, dict):
         return "festa"
+    mf = meta.get("metadata_filters")
+    if isinstance(mf, dict):
+        occ = mf.get("occasions")
+        if isinstance(occ, list) and occ:
+            for o in occ:
+                oo = _normalize_text(o)
+                if "noiv" in oo or "civil" in oo:
+                    return "noiva"
+            return "festa"
     raw = meta.get("category_slug") or meta.get("item_category") or meta.get("category") or meta.get("categoria")
-    return _category_slug_from_raw(raw)
+    raw = str(raw or "").lower().strip()
+    if "noiv" in raw or "civil" in raw:
+        return "noiva"
+    return "festa"
 
 def _seed_inventory_context():
     return {
@@ -421,7 +458,7 @@ def validate_and_enrich_candidates(candidates_metadata):
                 RequestItems={
                     'alugueqqc_itens': {
                         'Keys': chunk,
-                        'ProjectionExpression': 'item_id, #st, title, item_title, item_description, item_image_url, item_value, item_custom_id, category, item_category',
+                        'ProjectionExpression': 'item_id, #st, title, item_title, item_description, item_image_url, item_value, item_custom_id, category, item_category, occasion_noiva, occasion_civil, occasion_madrinha, occasion_mae_dos_noivos, occasion_formatura, occasion_debutante, occasion_gala, occasion_convidada',
                         'ExpressionAttributeNames': {'#st': 'status'}
                     }
                 }
@@ -475,12 +512,21 @@ def validate_and_enrich_candidates(candidates_metadata):
             meta['customId'] = db_item.get('item_custom_id')
             # UUID (System ID)
             meta['item_id'] = db_item.get('item_id')
-            cat_raw = db_item.get('item_category') or db_item.get('category') or meta.get('item_category') or meta.get('category')
-            cat_slug = _category_slug_from_raw(cat_raw)
+            cat_slug = _category_slug(meta)
             meta['item_category'] = db_item.get('item_category', meta.get('item_category'))
-            meta['category_raw'] = cat_raw
             meta['category_slug'] = cat_slug
-            meta['category'] = 'Noiva' if cat_slug == 'noiva' else 'Festa'
+            
+            # Copy occasion flags from DynamoDB
+            for occ_key in ["occasion_noiva", "occasion_civil", "occasion_madrinha", "occasion_mae_dos_noivos", "occasion_formatura", "occasion_debutante", "occasion_gala", "occasion_convidada"]:
+                if db_item.get(occ_key):
+                    meta[occ_key] = db_item.get(occ_key)
+
+            mf = meta.get("metadata_filters") or {}
+            occ = mf.get("occasions")
+            if isinstance(occ, list) and occ and str(occ[0]).strip():
+                meta["category"] = str(occ[0]).strip()
+            else:
+                meta['category'] = 'Noiva' if cat_slug == 'noiva' else 'Festa'
             
             valid_items.append(meta)
             
@@ -754,7 +800,7 @@ def ai_similar(item_id):
                 "title": item.get('title', 'Vestido'),
                 "image_url": item.get('imageUrl') or url_for('static', filename=f"dresses/{item['file_name']}"),
                 "description": item.get('description', ''),
-                "category": item.get('category', 'Festa')
+                "category": item.get('category', 'Outros')
             })
                 
         return jsonify({"suggestions": suggestions})
@@ -781,8 +827,8 @@ def ai_catalog_search():
         return jsonify({"error": "Query vazia"}), 400
 
     try:
-        target_category = data.get('category', '').lower().strip()
-        rewritten = _rewrite_catalog_query(query, target_category)
+        target_occasion = (data.get("occasion") or data.get("category") or "").lower().strip()
+        rewritten = _rewrite_catalog_query(query, target_occasion)
         query_for_embedding = rewritten.get("query_reescrita") if isinstance(rewritten, dict) else None
         if not isinstance(query_for_embedding, str) or not query_for_embedding.strip():
             query_for_embedding = query
@@ -793,7 +839,7 @@ def ai_catalog_search():
         # 2. Busca no FAISS
         # Buscamos mais itens (100) para garantir que após o filtro de status/DB
         # ainda tenhamos itens suficientes para preencher as páginas.
-        k = 220 if target_category else 100
+        k = 220 if target_occasion else 100
         distances, indices = index.search(query_vector, k)
         
         # Coleta metadados brutos
@@ -806,20 +852,29 @@ def ai_catalog_search():
         # Isso é rápido mesmo para 100 itens (~1 call DynamoDB)
         valid_results = validate_and_enrich_candidates(raw_results)
 
-        # Filtragem por Categoria (Aba Ativa)
-        if target_category:
-            filtered_results = []
-            for item in valid_results:
-                is_noiva = _category_slug(item) == 'noiva'
-
-                if target_category == 'noiva':
-                    if is_noiva:
-                        filtered_results.append(item)
+        # Filtragem por Ocasião / Categoria (Aba Ativa)
+        if target_occasion:
+            if target_occasion in ["noiva", "festa"]:
+                filtered_results = []
+                for item in valid_results:
+                    is_noiva = _category_slug(item) == "noiva"
+                    if target_occasion == "noiva":
+                        if is_noiva:
+                            filtered_results.append(item)
+                    else:
+                        if not is_noiva:
+                            filtered_results.append(item)
+                valid_results = filtered_results
+            else:
+                # Filtragem estrita pelas flags do DynamoDB (solicitado pelo usuário)
+                target_slug = target_occasion.replace("-", "_")
+                db_field = f"occasion_{target_slug}"
+                known_occasions = ["occasion_noiva", "occasion_civil", "occasion_madrinha", "occasion_mae_dos_noivos", "occasion_formatura", "occasion_debutante", "occasion_gala", "occasion_convidada"]
+                
+                if db_field in known_occasions:
+                    valid_results = [item for item in valid_results if item.get(db_field) == "1"]
                 else:
-                    if not is_noiva:
-                        filtered_results.append(item)
-
-            valid_results = filtered_results
+                    valid_results = [item for item in valid_results if _has_occasion(item, target_occasion)]
 
         # 3. Paginação em memória
         total_valid = len(valid_results)
@@ -843,7 +898,7 @@ def ai_catalog_search():
                 "description": item.get('description', ''),
                 "price": item.get('price', "Consulte o preço do aluguel"),
                 "customId": item.get('customId'), # Adicionado para consistência
-                "category": item.get('category', 'Festa')
+                "category": item.get('category', 'Outros')
             })
                 
         return jsonify({
@@ -887,5 +942,51 @@ def admin_sync_ai_index():
                 load_resources()
         threading.Thread(target=_run, daemon=True).start()
         return jsonify({"status": "started"})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@ai_bp.route('/api/admin/create-occasion-gsis', methods=['POST'])
+def create_occasion_gsis():
+    try:
+        if not session.get("logged_in"):
+            return jsonify({"error": "not_authorized"}), 403
+        data = request.get_json(silent=True) or {}
+        table_name = data.get("table_name") or "alugueqqc_itens"
+        slugs = data.get("slugs") or ["madrinha","formatura","gala","debutante","convidada","mae_dos_noivos","noiva","civil"]
+        client = dynamodb.meta.client
+        desc = client.describe_table(TableName=table_name)
+        table = desc.get("Table", {})
+        existing = set((idx.get("IndexName") or "") for idx in (table.get("GlobalSecondaryIndexes") or []))
+        billing = (table.get("BillingModeSummary") or {}).get("BillingMode") or "PROVISIONED"
+        to_create = []
+        attr_defs = {}
+        attr_defs["account_id"] = "S"
+        for slug in slugs:
+            idx_name = f"occasion_{slug}-index"
+            if idx_name in existing:
+                continue
+            attr_defs[f"occasion_{slug}"] = "S"
+            create_def = {
+                "Create": {
+                    "IndexName": idx_name,
+                    "KeySchema": [
+                        {"AttributeName": f"occasion_{slug}", "KeyType": "HASH"},
+                        {"AttributeName": "account_id", "KeyType": "RANGE"},
+                    ],
+                    "Projection": {"ProjectionType": "ALL"},
+                }
+            }
+            if billing != "PAY_PER_REQUEST":
+                create_def["Create"]["ProvisionedThroughput"] = {"ReadCapacityUnits": 1, "WriteCapacityUnits": 1}
+            to_create.append(create_def)
+        if not to_create:
+            return jsonify({"status": "noop", "message": "GSIs já existem"})
+        attribute_definitions = [{"AttributeName": name, "AttributeType": t} for name, t in attr_defs.items()]
+        client.update_table(
+            TableName=table_name,
+            AttributeDefinitions=attribute_definitions,
+            GlobalSecondaryIndexUpdates=to_create,
+        )
+        return jsonify({"status": "started", "created": [d["Create"]["IndexName"] for d in to_create]})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500

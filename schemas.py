@@ -31,20 +31,6 @@ ITEM_FIELDS = [
         "f_type": "fixed",
     },
     {
-        "id": "item_category",
-        "label": "Categoria",
-        "type": "dropdown",
-        "options": ["Noiva", "Festa", "Acessório", "Outro"], # Ajustar conforme necessidade
-        "visible": True,
-        "fixed": True,
-        "required": True,
-        "order": 3,
-        "order_sequence": 3,
-        "filterable": True,
-        "preview": False,
-        "f_type": "fixed",
-    },
-    {
         "id": "item_description",
         "label": "Descrição",
         "type": "text",
