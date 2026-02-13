@@ -735,7 +735,7 @@
                         <li><a href="https://wa.me/5592993531943" target="_blank" onclick="trackWhatsAppClick('footer_link')" class="hover:text-london-gold transition-colors">Agendamento/Dúvidas</a></li>
                         <li>
                              {% if not session.get('logged_in') %}
-                             <a href="{{ url_for('login') }}" class="hover:text-london-gold transition-colors">Área Restrita</a>
+                             <a href="{{ url_for('login', next=url_for('agenda')) }}" class="hover:text-london-gold transition-colors">Área Restrita</a>
                              {% else %}
                              <a href="{{ url_for('agenda') }}" class="hover:text-london-gold transition-colors">Painel Admin</a>
                              {% endif %}

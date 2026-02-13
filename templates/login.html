@@ -1,54 +1,161 @@
-{% extends "base.html" %} {% block title %}Login - LocaShop{% endblock %} {% block styles %}
-<link rel="stylesheet" href="{{ url_for('static', filename='style_login.css') }}" />
-{% endblock %}{% block content %} {% include 'not_logged_header.html' %}
+<!DOCTYPE html>
+<html lang="pt-br" class="scroll-smooth">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>London Noivas - Área Restrita</title>
 
-<div class="login-container">
-  <h1>Login</h1>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Lato:wght@300;400;700&display=swap"
+      rel="stylesheet"
+    />
 
-  {% if error %}
-  <div class="alert alert-danger">{{ error }}</div>
-  {% endif %} {% if message %}
-  <div class="alert alert-success">{{ message }}</div>
-  {% endif %}
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              "london-gold": "#C5A059",
+              stone: {
+                50: "#fafaf9",
+                100: "#f5f5f4",
+                200: "#e7e5e4",
+                300: "#d6d3d1",
+                400: "#a8a29e",
+                500: "#78716c",
+                600: "#57534e",
+                700: "#44403c",
+                800: "#292524",
+                900: "#1c1917",
+              },
+            },
+            fontFamily: {
+              serif: ["Playfair Display", "serif"],
+              sans: ["Lato", "sans-serif"],
+            },
+          },
+        },
+      };
+    </script>
+  </head>
 
-  <form action="{{ url_for('login') }}" method="POST">
-    <div class="form-group">
-      <label for="email">E-mail</label>
-      <input type="email" name="email" id="email" required class="form-control" />
-    </div>
+  <body class="bg-stone-50 text-stone-800 font-sans antialiased min-h-screen">
+    <header class="fixed top-0 inset-x-0 z-50 bg-stone-900/95 backdrop-blur border-b border-white/10">
+      <div class="max-w-7xl mx-auto px-6">
+        <div class="h-20 flex items-center justify-between">
+          <a href="{{ url_for('index') }}" class="flex items-center gap-4 group">
+            <div class="w-14 h-14 rounded-full bg-white/10 p-2 border border-white/10 overflow-hidden">
+              <img src="{{ url_for('static', filename='logo.jpeg') }}" alt="London Noivas" class="w-full h-full object-contain" />
+            </div>
+            <div class="text-white">
+              <div class="font-serif tracking-widest text-lg leading-none group-hover:text-london-gold transition-colors">LONDON NOIVAS</div>
+              <div class="text-xs tracking-widest text-white/60 mt-1">ÁREA RESTRITA</div>
+            </div>
+          </a>
 
-    <div class="form-group">
-      <label for="password">Senha</label>
-      <input type="password" name="password" id="password" required class="form-control" />
-    </div>
+          <a href="{{ url_for('index') }}" class="text-sm tracking-widest text-white/80 hover:text-london-gold transition-colors">
+            VOLTAR AO SITE
+          </a>
+        </div>
+      </div>
+    </header>
 
-    <div class="form-check mb-3">
-      <input type="checkbox" class="form-check-input" name="remember_me" id="remember_me" />
-      <label class="form-check-label" for="remember_me">Manter-me conectado</label>
-    </div>
+    <main class="pt-28 pb-16 px-6">
+      <div class="max-w-md mx-auto">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div class="space-y-3 mb-6">
+              {% for category, message in messages %}
+                {% set cat = 'danger' if category == 'error' else category %}
+                <div class="rounded-lg border px-4 py-3 text-sm
+                  {% if cat == 'success' %}bg-emerald-50 border-emerald-200 text-emerald-900{% endif %}
+                  {% if cat == 'warning' %}bg-amber-50 border-amber-200 text-amber-900{% endif %}
+                  {% if cat == 'info' %}bg-sky-50 border-sky-200 text-sky-900{% endif %}
+                  {% if cat == 'danger' %}bg-rose-50 border-rose-200 text-rose-900{% endif %}
+                ">
+                  {{ message|safe }}
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
 
-    <button type="submit" id="login-btn" class="btn btn-green-custom d-flex align-items-center justify-content-center gap-2">
-      <span id="login-text">Entrar</span>
-      <div id="login-spinner" class="spinner-border spinner-border-sm text-light" role="status" style="display: none"></div>
-    </button>
-  </form>
+        <div class="bg-white rounded-2xl shadow-xl border border-stone-200 overflow-hidden">
+          <div class="px-8 pt-8 pb-6 border-b border-stone-100">
+            <h1 class="font-serif text-3xl text-stone-900 tracking-wide">Entrar</h1>
+            <p class="text-stone-500 text-sm mt-2">Acesse o painel administrativo da loja.</p>
+          </div>
 
-  {% if request.args.get('email_not_confirmed') == 'true' %}
-  <div class="email-warning-container">
-    <div class="email-warning-message">
-      <p>
-        <strong>Sua conta ainda não foi confirmada.</strong>
-        <br />
-        Por favor, confirme seu e-mail para acessar todas as funcionalidades.
-      </p>
-      <a href="{{ url_for('resend_confirmation', email=request.args.get('email')) }}" class="btn btn-warning">Reenviar E-mail de Confirmação</a>
-    </div>
-  </div>
-  {% endif %}
+          <div class="px-8 py-8">
+            <form action="{{ url_for('login') }}" method="POST" class="space-y-5">
+              {% if request.args.get('next') %}
+              <input type="hidden" name="next" value="{{ request.args.get('next') }}" />
+              {% endif %}
 
-  <div class="text-center mt-3">
-    <a href="{{ url_for('forgot_password') }}">Esqueceu sua senha?</a>
-  </div>
-</div>
+              <div>
+                <label for="email" class="block text-sm font-semibold tracking-wide text-stone-700 mb-2">E-mail</label>
+                <input
+                  type="email"
+                  name="email"
+                  id="email"
+                  required
+                  autocomplete="email"
+                  class="w-full rounded-lg border border-stone-200 px-4 py-3 text-sm outline-none focus:border-london-gold focus:ring-2 focus:ring-london-gold/20 transition"
+                  placeholder="seuemail@exemplo.com"
+                />
+              </div>
 
-{% endblock %}
+              <div>
+                <label for="password" class="block text-sm font-semibold tracking-wide text-stone-700 mb-2">Senha</label>
+                <input
+                  type="password"
+                  name="password"
+                  id="password"
+                  required
+                  autocomplete="current-password"
+                  class="w-full rounded-lg border border-stone-200 px-4 py-3 text-sm outline-none focus:border-london-gold focus:ring-2 focus:ring-london-gold/20 transition"
+                  placeholder="••••••••"
+                />
+              </div>
+
+              <div class="flex items-center justify-between gap-4">
+                <label class="flex items-center gap-3 text-sm text-stone-600 select-none">
+                  <input type="checkbox" name="remember_me" id="remember_me" class="h-4 w-4 rounded border-stone-300 text-london-gold focus:ring-london-gold" />
+                  Manter-me conectado
+                </label>
+
+                <a href="{{ url_for('forgot_password') }}" class="text-sm text-stone-600 hover:text-london-gold transition-colors">
+                  Esqueceu a senha?
+                </a>
+              </div>
+
+              <button
+                type="submit"
+                id="login-btn"
+                class="w-full bg-london-gold text-white rounded-lg py-3 font-semibold tracking-widest text-sm hover:bg-opacity-90 transition shadow-lg shadow-london-gold/10"
+              >
+                ENTRAR
+              </button>
+            </form>
+
+            {% if request.args.get('email_not_confirmed') == 'true' %}
+            <div class="mt-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-4 text-amber-900 text-sm">
+              <div class="font-semibold mb-1">Sua conta ainda não foi confirmada.</div>
+              <div class="text-amber-800/90">Confirme seu e-mail para acessar todas as funcionalidades.</div>
+              <a
+                href="{{ url_for('resend_confirmation', email=request.args.get('email'), next=request.args.get('next')) }}"
+                class="inline-flex mt-3 text-sm font-semibold tracking-widest text-amber-900 hover:text-stone-900 transition-colors"
+              >
+                REENVIAR E-MAIL DE CONFIRMAÇÃO
+              </a>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </main>
+  </body>
+</html>

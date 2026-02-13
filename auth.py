@@ -11,6 +11,7 @@ import requests
 import stripe
 from boto3.dynamodb.conditions import Key
 import os
+from urllib.parse import urlparse
 from flask import (
     render_template,
     request,
@@ -44,10 +45,25 @@ def init_auth_routes(
     # Login route
     @app.route("/login", methods=["GET", "POST"])
     def login():
+        def _safe_next_url(next_url):
+            if not next_url:
+                return None
+            next_url = str(next_url).strip()
+            if not next_url.startswith("/"):
+                return None
+            parsed = urlparse(next_url)
+            if parsed.scheme or parsed.netloc:
+                return None
+            return next_url
+
+        def _default_redirect_for_role(role):
+            return url_for("admin_dashboard") if role == "general_admin" else url_for("agenda")
+
+        next_url = _safe_next_url(request.args.get("next") or request.form.get("next"))
 
         if session.get("logged_in"):  # Verifica se o usuário já está logado
             # flash("Você já está logado!", "info")
-            return redirect(url_for("index"))
+            return redirect(next_url or _default_redirect_for_role(session.get("role")))
 
         remember_me = request.form.get("remember_me")
 
@@ -103,7 +119,12 @@ def init_auth_routes(
                 # Se o e-mail não estiver confirmado
                 if not user.get("email_confirmed", False):
                     return redirect(
-                        url_for("login", email_not_confirmed="true", email=email)
+                        url_for(
+                            "login",
+                            email_not_confirmed="true",
+                            email=email,
+                            next=next_url,
+                        )
                     )
 
                 session["logged_in"] = True
@@ -114,7 +135,7 @@ def init_auth_routes(
                 session["account_id"] = account_id
 
                 flash("Você está logado agora!", "info")
-                return redirect(url_for("index"))
+                return redirect(next_url or _default_redirect_for_role(session.get("role")))
 
             flash(
                 "E-mail ou senha incorretos.",
