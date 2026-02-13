@@ -320,12 +320,57 @@
                 fetch(`/api/ai-similar/${itemId}`)
                     .then(response => response.json())
                     .then(data => {
-                        if (data.suggestions && data.suggestions.length > 0) {
-                            data.suggestions.forEach(item => {
+                        const normalizeSlug = (s) => (s || '')
+                            .toString()
+                            .normalize('NFD')
+                            .replace(/[\u0300-\u036f]/g, '')
+                            .toLowerCase()
+                            .replace(/[^a-z0-9]+/g, '_')
+                            .replace(/^_+|_+$/g, '')
+                            .replace(/_+/g, '_');
+
+                        const targetOccasion = normalizeSlug((activeOccasion || '').replace(/-/g, '_'));
+
+                        const parseOccasionsToSlugs = (occasionsStr) => {
+                            if (!occasionsStr) return [];
+                            return occasionsStr
+                                .toString()
+                                .split(',')
+                                .map(s => normalizeSlug(s.trim()))
+                                .filter(Boolean);
+                        };
+
+                        const apiSuggestions = Array.isArray(data.suggestions) ? data.suggestions : [];
+                        let suggestions = targetOccasion
+                            ? apiSuggestions.filter(s => parseOccasionsToSlugs(s.occasions).includes(targetOccasion))
+                            : apiSuggestions.slice();
+
+                        const existingIds = new Set(suggestions.map(s => String(s.id)));
+                        if (suggestions.length < 4 && window.catalogData && typeof window.catalogData === 'object') {
+                            const localCandidates = Object.entries(window.catalogData)
+                                .filter(([id, d]) => id && d && String(id) !== String(itemId))
+                                .filter(([id, d]) => !existingIds.has(String(id)))
+                                .filter(([id, d]) => !targetOccasion || parseOccasionsToSlugs(d.occasions).includes(targetOccasion))
+                                .map(([id, d]) => ({
+                                    id,
+                                    customId: d.customId,
+                                    title: d.title,
+                                    image_url: d.imageUrl,
+                                    description: d.description,
+                                    occasions: d.occasions
+                                }));
+
+                            for (const c of localCandidates) {
+                                if (suggestions.length >= 4) break;
+                                suggestions.push(c);
+                                existingIds.add(String(c.id));
+                            }
+                        }
+
+                        if (suggestions.length > 0) {
+                            suggestions.forEach(item => {
                                 const div = document.createElement('div');
                                 div.className = 'cursor-pointer group';
-                                // Note: item.occasions needs to be available in suggestions response, if not we default to empty string or handle it
-                                // Assuming API returns occasions or we handle it gracefully. For now passing empty/default if missing.
                                 const itemOccasions = typeof item.occasions === 'string'
                                     ? item.occasions
                                     : Array.isArray(item.occasions)
