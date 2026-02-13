@@ -708,7 +708,7 @@ def init_item_routes(
             desc_changed = "description" in changes or "item_description" in changes
             
             # Se algum dos 3 mudou, marca como pending
-            if image_changed or title_changed or desc_changed:
+            if image_changed or title_changed or desc_changed or occasion_changes:
                 changes["embedding_status"] = "pending"
 
             # Atualiza item no DynamoDB

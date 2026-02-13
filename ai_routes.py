@@ -209,6 +209,16 @@ def _extract_json_object(text):
         return None
     return text[start : end + 1]
 
+def _get_attr_from_rewrite(attrs, canonical_key, key_map):
+    if not isinstance(attrs, dict):
+        return None
+    if canonical_key in attrs:
+        return attrs.get(canonical_key)
+    for kk, vv in key_map.items():
+        if vv == canonical_key and kk in attrs:
+            return attrs.get(kk)
+    return None
+
 def _rewrite_catalog_query(query, target_occasion):
     if not isinstance(query, str):
         return {"query_reescrita": ""}
@@ -294,21 +304,46 @@ def _query_embedding_text_from_rewrite(data, target_occasion=None):
     attrs = data.get("atributos_extraidos")
     tokens = []
     order = ["silhouette","neckline","sleeves","details","fabrics","colors","occasions"]
-    alt = {"cor":"colors","estilo":"silhouette","decote":"neckline","mangas":"sleeves","detalhes":"details","tecido":"fabrics","ocasiao":"occasions"}
+    alt = {
+        "cor":"colors",
+        "cores":"colors",
+        "estilo":"silhouette",
+        "estilos":"silhouette",
+        "decote":"neckline",
+        "decotes":"neckline",
+        "manga":"sleeves",
+        "mangas":"sleeves",
+        "detalhes":"details",
+        "tecido":"fabrics",
+        "tecidos":"fabrics",
+        "ocasiao":"occasions",
+        "ocasião":"occasions",
+        "ocasioes":"occasions",
+        "ocasiões":"occasions",
+    }
     if isinstance(attrs, dict):
         for k in order:
-            v = attrs.get(k) if k in attrs else attrs.get(next((kk for kk, vv in alt.items() if vv == k), None))
+            v = _get_attr_from_rewrite(attrs, k, alt)
             if isinstance(v, list):
                 for x in v:
                     s = str(x).strip()
                     if s:
                         tokens.append(s)
+                        if k == "occasions":
+                            canon = _canonical_occasion(s)
+                            if canon:
+                                tokens.append(canon.replace("-", " "))
             elif isinstance(v, str) and v.strip():
-                tokens.append(v.strip())
+                s = v.strip()
+                tokens.append(s)
+                if k == "occasions":
+                    canon = _canonical_occasion(s)
+                    if canon:
+                        tokens.append(canon.replace("-", " "))
 
     occ = _canonical_occasion(target_occasion)
     if occ:
-        tokens.append(occ)
+        tokens.append(occ.replace("-", " "))
 
     tokens = [t for t in tokens if t]
     if not tokens:
@@ -329,16 +364,31 @@ def _apply_facet_constraints(candidates, rewrite_data):
         return _normalize_text(x)
     req = {}
     req_neg = {}
-    key_map = {"cor":"colors","estilo":"silhouette","decote":"neckline","mangas":"sleeves","detalhes":"details","tecido":"fabrics","ocasiao":"occasions"}
+    key_map = {
+        "cor":"colors",
+        "cores":"colors",
+        "estilo":"silhouette",
+        "estilos":"silhouette",
+        "decote":"neckline",
+        "decotes":"neckline",
+        "manga":"sleeves",
+        "mangas":"sleeves",
+        "detalhes":"details",
+        "tecido":"fabrics",
+        "tecidos":"fabrics",
+        "ocasiao":"occasions",
+        "ocasião":"occasions",
+        "ocasioes":"occasions",
+        "ocasiões":"occasions",
+    }
     for k in ["colors","silhouette","neckline","sleeves","details","fabrics","occasions"]:
-        v = attrs.get(k)
-        if v is None:
-            for kk, vv in key_map.items():
-                if vv == k and kk in attrs:
-                    v = attrs.get(kk)
-                    break
+        v = _get_attr_from_rewrite(attrs, k, key_map)
         if isinstance(v, list):
-            vals = [norm(s) for s in v if str(s).strip()]
+            if k == "occasions":
+                vals = [_canonical_occasion(s) for s in v if str(s).strip()]
+                vals = [x for x in vals if x]
+            else:
+                vals = [norm(s) for s in v if str(s).strip()]
             if vals:
                 req[k] = set(vals)
                 neg = set()
@@ -350,7 +400,9 @@ def _apply_facet_constraints(candidates, rewrite_data):
                 if neg:
                     req_neg[k] = neg
         elif isinstance(v, str) and v.strip():
-            val = norm(v)
+            val = _canonical_occasion(v) if k == "occasions" else norm(v)
+            if not val:
+                continue
             req[k] = {val}
             neg = set()
             if k == "details" and (val.startswith("sem ") or val.startswith("sem-")):
@@ -361,10 +413,14 @@ def _apply_facet_constraints(candidates, rewrite_data):
                 req_neg[k] = neg
     if not req:
         return candidates
-    def has_intersection(values, needed):
+    def has_intersection(values, needed, facet):
         if not isinstance(values, list):
             return False
-        nv = set(norm(x) for x in values if str(x).strip())
+        if facet == "occasions":
+            nv = set(_canonical_occasion(x) for x in values if str(x).strip())
+            nv = set(x for x in nv if x)
+        else:
+            nv = set(norm(x) for x in values if str(x).strip())
         return bool(nv.intersection(needed))
     # termos_excluir globais
     exclude_terms = set()
@@ -378,8 +434,8 @@ def _apply_facet_constraints(candidates, rewrite_data):
     for c in candidates:
         mf = c.get("metadata_filters", {}) or {}
         ok = True
-        for k in ["colors","silhouette"]:
-            if k in req and not has_intersection(mf.get(k), req[k]):
+        for k in ["colors","silhouette","occasions"]:
+            if k in req and not has_intersection(mf.get(k), req[k], k):
                 ok = False
                 break
         if ok and req_neg:
@@ -414,18 +470,38 @@ def _rerank_by_facets(candidates, rewrite_data):
     def norm(x):
         return _normalize_text(x)
     need = {}
-    key_map = {"cor":"colors","estilo":"silhouette","decote":"neckline","mangas":"sleeves","detalhes":"details","tecido":"fabrics","ocasiao":"occasions"}
+    key_map = {
+        "cor":"colors",
+        "cores":"colors",
+        "estilo":"silhouette",
+        "estilos":"silhouette",
+        "decote":"neckline",
+        "decotes":"neckline",
+        "manga":"sleeves",
+        "mangas":"sleeves",
+        "detalhes":"details",
+        "tecido":"fabrics",
+        "tecidos":"fabrics",
+        "ocasiao":"occasions",
+        "ocasião":"occasions",
+        "ocasioes":"occasions",
+        "ocasiões":"occasions",
+    }
     for k in ["colors","silhouette","neckline","sleeves","details","fabrics","occasions"]:
-        v = attrs.get(k)
-        if v is None:
-            for kk, vv in key_map.items():
-                if vv == k and kk in attrs:
-                    v = attrs.get(kk)
-                    break
+        v = _get_attr_from_rewrite(attrs, k, key_map)
         if isinstance(v, list):
-            need[k] = set(norm(s) for s in v if str(s).strip())
+            if k == "occasions":
+                need[k] = set(_canonical_occasion(s) for s in v if str(s).strip())
+                need[k] = set(x for x in need[k] if x)
+            else:
+                need[k] = set(norm(s) for s in v if str(s).strip())
         elif isinstance(v, str) and v.strip():
-            need[k] = {norm(v)}
+            if k == "occasions":
+                occ = _canonical_occasion(v)
+                if occ:
+                    need[k] = {occ}
+            else:
+                need[k] = {norm(v)}
     weights = {"colors":2,"silhouette":2,"neckline":1,"sleeves":1,"details":1,"fabrics":1,"occasions":1}
     def score(c):
         mf = c.get("metadata_filters", {}) or {}
@@ -433,7 +509,11 @@ def _rerank_by_facets(candidates, rewrite_data):
         for k, req in need.items():
             vals = mf.get(k)
             if isinstance(vals, list):
-                nv = set(norm(x) for x in vals if str(x).strip())
+                if k == "occasions":
+                    nv = set(_canonical_occasion(x) for x in vals if str(x).strip())
+                    nv = set(x for x in nv if x)
+                else:
+                    nv = set(norm(x) for x in vals if str(x).strip())
                 if nv.intersection(req):
                     s += weights.get(k, 1)
         return s

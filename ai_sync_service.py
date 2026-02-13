@@ -113,6 +113,43 @@ def _metadata_filters_from_structured(structured, category_slug):
 
     return {k: v for k, v in filters.items() if v}
 
+def _occasions_from_db_item(item):
+    if not isinstance(item, dict):
+        return []
+    mapping = [
+        ("occasion_noiva", "Noiva"),
+        ("occasion_civil", "Civil"),
+        ("occasion_madrinha", "Madrinha"),
+        ("occasion_mae_dos_noivos", "Mãe dos Noivos"),
+        ("occasion_formatura", "Formatura"),
+        ("occasion_debutante", "Debutante"),
+        ("occasion_gala", "Gala"),
+        ("occasion_convidada", "Convidada"),
+    ]
+    out = []
+    for key, label in mapping:
+        v = item.get(key)
+        if v == "1" or v == 1 or v is True:
+            out.append(label)
+    return out
+
+def _merge_occasions(metadata_filters, db_occasions):
+    if not isinstance(metadata_filters, dict):
+        return metadata_filters
+    if not db_occasions:
+        return metadata_filters
+    existing = metadata_filters.get("occasions")
+    if not isinstance(existing, list):
+        existing = []
+    merged = []
+    for x in list(existing) + list(db_occasions):
+        s = str(x or "").strip()
+        if s and s not in merged:
+            merged.append(s)
+    if merged:
+        metadata_filters["occasions"] = merged
+    return metadata_filters
+
 def _build_inventory_examples(existing_data, limit_per_facet=8):
     seed = {
         "noiva": {
@@ -746,6 +783,7 @@ def sync_index(reset_local=False, force_regenerate=False):
             
             group_slug = _category_slug_from_entry({"metadata_filters": _metadata_filters_from_structured(structured, None) or {}}, description=description, title=title)
             metadata_filters = _metadata_filters_from_structured(structured, group_slug) or _extract_metadata_filters(description, group_slug)
+            metadata_filters = _merge_occasions(metadata_filters, _occasions_from_db_item(item))
             embedding_text = _synthesize_embedding_text(metadata_filters, title) or description
             
             try:
