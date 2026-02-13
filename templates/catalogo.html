@@ -107,6 +107,15 @@
             {% endfor %}
         </div>
 
+        {% if active_occasion == 'debutante' %}
+        <div class="max-w-3xl mx-auto mb-10">
+            <div class="bg-amber-50 border border-amber-200 text-amber-900 rounded-lg px-5 py-4 text-sm md:text-base shadow-sm">
+                <span class="font-semibold">Mais vestidos disponíveis na loja:</span>
+                consulte nossa equipe para ver outras opções.
+            </div>
+        </div>
+        {% endif %}
+
         <!-- Catalog Grid -->
         <div id="catalog-grid" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-8">
             {% if itens %}
