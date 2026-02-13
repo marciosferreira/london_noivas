@@ -954,10 +954,6 @@
             // Check if it's an AI item (starts with ai_) or regular item
             const isAiItem = itemId && itemId.toString().startsWith('ai_');
 
-            // Always include Image URL
-            const fullImageUrl = new URL(imageUrl, window.location.origin).href;
-            text += `\nImagem: ${fullImageUrl}`;
-
             if (!isAiItem) {
                 // Update URL to include item_id (UUID) for regular items
                 const url = new URL(window.location);

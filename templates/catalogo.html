@@ -277,10 +277,6 @@
             text += `\nCód: ${idToShow}`;
             
             const isAiItem = itemId && itemId.toString().startsWith('ai_');
-            
-            // Always include Image URL
-            const fullImageUrl = new URL(imageUrl, window.location.origin).href;
-            text += `\nImagem: ${fullImageUrl}`;
 
             if (!isAiItem) {
                 const url = new URL(window.location);
