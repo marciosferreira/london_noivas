@@ -1,6 +1,6 @@
 import datetime
 import uuid
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urlencode
 from boto3.dynamodb.conditions import Key, Attr
 
 from flask import (
@@ -660,11 +660,6 @@ def init_item_routes(
 
             # Verifica alterações
             changes = {}
-            
-            # Add featured field handling
-            featured = request.form.get("featured") == "on"
-            if item.get("featured", False) != featured:
-                changes["featured"] = featured
 
             # Compara updates com item existente
             for k, v in updates.items():
@@ -797,7 +792,6 @@ def init_item_routes(
             prepared[field_id] = item.get(field_id, "")
 
         prepared["item_id"] = item["item_id"]
-        prepared["featured"] = item.get("featured", False)
         
         # Adiciona flags de ocasião manualmente
         occasions = ["madrinha", "formatura", "gala", "debutante", "convidada", "mae_dos_noivos", "noiva", "civil"]
@@ -2340,6 +2334,25 @@ def list_raw_itens(
     image_url_filter = request.args.get("item_image_url") or None
     image_url_required = image_url_filter.lower() == "true" if image_url_filter is not None else None
 
+    ignored_sig_keys = {"page", "force_no_next"}
+    sig_parts = []
+    for k in sorted(request.args.keys()):
+        if k in ignored_sig_keys:
+            continue
+        for v in request.args.getlist(k):
+            sig_parts.append(f"{k}={v}")
+    filtros_signature = "&".join(sig_parts)
+    if session.get("filtros_signature_itens") != filtros_signature:
+        session["filtros_signature_itens"] = filtros_signature
+        session.pop("current_page_itens", None)
+        session.pop("cursor_pages_itens", None)
+        session.pop("last_page_itens", None)
+        if page != 1:
+            args = request.args.to_dict(flat=False)
+            args.pop("page", None)
+            redirect_qs = urlencode(args, doseq=True)
+            return redirect(f"{request.path}{'?' + redirect_qs if redirect_qs else ''}")
+
 
     if page == 1:
         session.pop("current_page_itens", None)
@@ -2394,21 +2407,28 @@ def list_raw_itens(
     batch_size = 10
     last_valid_item = None
     raw_last_evaluated_key = None
+    page_next_start_key = None
 
     
-    # Detecção de filtro por ocasião (usando novos GSIs)
-    # Exemplo de filtro: ?filter=madrinha
-    occasion_filter = filtros.get("filter")
     valid_occasions = ["madrinha", "formatura", "gala", "debutante", "convidada", "mae_dos_noivos", "noiva", "civil"]
+    selected_occasions = [o for o in request.args.getlist("occasion") if o in valid_occasions]
+    legacy_occasion = filtros.get("filter")
+    if not selected_occasions and legacy_occasion in valid_occasions:
+        selected_occasions = [legacy_occasion]
+
+    if len(selected_occasions) == len(valid_occasions):
+        selected_occasions = []
     
     use_occasion_gsi = False
     occasion_index_name = ""
     
-    if occasion_filter in valid_occasions:
+    occasion_filter = selected_occasions[0] if len(selected_occasions) == 1 else None
+    if occasion_filter:
         use_occasion_gsi = True
         occasion_index_name = f"occasion_{occasion_filter}-index"
 
     while len(valid_itens) < limit:
+        stopped_early = False
         if use_occasion_gsi:
             # Query otimizada pelo GSI da ocasião
             query_kwargs = {
@@ -2428,14 +2448,29 @@ def list_raw_itens(
         if exclusive_start_key:
             query_kwargs["ExclusiveStartKey"] = exclusive_start_key
 
-        response = itens_table.query(**query_kwargs)
+        try:
+            response = itens_table.query(**query_kwargs)
+        except Exception as e:
+            msg = str(e)
+            if "The provided starting key is invalid" in msg:
+                session.pop("current_page_itens", None)
+                session.pop("cursor_pages_itens", None)
+                session.pop("last_page_itens", None)
+                args = request.args.to_dict(flat=False)
+                args.pop("page", None)
+                redirect_qs = urlencode(args, doseq=True)
+                return redirect(f"{request.path}{'?' + redirect_qs if redirect_qs else ''}")
+            raise
         itens_batch = response.get("Items", [])
         raw_last_evaluated_key = response.get("LastEvaluatedKey")
 
         if not itens_batch:
             break
 
+        last_scanned_item = None
+
         for item in itens_batch:
+            last_scanned_item = item
             # Se for filtro de ocasião, precisamos verificar status manualmente
             # Pois o GSI não tem status na chave, apenas projeção ALL
             # Mas itens deletados devem ser ignorados.
@@ -2451,12 +2486,40 @@ def list_raw_itens(
             if use_occasion_gsi and item.get("status") not in status_list:
                 continue
 
+            if selected_occasions:
+                item_matches_any = False
+                for occ in selected_occasions:
+                    if item.get(f"occasion_{occ}") == "1":
+                        item_matches_any = True
+                        break
+                if not item_matches_any:
+                    continue
+
             if entidade_atende_filtros_dinamico(item, filtros, fields_config, image_url_required):
                 valid_itens.append(item)
                 last_valid_item = item
 
                 if len(valid_itens) == limit:
+                    stopped_early = True
                     break
+
+        if stopped_early and last_scanned_item:
+            if use_occasion_gsi:
+                page_next_start_key = {
+                    f"occasion_{occasion_filter}": "1",
+                    "account_id": last_scanned_item["account_id"],
+                    "item_id": last_scanned_item["item_id"],
+                }
+            else:
+                created_at = last_scanned_item.get("created_at")
+                if isinstance(created_at, Decimal):
+                    created_at = int(created_at)
+                page_next_start_key = {
+                    "account_id": last_scanned_item["account_id"],
+                    "created_at": created_at,
+                    "item_id": last_scanned_item["item_id"],
+                }
+            break
 
         if len(valid_itens) < limit:
             if raw_last_evaluated_key:
@@ -2465,25 +2528,10 @@ def list_raw_itens(
                 break
 
     next_cursor_token = None
-    if last_valid_item:
-        # Cursor precisa ser compatível com o índice usado
-        if use_occasion_gsi:
-            # PK: occasion_X, SK: account_id -> Mas GSI cursor pode exigir chaves da tabela base também
-            # Na verdade, ExclusiveStartKey do GSI precisa das chaves do GSI + chaves da tabela
-            # GSI PK: occasion_slug, GSI SK: account_id
-            # Table PK: item_id
-            cursor_data = {
-                f"occasion_{occasion_filter}": "1",
-                "account_id": last_valid_item["account_id"],
-                "item_id": last_valid_item["item_id"]
-            }
-            next_cursor_token = encode_dynamo_key(cursor_data)
-        else:
-            next_cursor_token = encode_dynamo_key({
-                "account_id": last_valid_item["account_id"],
-                "created_at": last_valid_item["created_at"],
-                "item_id": last_valid_item["item_id"],
-            })
+    if page_next_start_key:
+        next_cursor_token = encode_dynamo_key(page_next_start_key)
+    elif raw_last_evaluated_key:
+        next_cursor_token = encode_dynamo_key(raw_last_evaluated_key)
 
     if next_cursor_token:
         session["cursor_pages_itens"][str(page + 1)] = next_cursor_token
@@ -2493,7 +2541,7 @@ def list_raw_itens(
     last_page_itens = session.get("last_page_itens")
     current_page = session.get("current_page_itens", 1)
 
-    has_next = not (len(valid_itens) < limit or (last_page_itens is not None and current_page >= last_page_itens))
+    has_next = bool(next_cursor_token) and not (last_page_itens is not None and current_page >= last_page_itens)
     if force_no_next:
         has_next = False
 
@@ -2502,7 +2550,11 @@ def list_raw_itens(
         last_valid_page = page - 1
         session["current_page_itens"] = last_valid_page
         session["last_page_itens"] = last_valid_page
-        return redirect(url_for("inventory", page=last_valid_page, force_no_next=1))
+        args = request.args.to_dict(flat=False)
+        args["page"] = [str(last_valid_page)]
+        args["force_no_next"] = ["1"]
+        redirect_qs = urlencode(args, doseq=True)
+        return redirect(f"{request.path}{'?' + redirect_qs if redirect_qs else ''}")
 
     fields_config = sorted(fields_config, key=lambda x: x["order_sequence"])
 

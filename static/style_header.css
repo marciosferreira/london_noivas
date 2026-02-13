@@ -11,15 +11,12 @@
 }
 /* Estilo geral da navbar */
 .navbar {
-  background-color: #003366 !important;
-  padding-left: 0;
-  padding-right: 0;
-  padding-top: 1rem;
-  padding-bottom: 1rem;
-  max-width: 1200px;
-  margin: 10px auto 0 auto; /* ← top 10px */
-  width: 90%;
-  border-radius: 12px;
+  background-color: #ffffff !important;
+  padding: 0.25rem 0.75rem;
+  min-height: 56px;
+  margin: 0;
+  width: 100%;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 /* Estiliza a logo */
@@ -36,9 +33,9 @@
 
 /* Nome ao lado da logo */
 .navbar-brand {
-  font-size: 1.4rem;
+  font-size: 1.1rem;
   font-weight: bold;
-  color: #ffffff;
+  color: #0f172a;
   display: flex;
   align-items: center;
   text-decoration: none;
@@ -46,33 +43,31 @@
 
 /* Links do menu */
 .navbar-nav .nav-link {
-  color: #ffffff;
+  color: #0f172a;
   font-weight: 500;
   transition: color 0.3s ease;
 }
 
 .navbar-nav .nav-link:hover,
 .navbar-nav .nav-link.active {
-  color: #ffc107; /* Amarelo Bootstrap no hover e ativo */
-  text-decoration: underline;
+  color: #0d6efd;
 }
 
 /* Estilo dos dropdown menus */
 .dropdown-menu {
-  background-color: #003366; /* Fundo azul corporativo */
-  border: none;
+  border: 1px solid rgba(0, 0, 0, 0.08);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .dropdown-menu .dropdown-item {
-  color: #ffffff;
+  color: #0f172a;
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .dropdown-menu .dropdown-item:hover,
 .dropdown-menu .dropdown-item.active {
-  background-color: #002244; /* Azul ainda mais escuro no hover */
-  color: #ffc107; /* Texto amarelo no hover */
+  background-color: rgba(13, 110, 253, 0.08);
+  color: #0d6efd;
 }
 
 /* Linha separadora no dropdown */
@@ -86,12 +81,12 @@
 }
 
 .navbar-toggler-icon {
-  background-image: url("data:image/svg+xml;charset=utf8,%3Csvg viewBox='0 0 30 30' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath stroke='rgba(255,255,255,0.7)' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml;charset=utf8,%3Csvg viewBox='0 0 30 30' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath stroke='rgba(15,23,42,0.7)' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3E%3C/svg%3E");
 }
 
 /* Compensa espaço do header fixo no body */
 body {
-  padding-top: 77px; /* Ajustado para altura da navbar+logo */
+  padding-top: 64px;
 }
 
 .welcome-banner {

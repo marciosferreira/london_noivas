@@ -81,19 +81,6 @@ ITEM_FIELDS = [
         "filterable": True,
         "preview": False,
         "f_type": "fixed",
-    },
-    {
-        "id": "featured",
-        "label": "Destaque na Home",
-        "type": "boolean",
-        "visible": False, # Geralmente gerenciado por checkbox separado, mas mantido aqui para registro
-        "fixed": True,
-        "required": False,
-        "order": 8,
-        "order_sequence": 8,
-        "filterable": False,
-        "preview": False,
-        "f_type": "fixed",
     }
 ]
 

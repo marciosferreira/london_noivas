@@ -84,6 +84,36 @@
       </div>
       {% endfor %}
 
+      <div class="col-12">
+        <label class="form-label d-block">Ocasiões</label>
+        <div class="d-flex flex-wrap gap-3">
+          {% set occasion_options = [
+            {'slug': 'noiva', 'label': 'Noiva'},
+            {'slug': 'civil', 'label': 'Civil'},
+            {'slug': 'madrinha', 'label': 'Madrinha'},
+            {'slug': 'mae_dos_noivos', 'label': 'Mãe dos Noivos'},
+            {'slug': 'formatura', 'label': 'Formatura'},
+            {'slug': 'debutante', 'label': 'Debutante'},
+            {'slug': 'gala', 'label': 'Gala'},
+            {'slug': 'convidada', 'label': 'Convidada'}
+          ] %}
+          {% set selected_occasions = request.args.getlist('occasion') %}
+          {% for occ in occasion_options %}
+            <div class="form-check">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                name="occasion"
+                id="filter_occasion_{{ occ.slug }}"
+                value="{{ occ.slug }}"
+                {% if occ.slug in selected_occasions %}checked{% endif %}
+              />
+              <label class="form-check-label" for="filter_occasion_{{ occ.slug }}">{{ occ.label }}</label>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+
       <!-- Botões -->
       <div class="col-12 col-md-2">
         <button type="submit" class="btn btn-primary w-100">Filtrar</button>

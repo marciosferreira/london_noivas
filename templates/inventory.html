@@ -96,8 +96,8 @@
           <!-- Resumo do Item -->
           <div class="d-flex flex-column gap-2 mb-2">
             <div class="d-flex justify-content-between small border-bottom pb-1">
-              <span class="text-muted">ID do Item</span>
-              <span class="text-end">{{ item.item_id if item.item_id is defined else (item.item_custom_id if item.item_custom_id is defined else '-') }}</span>
+              <span class="text-muted">Código do Item</span>
+              <span class="text-end">{{ item.item_custom_id if item.item_custom_id is defined and item.item_custom_id else '-' }}</span>
             </div>
             <div class="d-flex justify-content-between small border-bottom pb-1">
               <span class="text-muted">Título</span>
@@ -109,19 +109,33 @@
                 {{ title if title else '-' }}
               </span>
             </div>
+            <div class="d-flex justify-content-between small border-bottom pb-1">
+              <span class="text-muted">Ocasiões</span>
+              <span class="text-end">
+                {% set occs = [] %}
+                {% if item.occasion_noiva == '1' %}{% set _ = occs.append('Noiva') %}{% endif %}
+                {% if item.occasion_civil == '1' %}{% set _ = occs.append('Civil') %}{% endif %}
+                {% if item.occasion_madrinha == '1' %}{% set _ = occs.append('Madrinha') %}{% endif %}
+                {% if item.occasion_mae_dos_noivos == '1' %}{% set _ = occs.append('Mãe dos Noivos') %}{% endif %}
+                {% if item.occasion_formatura == '1' %}{% set _ = occs.append('Formatura') %}{% endif %}
+                {% if item.occasion_debutante == '1' %}{% set _ = occs.append('Debutante') %}{% endif %}
+                {% if item.occasion_gala == '1' %}{% set _ = occs.append('Gala') %}{% endif %}
+                {% if item.occasion_convidada == '1' %}{% set _ = occs.append('Convidada') %}{% endif %}
+                {{ occs | join(', ') if occs else '-' }}
+              </span>
+            </div>
           </div>
 
           <div class="d-flex flex-column gap-2">
             {% for field in fields_config 
                  if field.preview and field.visible and field.type != 'item_image_url' 
-                 and field.id not in ['item_description','description','nome','descricao','item_title','title','titulo'] %}
+                 and field.id not in ['item_id','item_custom_id','item_description','description','nome','descricao','item_title','title','titulo'] %}
             <div class="d-flex justify-content-between small border-bottom pb-1">
               <span class="text-muted">{{ field.label }}</span>
               <span class="text-end">
                 {% set value = item[field.id] if field.id in item else '' %} {% if value == 'None' or value is none %}
                 <span class="text-muted">-</span>
-                {% else %} {% if field.type == "date" %} {{ value | format_date }} {% elif field.type in ["value", "item_value"] %} {% if value|float == 0 %} Consulte o preço do aluguel {% else %} {{ value |
-                format_brl }} {% endif %} {% else %} {{ value | truncate(30, True) }} {% endif %} {% endif %}
+                {% else %} {% if field.type == "date" %} {{ value | format_date }} {% elif field.type in ["value", "item_value"] %} {{ value | format_brl }} {% else %} {{ value | truncate(30, True) }} {% endif %} {% endif %}
               </span>
             </div>
             {% endfor %}
