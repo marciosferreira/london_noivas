@@ -439,7 +439,7 @@
                         }
                         
                         if (data.dress) {
-                            showResult(data.dress, data.suggestions);
+                            showResult(data.dress, data.suggestions, data.requested_occasions);
                         } else if (data.error) {
                             addMessage("Desculpe, ocorreu um erro: " + data.error, 'bot');
                         }
@@ -499,17 +499,22 @@
                     return id;
                 }
 
+                let bellaOccasionFilter = [];
+
                 function removeMessage(id) {
                     const el = document.getElementById(id);
                     if (el) el.remove();
                 }
 
-                function showResult(dress, suggestions) {
+                function showResult(dress, suggestions, requestedOccasions) {
                     const chatWrapper = document.getElementById('chat-wrapper');
                     const resultFrame = document.getElementById('result-frame');
                     const img = document.getElementById('result-image');
                     const title = document.getElementById('result-title');
                     const desc = document.getElementById('result-desc');
+                    bellaOccasionFilter = Array.isArray(requestedOccasions)
+                        ? requestedOccasions
+                        : (requestedOccasions ? [requestedOccasions] : []);
 
                     // Adjust layout
                     chatWrapper.classList.remove('w-full');
@@ -547,12 +552,14 @@
 
                     if (!dress?.id) return;
 
-                    fetch(`/api/ai-similar/${dress.id}?limit=4`)
+                    const occParam = Array.isArray(requestedOccasions) ? requestedOccasions.join(',') : (requestedOccasions || '');
+                    const occQuery = occParam ? `&occasion=${encodeURIComponent(occParam)}` : '';
+                    fetch(`/api/ai-similar/${dress.id}?limit=4${occQuery}`)
                         .then(response => response.json())
                         .then(data => {
                             const suggestions = Array.isArray(data?.suggestions) ? data.suggestions : [];
                             if (suggestions.length > 0) {
-                                showSuggestions(suggestions, dress.occasions);
+                                showSuggestions(suggestions, requestedOccasions || dress.occasions);
                             } else {
                                 document.getElementById('suggestions-container').classList.add('hidden');
                             }
@@ -1030,7 +1037,11 @@
                 fetch(`/api/item/${itemId}/visit`, { method: 'POST' })
                     .catch(err => console.error('Error incrementing visit count:', err));
 
-                fetch(`/api/ai-similar/${itemId}?limit=4`)
+                const bellaOccParam = Array.isArray(bellaOccasionFilter) && bellaOccasionFilter.length
+                    ? bellaOccasionFilter.join(',')
+                    : '';
+                const bellaOccQuery = bellaOccParam ? `&occasion=${encodeURIComponent(bellaOccParam)}` : '';
+                fetch(`/api/ai-similar/${itemId}?limit=4${bellaOccQuery}`)
                     .then(response => response.json())
                     .then(data => {
                         const normalizeSlug = (s) => (s || '')
@@ -1051,7 +1062,10 @@
                                 .filter(Boolean);
                         };
 
-                        const targetOccasions = new Set(parseOccasionsToSlugs(occasions));
+                        const targetOccasionInput = (Array.isArray(bellaOccasionFilter) && bellaOccasionFilter.length)
+                            ? bellaOccasionFilter.join(', ')
+                            : occasions;
+                        const targetOccasions = new Set(parseOccasionsToSlugs(targetOccasionInput));
                         const apiSuggestions = Array.isArray(data.suggestions) ? data.suggestions : [];
                         const suggestions = targetOccasions.size > 0
                             ? apiSuggestions.filter(s => parseOccasionsToSlugs(s.occasions).some(o => targetOccasions.has(o)))

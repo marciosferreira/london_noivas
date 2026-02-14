@@ -121,6 +121,58 @@ def _get_occasion_slugs(item):
             out.append(canon)
     return out
 
+def _normalize_occasion_inputs(value):
+    if value is None:
+        return []
+    if isinstance(value, list):
+        raw = value
+    elif isinstance(value, str):
+        raw = [value]
+    else:
+        return []
+    out = []
+    seen = set()
+    for v in raw:
+        canon = _canonical_occasion(v)
+        if canon and canon not in seen:
+            seen.add(canon)
+            out.append(canon)
+    return out
+
+def _filter_items_by_occasions(items, target_occasions):
+    if not items or not target_occasions:
+        return items
+    target_set = set(target_occasions)
+    filtered = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        slugs = _get_occasion_slugs(item)
+        if slugs:
+            if set(slugs) & target_set:
+                filtered.append(item)
+            continue
+        matched = False
+        for occ in target_set:
+            if _has_occasion(item, occ):
+                matched = True
+                break
+        if matched:
+            filtered.append(item)
+    return filtered
+
+def _suggestion_occ_slugs(suggestion):
+    if not isinstance(suggestion, dict):
+        return []
+    occs = suggestion.get("occasions")
+    if isinstance(occs, str):
+        parts = [p.strip() for p in occs.split(",") if p.strip()]
+        parts = [p for p in parts if _normalize_text(p) != "varias"]
+        return _normalize_occasion_inputs(parts)
+    if isinstance(occs, list):
+        return _normalize_occasion_inputs(occs)
+    return []
+
 def load_resources():
     global index, metadata, inventory_digest
     try:
@@ -759,6 +811,8 @@ def ai_search():
         "- Se não houver opções diferentes que atendam ao pedido, explique brevemente e sugira ajustar um critério (ex.: cor, decote, tecido), ao invés de repetir a mesma peça.\n"
         "USO DE FERRAMENTAS:\n"
         "- Use a tool `search_dresses` quando o usuário pedir sugestões, descrever um estilo ou demonstrar intenção de compra.\n"
+        "- Sempre preencha `occasions` com uma das opções: Noiva, Civil, Madrinha, Mãe dos Noivos, Formatura, Debutante, Gala, Convidada.\n"
+        "- Se não houver ocasião explícita, use Gala como padrão.\n"
         "- Se a busca não retornar nada, peça desculpas e sugira ampliar os critérios.\n"
         "SELEÇÃO DO PRINCIPAL:\n"
         "- Escolha UM dos itens retornados pela ferramenta como principal.\n"
@@ -788,15 +842,25 @@ def ai_search():
                     "type": "object",
                     "properties": {
                         "query": {"type": "string", "description": "Descrição rica para busca semântica. Ex: 'vestido sereia renda ombro a ombro'"},
-                        "k": {"type": "integer", "default": 4}
+                        "k": {"type": "integer", "default": 4},
+                        "occasions": {
+                            "type": "array",
+                            "items": {
+                                "type": "string",
+                                "enum": ["Noiva","Civil","Madrinha","Mãe dos Noivos","Formatura","Debutante","Gala","Convidada"]
+                            },
+                            "default": ["Gala"],
+                            "description": "Ocasiões desejadas. Ex: ['Debutante']"
+                        }
                     },
-                    "required": ["query"]
+                    "required": ["query", "occasions"]
                 }
             }
         }
     ]
 
     found_suggestions = []
+    requested_occasions = []
     
     try:
         # 1. Decisão do Agente
@@ -819,9 +883,14 @@ def ai_search():
                     args = json.loads(tool_call.function.arguments)
                     query = args.get("query")
                     k_val = args.get("k", 5)
+                    target_occasions = _normalize_occasion_inputs(args.get("occasions") or args.get("occasion"))
+                    if target_occasions:
+                        requested_occasions = target_occasions
                     
                     # Executa busca
                     results = execute_catalog_search(query, k=k_val)
+                    if target_occasions:
+                        results = _filter_items_by_occasions(results, target_occasions)
                     
                     # Formata para Frontend (Objetos Completos)
                     for item in results:
@@ -902,12 +971,16 @@ def ai_search():
                 if principal_key and sid == principal_key:
                     continue
                 other_suggestions.append(s)
+            if target_occasions:
+                target_set = set(target_occasions)
+                other_suggestions = [s for s in other_suggestions if set(_suggestion_occ_slugs(s)) & target_set]
             other_suggestions = other_suggestions[:4]
 
         return jsonify({
             "reply": reply_text,
             "suggestions": other_suggestions,
-            "dress": main_dress
+            "dress": main_dress,
+            "requested_occasions": requested_occasions
         })
 
     except Exception as e:
@@ -952,12 +1025,19 @@ def ai_similar(item_id):
         except Exception:
             target_flags = None
 
-        target_occ = _get_occasion_slugs(target_flags) if isinstance(target_flags, dict) else []
+        req_occ = request.args.getlist("occasion")
+        if not req_occ:
+            occ_raw = request.args.get("occasions") or request.args.get("occasion")
+            if isinstance(occ_raw, str) and occ_raw.strip():
+                req_occ = [x.strip() for x in occ_raw.split(",") if x.strip()]
+        target_occ = _normalize_occasion_inputs(req_occ)
         if not target_occ:
-            mf = (metadata[target_idx].get("metadata_filters") or {}) if isinstance(metadata[target_idx], dict) else {}
-            occ = mf.get("occasions")
-            if isinstance(occ, list):
-                target_occ = [o for o in (_canonical_occasion(x) for x in occ) if o]
+            target_occ = _get_occasion_slugs(target_flags) if isinstance(target_flags, dict) else []
+            if not target_occ:
+                mf = (metadata[target_idx].get("metadata_filters") or {}) if isinstance(metadata[target_idx], dict) else {}
+                occ = mf.get("occasions")
+                if isinstance(occ, list):
+                    target_occ = [o for o in (_canonical_occasion(x) for x in occ) if o]
         target_set = set(target_occ)
 
         ntotal = int(getattr(index, "ntotal", 0) or 0)
