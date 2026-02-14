@@ -431,6 +431,42 @@ def _query_embedding_text_from_rewrite(data, target_occasion=None):
     tokens = list(dict.fromkeys(tokens))
     return " ".join(tokens)
 
+def _query_embedding_text_from_rewrite_attrs_only(data):
+    if not isinstance(data, dict):
+        return None
+    attrs = data.get("atributos_extraidos")
+    if not isinstance(attrs, dict):
+        return None
+    tokens = []
+    order = ["silhouette","neckline","sleeves","details","fabrics","colors"]
+    alt = {
+        "cor":"colors",
+        "cores":"colors",
+        "estilo":"silhouette",
+        "estilos":"silhouette",
+        "decote":"neckline",
+        "decotes":"neckline",
+        "manga":"sleeves",
+        "mangas":"sleeves",
+        "detalhes":"details",
+        "tecido":"fabrics",
+        "tecidos":"fabrics",
+    }
+    for k in order:
+        v = _get_attr_from_rewrite(attrs, k, alt)
+        if isinstance(v, list):
+            for x in v:
+                s = str(x).strip()
+                if s:
+                    tokens.append(s)
+        elif isinstance(v, str) and v.strip():
+            tokens.append(v.strip())
+    tokens = [t for t in tokens if t]
+    if not tokens:
+        return None
+    tokens = list(dict.fromkeys(tokens))
+    return " ".join(tokens)
+
 def _apply_facet_constraints(candidates, rewrite_data):
     if not candidates:
         return candidates
@@ -593,6 +629,51 @@ def _rerank_by_facets(candidates, rewrite_data):
                     nv = set(x for x in nv if x)
                 else:
                     nv = set(norm(x) for x in vals if str(x).strip())
+                if nv.intersection(req):
+                    s += weights.get(k, 1)
+        return s
+    ranked = sorted(
+        [(score(c), i, c) for i, c in enumerate(candidates)],
+        key=lambda x: (-x[0], x[1])
+    )
+    return [c for _, _, c in ranked]
+
+def _rerank_by_facets_loose(candidates, rewrite_data):
+    if not candidates or not isinstance(rewrite_data, dict):
+        return candidates
+    attrs = rewrite_data.get("atributos_extraidos")
+    if not isinstance(attrs, dict):
+        return candidates
+    def norm(x):
+        return _normalize_text(x)
+    need = {}
+    key_map = {
+        "cor":"colors",
+        "cores":"colors",
+        "estilo":"silhouette",
+        "estilos":"silhouette",
+        "decote":"neckline",
+        "decotes":"neckline",
+        "manga":"sleeves",
+        "mangas":"sleeves",
+        "detalhes":"details",
+        "tecido":"fabrics",
+        "tecidos":"fabrics",
+    }
+    for k in ["colors","silhouette","neckline","sleeves","details","fabrics"]:
+        v = _get_attr_from_rewrite(attrs, k, key_map)
+        if isinstance(v, list):
+            need[k] = set(norm(s) for s in v if str(s).strip())
+        elif isinstance(v, str) and v.strip():
+            need[k] = {norm(v)}
+    weights = {"colors":2,"silhouette":2,"neckline":1,"sleeves":1,"details":1,"fabrics":1}
+    def score(c):
+        mf = c.get("metadata_filters", {}) or {}
+        s = 0
+        for k, req in need.items():
+            vals = mf.get(k)
+            if isinstance(vals, list):
+                nv = set(norm(x) for x in vals if str(x).strip())
                 if nv.intersection(req):
                     s += weights.get(k, 1)
         return s
@@ -782,6 +863,80 @@ def execute_catalog_search(query, k=5):
 
     except Exception as e:
         print(f"Erro em execute_catalog_search: {e}")
+        return []
+
+def execute_catalog_search_loose(query, k=5, target_occasions=None):
+    global index, metadata
+    
+    if not index or not metadata:
+        load_resources()
+        if not index or not metadata:
+            print("Erro: Índice não disponível para execute_catalog_search_loose")
+            return []
+
+    try:
+        rewrite = _rewrite_catalog_query(query, None)
+        q_text = _query_embedding_text_from_rewrite_attrs_only(rewrite) or query
+        query_embedding = get_embedding(q_text)
+        query_vector = np.array([query_embedding]).astype('float32')
+
+        ntotal = int(getattr(index, "ntotal", 0) or 0)
+        if ntotal <= 0:
+            ntotal = len(metadata) if isinstance(metadata, list) else 0
+        if ntotal <= 0:
+            return []
+
+        desired = int(k or 0)
+        if desired < 1:
+            desired = 1
+        if desired > 50:
+            desired = 50
+
+        target_set = set(target_occasions or [])
+        collected = []
+        seen_custom_ids = set()
+        processed_k = 0
+        search_k = min(max(80, desired * 20), ntotal)
+
+        while processed_k < ntotal and len(collected) < desired:
+            distances, indices = index.search(query_vector, search_k)
+            new_positions = indices[0][processed_k:search_k]
+            processed_k = search_k
+
+            raw_candidates = []
+            for idx in new_positions:
+                if idx == -1:
+                    continue
+                meta = metadata[int(idx)].copy()
+                cid = meta.get("custom_id")
+                if cid and cid not in seen_custom_ids:
+                    seen_custom_ids.add(cid)
+                    raw_candidates.append(meta)
+
+            valid_candidates = validate_and_enrich_candidates(raw_candidates)
+            if target_set:
+                valid_candidates = [
+                    c for c in valid_candidates
+                    if _get_occasion_slugs(c) and (set(_get_occasion_slugs(c)) & target_set)
+                ]
+            ranked_candidates = _rerank_by_facets_loose(valid_candidates, rewrite) if valid_candidates else valid_candidates
+            for item in ranked_candidates:
+                if target_set:
+                    occ_slugs = _get_occasion_slugs(item)
+                    if not occ_slugs or not (set(occ_slugs) & target_set):
+                        continue
+                collected.append(item)
+                if len(collected) >= desired:
+                    break
+
+            if processed_k >= ntotal:
+                break
+            search_k = min(ntotal, max(processed_k + 80, search_k * 2))
+
+        return collected[:desired]
+
+    except Exception as e:
+        print(f"Erro em execute_catalog_search_loose: {e}")
         return []
 
 @ai_bp.route('/api/ai-search', methods=['POST'])
@@ -1018,9 +1173,7 @@ def ai_similar(item_id):
         target_set = set(target_occ)
 
         if isinstance(query_hint, str) and query_hint.strip():
-            results = execute_catalog_search(query_hint, k=max(limit * 3, 12))
-            if target_occ:
-                results = _filter_items_by_occasions(results, target_occ)
+            results = execute_catalog_search_loose(query_hint, k=max(limit * 4, 20), target_occasions=target_occ)
             collected = []
             seen_ids = set()
             for item in results:
