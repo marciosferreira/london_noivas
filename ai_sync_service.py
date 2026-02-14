@@ -83,6 +83,31 @@ def _extract_json_object(text):
         return None
     return text[start : end + 1]
 
+def _load_existing_data():
+    existing_data = []
+    if os.path.exists(DATASET_FILE):
+        try:
+            with open(DATASET_FILE, 'r', encoding='utf-8') as f:
+                for line in f:
+                    if line.strip():
+                        try:
+                            existing_data.append(json.loads(line))
+                        except Exception:
+                            pass
+        except Exception as e:
+            print(f"Erro ao ler dataset JSONL: {e}")
+            existing_data = []
+    elif os.path.exists(METADATA_FILE):
+        try:
+            with open(METADATA_FILE, 'rb') as f:
+                meta_list = pickle.load(f)
+            if isinstance(meta_list, list):
+                existing_data = [m for m in meta_list if isinstance(m, dict)]
+        except Exception as e:
+            print(f"Erro ao ler metadata como fallback: {e}")
+            existing_data = []
+    return existing_data
+
 def _to_list(value):
     if not value:
         return []
@@ -91,6 +116,52 @@ def _to_list(value):
     if isinstance(value, str):
         return [value.strip()] if value.strip() else []
     return []
+
+def _normalize_occasions_list(values):
+    if values is None:
+        return []
+    if isinstance(values, str):
+        values = [values]
+    if not isinstance(values, list):
+        return []
+
+    out = []
+    seen = set()
+    for v in values:
+        s = str(v or "").strip()
+        if not s:
+            continue
+        parts = re.split(r"[/,]|\s+e\s+", s)
+        for p in parts:
+            p = str(p or "").strip()
+            if not p:
+                continue
+            pl = _normalize_text(p)
+            if "black tie" in pl or "gala" in pl:
+                label = "Gala"
+            elif ("mae" in pl or "mãe" in pl) and "noiv" in pl:
+                label = "Mãe dos Noivos"
+            elif "noiv" in pl:
+                label = "Noiva"
+            elif "civil" in pl:
+                label = "Civil"
+            elif "madrinha" in pl:
+                label = "Madrinha"
+            elif "formatura" in pl:
+                label = "Formatura"
+            elif "debut" in pl or "15 anos" in pl:
+                label = "Debutante"
+            elif "convid" in pl:
+                label = "Convidada"
+            else:
+                label = p[:1].upper() + p[1:]
+
+            key = _normalize_text(label)
+            if key and key not in seen:
+                seen.add(key)
+                out.append(label)
+
+    return out
 
 def _metadata_filters_from_structured(structured, category_slug):
     if not isinstance(structured, dict):
@@ -109,7 +180,7 @@ def _metadata_filters_from_structured(structured, category_slug):
         "details": _to_list(structured.get("detalhes")),
     }
 
-    filters["occasions"] = _to_list(occasions_value)
+    filters["occasions"] = _normalize_occasions_list(occasions_value)
 
     return {k: v for k, v in filters.items() if v}
 
@@ -136,18 +207,21 @@ def _occasions_from_db_item(item):
 def _merge_occasions(metadata_filters, db_occasions):
     if not isinstance(metadata_filters, dict):
         return metadata_filters
-    if not db_occasions:
-        return metadata_filters
+
     existing = metadata_filters.get("occasions")
     if not isinstance(existing, list):
         existing = []
-    merged = []
-    for x in list(existing) + list(db_occasions):
-        s = str(x or "").strip()
-        if s and s not in merged:
-            merged.append(s)
+
+    db_norm = _normalize_occasions_list(db_occasions)
+    if db_norm:
+        merged = db_norm
+    else:
+        merged = _normalize_occasions_list(existing)
+
     if merged:
         metadata_filters["occasions"] = merged
+    else:
+        metadata_filters.pop("occasions", None)
     return metadata_filters
 
 def _build_inventory_examples(existing_data, limit_per_facet=8):
@@ -325,7 +399,7 @@ def _extract_metadata_filters(description, category_slug):
         "colors": collect(colors),
     }
 
-    filters["occasions"] = collect(occasions)
+    filters["occasions"] = _normalize_occasions_list(collect(occasions))
 
     return {k: v for k, v in filters.items() if v}
 
@@ -672,15 +746,7 @@ def sync_index(reset_local=False, force_regenerate=False):
     print(f"Iniciando sincronização: +{len(missing_ids)} novos, -{len(deleted_ids)} deletados, ~{len(pending_ids)} atualizações. Integridade: {status.get('integrity_error') or 'OK'}")
 
     # A. Carregar dados existentes
-    existing_data = []
-    if os.path.exists(DATASET_FILE):
-        with open(DATASET_FILE, 'r', encoding='utf-8') as f:
-            for line in f:
-                if line.strip():
-                    try:
-                        existing_data.append(json.loads(line))
-                    except:
-                        pass
+    existing_data = _load_existing_data()
 
     deleted_ids_set = set(deleted_ids)
     inventory_examples = _build_inventory_examples(
@@ -883,126 +949,3 @@ def sync_index(reset_local=False, force_regenerate=False):
         "status": "success", 
         "message": message
     }
-
-def rebuild_dataset_from_reprocessed_db(src_path=None, dst_path=None):
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    default_src = os.path.join(base_dir, "embeddings_creation", "vestidos_dataset_reprocessed_db.jsonl")
-    default_dst = os.path.join(base_dir, "embeddings_creation", "vestidos_dataset.jsonl")
-    src_path = src_path or default_src
-    dst_path = dst_path or default_dst
-
-    def _normalize_occasions(values):
-        if values is None:
-            return []
-        if isinstance(values, str):
-            values = [values]
-        if not isinstance(values, list):
-            return []
-
-        out = []
-        for v in values:
-            s = str(v or "").strip()
-            if not s:
-                continue
-            parts = re.split(r"[/,]|\s+e\s+", s)
-            for p in parts:
-                p = str(p or "").strip()
-                if not p:
-                    continue
-                pl = _normalize_text(p)
-                if "black tie" in pl or "gala" in pl:
-                    out.append("Gala")
-                elif "noiv" in pl:
-                    out.append("Noiva")
-                elif "civil" in pl:
-                    out.append("Civil")
-                elif "madrinha" in pl:
-                    out.append("Madrinha")
-                elif "formatura" in pl:
-                    out.append("Formatura")
-                elif "debut" in pl or "15 anos" in pl:
-                    out.append("Debutante")
-                elif ("mae" in pl or "mãe" in pl) and "noiv" in pl:
-                    out.append("Mae dos Noivos")
-                elif "convid" in pl:
-                    out.append("Convidada")
-                else:
-                    out.append(p[:1].upper() + p[1:])
-
-        seen = set()
-        deduped = []
-        for v in out:
-            if v in seen:
-                continue
-            seen.add(v)
-            deduped.append(v)
-        return deduped
-
-    def _uniq_text(seq):
-        seen = set()
-        out = []
-        for x in seq:
-            s = str(x or "").strip()
-            if not s or s in seen:
-                continue
-            seen.add(s)
-            out.append(s)
-        return out
-
-    rows = []
-    seen_ids = set()
-    with open(src_path, "r", encoding="utf-8") as f:
-        for line in f:
-            line = (line or "").strip()
-            if not line:
-                continue
-            try:
-                item = json.loads(line)
-            except Exception:
-                continue
-            cid = item.get("custom_id") or item.get("item_id")
-            if not cid or cid in seen_ids:
-                continue
-            seen_ids.add(cid)
-
-            mf = item.get("metadata_filters") if isinstance(item.get("metadata_filters"), dict) else {}
-            occ = _normalize_occasions(mf.get("occasions"))
-            mf = dict(mf)
-            if occ:
-                mf["occasions"] = occ
-            else:
-                mf.pop("occasions", None)
-
-            title = item.get("title") or ""
-            desc = item.get("description") or ""
-            embedding_text = " ".join(
-                _uniq_text(
-                    [title]
-                    + occ
-                    + (mf.get("colors") if isinstance(mf.get("colors"), list) else [])
-                    + (mf.get("fabrics") if isinstance(mf.get("fabrics"), list) else [])
-                    + (mf.get("silhouette") if isinstance(mf.get("silhouette"), list) else [])
-                    + (mf.get("neckline") if isinstance(mf.get("neckline"), list) else [])
-                    + (mf.get("sleeves") if isinstance(mf.get("sleeves"), list) else [])
-                    + (mf.get("details") if isinstance(mf.get("details"), list) else [])
-                    + (item.get("keywords") if isinstance(item.get("keywords"), list) else [])
-                    + [desc]
-                )
-            )
-
-            rows.append(
-                {
-                    "file_name": item.get("file_name") or f"{cid}.jpg",
-                    "custom_id": cid,
-                    "description": desc,
-                    "title": title,
-                    "metadata_filters": {k: v for k, v in mf.items() if v},
-                    "embedding_text": embedding_text,
-                }
-            )
-
-    with open(dst_path, "w", encoding="utf-8") as f:
-        for r in rows:
-            f.write(json.dumps(r, ensure_ascii=False) + "\n")
-
-    return {"status": "success", "count": len(rows), "output": dst_path}

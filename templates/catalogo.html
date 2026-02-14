@@ -317,7 +317,7 @@
                 fetch(`/api/item/${itemId}/visit`, { method: 'POST' })
                     .catch(err => console.error('Error incrementing visit count:', err));
 
-                fetch(`/api/ai-similar/${itemId}`)
+                fetch(`/api/ai-similar/${itemId}?limit=4`)
                     .then(response => response.json())
                     .then(data => {
                         const normalizeSlug = (s) => (s || '')
@@ -437,7 +437,7 @@
                 body: JSON.stringify({ 
                     query: currentSearchQuery, 
                     page: page, 
-                    limit: 12,
+                    limit: 4,
                     occasion: activeOccasion
                 })
             })

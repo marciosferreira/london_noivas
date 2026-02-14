@@ -11,7 +11,7 @@ import time
 load_dotenv()
 
 # Configuration
-OUTPUT_FILE = os.path.join("embeddings_creation", "vestidos_dataset_reprocessed_db.jsonl")
+OUTPUT_FILE = os.path.join("embeddings_creation", "vestidos_dataset.jsonl")
 TEMP_IMG_DIR = "temp_images_db"
 TABLE_NAME = "alugueqqc_itens"
 

@@ -547,7 +547,7 @@
 
                     if (!dress?.id) return;
 
-                    fetch(`/api/ai-similar/${dress.id}`)
+                    fetch(`/api/ai-similar/${dress.id}?limit=4`)
                         .then(response => response.json())
                         .then(data => {
                             const suggestions = Array.isArray(data?.suggestions) ? data.suggestions : [];
@@ -591,7 +591,7 @@
                         : suggestions;
 
                     filtered.forEach((item, index) => {
-                        if(index >= 8) return; // Limite de 8 (2 linhas no desktop)
+                        if(index >= 4) return;
                         const div = document.createElement('div');
                         div.className = "aspect-[3/4] bg-stone-200 cursor-pointer overflow-hidden rounded-sm relative group";
                         div.onclick = () => openCatalogModal(
@@ -1030,7 +1030,7 @@
                 fetch(`/api/item/${itemId}/visit`, { method: 'POST' })
                     .catch(err => console.error('Error incrementing visit count:', err));
 
-                fetch(`/api/ai-similar/${itemId}`)
+                fetch(`/api/ai-similar/${itemId}?limit=4`)
                     .then(response => response.json())
                     .then(data => {
                         const normalizeSlug = (s) => (s || '')

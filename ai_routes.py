@@ -82,17 +82,44 @@ def _has_occasion(meta, target_occasion):
             return True
     return False
 
+def _flag_is_set(value):
+    return value == "1" or value == 1 or value is True
+
 def _get_occasions_list(item):
     occasions = []
-    if item.get('occasion_noiva') == '1': occasions.append('Noiva')
-    if item.get('occasion_civil') == '1': occasions.append('Civil')
-    if item.get('occasion_madrinha') == '1': occasions.append('Madrinha')
-    if item.get('occasion_mae_dos_noivos') == '1': occasions.append('Mãe dos Noivos')
-    if item.get('occasion_formatura') == '1': occasions.append('Formatura')
-    if item.get('occasion_debutante') == '1': occasions.append('Debutante')
-    if item.get('occasion_gala') == '1': occasions.append('Gala')
-    if item.get('occasion_convidada') == '1': occasions.append('Convidada')
+    if _flag_is_set(item.get('occasion_noiva')): occasions.append('Noiva')
+    if _flag_is_set(item.get('occasion_civil')): occasions.append('Civil')
+    if _flag_is_set(item.get('occasion_madrinha')): occasions.append('Madrinha')
+    if _flag_is_set(item.get('occasion_mae_dos_noivos')): occasions.append('Mãe dos Noivos')
+    if _flag_is_set(item.get('occasion_formatura')): occasions.append('Formatura')
+    if _flag_is_set(item.get('occasion_debutante')): occasions.append('Debutante')
+    if _flag_is_set(item.get('occasion_gala')): occasions.append('Gala')
+    if _flag_is_set(item.get('occasion_convidada')): occasions.append('Convidada')
     return ", ".join(occasions)
+
+def _get_occasion_slugs(item):
+    if not isinstance(item, dict):
+        return []
+    mapping = [
+        ("occasion_noiva", "noiva"),
+        ("occasion_civil", "civil"),
+        ("occasion_madrinha", "madrinha"),
+        ("occasion_mae_dos_noivos", "mae-dos-noivos"),
+        ("occasion_formatura", "formatura"),
+        ("occasion_debutante", "debutante"),
+        ("occasion_gala", "gala"),
+        ("occasion_convidada", "convidada"),
+    ]
+    out = []
+    seen = set()
+    for key, slug in mapping:
+        if not _flag_is_set(item.get(key)):
+            continue
+        canon = _canonical_occasion(slug)
+        if canon and canon not in seen:
+            seen.add(canon)
+            out.append(canon)
+    return out
 
 def load_resources():
     global index, metadata, inventory_digest
@@ -650,29 +677,56 @@ def execute_catalog_search(query, k=5):
             return []
 
     try:
-        # 1. Gera embedding
         rewrite = _rewrite_catalog_query(query, None)
         q_text = _query_embedding_text_from_rewrite(rewrite, rewrite.get("ocasiao_alvo")) or rewrite.get("query_reescrita") or query
         query_embedding = get_embedding(q_text)
         query_vector = np.array([query_embedding]).astype('float32')
 
-        # 2. Busca no FAISS
-        # Buscamos mais itens para garantir candidatos após validação de status/DB
-        search_k = 220
-        distances, indices = index.search(query_vector, search_k)
+        ntotal = int(getattr(index, "ntotal", 0) or 0)
+        if ntotal <= 0:
+            ntotal = len(metadata) if isinstance(metadata, list) else 0
+        if ntotal <= 0:
+            return []
 
-        # 3. Coleta metadados
-        raw_candidates = []
-        for idx in indices[0]:
-            if idx != -1:
-                raw_candidates.append(metadata[idx].copy())
+        desired = int(k or 0)
+        if desired < 1:
+            desired = 1
+        if desired > 50:
+            desired = 50
 
-        # 4. Valida e Enriquece
-        valid_candidates = validate_and_enrich_candidates(raw_candidates)
+        valid_pool = []
+        seen_custom_ids = set()
+        processed_k = 0
+        search_k = min(max(80, desired * 20), ntotal)
 
-        constrained = _apply_facet_constraints(valid_candidates, rewrite)
-        ranked = _rerank_by_facets(constrained, rewrite) if constrained else valid_candidates
-        return ranked[:k]
+        ranked = []
+        while processed_k < ntotal:
+            distances, indices = index.search(query_vector, search_k)
+            new_positions = indices[0][processed_k:search_k]
+            processed_k = search_k
+
+            raw_candidates = []
+            for idx in new_positions:
+                if idx == -1:
+                    continue
+                meta = metadata[int(idx)].copy()
+                cid = meta.get("custom_id")
+                if cid and cid not in seen_custom_ids:
+                    seen_custom_ids.add(cid)
+                    raw_candidates.append(meta)
+
+            valid_candidates = validate_and_enrich_candidates(raw_candidates)
+            valid_pool.extend(valid_candidates)
+
+            constrained = _apply_facet_constraints(valid_pool, rewrite)
+            ranked = _rerank_by_facets(constrained, rewrite) if constrained else valid_pool
+            if len(ranked) >= desired:
+                break
+            if processed_k >= ntotal:
+                break
+            search_k = min(ntotal, max(processed_k + 80, search_k * 2))
+
+        return ranked[:desired]
 
     except Exception as e:
         print(f"Erro em execute_catalog_search: {e}")
@@ -734,7 +788,7 @@ def ai_search():
                     "type": "object",
                     "properties": {
                         "query": {"type": "string", "description": "Descrição rica para busca semântica. Ex: 'vestido sereia renda ombro a ombro'"},
-                        "k": {"type": "integer", "default": 5}
+                        "k": {"type": "integer", "default": 4}
                     },
                     "required": ["query"]
                 }
@@ -772,14 +826,14 @@ def ai_search():
                     # Formata para Frontend (Objetos Completos)
                     for item in results:
                         occs = []
-                        if item.get('occasion_noiva') == '1': occs.append('Noiva')
-                        if item.get('occasion_civil') == '1': occs.append('Civil')
-                        if item.get('occasion_madrinha') == '1': occs.append('Madrinha')
-                        if item.get('occasion_mae_dos_noivos') == '1': occs.append('Mãe dos Noivos')
-                        if item.get('occasion_formatura') == '1': occs.append('Formatura')
-                        if item.get('occasion_debutante') == '1': occs.append('Debutante')
-                        if item.get('occasion_gala') == '1': occs.append('Gala')
-                        if item.get('occasion_convidada') == '1': occs.append('Convidada')
+                        if _flag_is_set(item.get('occasion_noiva')): occs.append('Noiva')
+                        if _flag_is_set(item.get('occasion_civil')): occs.append('Civil')
+                        if _flag_is_set(item.get('occasion_madrinha')): occs.append('Madrinha')
+                        if _flag_is_set(item.get('occasion_mae_dos_noivos')): occs.append('Mãe dos Noivos')
+                        if _flag_is_set(item.get('occasion_formatura')): occs.append('Formatura')
+                        if _flag_is_set(item.get('occasion_debutante')): occs.append('Debutante')
+                        if _flag_is_set(item.get('occasion_gala')): occs.append('Gala')
+                        if _flag_is_set(item.get('occasion_convidada')): occs.append('Convidada')
 
                         found_suggestions.append({
                             "id": item.get('item_id') or item.get('custom_id'),
@@ -881,39 +935,87 @@ def ai_similar(item_id):
         return jsonify({"error": "Item não encontrado no índice"}), 404
 
     try:
-        # Reconstruir vetor do item (assumindo IndexFlatL2 ou similar que suporte reconstruct)
-        # Se o índice não suportar, precisaríamos recalcular o embedding via OpenAI (custo extra)
-        # ou armazenar os vetores separadamente.
-        # IndexFlatL2 suporta reconstruct.
         query_vector = index.reconstruct(target_idx).reshape(1, -1)
-        
-        # Busca
-        k = 5 # 1 (ele mesmo) + 4 similares
-        distances, indices = index.search(query_vector, k)
-        
-        # Coleta metadados brutos
-        raw_suggestions = []
-        for idx in indices[0]:
-            if idx != -1 and idx != target_idx:
-                raw_suggestions.append(metadata[idx].copy())
+        limit = int(request.args.get("limit") or 4)
+        if limit < 1:
+            limit = 1
+        if limit > 24:
+            limit = 24
 
-        # Validação contra Banco de Dados
-        valid_suggestions = validate_and_enrich_candidates(raw_suggestions)
         principal_cat = _category_slug(metadata[target_idx])
-        valid_suggestions = [c for c in valid_suggestions if _category_slug(c) == principal_cat]
+
+        target_flags = None
+        try:
+            if itens_table:
+                resp = itens_table.get_item(Key={"item_id": str(item_id)})
+                target_flags = resp.get("Item")
+        except Exception:
+            target_flags = None
+
+        target_occ = _get_occasion_slugs(target_flags) if isinstance(target_flags, dict) else []
+        if not target_occ:
+            mf = (metadata[target_idx].get("metadata_filters") or {}) if isinstance(metadata[target_idx], dict) else {}
+            occ = mf.get("occasions")
+            if isinstance(occ, list):
+                target_occ = [o for o in (_canonical_occasion(x) for x in occ) if o]
+        target_set = set(target_occ)
+
+        ntotal = int(getattr(index, "ntotal", 0) or 0)
+        if ntotal <= 0:
+            ntotal = len(metadata) if isinstance(metadata, list) else 0
+
+        if ntotal <= 1:
+            return jsonify({"suggestions": []})
+
+        collected = []
+        seen_ids = set()
+        processed_k = 0
+        k = min(max(50, limit * 20), ntotal)
+
+        while len(collected) < limit and processed_k < ntotal:
+            distances, indices = index.search(query_vector, k)
+            new_positions = indices[0][processed_k:k]
+            processed_k = k
+
+            raw_candidates = []
+            for idx in new_positions:
+                if idx == -1 or idx == target_idx:
+                    continue
+                raw_candidates.append(metadata[int(idx)].copy())
+
+            valid_candidates = validate_and_enrich_candidates(raw_candidates)
+
+            for item in valid_candidates:
+                if _category_slug(item) != principal_cat:
+                    continue
+                if target_set:
+                    occ_slugs = _get_occasion_slugs(item)
+                    if not occ_slugs or not (set(occ_slugs) & target_set):
+                        continue
+                sid = str(item.get("item_id") or item.get("custom_id") or "")
+                if not sid or sid in seen_ids:
+                    continue
+                seen_ids.add(sid)
+                collected.append(item)
+                if len(collected) >= limit:
+                    break
+
+            if len(collected) >= limit or processed_k >= ntotal:
+                break
+            k = min(ntotal, max(processed_k + 50, k * 2))
 
         suggestions = []
-        for item in valid_suggestions:
+        for item in collected:
             suggestions.append({
-                "id": item.get('item_id') or item.get('custom_id'),
-                "customId": item.get('customId'),
-                "title": item.get('title', 'Vestido'),
-                "image_url": item.get('imageUrl') or url_for('static', filename=f"dresses/{item['file_name']}"),
-                "description": item.get('description', ''),
-                "category": item.get('category', 'Outros'),
-                "occasions": _get_occasions_list(item)
+                "id": item.get("item_id") or item.get("custom_id"),
+                "customId": item.get("customId"),
+                "title": item.get("title", "Vestido"),
+                "image_url": item.get("imageUrl") or url_for("static", filename=f"dresses/{item['file_name']}"),
+                "description": item.get("description", ""),
+                "category": item.get("category", "Outros"),
+                "occasions": _get_occasions_list(item),
             })
-                
+
         return jsonify({"suggestions": suggestions})
 
     except Exception as e:
@@ -932,7 +1034,7 @@ def ai_catalog_search():
     data = request.get_json()
     query = data.get('query', '')
     page = int(data.get('page', 1))
-    limit = int(data.get('limit', 12))
+    limit = int(data.get('limit', 4))
     
     if not query:
         return jsonify({"error": "Query vazia"}), 400
@@ -950,32 +1052,51 @@ def ai_catalog_search():
         query_embedding = get_embedding(query_for_embedding)
         query_vector = np.array([query_embedding]).astype('float32')
 
-        # 2. Busca no FAISS
-        # Buscamos mais itens (100) para garantir que após o filtro de status/DB
-        # ainda tenhamos itens suficientes para preencher as páginas.
-        k = 220 if target_occasion else 100
-        distances, indices = index.search(query_vector, k)
+        ntotal = int(getattr(index, "ntotal", 0) or 0)
+        if ntotal <= 0:
+            ntotal = len(metadata) if isinstance(metadata, list) else 0
+        if ntotal <= 0:
+            return jsonify({"results": [], "page": 1, "total_pages": 0})
 
-        # Coleta metadados brutos
-        raw_results = []
-        for idx in indices[0]:
-            if idx != -1:
-                raw_results.append(metadata[idx].copy())
+        target_slug = target_occasion.replace("-", "_") if target_occasion else ""
+        db_field = f"occasion_{target_slug}" if target_slug else ""
+        known_occasions = {"occasion_noiva", "occasion_civil", "occasion_madrinha", "occasion_mae_dos_noivos", "occasion_formatura", "occasion_debutante", "occasion_gala", "occasion_convidada"}
 
-        # Validação contra Banco de Dados (agora otimizada com BatchGetItem)
-        # Isso é rápido mesmo para 100 itens (~1 call DynamoDB)
-        valid_results = validate_and_enrich_candidates(raw_results)
+        valid_results = []
+        seen_custom_ids = set()
+        processed_k = 0
+        search_k = min(max(200, limit * 25), ntotal)
 
-        # Filtragem por Ocasião (Aba Ativa)
-        if target_occasion:
-            target_slug = target_occasion.replace("-", "_")
-            db_field = f"occasion_{target_slug}"
-            known_occasions = ["occasion_noiva", "occasion_civil", "occasion_madrinha", "occasion_mae_dos_noivos", "occasion_formatura", "occasion_debutante", "occasion_gala", "occasion_convidada"]
+        while processed_k < ntotal:
+            distances, indices = index.search(query_vector, search_k)
+            new_positions = indices[0][processed_k:search_k]
+            processed_k = search_k
 
-            if db_field in known_occasions:
-                valid_results = [item for item in valid_results if item.get(db_field) == "1"]
-            else:
-                valid_results = [item for item in valid_results if _has_occasion(item, target_occasion)]
+            raw_results = []
+            for idx in new_positions:
+                if idx == -1:
+                    continue
+                meta = metadata[int(idx)].copy()
+                cid = meta.get("custom_id")
+                if cid and cid in seen_custom_ids:
+                    continue
+                if cid:
+                    seen_custom_ids.add(cid)
+                raw_results.append(meta)
+
+            batch_valid = validate_and_enrich_candidates(raw_results)
+
+            if target_occasion:
+                if db_field in known_occasions:
+                    batch_valid = [item for item in batch_valid if _flag_is_set(item.get(db_field))]
+                else:
+                    batch_valid = [item for item in batch_valid if _has_occasion(item, target_occasion)]
+
+            valid_results.extend(batch_valid)
+
+            if processed_k >= ntotal:
+                break
+            search_k = min(ntotal, max(processed_k + 200, search_k * 2))
 
         # 3. Paginação em memória
         total_valid = len(valid_results)
