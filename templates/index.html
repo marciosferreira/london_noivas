@@ -439,7 +439,7 @@
                         }
                         
                         if (data.dress) {
-                            showResult(data.dress, data.suggestions, data.requested_occasions);
+                            showResult(data.dress, data.suggestions, data.requested_occasions, data.requested_query);
                         } else if (data.error) {
                             addMessage("Desculpe, ocorreu um erro: " + data.error, 'bot');
                         }
@@ -500,21 +500,27 @@
                 }
 
                 let bellaOccasionFilter = [];
+                let bellaQueryFilter = '';
 
                 function removeMessage(id) {
                     const el = document.getElementById(id);
                     if (el) el.remove();
                 }
 
-                function showResult(dress, suggestions, requestedOccasions) {
+                function showResult(dress, suggestions, requestedOccasions, requestedQuery) {
                     const chatWrapper = document.getElementById('chat-wrapper');
                     const resultFrame = document.getElementById('result-frame');
                     const img = document.getElementById('result-image');
                     const title = document.getElementById('result-title');
                     const desc = document.getElementById('result-desc');
-                    bellaOccasionFilter = Array.isArray(requestedOccasions)
-                        ? requestedOccasions
-                        : (requestedOccasions ? [requestedOccasions] : []);
+                    if (Array.isArray(requestedOccasions) && requestedOccasions.length) {
+                        bellaOccasionFilter = requestedOccasions;
+                    } else if (requestedOccasions) {
+                        bellaOccasionFilter = [requestedOccasions];
+                    }
+                    if (typeof requestedQuery === 'string' && requestedQuery.trim()) {
+                        bellaQueryFilter = requestedQuery.trim();
+                    }
 
                     // Adjust layout
                     chatWrapper.classList.remove('w-full');
@@ -554,7 +560,8 @@
 
                     const occParam = Array.isArray(requestedOccasions) ? requestedOccasions.join(',') : (requestedOccasions || '');
                     const occQuery = occParam ? `&occasion=${encodeURIComponent(occParam)}` : '';
-                    fetch(`/api/ai-similar/${dress.id}?limit=4${occQuery}`)
+                    const queryParam = bellaQueryFilter ? `&q=${encodeURIComponent(bellaQueryFilter)}` : '';
+                    fetch(`/api/ai-similar/${dress.id}?limit=4${occQuery}${queryParam}`)
                         .then(response => response.json())
                         .then(data => {
                             const suggestions = Array.isArray(data?.suggestions) ? data.suggestions : [];
@@ -1041,7 +1048,8 @@
                     ? bellaOccasionFilter.join(',')
                     : '';
                 const bellaOccQuery = bellaOccParam ? `&occasion=${encodeURIComponent(bellaOccParam)}` : '';
-                fetch(`/api/ai-similar/${itemId}?limit=4${bellaOccQuery}`)
+                const bellaQueryParam = bellaQueryFilter ? `&q=${encodeURIComponent(bellaQueryFilter)}` : '';
+                fetch(`/api/ai-similar/${itemId}?limit=4${bellaOccQuery}${bellaQueryParam}`)
                     .then(response => response.json())
                     .then(data => {
                         const normalizeSlug = (s) => (s || '')

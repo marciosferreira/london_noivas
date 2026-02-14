@@ -24,6 +24,7 @@ DATASET_FILE = os.path.join(BASE_DIR, 'embeddings_creation', 'vestidos_dataset.j
 METADATA_FILE = os.path.join(BASE_DIR, 'vector_store_metadata.pkl')
 INDEX_FILE = os.path.join(BASE_DIR, 'vector_store.index')
 CREATE_VECTOR_SCRIPT = os.path.join(BASE_DIR, 'embeddings_creation', 'create_vector_store.py')
+SKILL_FILE = os.path.join(BASE_DIR, '.trae', 'skills', 'bella-search-mcp', 'SKILL.md')
 
 # AWS & OpenAI
 dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
@@ -107,6 +108,53 @@ def _load_existing_data():
             print(f"Erro ao ler metadata como fallback: {e}")
             existing_data = []
     return existing_data
+
+def _build_tool_context(existing_data, limit_per_facet=40):
+    facet_keys = ["occasions", "colors", "fabrics", "silhouette", "neckline", "sleeves", "details"]
+    counts = {k: {} for k in facet_keys}
+    for entry in existing_data or []:
+        if not isinstance(entry, dict):
+            continue
+        mf = entry.get("metadata_filters")
+        if not isinstance(mf, dict):
+            continue
+        for k in facet_keys:
+            values = mf.get(k)
+            if not isinstance(values, list):
+                continue
+            for v in values:
+                vv = str(v).strip()
+                if not vv:
+                    continue
+                bucket = counts.get(k)
+                if bucket is None:
+                    continue
+                bucket[vv] = bucket.get(vv, 0) + 1
+    out = {}
+    for k in facet_keys:
+        items = sorted(counts[k].items(), key=lambda x: (-x[1], x[0]))
+        out[k] = [v for v, _ in items[:limit_per_facet]]
+    return out
+
+def _update_skill_context(context):
+    if not os.path.exists(SKILL_FILE):
+        return
+    try:
+        with open(SKILL_FILE, "r", encoding="utf-8") as f:
+            content = f.read()
+    except Exception as e:
+        print(f"Erro ao ler SKILL.md: {e}")
+        return
+    rendered = "## Contexto Dinâmico\n\n```json\n" + json.dumps(context, ensure_ascii=False, indent=2) + "\n```\n"
+    if "## Contexto Dinâmico" in content:
+        updated = re.sub(r"## Contexto Dinâmico[\s\S]*?(?=\n## |\Z)", rendered, content)
+    else:
+        updated = content.rstrip() + "\n\n" + rendered
+    try:
+        with open(SKILL_FILE, "w", encoding="utf-8") as f:
+            f.write(updated)
+    except Exception as e:
+        print(f"Erro ao escrever SKILL.md: {e}")
 
 def _to_list(value):
     if not value:
@@ -903,6 +951,12 @@ def sync_index(reset_local=False, force_regenerate=False):
                 if not entry.get("embedding_text"):
                     entry["embedding_text"] = _synthesize_embedding_text(entry.get("metadata_filters"), entry.get("title")) or entry.get("description")
             f.write(json.dumps(entry, ensure_ascii=False) + '\n')
+
+    try:
+        tool_context = _build_tool_context(existing_data)
+        _update_skill_context(tool_context)
+    except Exception as e:
+        print(f"Erro ao atualizar contexto do skill: {e}")
 
     # E. Reconstruir Índice (Chama o script existente)
     print("Reconstruindo índice FAISS...")

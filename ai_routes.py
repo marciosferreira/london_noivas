@@ -861,6 +861,7 @@ def ai_search():
 
     found_suggestions = []
     requested_occasions = []
+    requested_query = ""
     
     try:
         # 1. Decisão do Agente
@@ -882,6 +883,8 @@ def ai_search():
                 if tool_call.function.name == "search_dresses":
                     args = json.loads(tool_call.function.arguments)
                     query = args.get("query")
+                    if isinstance(query, str) and query.strip():
+                        requested_query = query.strip()
                     k_val = args.get("k", 5)
                     target_occasions = _normalize_occasion_inputs(args.get("occasions") or args.get("occasion"))
                     if target_occasions:
@@ -980,7 +983,8 @@ def ai_search():
             "reply": reply_text,
             "suggestions": other_suggestions,
             "dress": main_dress,
-            "requested_occasions": requested_occasions
+            "requested_occasions": requested_occasions,
+            "requested_query": requested_query
         })
 
     except Exception as e:
@@ -996,25 +1000,62 @@ def ai_similar(item_id):
         if not index or not metadata:
             return jsonify({"error": "Sistema indisponível"}), 503
 
-    # Encontrar índice do item
-    target_idx = -1
-    for i, item in enumerate(metadata):
-        # Comparação robusta (str vs str)
-        if str(item.get('custom_id')) == str(item_id):
-            target_idx = i
-            break
-    
-    if target_idx == -1:
-        return jsonify({"error": "Item não encontrado no índice"}), 404
+    query_hint = request.args.get("q") or request.args.get("query")
 
     try:
-        query_vector = index.reconstruct(target_idx).reshape(1, -1)
         limit = int(request.args.get("limit") or 4)
         if limit < 1:
             limit = 1
         if limit > 24:
             limit = 24
 
+        req_occ = request.args.getlist("occasion")
+        if not req_occ:
+            occ_raw = request.args.get("occasions") or request.args.get("occasion")
+            if isinstance(occ_raw, str) and occ_raw.strip():
+                req_occ = [x.strip() for x in occ_raw.split(",") if x.strip()]
+        target_occ = _normalize_occasion_inputs(req_occ)
+        target_set = set(target_occ)
+
+        if isinstance(query_hint, str) and query_hint.strip():
+            results = execute_catalog_search(query_hint, k=max(limit * 3, 12))
+            if target_occ:
+                results = _filter_items_by_occasions(results, target_occ)
+            collected = []
+            seen_ids = set()
+            for item in results:
+                sid = str(item.get("item_id") or item.get("custom_id") or "")
+                if not sid or sid == str(item_id) or sid in seen_ids:
+                    continue
+                seen_ids.add(sid)
+                collected.append(item)
+                if len(collected) >= limit:
+                    break
+            suggestions = []
+            for item in collected:
+                suggestions.append({
+                    "id": item.get("item_id") or item.get("custom_id"),
+                    "customId": item.get("customId"),
+                    "title": item.get("title", "Vestido"),
+                    "image_url": item.get("imageUrl") or url_for("static", filename=f"dresses/{item['file_name']}"),
+                    "description": item.get("description", ""),
+                    "category": item.get("category", "Outros"),
+                    "occasions": _get_occasions_list(item),
+                })
+            return jsonify({"suggestions": suggestions})
+
+        # Encontrar índice do item
+        target_idx = -1
+        for i, item in enumerate(metadata):
+            # Comparação robusta (str vs str)
+            if str(item.get('custom_id')) == str(item_id):
+                target_idx = i
+                break
+        
+        if target_idx == -1:
+            return jsonify({"error": "Item não encontrado no índice"}), 404
+
+        query_vector = index.reconstruct(target_idx).reshape(1, -1)
         principal_cat = _category_slug(metadata[target_idx])
 
         target_flags = None
@@ -1025,12 +1066,6 @@ def ai_similar(item_id):
         except Exception:
             target_flags = None
 
-        req_occ = request.args.getlist("occasion")
-        if not req_occ:
-            occ_raw = request.args.get("occasions") or request.args.get("occasion")
-            if isinstance(occ_raw, str) and occ_raw.strip():
-                req_occ = [x.strip() for x in occ_raw.split(",") if x.strip()]
-        target_occ = _normalize_occasion_inputs(req_occ)
         if not target_occ:
             target_occ = _get_occasion_slugs(target_flags) if isinstance(target_flags, dict) else []
             if not target_occ:
@@ -1038,7 +1073,7 @@ def ai_similar(item_id):
                 occ = mf.get("occasions")
                 if isinstance(occ, list):
                     target_occ = [o for o in (_canonical_occasion(x) for x in occ) if o]
-        target_set = set(target_occ)
+            target_set = set(target_occ)
 
         ntotal = int(getattr(index, "ntotal", 0) or 0)
         if ntotal <= 0:
