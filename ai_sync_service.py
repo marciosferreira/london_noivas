@@ -29,6 +29,7 @@ SKILL_FILE = os.path.join(BASE_DIR, '.trae', 'skills', 'bella-search-mcp', 'SKIL
 # AWS & OpenAI
 dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
 itens_table = dynamodb.Table('alugueqqc_itens')
+users_table = dynamodb.Table('alugueqqc_users')
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 PROGRESS = {"running": False, "total": 0, "processed": 0, "current": None, "eta_seconds": None, "start_time": None, "done": False, "message": None, "error": None}
@@ -44,29 +45,6 @@ def _progress_finish(message=None, error=None):
 
 def get_progress():
     return PROGRESS.copy()
-
-def _category_slug_from_occasions(occasions):
-    for o in _to_list(occasions):
-        oo = _normalize_text(o)
-        if "noiv" in oo or "civil" in oo:
-            return "noiva"
-    return "festa"
-
-def _category_slug_from_entry(entry, description=None, title=None):
-    if isinstance(entry, dict):
-        mf = entry.get("metadata_filters")
-        if isinstance(mf, dict):
-            occ = mf.get("occasions")
-            if occ:
-                return _category_slug_from_occasions(occ)
-        occ2 = entry.get("occasions") or entry.get("ocasiao")
-        if occ2:
-            return _category_slug_from_occasions(occ2)
-
-    blob = " ".join([str(title or ""), str(description or "")]).lower()
-    if "noiv" in blob or "civil" in blob:
-        return "noiva"
-    return "festa"
 
 def _normalize_text(text):
     text = str(text or "").lower()
@@ -211,7 +189,7 @@ def _normalize_occasions_list(values):
 
     return out
 
-def _metadata_filters_from_structured(structured, category_slug):
+def _metadata_filters_from_structured(structured):
     if not isinstance(structured, dict):
         return None
 
@@ -231,6 +209,110 @@ def _metadata_filters_from_structured(structured, category_slug):
     filters["occasions"] = _normalize_occasions_list(occasions_value)
 
     return {k: v for k, v in filters.items() if v}
+
+def _default_occasion_options():
+    return [
+        "Noiva",
+        "Civil",
+        "Madrinha",
+        "Mãe dos Noivos",
+        "Formatura",
+        "Debutante",
+        "Gala",
+        "Convidada",
+    ]
+
+def _pick_ai_sync_account_id():
+    raw = os.getenv("AI_SYNC_ACCOUNT_ID") or os.getenv("PUBLIC_CATALOG_ACCOUNT_IDS") or ""
+    raw = str(raw or "").strip()
+    if not raw:
+        return None
+    parts = [p.strip() for p in raw.split(",") if p.strip()]
+    return parts[0] if parts else None
+
+def _clean_unique_strings(values):
+    out = []
+    seen = set()
+    for v in values or []:
+        if v is None:
+            continue
+        s = str(v).strip()
+        if not s:
+            continue
+        k = s.casefold()
+        if k in seen:
+            continue
+        seen.add(k)
+        out.append(s)
+    return out
+
+def _split_multi_values(value):
+    if value is None:
+        return []
+    if isinstance(value, list):
+        parts = []
+        for v in value:
+            parts.extend(_split_multi_values(v))
+        return parts
+    s = str(value).strip()
+    if not s:
+        return []
+    chunks = re.split(r"[/,]|\s+e\s+", s)
+    return [c.strip() for c in chunks if c and str(c).strip()]
+
+def _load_account_settings_options(account_id):
+    if not account_id:
+        return {"colors": [], "sizes": []}
+    try:
+        resp = users_table.get_item(Key={"user_id": f"account_settings:{account_id}"})
+        item = resp.get("Item") or {}
+    except Exception:
+        item = {}
+    colors = item.get("color_options")
+    sizes = item.get("size_options")
+    colors = colors if isinstance(colors, list) else []
+    sizes = sizes if isinstance(sizes, list) else []
+    return {
+        "colors": sorted(_clean_unique_strings(colors), key=lambda x: x.casefold()),
+        "sizes": sorted(_clean_unique_strings(sizes), key=lambda x: x.casefold()),
+    }
+
+def _scan_items_for_color_and_size_options(max_items=2500):
+    colors = []
+    sizes = []
+
+    scan_kwargs = {
+        "ProjectionExpression": "cor, cores, tamanho, #st",
+        "ExpressionAttributeNames": {"#st": "status"},
+    }
+    resp = itens_table.scan(**scan_kwargs)
+    processed = 0
+
+    while True:
+        for item in resp.get("Items", []) or []:
+            status = str(item.get("status") or "").lower().strip()
+            if status in ["deleted", "archived", "inactive"]:
+                continue
+
+            colors.extend(_split_multi_values(item.get("cor")))
+            colors.extend(_split_multi_values(item.get("cores")))
+            sizes.extend(_split_multi_values(item.get("tamanho")))
+
+            processed += 1
+            if max_items and processed >= max_items:
+                break
+
+        if max_items and processed >= max_items:
+            break
+        last = resp.get("LastEvaluatedKey")
+        if not last:
+            break
+        resp = itens_table.scan(ExclusiveStartKey=last, **scan_kwargs)
+
+    return {
+        "colors": sorted(_clean_unique_strings(colors), key=lambda x: x.casefold()),
+        "sizes": sorted(_clean_unique_strings(sizes), key=lambda x: x.casefold()),
+    }
 
 def _occasions_from_db_item(item):
     if not isinstance(item, dict):
@@ -274,71 +356,50 @@ def _merge_occasions(metadata_filters, db_occasions):
 
 def _build_inventory_examples(existing_data, limit_per_facet=8):
     seed = {
-        "noiva": {
-            "cor": ["Off-white", "Branco", "Pérola", "Champagne"],
-            "tecido": ["Zibelina", "Renda", "Tule", "Cetim", "Seda", "Crepe"],
-            "estilo": ["Sereia", "Princesa", "Evasê", "Boho Chic", "Minimalista", "Clássico"],
-            "decote": ["Tomara que caia", "Decote em V", "Canoa", "Ombro a ombro", "Frente única"],
-            "mangas": ["Sem mangas", "Manga curta", "Manga longa", "Alça fina", "Ombro a ombro"],
-            "detalhes": ["Brilho", "Pedraria", "Cauda longa", "Fenda", "Costas abertas"],
-        },
-        "festa": {
-            "ocasiao": ["Madrinha", "Formatura", "Debutante", "Gala", "Convidada"],
-            "cor": ["Azul royal", "Azul marinho", "Verde esmeralda", "Vermelho", "Rosa", "Preto", "Prata"],
-            "tecido": ["Renda", "Tule", "Cetim", "Seda", "Crepe", "Chiffon"],
-            "estilo": ["Sereia", "Princesa", "Evasê", "Reto", "Clássico", "Moderno"],
-            "decote": ["Tomara que caia", "Decote em V", "Ombro a ombro", "Frente única"],
-            "mangas": ["Sem mangas", "Manga curta", "Manga longa", "Alça fina"],
-            "detalhes": ["Brilho", "Pedraria", "Fenda", "Costas abertas"],
-        },
+        "tecido": ["Zibelina", "Renda", "Tule", "Cetim", "Seda", "Crepe", "Chiffon", "Organza"],
+        "estilo": ["Sereia", "Princesa", "Evasê", "Reto", "Boho Chic", "Minimalista", "Clássico", "Moderno"],
+        "decote": ["Tomara que caia", "Decote em V", "Canoa", "Ombro a ombro", "Frente única", "Coração"],
+        "mangas": ["Sem mangas", "Manga curta", "Manga longa", "Alça fina", "Um ombro só"],
+        "detalhes": ["Brilho", "Pedraria", "Bordado", "Fenda", "Costas abertas", "Cauda longa", "Transparência", "Drapeado"],
     }
 
+    tool_ctx = _build_tool_context(existing_data or [], limit_per_facet=max(8, int(limit_per_facet or 0)))
     facet_map = {
-        "colors": "cor",
         "fabrics": "tecido",
         "silhouette": "estilo",
         "neckline": "decote",
         "sleeves": "mangas",
         "details": "detalhes",
-        "occasions": "ocasiao",
     }
 
-    counts = {
-        "noiva": {k: {} for k in seed["noiva"].keys()},
-        "festa": {k: {} for k in seed["festa"].keys()},
+    vocab = {}
+    for src_key, dst_key in facet_map.items():
+        observed = tool_ctx.get(src_key) if isinstance(tool_ctx, dict) else []
+        observed = observed if isinstance(observed, list) else []
+        merged = list(dict.fromkeys((seed.get(dst_key) or []) + [str(v).strip() for v in observed if str(v).strip()]))
+        vocab[dst_key] = merged[:limit_per_facet]
+
+    account_id = _pick_ai_sync_account_id()
+    settings = _load_account_settings_options(account_id)
+    if settings.get("colors") or settings.get("sizes"):
+        options = settings
+    else:
+        options = _scan_items_for_color_and_size_options(max_items=2500)
+
+    occasion_options = _default_occasion_options()
+    colors_options = options.get("colors") or []
+    sizes_options = options.get("sizes") or []
+
+    return {
+        "opcoes_validas": {
+            "occasions": occasion_options,
+            "cor": colors_options[:80],
+            "tamanho": sizes_options[:60],
+        },
+        "exemplos_vocabulario": vocab,
     }
 
-    for entry in existing_data or []:
-        if not isinstance(entry, dict):
-            continue
-        mf = entry.get("metadata_filters")
-        if not isinstance(mf, dict):
-            continue
-        cat = _category_slug_from_occasions(mf.get("occasions"))
-        for src_key, dst_key in facet_map.items():
-            values = mf.get(src_key)
-            if not isinstance(values, list):
-                continue
-            for v in values:
-                vv = str(v).strip()
-                if not vv:
-                    continue
-                bucket = counts.get(cat, {}).get(dst_key)
-                if bucket is None:
-                    continue
-                bucket[vv] = bucket.get(vv, 0) + 1
-
-    out = {}
-    for cat in ["noiva", "festa"]:
-        out[cat] = {}
-        for facet_key, seed_values in seed[cat].items():
-            observed = sorted(counts[cat].get(facet_key, {}).items(), key=lambda x: (-x[1], x[0]))
-            observed_vals = [v for v, _ in observed[:limit_per_facet]]
-            merged = list(dict.fromkeys(seed_values + observed_vals))
-            out[cat][facet_key] = merged[:limit_per_facet]
-    return out
-
-def _extract_metadata_filters(description, category_slug):
+def _extract_metadata_filters(description):
     text = _normalize_text(description)
 
     fabrics = [
@@ -657,8 +718,11 @@ def generate_dress_metadata(image_input, existing_desc=None, existing_title=None
                                     "  \"detalhes\": [\"...\"],\n"
                                     "  \"keywords\": [\"...\"]\n"
                                     "}\n"
-                                    "Exemplos observados no inventário (use como referência de vocabulário; não restrinja a isso):\n"
+                                    "Contexto do catálogo (use como vocabulário; quando possível, escolha exatamente das opções):\n"
                                     f"{json.dumps(inventory_examples or {}, ensure_ascii=False)}\n"
+                                    "Regras:\n"
+                                    "- Para 'cor' e 'occasions', use apenas opções válidas quando houver correspondência clara; caso contrário, lista vazia.\n"
+                                    "- Não retorne 'tamanho' (ele não faz parte do schema).\n"
                                     "Se algum campo não for possível inferir com segurança, retorne lista vazia.\n"
                                     "Regras de classificação (occasions):\n"
                                     "- Formatura: brilho intenso, fendas, recortes, cores vibrantes, sexy/moderno.\n"
@@ -695,13 +759,11 @@ def generate_dress_metadata(image_input, existing_desc=None, existing_title=None
                 try:
                     raw_cat = None
                     if isinstance(structured, dict):
-                        raw_cat = structured.get("categoria")
-                        if not raw_cat:
-                            occ = structured.get("occasions")
-                            if occ is None:
-                                occ = structured.get("ocasiao")
-                            if isinstance(occ, list) and occ:
-                                raw_cat = str(occ[0]).strip() or None
+                        occ = structured.get("occasions")
+                        if occ is None:
+                            occ = structured.get("ocasiao")
+                        if isinstance(occ, list) and occ:
+                            raw_cat = str(occ[0]).strip() or None
                     response_copy = client.chat.completions.create(
                         model="gpt-4o-mini",
                         messages=[
@@ -895,8 +957,7 @@ def sync_index(reset_local=False, force_regenerate=False):
                 copywriting=True,
             )
             
-            group_slug = _category_slug_from_entry({"metadata_filters": _metadata_filters_from_structured(structured, None) or {}}, description=description, title=title)
-            metadata_filters = _metadata_filters_from_structured(structured, group_slug) or _extract_metadata_filters(description, group_slug)
+            metadata_filters = _metadata_filters_from_structured(structured) or _extract_metadata_filters(description)
             metadata_filters = _merge_occasions(metadata_filters, _occasions_from_db_item(item))
             embedding_text = _synthesize_embedding_text(metadata_filters, title) or description
             
@@ -946,8 +1007,7 @@ def sync_index(reset_local=False, force_regenerate=False):
         for entry in existing_data:
             if isinstance(entry, dict):
                 if "metadata_filters" not in entry or not isinstance(entry.get("metadata_filters"), dict) or not entry.get("metadata_filters"):
-                    group_slug = _category_slug_from_entry(entry, description=entry.get("description"), title=entry.get("title"))
-                    entry["metadata_filters"] = _extract_metadata_filters(entry.get("description"), group_slug)
+                    entry["metadata_filters"] = _extract_metadata_filters(entry.get("description"))
                 if not entry.get("embedding_text"):
                     entry["embedding_text"] = _synthesize_embedding_text(entry.get("metadata_filters"), entry.get("title")) or entry.get("description")
             f.write(json.dumps(entry, ensure_ascii=False) + '\n')

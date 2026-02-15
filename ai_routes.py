@@ -27,9 +27,11 @@ try:
         aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
     )
     itens_table = dynamodb.Table("alugueqqc_itens")
+    users_table = dynamodb.Table("alugueqqc_users")
 except Exception as e:
     print(f"Erro ao conectar DynamoDB em ai_routes: {e}")
     itens_table = None
+    users_table = None
 
 ai_bp = Blueprint('ai', __name__)
 
@@ -50,6 +52,151 @@ def _normalize_text(text):
     text = "".join([c for c in text if not unicodedata.combining(c)])
     text = re.sub(r"\s+", " ", text).strip()
     return text
+
+def _ensure_list(value):
+    if value is None:
+        return []
+    if isinstance(value, (list, tuple)):
+        raw = list(value)
+    elif isinstance(value, str):
+        raw = [v.strip() for v in value.split(",")]
+    else:
+        raw = [str(value)]
+    return [v for v in raw if str(v).strip()]
+
+def _normalize_set(value):
+    return set(_normalize_text(v) for v in _ensure_list(value) if str(v).strip())
+
+def _pick_public_account_id():
+    raw = os.getenv("AI_SYNC_ACCOUNT_ID") or os.getenv("PUBLIC_CATALOG_ACCOUNT_IDS") or ""
+    raw = str(raw or "").strip()
+    if not raw:
+        return None
+    parts = [p.strip() for p in raw.split(",") if p.strip()]
+    return parts[0] if parts else None
+
+def _load_color_options_for_account(account_id):
+    if not account_id or not users_table:
+        return []
+    try:
+        resp = users_table.get_item(Key={"user_id": f"account_settings:{account_id}"})
+        item = resp.get("Item") or {}
+    except Exception:
+        item = {}
+    colors = item.get("color_options")
+    if not isinstance(colors, list):
+        return []
+    out = []
+    seen = set()
+    for c in colors:
+        if c is None:
+            continue
+        s = str(c).strip()
+        if not s:
+            continue
+        k = s.casefold()
+        if k in seen:
+            continue
+        seen.add(k)
+        out.append(s)
+    return sorted(out, key=lambda x: str(x).casefold())
+
+_COLOR_FAMILY_MAP = {
+    "azul": [
+        "azul claro",
+        "azul marinho",
+        "azul royal",
+        "azul ceu",
+        "azul céu",
+        "azul bebe",
+        "azul bebê",
+        "azul petroleo",
+        "azul petróleo",
+        "azul turquesa",
+    ],
+}
+
+def _expand_color_terms(colors):
+    raw = _ensure_list(colors)
+    expanded = []
+    available = []
+    account_id = session.get("account_id") if session else None
+    if not account_id:
+        account_id = _pick_public_account_id()
+    if account_id:
+        available = _load_color_options_for_account(account_id)
+    for c in raw:
+        norm = _normalize_text(c)
+        expanded.append(c)
+        if norm in _COLOR_FAMILY_MAP:
+            expanded.extend(_COLOR_FAMILY_MAP[norm])
+        if available:
+            for opt in available:
+                opt_norm = _normalize_text(opt)
+                if norm and (opt_norm == norm or opt_norm.startswith(f"{norm} ") or f" {norm}" in opt_norm):
+                    expanded.append(opt)
+    seen = set()
+    unique = []
+    for c in expanded:
+        key = _normalize_text(c)
+        if not key or key in seen:
+            continue
+        seen.add(key)
+        unique.append(c)
+    return unique
+
+def _extract_color_list(obj):
+    v = obj.get("cor") or obj.get("cores") or obj.get("color") or obj.get("colors")
+    if isinstance(v, (list, tuple)):
+        return [x for x in v if str(x).strip()]
+    if isinstance(v, str):
+        return [v] if v.strip() else []
+    return []
+
+def _extract_color_value(obj):
+    vals = _extract_color_list(obj)
+    return vals[0].strip() if vals else ""
+
+def _extract_size_list(obj):
+    v = obj.get("tamanho") or obj.get("size") or obj.get("item_tamanho") or obj.get("item_size") or obj.get("sizes")
+    if isinstance(v, (list, tuple)):
+        return [x for x in v if str(x).strip()]
+    if isinstance(v, str):
+        return [v] if v.strip() else []
+    return []
+
+def _extract_size_value(obj):
+    vals = _extract_size_list(obj)
+    return vals[0].strip() if vals else ""
+
+def _matches_any(value, desired_set):
+    if not desired_set:
+        return True
+    actual = _normalize_set(value)
+    return bool(actual & desired_set)
+
+def _meta_occasions(meta):
+    mf = meta.get("metadata_filters") or {}
+    occ = mf.get("occasions")
+    if isinstance(occ, list):
+        return _normalize_occasion_inputs(occ)
+    return []
+
+def _build_suggestion(item):
+    return {
+        "id": item.get("item_id") or item.get("custom_id") or item.get("id"),
+        "customId": item.get("customId") or item.get("item_custom_id") or item.get("custom_id"),
+        "title": item.get("title", "Vestido Exclusivo"),
+        "description": item.get("description", ""),
+        "price": item.get("price", "Consulte valor"),
+        "color": _extract_color_value(item),
+        "size": _extract_size_value(item),
+        "category": item.get("category", "Festa"),
+        "occasions": _get_occasions_list(item) if isinstance(item, dict) else "",
+        "image_url": item.get("imageUrl") or item.get("image_url") or (
+            url_for("static", filename=f"dresses/{item['file_name']}") if item.get("file_name") else ""
+        ),
+    }
 
 def _slugify(text):
     text = _normalize_text(text)
@@ -942,6 +1089,270 @@ def execute_catalog_search_loose(query, k=5, target_occasions=None):
         print(f"Erro em execute_catalog_search_loose: {e}")
         return []
 
+def _store_context_payload():
+    markdown = ""
+    path = os.getenv("STORE_CONTEXT_MD_PATH") or "store_context.md"
+    default_markdown = (
+        "### Informações da London Noivas\n"
+        "- **Nome da loja:** London Noivas\n"
+        "- **Ramo:** Aluguéis de vestidos\n"
+        "- **Endereço:** Rua Voltaire, número 9, Manaus, Amazonas\n"
+        "- **Funcionamento:** Segunda a sábado, das 10:00 às 20:00\n"
+        "- **Atendimento:** Por agendamento\n"
+        "- **Venda de vestidos:** Não, apenas aluguel\n"
+    )
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            markdown = f.read().strip()
+    except Exception:
+        markdown = ""
+    return {"markdown": markdown or default_markdown}
+
+def _mcp_tools():
+    account_id = session.get("account_id") if session else None
+    if not account_id:
+        account_id = _pick_public_account_id()
+    available_colors = _load_color_options_for_account(account_id)
+    colors_text = ", ".join(available_colors) if available_colors else "não informado"
+    description = f"Busca por similaridade semântica com filtros de ocasião, cor e tamanho. Cores disponíveis para consulta: {colors_text}."
+    return [
+        {
+            "name": "buscar_por_similaridade",
+            "description": description,
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "other_characteristics": {
+                        "type": "string",
+                        "description": "Características livres como tomara que caia, renda, brilho, fenda, cauda sereia."
+                    },
+                    "occasions": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "enum": ["Noiva","Civil","Madrinha","Mãe dos Noivos","Formatura","Debutante","Gala","Convidada"]
+                        },
+                        "default": ["Gala"]
+                    },
+                    "colors": {
+                        "type": "array",
+                        "items": {"type": "string"}
+                    },
+                    "sizes": {
+                        "type": "array",
+                        "items": {"type": "string"}
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "default": 6
+                    }
+                },
+                "required": ["occasions"]
+            }
+        },
+        {
+            "name": "consultar_contexto_loja",
+            "description": "Retorna um markdown com contexto oficial da loja para apoiar a resposta. Use quando o cliente perguntar sobre a loja.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {}
+            }
+        }
+    ]
+
+def _mcp_to_openai_tools(mcp_tools):
+    openai_tools = []
+    for t in mcp_tools:
+        openai_tools.append({
+            "type": "function",
+            "function": {
+                "name": t["name"],
+                "description": t["description"],
+                "parameters": t["inputSchema"]
+            }
+        })
+    return openai_tools
+
+def _filter_metadata_candidates(colors, occasions, max_candidates):
+    if not metadata:
+        return []
+    desired_colors = _normalize_set(colors)
+    desired_occasions = _normalize_occasion_inputs(occasions)
+    desired_set = set(desired_occasions)
+    collected = []
+    for meta in metadata:
+        if desired_colors:
+            mf = meta.get("metadata_filters") or {}
+            if not _matches_any(mf.get("colors"), desired_colors):
+                continue
+        if desired_set:
+            if not (set(_meta_occasions(meta)) & desired_set):
+                continue
+        collected.append(meta.copy())
+        if len(collected) >= max_candidates:
+            break
+    return collected
+
+def _run_db_search(args):
+    colors = _ensure_list(args.get("colors") or args.get("cores"))
+    sizes = _ensure_list(args.get("sizes") or args.get("tamanhos") or args.get("size") or args.get("tamanho"))
+    occasions = _normalize_occasion_inputs(args.get("occasions") or args.get("ocasioes") or args.get("occasion"))
+    exact_color_terms = _normalize_set(colors)
+    expanded_colors = _expand_color_terms(colors)
+    desired_colors = _normalize_set(expanded_colors)
+    limit = int(args.get("limit") or args.get("k") or 4)
+    if limit < 1:
+        limit = 1
+    if limit > 24:
+        limit = 24
+    if not metadata or not index:
+        load_resources()
+    candidates = _filter_metadata_candidates(expanded_colors, occasions, max_candidates=max(200, limit * 40))
+    enriched = validate_and_enrich_candidates(candidates)
+    desired_sizes = _normalize_set(sizes)
+    desired_occ_set = set(occasions)
+    filtered = []
+    for item in enriched:
+        if desired_colors and not _matches_any(_extract_color_list(item), desired_colors):
+            continue
+        if desired_sizes and not _matches_any(_extract_size_list(item), desired_sizes):
+            continue
+        if desired_occ_set:
+            if not (set(_get_occasion_slugs(item)) & desired_occ_set):
+                continue
+        filtered.append(item)
+        if len(filtered) >= limit:
+            break
+    exact_filtered = []
+    if exact_color_terms:
+        for item in filtered:
+            if _matches_any(_extract_color_list(item), exact_color_terms):
+                exact_filtered.append(item)
+    else:
+        exact_filtered = list(filtered)
+    no_principal = bool(exact_color_terms and filtered and not exact_filtered)
+    return {
+        "items": filtered,
+        "exact_items": exact_filtered,
+        "no_principal": no_principal,
+    }
+
+def _run_similarity_search(args):
+    colors = _ensure_list(args.get("colors") or args.get("cores"))
+    sizes = _ensure_list(args.get("sizes") or args.get("tamanhos") or args.get("size") or args.get("tamanho"))
+    occasions = _normalize_occasion_inputs(args.get("occasions") or args.get("ocasioes") or args.get("occasion"))
+    exact_color_terms = _normalize_set(colors)
+    expanded_colors = _expand_color_terms(colors)
+    desired_colors = _normalize_set(expanded_colors)
+    query = args.get("other_characteristics") or args.get("demais_caracteristicas") or args.get("query") or ""
+    limit = int(args.get("limit") or args.get("k") or 5)
+    if limit < 1:
+        limit = 1
+    if limit > 5:
+        limit = 5
+    if not query.strip():
+        query = " ".join(_ensure_list(colors) + _ensure_list(sizes) + _ensure_list(occasions)).strip()
+    if not query:
+        return {"items": [], "color_relaxation_notice": ""}
+    debug_payload = {
+        "colors": colors,
+        "expanded_colors": expanded_colors,
+        "sizes": sizes,
+        "occasions": occasions,
+        "other_characteristics": query,
+        "limit": limit,
+    }
+    print("bella_tool_preprocessed", json.dumps(debug_payload, ensure_ascii=False))
+    results = execute_catalog_search(query, k=max(limit * 6, 20))
+    if occasions:
+        results = _filter_items_by_occasions(results, occasions)
+    desired_sizes = _normalize_set(sizes)
+    desired_occ_set = set(occasions)
+    exact_items = []
+    relaxed_items = []
+    for item in results:
+        if desired_sizes and not _matches_any(_extract_size_list(item), desired_sizes):
+            continue
+        if desired_occ_set:
+            if not (set(_get_occasion_slugs(item)) & desired_occ_set):
+                continue
+        item_colors = _extract_color_list(item)
+        if exact_color_terms:
+            if _matches_any(item_colors, exact_color_terms):
+                exact_items.append(item)
+            elif desired_colors and _matches_any(item_colors, desired_colors):
+                relaxed_items.append(item)
+        else:
+            exact_items.append(item)
+        if exact_color_terms:
+            if len(exact_items) >= 5 and len(exact_items) >= limit:
+                break
+            if len(exact_items) + len(relaxed_items) >= limit and len(exact_items) < 5:
+                break
+            if len(exact_items) >= limit:
+                break
+        else:
+            if len(exact_items) >= limit:
+                break
+    if not exact_color_terms or len(exact_items) >= 5:
+        result_payload = {"items": exact_items[:limit], "color_relaxation_notice": ""}
+        print("bella_tool_result", json.dumps({"count": len(result_payload["items"]), "color_relaxation_notice": ""}, ensure_ascii=False))
+        return result_payload
+    combined = (exact_items + relaxed_items)[:limit]
+    similar_colors = []
+    seen = set()
+    for c in expanded_colors:
+        k = _normalize_text(c)
+        if not k or k in exact_color_terms or k in seen:
+            continue
+        seen.add(k)
+        similar_colors.append(c)
+    notice = ""
+    if combined and similar_colors:
+        notice = "Sugestões de cor similar usadas porque havia menos de 5 opções na cor exata: " + ", ".join(similar_colors) + "."
+    result_payload = {"items": combined, "color_relaxation_notice": notice}
+    print("bella_tool_result", json.dumps({"count": len(result_payload["items"]), "color_relaxation_notice": notice}, ensure_ascii=False))
+    return result_payload
+
+def _summarize_items_for_llm(items):
+    notice = ""
+    if isinstance(items, dict):
+        notice = items.get("color_relaxation_notice") or ""
+        items = items.get("items") or []
+    payload = []
+    for item in items:
+        suggestion = _build_suggestion(item)
+        payload.append({
+            "title": suggestion.get("title") or "",
+            "description": (suggestion.get("description") or "")[:240],
+            "color": suggestion.get("color") or "",
+            "size": suggestion.get("size") or "",
+            "occasions": suggestion.get("occasions") or [],
+            "image_url": suggestion.get("image_url") or "",
+        })
+    return {"items": payload, "color_relaxation_notice": notice}
+
+def _summarize_items_for_client(items):
+    notice = ""
+    if isinstance(items, dict):
+        notice = items.get("color_relaxation_notice") or ""
+        items = items.get("items") or []
+    payload = []
+    for item in items:
+        suggestion = _build_suggestion(item)
+        payload.append({
+            "id": suggestion.get("id") or "",
+            "customId": suggestion.get("customId") or "",
+            "title": suggestion.get("title") or "",
+            "description": (suggestion.get("description") or "")[:240],
+            "price": suggestion.get("price") or "",
+            "color": suggestion.get("color") or "",
+            "size": suggestion.get("size") or "",
+            "occasions": suggestion.get("occasions") or [],
+            "image_url": suggestion.get("image_url") or "",
+        })
+    return {"items": payload, "color_relaxation_notice": notice}
+
 @ai_bp.route('/api/ai-search', methods=['POST'])
 def ai_search():
     data = request.get_json()
@@ -950,32 +1361,40 @@ def ai_search():
 
     if not user_message:
         return jsonify({"error": "Mensagem vazia."}), 400
+    current_app.logger.info(
+        "bella_ai_search_start message_len=%s history_len=%s",
+        len(user_message or ""),
+        len(history or []),
+    )
 
     # System Prompt: Persona Bella (Agente Vendedora)
     system_prompt = (
         "Você é a Bella, consultora sênior e estilista da London Noivas. "
-        "Sua missão é entender o sonho da cliente e encontrar o vestido perfeito. "
+        "Sua missão é entender o sonho da cliente e encontrar o vestido perfeito disponível na loja de aluguéis de vestidos London Noivas. "
         "PERSONALIDADE:\n"
         "- Empática, sofisticada e proativa. Use emojis com moderação (✨, 👗).\n"
         "- Aja como uma consultora real: não apenas entregue links, mas 'venda' o vestido destacando detalhes que combinam com o pedido.\n"
         "- Sempre faça perguntas de follow-up ('O que achou do decote?', 'Prefere algo mais armado?').\n"
         "REGRAS DE RESPOSTA:\n"
-        "- Ao apresentar vestidos, descreva no texto APENAS O PRIMEIRO (o mais relevante). Não liste os outros por escrito.\n"
-        "- Diga algo como 'Separei esta opção principal que... e deixei mais sugestões nas imagens abaixo'.\n"
-        "- O foco do texto deve ser a conexão emocional com a escolha principal.\n"
-        "- SEMPRE finalize com uma pergunta de follow-up. Ex: 'Então, o que achou deste modelo? Gostaria de ver algo com mais brilho ou renda?'\n"
-        "- Quando a cliente mudar a preferência (ex.: 'mais discreto', 'sem fenda', 'menos brilho', 'decote fechado'), NUNCA repita a opção principal anterior: refaça a busca com esses critérios e escolha OUTRA peça como principal.\n"
+        "- Responda em markdown.\n"
+        "- Mostre até 5 itens retornados pela ferramenta.\n"
+        "- Para cada item, escreva: **Título** — descrição breve (1–2 frases). Se houver, inclua cor e tamanho.\n"
+        "- Em seguida, exiba a imagem com markdown: ![Título](image_url).\n"
+        "- Não mostre IDs nem campos técnicos.\n"
+        "- Se não houver itens, explique e sugira ajustes (cor/tecido/ocasião), fazendo uma pergunta.\n"
+        "- SEMPRE finalize com uma pergunta de follow-up.\n"
+        "- Quando a cliente mudar a preferência (ex.: 'mais discreto', 'sem fenda', 'menos brilho', 'decote fechado'), refaça a busca com esses critérios e traga novas opções.\n"
         "- Traduza adjetivos comuns em restrições do catálogo: 'discreto' → silhueta clássica (reto/evasê), decote discreto, sem fenda, poucos detalhes, cores neutras; 'chamativo' → brilho, fenda, decotes marcantes, cores vivas; 'romântico' → renda/volume; etc.\n"
-        "- Se não houver opções diferentes que atendam ao pedido, explique brevemente e sugira ajustar um critério (ex.: cor, decote, tecido), ao invés de repetir a mesma peça.\n"
+        "- Se não houver opções após os filtros, faça nova busca relaxando critérios (cor próxima, tamanho aproximado, ocasião relacionada) e informe isso no texto.\n"
         "USO DE FERRAMENTAS:\n"
-        "- Use a tool `search_dresses` quando o usuário pedir sugestões, descrever um estilo ou demonstrar intenção de compra.\n"
+        "- Use apenas `buscar_por_similaridade` em todas as buscas.\n"
+        "- Quando a cliente perguntar sobre a loja (nome, ramo, endereço, horário, atendimento ou política de venda), use `consultar_contexto_loja` apenas como contexto e responda de forma natural, sem copiar o markdown literalmente.\n"
+        "- Sempre preencha `occasions`, `colors`, `sizes` e `other_characteristics` conforme o pedido.\n"
         "- Sempre preencha `occasions` com uma das opções: Noiva, Civil, Madrinha, Mãe dos Noivos, Formatura, Debutante, Gala, Convidada.\n"
         "- Se não houver ocasião explícita, use Gala como padrão.\n"
-        "- Se a busca não retornar nada, peça desculpas e sugira ampliar os critérios.\n"
-        "SELEÇÃO DO PRINCIPAL:\n"
-        "- Escolha UM dos itens retornados pela ferramenta como principal.\n"
-        "- No FINAL da sua mensagem, inclua a linha: PRINCIPAL_ID: <id>\n"
-        "- O <id> deve ser exatamente o campo 'id' de um dos itens retornados pela tool (recebidos em JSON)."
+        "- Se a cliente disser uma cor genérica (ex.: azul), inclua essa cor em `colors`.\n"
+        "- Se a busca não retornar nada, faça nova busca relaxando critérios (cor próxima, tamanho aproximado, ocasião relacionada) e informe isso no texto.\n"
+        "- A ferramenta retorna JSON com `items` e pode incluir `color_relaxation_notice`; se presente, informe que são sugestões similares.\n"
     )
 
     # Constrói mensagens
@@ -989,176 +1408,86 @@ def ai_search():
     
     messages.append({"role": "user", "content": user_message})
 
-    # Definição das Tools
-    tools = [
-        {
-            "type": "function",
-            "function": {
-                "name": "search_dresses",
-                "description": "Busca vestidos no catálogo por descrição visual, estilo, cor ou ocasião.",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "query": {"type": "string", "description": "Descrição rica para busca semântica. Ex: 'vestido sereia renda ombro a ombro'"},
-                        "k": {"type": "integer", "default": 4},
-                        "occasions": {
-                            "type": "array",
-                            "items": {
-                                "type": "string",
-                                "enum": ["Noiva","Civil","Madrinha","Mãe dos Noivos","Formatura","Debutante","Gala","Convidada"]
-                            },
-                            "default": ["Gala"],
-                            "description": "Ocasiões desejadas. Ex: ['Debutante']"
-                        }
-                    },
-                    "required": ["query", "occasions"]
-                }
-            }
-        }
-    ]
+    tools = _mcp_to_openai_tools(_mcp_tools())
 
-    found_suggestions = []
-    requested_occasions = []
-    requested_query = ""
-    
     try:
-        # 1. Decisão do Agente
-        response = client.chat.completions.create(
-            model="gpt-4o",
-            messages=messages,
-            tools=tools,
-            tool_choice="auto"
-        )
-        
-        response_message = response.choices[0].message
         reply_text = ""
+        client_payload = None
+        max_turns = 3
 
-        # 2. Execução de Tools (se houver)
-        if response_message.tool_calls:
-            messages.append(response_message) # Adiciona a intenção de tool call ao histórico
-            
-            for tool_call in response_message.tool_calls:
-                if tool_call.function.name == "search_dresses":
-                    args = json.loads(tool_call.function.arguments)
-                    query = args.get("query")
-                    if isinstance(query, str) and query.strip():
-                        requested_query = query.strip()
-                    k_val = args.get("k", 5)
-                    target_occasions = _normalize_occasion_inputs(args.get("occasions") or args.get("occasion"))
-                    if target_occasions:
-                        requested_occasions = target_occasions
-                    
-                    # Executa busca
-                    results = execute_catalog_search(query, k=k_val)
-                    if target_occasions:
-                        results = _filter_items_by_occasions(results, target_occasions)
-                    
-                    # Formata para Frontend (Objetos Completos)
-                    def _extract_color_value(obj):
-                        v = obj.get("cor") or obj.get("cores") or obj.get("color") or obj.get("colors")
-                        if isinstance(v, (list, tuple)):
-                            for x in v:
-                                if isinstance(x, str) and x.strip():
-                                    return x.strip()
-                            return ""
-                        if isinstance(v, str):
-                            return v.strip()
-                        return ""
+        for _ in range(max_turns):
+            response = client.chat.completions.create(
+                model="gpt-4o",
+                messages=messages,
+                tools=tools,
+                tool_choice="auto"
+            )
+            response_message = response.choices[0].message
+            if response_message.tool_calls:
+                messages.append(response_message)
+                for tool_call in response_message.tool_calls:
+                    tool_name = tool_call.function.name
+                    args = json.loads(tool_call.function.arguments or "{}")
+                    print("bella_tool_called", json.dumps({"tool": tool_name, "args": args}, ensure_ascii=False))
+                    current_app.logger.info(
+                        "bella_tool_call tool=%s args=%s",
+                        tool_name,
+                        json.dumps(args, ensure_ascii=False),
+                    )
+                    if tool_name == "buscar_por_similaridade":
+                        tool_results = _run_similarity_search(args)
+                        tool_items = tool_results or []
+                        summary_payload = _summarize_items_for_llm(tool_items)
+                        client_payload = _summarize_items_for_client(tool_items)
+                        print("bella_tool_raw_result", json.dumps(summary_payload, ensure_ascii=False))
+                        current_app.logger.info(
+                            "bella_tool_output tool=%s output=%s",
+                            tool_name,
+                            json.dumps(summary_payload, ensure_ascii=False),
+                        )
+                        current_app.logger.info(
+                            "bella_tool_result tool=%s results=%s",
+                            tool_name,
+                            len(summary_payload.get("items") or []),
+                        )
+                        summary = json.dumps(summary_payload, ensure_ascii=False)
+                    elif tool_name == "consultar_contexto_loja":
+                        context_payload = _store_context_payload()
+                        print("bella_tool_raw_result", json.dumps(context_payload, ensure_ascii=False))
+                        current_app.logger.info(
+                            "bella_tool_output tool=%s output=%s",
+                            tool_name,
+                            json.dumps(context_payload, ensure_ascii=False),
+                        )
+                        summary = json.dumps(context_payload, ensure_ascii=False)
+                    else:
+                        summary = json.dumps({"error": "tool_not_found"}, ensure_ascii=False)
 
-                    for item in results:
-                        occs = []
-                        if _flag_is_set(item.get('occasion_noiva')): occs.append('Noiva')
-                        if _flag_is_set(item.get('occasion_civil')): occs.append('Civil')
-                        if _flag_is_set(item.get('occasion_madrinha')): occs.append('Madrinha')
-                        if _flag_is_set(item.get('occasion_mae_dos_noivos')): occs.append('Mãe dos Noivos')
-                        if _flag_is_set(item.get('occasion_formatura')): occs.append('Formatura')
-                        if _flag_is_set(item.get('occasion_debutante')): occs.append('Debutante')
-                        if _flag_is_set(item.get('occasion_gala')): occs.append('Gala')
-                        if _flag_is_set(item.get('occasion_convidada')): occs.append('Convidada')
-
-                        found_suggestions.append({
-                            "id": item.get('item_id') or item.get('custom_id'),
-                            "customId": item.get('customId'),
-                            "title": item.get('title', 'Vestido Exclusivo'),
-                            "description": item.get('description', ''),
-                            "price": item.get('price', "Consulte valor"),
-                            "color": _extract_color_value(item),
-                            "category": item.get('category', 'Festa'),
-                            "occasions": ", ".join(occs) if occs else "Várias",
-                            "image_url": item.get('imageUrl') or url_for('static', filename=f"dresses/{item['file_name']}")
-                        })
-                    
-                    # Formata para LLM (Resumo)
-                    summary = json.dumps([{
-                        "id": item.get('custom_id'),
-                        "title": item.get('title'),
-                        "desc": item.get('description')[:200]
-                    } for item in results], ensure_ascii=False)
-                    
                     messages.append({
                         "tool_call_id": tool_call.id,
                         "role": "tool",
-                        "name": "search_dresses",
+                        "name": tool_name,
                         "content": summary
                     })
-            
-            # 3. Resposta Final Pós-Tool
+                continue
+            reply_text = response_message.content
+            current_app.logger.info("bella_no_tool_response")
+            break
+
+        if not reply_text:
             final_response = client.chat.completions.create(
                 model="gpt-4o",
                 messages=messages
             )
             reply_text = final_response.choices[0].message.content
-            selected_id = None
-            try:
-                m = re.search(r"PRINCIPAL_ID:\s*([A-Za-z0-9_-]+)", reply_text)
-                if m:
-                    selected_id = m.group(1)
-                    reply_text = re.sub(r"\s*PRINCIPAL_ID:\s*[A-Za-z0-9_-]+\s*", "", reply_text).strip()
-            except Exception:
-                pass
-            
-        else:
-            # Apenas conversa
-            reply_text = response_message.content
-            selected_id = None
-
-        # 4. Retorno ao Frontend
-        # Separa o principal das sugestões para evitar duplicidade na grid
-        main_dress = None
-        if found_suggestions:
-            if selected_id:
-                for s in found_suggestions:
-                    if str(s.get("customId")) == str(selected_id) or str(s.get("id")) == str(selected_id):
-                        main_dress = s
-                        break
-            if not main_dress:
-                main_dress = found_suggestions[0]
-        # Limita a 4 sugestões adicionais, removendo o principal se aparecer na lista
-        other_suggestions = []
-        if found_suggestions:
-            principal_key = None
-            if main_dress:
-                principal_key = str(main_dress.get("id") or main_dress.get("customId"))
-            for s in found_suggestions:
-                sid = str(s.get("id") or s.get("customId"))
-                if principal_key and sid == principal_key:
-                    continue
-                other_suggestions.append(s)
-            if target_occasions:
-                target_set = set(target_occasions)
-                other_suggestions = [s for s in other_suggestions if set(_suggestion_occ_slugs(s)) & target_set]
-            other_suggestions = other_suggestions[:4]
-
-        return jsonify({
-            "reply": reply_text,
-            "suggestions": other_suggestions,
-            "dress": main_dress,
-            "requested_occasions": requested_occasions,
-            "requested_query": requested_query
-        })
+        response_payload = {"reply": reply_text}
+        if client_payload:
+            response_payload["items"] = client_payload.get("items") or []
+            response_payload["color_relaxation_notice"] = client_payload.get("color_relaxation_notice") or ""
+        return jsonify(response_payload)
 
     except Exception as e:
-        print(f"Erro no Agente Bella: {e}")
+        current_app.logger.exception("Erro no Agente Bella")
         return jsonify({"error": str(e)}), 500
 
 @ai_bp.route('/api/ai-similar/<item_id>', methods=['GET'])

@@ -267,8 +267,14 @@
         
         <!-- Showroom AI Section (Static) -->
         <section id="showroom" class="py-20 bg-stone-100">
-            <div class="container mx-auto px-6">
-                <div class="flex flex-col lg:flex-row items-center gap-12 transition-all duration-500">
+            <div id="ai-chat-shell" class="relative transition-all duration-500">
+                <button id="ai-chat-close" class="hidden fixed top-4 right-4 md:top-6 md:right-6 z-[90] rounded-full bg-white/90 p-2 text-stone-600 hover:text-stone-900 shadow-lg" onclick="collapseChatUI()" aria-label="Fechar chat">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+                <div id="ai-chat-container" class="container mx-auto px-6">
+                    <div class="flex flex-col lg:flex-row items-center gap-12 transition-all duration-500">
                     <div id="chat-wrapper" class="w-full space-y-6 transition-all duration-500">
                         <span class="text-london-gold font-bold tracking-widest text-sm">ESTILISTA VIRTUAL COM IA</span>
                         <h2 class="text-4xl md:text-5xl font-serif text-stone-800">Encontre o vestido perfeito com a Bella</h2>
@@ -299,6 +305,11 @@
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
                                         </svg>
                                     </button>
+                                    <button id="ai-chat-expand" onclick="expandChatUI()" class="p-2 text-stone-400 hover:text-stone-600 transition-colors" title="Expandir tela">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9V5.25A1.5 1.5 0 0 1 5.25 3.75H9m6 0h3.75A1.5 1.5 0 0 1 20.25 5.25V9m0 6v3.75A1.5 1.5 0 0 1 18.75 20.25H15m-6 0H5.25A1.5 1.5 0 0 1 3.75 18.75V15" />
+                                        </svg>
+                                    </button>
                                     <input 
                                         type="text" 
                                         id="chat-input"
@@ -306,7 +317,7 @@
                                         class="flex-1 p-3 border border-stone-300 rounded-sm focus:ring-2 focus:ring-london-gold outline-none text-sm"
                                         onkeypress="handleEnter(event)"
                                     />
-                                    <button onclick="sendMessage()" class="bg-stone-900 text-white px-4 py-2 rounded-sm hover:bg-london-gold transition-colors">
+                                    <button id="chat-send" onclick="sendMessage()" class="bg-stone-900 text-white px-4 py-2 rounded-sm hover:bg-london-gold transition-colors">
                                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
                                         </svg>
@@ -326,13 +337,14 @@
                              </div>
                         </div>
                     </div>
-                </div>
+                    </div>
 
-                <!-- Suggestions Gallery (Hidden by default) -->
-                <div id="suggestions-container" class="hidden mt-12 animate-fadeIn">
-                    <h3 class="text-2xl font-serif text-stone-800 mb-6 text-center">Outras opções que combinam com sua necessidade</h3>
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="suggestions-grid">
-                        <!-- Thumbnails will be injected here -->
+                    <!-- Suggestions Gallery (Hidden by default) -->
+                    <div id="suggestions-container" class="hidden mt-12 animate-fadeIn">
+                        <h3 class="text-2xl font-serif text-stone-800 mb-6 text-center">Outras opções que combinam com sua necessidade</h3>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="suggestions-grid">
+                            <!-- Thumbnails will be injected here -->
+                        </div>
                     </div>
                 </div>
             </div>
@@ -410,14 +422,73 @@
                     if (e.key === 'Enter') sendMessage();
                 }
 
+                function setChatBusy(isBusy) {
+                    const input = document.getElementById('chat-input');
+                    const sendBtn = document.getElementById('chat-send');
+                    if (input) {
+                        input.disabled = !!isBusy;
+                        input.classList.toggle('opacity-60', !!isBusy);
+                        input.classList.toggle('cursor-not-allowed', !!isBusy);
+                    }
+                    if (sendBtn) {
+                        sendBtn.disabled = !!isBusy;
+                        sendBtn.classList.toggle('opacity-60', !!isBusy);
+                        sendBtn.classList.toggle('cursor-not-allowed', !!isBusy);
+                    }
+                }
+
+                function expandChatUI() {
+                    const shell = document.getElementById('ai-chat-shell');
+                    const container = document.getElementById('ai-chat-container');
+                    const closeBtn = document.getElementById('ai-chat-close');
+                    const expandBtn = document.getElementById('ai-chat-expand');
+                    const chatBox = document.getElementById('chat-box-container');
+                    const layoutRow = document.querySelector('#ai-chat-container > div');
+                    if (!shell || !container || !chatBox) return;
+                    document.body.classList.add('overflow-hidden');
+                    shell.classList.add('fixed', 'inset-0', 'z-[80]', 'bg-stone-100', 'overflow-y-auto', 'p-4', 'md:p-6');
+                    container.classList.add('max-w-none', 'w-full');
+                    closeBtn.classList.remove('hidden');
+                    if (expandBtn) expandBtn.classList.add('hidden');
+                    if (layoutRow) {
+                        layoutRow.classList.remove('items-center');
+                        layoutRow.classList.add('items-start');
+                    }
+                    chatBox.classList.remove('h-[400px]');
+                    chatBox.classList.add('h-[55vh]', 'md:h-[60vh]');
+                }
+
+                function collapseChatUI() {
+                    const shell = document.getElementById('ai-chat-shell');
+                    const container = document.getElementById('ai-chat-container');
+                    const closeBtn = document.getElementById('ai-chat-close');
+                    const expandBtn = document.getElementById('ai-chat-expand');
+                    const chatBox = document.getElementById('chat-box-container');
+                    const layoutRow = document.querySelector('#ai-chat-container > div');
+                    if (!shell || !container || !chatBox) return;
+                    document.body.classList.remove('overflow-hidden');
+                    shell.classList.remove('fixed', 'inset-0', 'z-[80]', 'bg-stone-100', 'overflow-y-auto', 'p-4', 'md:p-6');
+                    container.classList.remove('max-w-none', 'w-full');
+                    closeBtn.classList.add('hidden');
+                    if (expandBtn) expandBtn.classList.remove('hidden');
+                    chatBox.classList.add('h-[400px]');
+                    chatBox.classList.remove('h-[55vh]', 'md:h-[60vh]');
+                    if (layoutRow) {
+                        layoutRow.classList.add('items-center');
+                        layoutRow.classList.remove('items-start');
+                    }
+                }
+
                 async function sendMessage() {
                     const input = document.getElementById('chat-input');
                     const message = input.value.trim();
                     if (!message) return;
 
+                    expandChatUI();
                     addMessage(message, 'user');
                     input.value = '';
                     conversationHistory.push({ role: "user", content: message });
+                    setChatBusy(true);
                     const loadingId = addLoading();
 
                     try {
@@ -432,26 +503,36 @@
                         
                         const data = await response.json();
                         removeMessage(loadingId);
+                        setChatBusy(false);
                         
                         if (data.reply) {
-                            addMessage(data.reply, 'bot');
+                            addMessage(data.reply, 'bot', data.items || []);
                             conversationHistory.push({ role: "assistant", content: data.reply });
                         }
-                        
-                        if (data.dress) {
-                            showResult(data.dress, data.suggestions, data.requested_occasions, data.requested_query);
-                        } else if (data.error) {
+                        const resultFrame = document.getElementById('result-frame');
+                        const suggestionsContainer = document.getElementById('suggestions-container');
+                        if (resultFrame) resultFrame.classList.add('hidden');
+                        if (suggestionsContainer) suggestionsContainer.classList.add('hidden');
+                        if (data.error) {
                             addMessage("Desculpe, ocorreu um erro: " + data.error, 'bot');
                         }
 
                     } catch (error) {
                         removeMessage(loadingId);
+                        setChatBusy(false);
                         addMessage("Desculpe, tive um problema de conexão. Tente novamente.", 'bot');
                         console.error(error);
                     }
                 }
 
-                function addMessage(text, sender) {
+                function renderMarkdown(text) {
+                    return text
+                        .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<div class="flex justify-center"><img src="$2" alt="$1" class="max-w-[220px] h-auto rounded-sm mt-2 mb-2"></div>')
+                        .replace(/\*\*([^*]+)\*\*/g, '<strong class="font-serif text-stone-900">$1</strong>')
+                        .replace(/\n/g, '<br>');
+                }
+
+                function addMessage(text, sender, items) {
                     const container = document.getElementById('chat-messages');
                     const div = document.createElement('div');
                     div.className = "flex gap-3 " + (sender === 'user' ? "flex-row-reverse" : "");
@@ -463,13 +544,38 @@
                     const bubbleClass = sender === 'bot' 
                         ? "bg-white text-stone-700 rounded-tl-none border-stone-100" 
                         : "bg-stone-800 text-white rounded-tr-none";
-                        
+                    
+                    const markdownText = renderMarkdown(text);
                     div.innerHTML = `
                         ${avatar}
                         <div class="${bubbleClass} p-3 rounded-lg shadow-sm text-sm max-w-[85%] border">
-                            ${text}
+                            ${markdownText}
                         </div>
                     `;
+
+                    if (sender === 'bot' && Array.isArray(items) && items.length) {
+                        const images = div.querySelectorAll('img');
+                        images.forEach((img) => {
+                            const src = img.getAttribute('src') || '';
+                            const item = items.find((entry) => entry && entry.image_url === src);
+                            if (!item) return;
+                            img.classList.add('cursor-pointer');
+                            img.addEventListener('click', () => {
+                                openCatalogModal(
+                                    item.image_url,
+                                    item.title || "Sugestão Exclusiva",
+                                    item.description || "",
+                                    item.id,
+                                    item.price || "Valor do aluguel: Consulte",
+                                    'ai_chat',
+                                    item.customId,
+                                    item.occasions,
+                                    item.color,
+                                    item.size
+                                );
+                            });
+                        });
+                    }
                     
                     container.appendChild(div);
                     container.scrollTop = container.scrollHeight;
@@ -558,24 +664,7 @@
 
                     document.getElementById('suggestions-container').classList.add('hidden');
 
-                    if (!dress?.id) return;
-
-                    const occParam = Array.isArray(requestedOccasions) ? requestedOccasions.join(',') : (requestedOccasions || '');
-                    const occQuery = occParam ? `&occasion=${encodeURIComponent(occParam)}` : '';
-                    const queryParam = bellaQueryFilter ? `&q=${encodeURIComponent(bellaQueryFilter)}` : '';
-                    fetch(`/api/ai-similar/${dress.id}?limit=4${occQuery}${queryParam}`)
-                        .then(response => response.json())
-                        .then(data => {
-                            const suggestions = Array.isArray(data?.suggestions) ? data.suggestions : [];
-                            if (suggestions.length > 0) {
-                                showSuggestions(suggestions, requestedOccasions || dress.occasions);
-                            } else {
-                                document.getElementById('suggestions-container').classList.add('hidden');
-                            }
-                        })
-                        .catch(() => {
-                            document.getElementById('suggestions-container').classList.add('hidden');
-                        });
+                    return;
                 }
 
                 function showSuggestions(suggestions, targetOccasions) {
