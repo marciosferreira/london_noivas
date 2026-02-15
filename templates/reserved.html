@@ -82,9 +82,9 @@
                 <span class="text-muted">-</span>
                 {% else %} {% if field.type in ["phone", "client_phone"] %} {{ value | format_phone }} {% elif field.type == "date" %} {{ value |
                 format_date }} {% elif field.type in ["transaction_ret_date", "created_at"] %} {{ value | formatar_data_br }} {% elif field.type in
-                ["value", "item_value", "transaction_price", "transaction_value_paid"] %} {{ value | format_currency }} {% elif field.type == "cpf" %}
-                {{ value | format_cpf }} {% elif field.type == "cnpj" %} {{ value | format_cnpj }} {% elif field.id == "transaction_status" %} {{
-                status_map.get(value, value) }} {% else %} {{ value | string | truncate(30, True) }} {% endif %} {% endif %}
+                ["value", "item_value", "transaction_price", "transaction_value_paid"] %} {{ value | format_currency }} {% elif field.type in ["cpf",
+                "client_cpf"] %} {{ value | format_cpf }} {% elif field.type in ["cnpj", "client_cnpj"] %} {{ value | format_cnpj }} {% elif field.id
+                == "transaction_status" %} {{ status_map.get(value, value) }} {% else %} {{ value | string | truncate(30, True) }} {% endif %} {% endif %}
               </span>
             </div>
             {% endif %} {% endfor %}

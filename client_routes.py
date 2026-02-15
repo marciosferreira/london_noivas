@@ -28,7 +28,6 @@ def init_client_routes(
     itens_table,
     users_table,
     text_models_table,
-    field_config_table,
 ):
     @app.route("/open_client/<client_ref>")
     def open_client(client_ref):
@@ -141,13 +140,6 @@ def init_client_routes(
         # Campos fixos via Schema
         fields_config = schemas.get_schema_fields("client")
         fields_config = sorted(fields_config, key=lambda x: x["order_sequence"])
-        custom_fields_preview = [
-            {"field_id": field["id"], "title": field["label"]}
-            for field in fields_config
-            if field.get("preview")
-        ]
-
-
         force_no_next = request.args.get("force_no_next")
         session["previous_path_clients"] = request.path
 
@@ -177,7 +169,6 @@ def init_client_routes(
                 has_next=False,
                 has_prev=False,
                 fields_config=fields_config,
-                custom_fields_preview=custom_fields_preview,
                 ns={"filtro_relevante": False},
             )
 
@@ -288,7 +279,6 @@ def init_client_routes(
             has_next=has_next,
             has_prev=current_page > 1,
             fields_config=fields_config,
-            custom_fields_preview=custom_fields_preview,
             ns={"filtro_relevante": filtro_relevante},
         )
     import traceback
@@ -600,7 +590,7 @@ def init_client_routes(
             return redirect(url_for("login"))
 
         # Campos configuráveis
-        fields_config = get_all_fields(account_id, field_config_table, entity="client")
+        fields_config = schemas.get_schema_fields("client")
         fields_config = sorted(fields_config, key=lambda x: x["order_sequence"])
 
         force_no_next = request.args.get("force_no_next")
@@ -773,7 +763,6 @@ def init_client_routes(
             itens_table,
             text_models_table,
             users_table,
-            field_config_table,
             client_id=client_id,
         )
 
@@ -809,10 +798,4 @@ def decode_dynamo_key(encoded_key):
 
 
 
-def get_all_fields(account_id, field_config_table, entity):
-    """
-    Retorna a lista de campos definida no schema estático (schemas.py).
-    Ignora field_config_table e account_id, mantendo a assinatura para compatibilidade
-    com chamadas existentes até refatoração completa.
-    """
-    return schemas.get_schema_fields(entity)
+ 

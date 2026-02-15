@@ -41,7 +41,6 @@ def init_static_routes(
     text_models_table,
     users_table,
     payment_transactions_table,
-    field_config_table,
 ):
     env_ids = os.getenv("PUBLIC_CATALOG_ACCOUNT_IDS", "").strip()
     public_account_ids = [

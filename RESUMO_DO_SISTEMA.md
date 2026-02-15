@@ -12,7 +12,6 @@
 - `itens_table`: inventário de itens; campos fixos e personalizados via `key_values`.
 - `clients_table`: clientes; campos fixos e personalizados via `key_values`.
 - `transactions_table`: transações de aluguel (datas, valores, status, vínculo com item e cliente).
-- `field_config_table`: configuração dinâmica de campos por entidade e conta (tipos, ordem, preview, filtros).
 - `text_models_table`: modelos de texto para visualização/impressão.
 - `payment_transactions_table`: status de assinatura e pagamentos do Stripe.
 
@@ -20,14 +19,12 @@
 
 - `register` + `create_user`:
   - Cria `customer` e `subscription` no Stripe com `trial_period_days`.
-  - Inicializa `field_config_table` com campos padrão via `get_default_fields_and_slugs`.
   - Persiste usuário (`password_hash`, `email_token`) e envia e-mail de confirmação.
 - `login`: autentica e preenche `session` (`user_id`, `account_id`, `role`, etc.).
 - `logout`: limpa sessão e redireciona.
 - `adjustments`: exibe cobrança atual do Stripe, cartão salvo, timezone e histórico.
 - `admin_dashboard`: lista usuários admins com paginação e métricas agregadas.
 - Impersonação: `login-as-user/<user_id>` e `return-to-admin` para suporte/admin.
-- `admin/update_fields_config`: mescla campos fixed padrão sem perder personalizados.
 - `utils.get_user_timezone(users_table)`: retorna timezone do usuário (fallback `America/Sao_Paulo`).
 
 ## Itens e Imagens
@@ -63,7 +60,6 @@
   - Converte `dd/mm/yyyy - dd/mm/yyyy` para `yyyy-mm-dd` em dois destinos.
 - Auxiliares:
   - `item_routes.apply_filtros_request`: extrai filtros do `request.args`.
-  - `item_routes.XXXXXfiltra_transacao`: status, cliente, busca textual, pagamento (total/parcial/não pago).
 
 ## Mudança de Status
 
@@ -93,7 +89,7 @@
 ## Interligações Principais
 
 - Autenticação governa acesso (sessão: `logged_in`, `user_id`, `role`).
-- `field_config_table` controla campos dinâmicos por entidade/conta; inicializado no cadastro.
+- Campos por entidade vêm de schemas estáticos (`schemas.get_schema_fields`) e `key_values`.
 - Listagens refletem mudanças de status imediatamente e suportam filtros ricos.
 - Uploads de imagem enriquecem itens e permitem filtro por presença de imagem.
 - Stripe integra cadastro, ajustes e webhooks; `accounts_table.get_account_plan` diferencia recursos (`free` vs `business`).
@@ -103,8 +99,7 @@
 - Criar Item: `/add_item` → validações + upload → salva em `itens_table` → aparece em `/inventory`.
 - Criar Aluguel: `/rent` → cria/seleciona cliente e item → valida período/valores → salva em `transactions_table` → aparece em `/reserved`/`/rented`.
 - Devolver Item: `/mark_returned/<transaction_id>` → atualiza status/datas → some de `/rented` → aparece em `/returned`.
-- Editar Transação: `/edit_transaction/<id>` → carrega configs dinâmicas → valida período → atualiza transação e reservas do item.
-- Atualizar Campos Padrão: `/admin/update_fields_config` → mescla fixed defaults sem perder personalizados.
+- Editar Transação: `/edit_transaction/<id>` → valida período → atualiza transação e reservas do item.
 
 ---
 

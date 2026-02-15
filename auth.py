@@ -3,6 +3,7 @@ import uuid
 import secrets
 import datetime
 import pytz
+import re
 from utils import get_user_timezone
 from flask import session
 from flask import request
@@ -34,7 +35,7 @@ from utils import (
 
 
 def init_auth_routes(
-    app, users_table, reset_tokens_table, payment_transactions_table, field_config_table
+    app, users_table, reset_tokens_table, payment_transactions_table
 ):
     def _color_settings_key(account_id):
         return f"account_settings:{account_id}"
@@ -1318,7 +1319,6 @@ def init_auth_routes(
                 users_table=users_table,
                 app=app,
                 payment_transactions_table=payment_transactions_table,
-                field_config_table=field_config_table,
                 role="admin",
                 user_ip=get_user_ip(),
                 status=status,
@@ -1442,16 +1442,6 @@ def init_auth_routes(
 
 
 
-    @app.route("/admin/update_fields_config")
-    def update_fields_config():
-        flash("A configuração dinâmica de campos foi desativada.", "warning")
-        return redirect(url_for("admin_dashboard"))
-
-
-
-# from field_config_utils import get_default_fields_and_slugs
-
-
 def create_user(
     email,
     username,
@@ -1459,7 +1449,6 @@ def create_user(
     users_table,
     app,
     payment_transactions_table,
-    field_config_table,
     role="admin",
     user_ip=None,
     status="active",
@@ -1602,370 +1591,5 @@ def get_user_stats(
         print(f"Erro ao recuperar estatísticas do usuário: {e}")
         return None
 
-
-import re
-import unicodedata
-
-
-def get_default_fields_and_slugs(entity):
-    if entity == "item":
-        DEFAULT_FIELDS = {
-            "item_custom_id": {
-                "label": "Item Custom ID#",
-                "label_original": "Item Custom ID#",
-                "type": "item_custom_id",
-                "order_sequence": 1,
-                "filterable": True,
-                "preview": True,
-                "f_type": "fixed",
-                "required": True,
-            },
-            "item_description": {
-                "label": "Descrição do Item",
-                "label_original": "Descrição do Item",
-                "type": "item_description",
-                "order_sequence": 2,
-                "filterable": True,
-                "preview": True,
-                "f_type": "fixed",
-                "required": True,
-            },
-            "item_obs": {
-                "label": "Observações do Item",
-                "label_original": "Observações do Item",
-                "type": "item_obs",
-                "order_sequence": 3,
-                "filterable": True,
-                "preview": False,
-                "f_type": "fixed",
-            },
-            "item_value": {
-                "label": "Preço do aluguel",
-                "label_original": "Preço do aluguel",
-                "type": "item_value",
-                "order_sequence": 4,
-                "filterable": True,
-                "preview": True,
-                "f_type": "fixed",
-                "required": True,
-            },
-            "item_image_url": {
-                "label": "Imagem do Item",
-                "label_original": "Imagem do Item",
-                "type": "item_image_url",
-                "order_sequence": 5,
-                "filterable": True,
-                "preview": True,
-                "f_type": "fixed",
-            },
-        }
-
-    elif entity == "client":
-        DEFAULT_FIELDS = {
-            "client_name": {
-                "label": "Nome do Cliente",
-                "label_original": "Nome do Cliente",
-                "type": "client_name",
-                "order_sequence": 1,
-                "filterable": True,
-                "preview": True,
-                "f_type": "fixed",
-                "required": True,
-            },
-            "client_phone": {
-                "label": "Telefone do Cliente",
-                "label_original": "Telefone do Cliente",
-                "type": "client_phone",
-                "order_sequence": 2,
-                "filterable": True,
-                "preview": True,
-                "f_type": "fixed",
-            },
-            "client_email": {
-                "label": "E-mail do Cliente",
-                "label_original": "E-mail do Cliente",
-                "type": "client_email",
-                "order_sequence": 3,
-                "filterable": True,
-                "preview": True,
-                "f_type": "fixed",
-            },
-            "client_address": {
-                "label": "Endereço do Cliente",
-                "label_original": "Endereço do Cliente",
-                "type": "client_address",
-                "order_sequence": 4,
-                "filterable": True,
-                "preview": True,
-                "f_type": "fixed",
-            },
-            "client_cpf": {
-                "label": "CPF do Cliente",
-                "label_original": "CPF do Cliente",
-                "type": "client_cpf",
-                "order_sequence": 5,
-                "filterable": True,
-                "preview": True,
-                "f_type": "fixed",
-            },
-            "client_cnpj": {
-                "label": "CNPJ do Cliente",
-                "label_original": "CNPJ do Cliente",
-                "type": "client_cnpj",
-                "order_sequence": 6,
-                "filterable": True,
-                "preview": True,
-                "f_type": "fixed",
-            },
-            "client_notes": {
-                "label": "Observações do Cliente",
-                "label_original": "Observações do Cliente",
-                "type": "client_notes",
-                "order_sequence": 7,
-                "filterable": True,
-                "preview": False,
-                "f_type": "fixed",
-            },
-        }
-
-    elif entity == "transaction":
-        DEFAULT_FIELDS = {
-            "transaction_status": {
-                "label": "Status da Transação",
-                "label_original": "Status da Transação",
-                "type": "transaction_status",
-                "order_sequence": 1,
-                "filterable": True,
-                "preview": True,
-                "f_type": "fixed",
-                "options": ["reserved", "rented"],
-                "required": True,
-            },
-            "transaction_price": {
-                "label": "Preço final (R$)",
-                "label_original": "Preço aplicado (R$)",
-                "type": "transaction_price",
-                "order_sequence": 2,
-                "filterable": True,
-                "preview": True,
-                "f_type": "fixed",
-                "required": True,
-            },
-            "transaction_obs": {
-                "label": "Observações da Transação",
-                "label_original": "Observações da Transação",
-                "type": "transaction_obs",
-                "order_sequence": 3,
-                "filterable": True,
-                "preview": False,
-                "f_type": "fixed",
-                "required": False,
-            },
-            "transaction_value_paid": {
-                "label": "Valor já pago (R$)",
-                "label_original": "Valor já pago (R$)",
-                "type": "transaction_value_paid",
-                "order_sequence": 4,
-                "filterable": True,
-                "preview": True,
-                "f_type": "fixed",
-                "required": True,
-            },
-            "transaction_period": {
-                "label": "Período do aluguel",
-                "label_original": "Período do aluguel",
-                "type": "transaction_period",
-                "order_sequence": 5,
-                "filterable": True,
-                "preview": True,
-                "f_type": "fixed",
-                "required": True,
-            },
-             "transaction_ret_date": {
-                "label": "Retirado em",
-                "label_original": "Retirado em",
-                "type": "transaction_ret_date",
-                "order_sequence": 6,
-                "filterable": True,
-                "preview": True,
-                "f_type": "fixed",
-                "required": True,
-            },
-            "created_at": {
-                "label": "Criada em",
-                "label_original": "Criada em",
-                "type": "created_at",
-                "order_sequence": 7,
-                "filterable": True,
-                "preview": True,
-                "f_type": "fixed",
-                "required": True,
-            },
-            # Campos VISUAIS (item)
-            "item_custom_id": {
-                "label": "Item Custom ID#",
-                "label_original": "Item Custom ID#",
-                "type": "item_custom_id",
-                "order_sequence": 8,
-                "filterable": True,
-                "preview": True,
-                "f_type": "visual",
-                "required": False,
-                "source_entity": "item",
-                "source_field_id": "item_custom_id",
-            },
-            "item_description": {
-                "label": "Descrição do Item",
-                "label_original": "Descrição do Item",
-                "type": "item_description",
-                "order_sequence": 9,
-                "filterable": True,
-                "preview": True,
-                "f_type": "visual",
-                "required": False,
-                "source_entity": "item",
-                "source_field_id": "item_description",
-            },
-            "item_obs": {
-                "label": "Observações do Item",
-                "label_original": "Observações do Item",
-                "type": "item_obs",
-                "order_sequence": 10,
-                "filterable": True,
-                "preview": False,
-                "f_type": "visual",
-                "required": False,
-                "source_entity": "item",
-                "source_field_id": "item_obs",
-            },
-            "item_value": {
-                "label": "Preço do aluguel",
-                "label_original": "Preço do aluguel",
-                "type": "item_value",
-                "order_sequence": 11,
-                "filterable": True,
-                "preview": True,
-                "f_type": "visual",
-                "required": False,
-                "source_entity": "item",
-                "source_field_id": "item_value",
-            },
-            "item_image_url": {
-                "label": "Imagem do Item",
-                "label_original": "Imagem do Item",
-                "type": "item_image_url",
-                "order_sequence": 12,
-                "filterable": True,
-                "preview": True,
-                "f_type": "visual",
-                "source_entity": "item",
-                "source_field_id": "item_image_url",
-                "required": False,
-            },
-            # Campos VISUAIS (client)
-            "client_name": {
-                "label": "Nome do Cliente",
-                "label_original": "Nome do Cliente",
-                "type": "client_name",
-                "order_sequence": 13,
-                "filterable": True,
-                "preview": True,
-                "f_type": "visual",
-                "required": False,
-                "source_entity": "client",
-                "source_field_id": "client_name",
-            },
-            "client_phone": {
-                "label": "Telefone do Cliente",
-                "label_original": "Telefone do Cliente",
-                "type": "client_phone",
-                "order_sequence": 14,
-                "filterable": True,
-                "preview": True,
-                "f_type": "visual",
-                "source_entity": "client",
-                "source_field_id": "client_phone",
-                "required": False,
-            },
-            "client_email": {
-                "label": "E-mail do Cliente",
-                "label_original": "E-mail do Cliente",
-                "type": "client_email",
-                "order_sequence": 15,
-                "filterable": True,
-                "preview": False,
-                "f_type": "visual",
-                "source_entity": "client",
-                "source_field_id": "client_email",
-                "required": False,
-            },
-            "client_address": {
-                "label": "Endereço do Cliente",
-                "label_original": "Endereço do Cliente",
-                "type": "client_address",
-                "order_sequence": 16,
-                "filterable": True,
-                "preview": False,
-                "f_type": "visual",
-                "source_entity": "client",
-                "source_field_id": "client_address",
-                "required": False,
-            },
-            "client_cpf": {
-                "label": "CPF do Cliente",
-                "label_original": "CPF do Cliente",
-                "type": "client_cpf",
-                "order_sequence": 17,
-                "filterable": True,
-                "preview": False,
-                "f_type": "visual",
-                "source_entity": "client",
-                "source_field_id": "client_cpf",
-                "required": False,
-            },
-            "client_cnpj": {
-                "label": "CNPJ do Cliente",
-                "label_original": "CNPJ do Cliente",
-                "type": "client_cnpj",
-                "order_sequence": 18,
-                "filterable": True,
-                "preview": False,
-                "f_type": "visual",
-                "source_entity": "client",
-                "source_field_id": "client_cnpj",
-                "required": False,
-            },
-            "client_notes": {
-                "label": "Observações do cliente",
-                "label_original": "Observações do cliente",
-                "type": "client_notes",
-                "order_sequence": 19,
-                "filterable": True,
-                "preview": False,
-                "f_type": "visual",
-                "source_entity": "client",
-                "source_field_id": "client_notes",
-                "required": False,
-            },
-        }
-
-
-    else:
-        raise ValueError(f"Entidade desconhecida: {entity}")
-
-    # Finaliza os campos para persistência, adicionando garantias padrões
-    finalized_fields_config = {
-        field_id: {
-            **field_data,
-            "visible": True,
-            "required": field_data.get("required", False),
-            "options": field_data.get(
-                "options", []
-            ),  # Garante compatibilidade futura com dropdowns
-        }
-        for field_id, field_data in DEFAULT_FIELDS.items()
-    }
-
-    return finalized_fields_config
 
 

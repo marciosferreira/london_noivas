@@ -99,15 +99,6 @@
                   Estatísticas da conta
                 </a>
               </li>
-              <li>
-                <a
-                  class="dropdown-item {% if request.endpoint == 'custom_fields' %}active{% endif %}"
-                  href="{{ url_for('custom_fields', entity='item') }}"
-                >
-                  <i class="fas fa-sliders-h me-2"></i>
-                  Customizar campos
-                </a>
-              </li>
 
               <li>
                 <a class="dropdown-item {% if request.endpoint == 'archive' %}active{% endif %}" href="{{ url_for('archive') }}">

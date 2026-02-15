@@ -54,8 +54,6 @@ def init_item_routes(
     users_table,
     text_models_table,
     payment_transactions_table,
-    custom_fields_table,
-    field_config_table,
 ):
 
     @app.route("/rented")
@@ -65,10 +63,9 @@ def init_item_routes(
             "rented.html",
             "Itens retirados",
             transactions_table,
-            itens_table,
             users_table,
+            itens_table,
             text_models_table,
-            field_config_table,
             page="rented",
         )
 
@@ -82,7 +79,6 @@ def init_item_routes(
             users_table,
             itens_table,
             text_models_table,
-            field_config_table,
             page="reserved",
         )
 
@@ -96,7 +92,6 @@ def init_item_routes(
             users_table,
             itens_table,
             text_models_table,
-            field_config_table,
             page="all_transactions",
         )
 
@@ -110,7 +105,6 @@ def init_item_routes(
             users_table,
             itens_table,
             text_models_table,
-            field_config_table,
             page="returned",
         )
 
@@ -124,7 +118,6 @@ def init_item_routes(
             transactions_table,
             users_table,
             payment_transactions_table,
-            field_config_table,
         )
 
     @app.route("/trash_itens")
@@ -137,7 +130,6 @@ def init_item_routes(
             transactions_table,
             users_table,
             payment_transactions_table,
-            field_config_table,
         )
 
     @app.route("/trash_transactions")
@@ -150,7 +142,6 @@ def init_item_routes(
             users_table,
             itens_table,
             text_models_table,
-            field_config_table,
             page="trash_transactions",
         )
 
@@ -164,7 +155,6 @@ def init_item_routes(
             transactions_table,
             users_table,
             payment_transactions_table,
-            field_config_table,
             entity="item",
         )
 
@@ -261,7 +251,7 @@ def init_item_routes(
 
 
 
-            all_fields = get_all_fields(account_id, field_config_table, "item")
+            all_fields = get_all_fields("item")
             color_options = _load_color_options_for_account(account_id)
             size_options = _load_size_options_for_account(account_id)
 
@@ -658,7 +648,7 @@ def init_item_routes(
         size_options = _load_size_options_for_account(account_id)
 
 
-        all_fields = get_all_fields(account_id, field_config_table, "item")
+        all_fields = get_all_fields("item")
         
         # Filtra campos indesejados (ex: category_raw)
         all_fields = [f for f in all_fields if f["id"] not in ["category_raw", "category", "categoria", "category_label", "item_category"]]
@@ -1038,11 +1028,11 @@ def init_item_routes(
             # Campos configuráveis de todas as entidades
             # Carrega e filtra campos
             transaction_fields = [
-                field for field in get_all_fields(account_id, field_config_table, entity="transaction")
+                field for field in get_all_fields("transaction")
                 if field.get("f_type") != "visual"
             ]
-            client_fields = get_all_fields(account_id, field_config_table, entity="client")
-            item_fields = get_all_fields(account_id, field_config_table, entity="item")
+            client_fields = get_all_fields("client")
+            item_fields = get_all_fields("item")
 
             # Junta tudo (sem deduplicação)
             all_fields = transaction_fields + client_fields + item_fields
@@ -1222,25 +1212,16 @@ def init_item_routes(
             response = clients_table.get_item(Key={"client_id": client_id})
             client = response.get("Item") or {}
 
-        test = get_all_fields(account_id, field_config_table, entity="transaction")
-        print("uuuuuuuu")
-        print(test)
-        print("xxxxxxxx")
-
-
         # Carrega todos os campos das três entidades, exceto os campos de visualização de transaction
         transaction_fields = [
-            field for field in get_all_fields(account_id, field_config_table, entity="transaction")
+            field for field in get_all_fields("transaction")
             if field.get("f_type") != "visual"
         ]
-        client_fields = get_all_fields(account_id, field_config_table, entity="client")
-        item_fields = get_all_fields(account_id, field_config_table, entity="item")
+        client_fields = get_all_fields("client")
+        item_fields = get_all_fields("item")
 
         # Junta tudo (sem deduplicação)
         all_fields = transaction_fields + client_fields + item_fields
-
-        print(all_fields)
-
 
         # Totais para controle de plano
         total_relevant_transactions = 0
@@ -2145,18 +2126,6 @@ def init_item_routes(
             print(f"Error incrementing visit count for item {item_id}: {e}")
             return jsonify({"error": str(e)}), 500
 
-    @app.route("/custom_fields/<entity>", methods=["GET", "POST"])
-    def custom_fields(entity):
-        if not session.get("logged_in"):
-            return redirect(url_for("login"))
-
-        if request.method == "POST":
-            flash("A configuração dinâmica de campos foi desativada.", "warning")
-            return redirect(request.url)
-
-        all_fields = schemas.get_schema_fields(entity)
-        return render_template("custom_fields.html", entity=entity, all_fields=all_fields)
-
 
 import base64
 
@@ -2180,10 +2149,9 @@ def list_transactions(
     users_table,
     itens_table,
     text_models_table,
-    field_config_table,
-    client_id= None,
-    item_id = None,
-    transaction_id = None,
+    client_id=None,
+    item_id=None,
+    transaction_id=None,
     page=None,
     limit=6,
 ):
@@ -2503,7 +2471,6 @@ def list_raw_itens(
     transactions_table,
     users_table,
     payment_transactions_table,
-    field_config_table,
     limit=6,
     entity="item",
 ):
@@ -2567,7 +2534,7 @@ def list_raw_itens(
     color_options = _load_color_options_for_account(account_id)
     size_options = _load_size_options_for_account(account_id)
 
-    fields_config = get_all_fields(account_id, field_config_table, entity)
+    fields_config = get_all_fields(entity)
 
     force_no_next = request.args.get("force_no_next")
     current_path = request.path
@@ -2806,12 +2773,6 @@ def list_raw_itens(
 
     fields_config = sorted(fields_config, key=lambda x: x["order_sequence"])
 
-    custom_fields_preview = [
-        {"field_id": field["id"], "title": field["label"]}
-        for field in fields_config
-        if field.get("preview") == True
-    ]
-
     return render_template(
         template,
         itens=valid_itens,
@@ -2822,7 +2783,6 @@ def list_raw_itens(
         next_url=request.url,
         current_page=current_page,
         fields_config=fields_config,
-        custom_fields_preview=custom_fields_preview,
         has_next=has_next,
         has_prev=current_page > 1,
         color_options=color_options,
@@ -2831,60 +2791,6 @@ def list_raw_itens(
 
 
 
-
-
-def XXXXXfiltra_transacao(txn, filtros, client_id, status_list):
-    # 1. Filtro obrigatório: status da transação
-    if txn.get("transaction_status") not in status_list:
-        return False
-
-    # 2. Filtro explícito por client_id (se vier da rota, por exemplo)
-    if client_id and txn.get("client_id") != client_id:
-        return False
-
-    # 3. Filtros de campos de texto (case insensitive)
-    campos_texto = [
-        ("description", "description"),
-        ("item_obs", "item_obs"),
-        ("item_custom_id", "item_custom_id"),
-        ("item_id", "item_id"),
-        ("client_id", "client_id"),
-        ("client_name", "client_name"),
-        ("client_email", "client_email"),
-        ("client_cpf", "client_cpf"),
-        ("client_cnpj", "client_cnpj"),
-        ("client_address", "client_address"),
-        ("client_obs", "client_obs"),
-        ("transaction_obs", "transaction_obs"),
-        ("transaction_status", "transaction_status"),
-    ]
-
-    for campo_filtro, campo_txn in campos_texto:
-        filtro_valor = (filtros.get(campo_filtro) or "").strip().lower()
-        campo_valor = (txn.get(campo_txn) or "").strip().lower()
-
-        if filtro_valor and filtro_valor not in campo_valor:
-            return False
-
-    # 4. Filtro de pagamento (pago total, parcial, não pago)
-    pagamento_raw = txn.get("pagamento")
-    valor_raw = txn.get("valor")
-    try:
-        pagamento = float(pagamento_raw or 0)
-        valor = float(valor_raw or 0)
-    except (TypeError, ValueError):
-        return False
-
-    filtro_pagamento = (filtros.get("payment") or "").strip().lower()
-    if filtro_pagamento == "pago total" and pagamento < valor:
-        return False
-    elif filtro_pagamento == "pago parcial" and (pagamento == 0 or pagamento >= valor):
-        return False
-    elif filtro_pagamento == "não pago" and pagamento > 0:
-        return False
-
-    # 🔥 Se passou em tudo
-    return True
 
 
 def parse_date(date_str):
@@ -2918,17 +2824,5 @@ def apply_filtros_request():
 from boto3.dynamodb.conditions import Key
 
 
-def get_fields_config(account_id, field_config_table):
-    """
-    Mantido por compatibilidade: a configuração agora é estática (schemas.py).
-    """
-    return schemas.get_schema_fields("item")
-
-
-def get_all_fields(account_id, field_config_table, entity):
-    """
-    Retorna a lista de campos definida no schema estático (schemas.py).
-    Ignora field_config_table e account_id, mantendo a assinatura para compatibilidade
-    com chamadas existentes até refatoração completa.
-    """
+def get_all_fields(entity):
     return schemas.get_schema_fields(entity)

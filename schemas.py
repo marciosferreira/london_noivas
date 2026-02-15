@@ -1,13 +1,13 @@
 # schemas.py
 
 # Definição dos campos para cada entidade (Item, Cliente, Transação)
-# Isso substitui a configuração dinâmica no DynamoDB (field_config_table)
+# Isso substitui a configuração dinâmica antiga
 
 ITEM_FIELDS = [
     {
         "id": "item_custom_id",
         "label": "Código do Item",
-        "type": "text",
+        "type": "item_custom_id",
         "visible": True,
         "fixed": True,
         "required": False, # Gerado automaticamente se vazio
@@ -59,7 +59,7 @@ ITEM_FIELDS = [
     {
         "id": "item_description",
         "label": "Descrição",
-        "type": "text",
+        "type": "item_description",
         "visible": True,
         "fixed": True,
         "required": False,
@@ -72,7 +72,7 @@ ITEM_FIELDS = [
     {
         "id": "item_value",
         "label": "Valor de Aluguel (R$)",
-        "type": "value",
+        "type": "item_value",
         "visible": True,
         "fixed": True,
         "required": True,
@@ -114,7 +114,7 @@ CLIENT_FIELDS = [
     {
         "id": "client_name",
         "label": "Nome Completo",
-        "type": "text",
+        "type": "client_name",
         "visible": True,
         "fixed": True,
         "required": True,
@@ -127,7 +127,7 @@ CLIENT_FIELDS = [
     {
         "id": "client_phone",
         "label": "Telefone / WhatsApp",
-        "type": "phone",
+        "type": "client_phone",
         "visible": True,
         "fixed": True,
         "required": True,
@@ -140,7 +140,7 @@ CLIENT_FIELDS = [
     {
         "id": "client_email",
         "label": "Email",
-        "type": "email",
+        "type": "client_email",
         "visible": True,
         "fixed": True,
         "required": False,
@@ -153,7 +153,7 @@ CLIENT_FIELDS = [
     {
         "id": "client_cpf",
         "label": "CPF",
-        "type": "cpf",
+        "type": "client_cpf",
         "visible": True,
         "fixed": True,
         "required": False,
@@ -166,7 +166,7 @@ CLIENT_FIELDS = [
     {
         "id": "client_address",
         "label": "Endereço",
-        "type": "text",
+        "type": "client_address",
         "visible": True,
         "fixed": True,
         "required": False,
@@ -221,7 +221,7 @@ TRANSACTION_FIELDS = [
     {
         "id": "transaction_obs",
         "label": "Observações da Transação",
-        "type": "item_obs",
+        "type": "transaction_obs",
         "visible": True,
         "fixed": True,
         "required": False,

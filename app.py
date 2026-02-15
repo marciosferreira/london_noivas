@@ -32,8 +32,6 @@ clients_table = dynamodb.Table("alugueqqc_clients")
 reset_tokens_table = dynamodb.Table("RentqqcResetTokens")
 text_models_table = dynamodb.Table("alugue_qqc_text_models")
 payment_transactions = dynamodb.Table("alugueqqc_payment_transactions")
-custom_fields_table = dynamodb.Table("alugueqqc_custom_fields")
-field_config_table = dynamodb.Table("alugueqqc_field_config_table")
 fittings_table = dynamodb.Table("alugueqqc_fittings_table")
 
 
@@ -82,7 +80,7 @@ from ai_routes import ai_bp
 app.register_blueprint(ai_bp)
 
 init_auth_routes(
-    app, users_table, reset_tokens_table, payment_transactions, field_config_table
+    app, users_table, reset_tokens_table, payment_transactions
 )
 init_item_routes(
     app,
@@ -94,8 +92,6 @@ init_item_routes(
     users_table,
     text_models_table,
     payment_transactions,
-    custom_fields_table,
-    field_config_table,
 )
 init_status_routes(app, itens_table, transactions_table, users_table)
 init_transaction_routes(
@@ -108,7 +104,6 @@ init_client_routes(
     itens_table,
     users_table,
     text_models_table,
-    field_config_table,
 )
 
 
@@ -121,7 +116,6 @@ init_static_routes(
     text_models_table,
     users_table,
     payment_transactions,
-    field_config_table,
 )
 
 # Provas e Agenda
