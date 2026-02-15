@@ -182,6 +182,55 @@ def init_item_routes(
         user_id = session.get("user_id")
         account_id = session.get("account_id")
 
+        def _load_color_options_for_account(account_id):
+            if not account_id:
+                return []
+            resp = users_table.get_item(Key={"user_id": f"account_settings:{account_id}"})
+            item = resp.get("Item") or {}
+            colors = item.get("color_options")
+            if not isinstance(colors, list):
+                return []
+            cleaned = []
+            seen = set()
+            for c in colors:
+                if c is None:
+                    continue
+                s = str(c).strip()
+                if not s:
+                    continue
+                k = s.casefold()
+                if k in seen:
+                    continue
+                seen.add(k)
+                cleaned.append(s)
+            return sorted(cleaned, key=lambda x: x.casefold())
+
+        def _default_size_options():
+            return ["P", "M", "G", "Extra G"]
+
+        def _load_size_options_for_account(account_id):
+            if not account_id:
+                return _default_size_options()
+            resp = users_table.get_item(Key={"user_id": f"account_settings:{account_id}"})
+            item = resp.get("Item") or {}
+            sizes = item.get("size_options")
+            if not isinstance(sizes, list):
+                return _default_size_options()
+            cleaned = []
+            seen = set()
+            for s in sizes:
+                if s is None:
+                    continue
+                val = str(s).strip()
+                if not val:
+                    continue
+                k = val.casefold()
+                if k in seen:
+                    continue
+                seen.add(k)
+                cleaned.append(val)
+            return sorted(cleaned, key=lambda x: x.casefold())
+
         # -------------------------- GET --------------------------
         if request.method == "GET":
 
@@ -213,9 +262,19 @@ def init_item_routes(
 
 
             all_fields = get_all_fields(account_id, field_config_table, "item")
+            color_options = _load_color_options_for_account(account_id)
+            size_options = _load_size_options_for_account(account_id)
 
             return render_template(
-                "add_item.html", next=next_page, all_fields=all_fields, total_itens=total_itens, current_stripe_transaction=current_stripe_transaction, title=title, item={}
+                "add_item.html",
+                next=next_page,
+                all_fields=all_fields,
+                total_itens=total_itens,
+                current_stripe_transaction=current_stripe_transaction,
+                title=title,
+                item={},
+                color_options=color_options,
+                size_options=size_options,
             )
         # -------------------------- POST --------------------------
         if request.method == "POST":
@@ -324,7 +383,9 @@ def init_item_routes(
                         all_fields=all_fields,
                         current_stripe_transaction=get_latest_transaction(user_id, users_table, payment_transactions_table),
                         title=title,
-                        item={**item_data}
+                        item={**item_data},
+                        color_options=_load_color_options_for_account(account_id),
+                        size_options=_load_size_options_for_account(account_id),
                     )
 
             # 🔒 Verifica se item_custom_id já existe **ANTES** de salvar
@@ -346,7 +407,9 @@ def init_item_routes(
                         all_fields=all_fields,
                         current_stripe_transaction=get_latest_transaction(user_id, users_table, payment_transactions_table),
                         title=title,
-                        item={**item_data}
+                        item={**item_data},
+                        color_options=_load_color_options_for_account(account_id),
+                        size_options=_load_size_options_for_account(account_id),
                     )
 
 
@@ -535,12 +598,64 @@ def init_item_routes(
         next_page = request.args.get("next", url_for("index"))
         account_id = session.get("account_id")
 
+        def _load_color_options_for_account(account_id):
+            if not account_id:
+                return []
+            resp = users_table.get_item(Key={"user_id": f"account_settings:{account_id}"})
+            item = resp.get("Item") or {}
+            colors = item.get("color_options")
+            if not isinstance(colors, list):
+                return []
+            cleaned = []
+            seen = set()
+            for c in colors:
+                if c is None:
+                    continue
+                s = str(c).strip()
+                if not s:
+                    continue
+                k = s.casefold()
+                if k in seen:
+                    continue
+                seen.add(k)
+                cleaned.append(s)
+            return sorted(cleaned, key=lambda x: x.casefold())
+
+        def _default_size_options():
+            return ["P", "M", "G", "Extra G"]
+
+        def _load_size_options_for_account(account_id):
+            if not account_id:
+                return _default_size_options()
+            resp = users_table.get_item(Key={"user_id": f"account_settings:{account_id}"})
+            item = resp.get("Item") or {}
+            sizes = item.get("size_options")
+            if not isinstance(sizes, list):
+                return _default_size_options()
+            cleaned = []
+            seen = set()
+            for s in sizes:
+                if s is None:
+                    continue
+                val = str(s).strip()
+                if not val:
+                    continue
+                k = val.casefold()
+                if k in seen:
+                    continue
+                seen.add(k)
+                cleaned.append(val)
+            return sorted(cleaned, key=lambda x: x.casefold())
+
         # Buscar item existente
         response = itens_table.get_item(Key={"item_id": item_id})
         item = response.get("Item")
         if not item:
             flash("Item não encontrado.", "danger")
             return redirect(url_for("inventory"))
+
+        color_options = _load_color_options_for_account(account_id)
+        size_options = _load_size_options_for_account(account_id)
 
 
         all_fields = get_all_fields(account_id, field_config_table, "item")
@@ -654,6 +769,8 @@ def init_item_routes(
                         "edit_item.html",
                         item={**item, **updates},
                         all_fields=all_fields,
+                        color_options=color_options,
+                        size_options=size_options,
                         next=next_page,
                         title="Editar item",
                     )
@@ -792,6 +909,49 @@ def init_item_routes(
             prepared[field_id] = item.get(field_id, "")
 
         prepared["item_id"] = item["item_id"]
+
+        def _first_color_value(value):
+            if value is None:
+                return ""
+            if isinstance(value, str):
+                return value.strip()
+            if isinstance(value, (list, tuple, set)):
+                for v in value:
+                    picked = _first_color_value(v)
+                    if picked:
+                        return picked
+                return ""
+            return str(value).strip()
+
+        if not _first_color_value(prepared.get("cor")):
+            prepared["cor"] = _first_color_value(
+                item.get("cor")
+                or item.get("cores")
+                or item.get("color")
+                or item.get("item_cor")
+                or item.get("item_color")
+            )
+
+        def _first_size_value(value):
+            if value is None:
+                return ""
+            if isinstance(value, str):
+                return value.strip()
+            if isinstance(value, (list, tuple, set)):
+                for v in value:
+                    picked = _first_size_value(v)
+                    if picked:
+                        return picked
+                return ""
+            return str(value).strip()
+
+        if not _first_size_value(prepared.get("tamanho")):
+            prepared["tamanho"] = _first_size_value(
+                item.get("tamanho")
+                or item.get("size")
+                or item.get("item_tamanho")
+                or item.get("item_size")
+            )
         
         # Adiciona flags de ocasião manualmente
         occasions = ["madrinha", "formatura", "gala", "debutante", "convidada", "mae_dos_noivos", "noiva", "civil"]
@@ -805,8 +965,42 @@ def init_item_routes(
         origin_status = "available" if origin == "inventory" else "archive"
         title = "Editar item em inventário" if origin_status == "available" else "Editar item em arquivo"
 
+        if color_options:
+            current_color = (
+                prepared.get("cor")
+                or prepared.get("color")
+                or prepared.get("item_cor")
+                or prepared.get("item_color")
+            )
+            if current_color:
+                current_color_str = _first_color_value(current_color)
+                if current_color_str:
+                    key = current_color_str.casefold()
+                    if all(str(c).strip().casefold() != key for c in color_options):
+                        color_options = sorted([*color_options, current_color_str], key=lambda x: x.casefold())
+
+        if size_options:
+            current_size = (
+                prepared.get("tamanho")
+                or prepared.get("size")
+                or prepared.get("item_tamanho")
+                or prepared.get("item_size")
+            )
+            if current_size:
+                current_size_str = _first_size_value(current_size)
+                if current_size_str:
+                    key = current_size_str.casefold()
+                    if all(str(s).strip().casefold() != key for s in size_options):
+                        size_options = sorted([*size_options, current_size_str], key=lambda x: x.casefold())
+
         return render_template(
-            "edit_item.html", item=prepared, all_fields=all_fields, next=next_page, title=title,
+            "edit_item.html",
+            item=prepared,
+            all_fields=all_fields,
+            color_options=color_options,
+            size_options=size_options,
+            next=next_page,
+            title=title,
         )
 
     ##################################################################################################
@@ -2321,6 +2515,58 @@ def list_raw_itens(
         print("Erro: Usuário não autenticado corretamente.")
         return redirect(url_for("login"))
 
+    def _default_size_options():
+        return ["P", "M", "G", "Extra G"]
+
+    def _load_color_options_for_account(account_id):
+        if not account_id:
+            return []
+        resp = users_table.get_item(Key={"user_id": f"account_settings:{account_id}"})
+        item = resp.get("Item") or {}
+        colors = item.get("color_options")
+        if not isinstance(colors, list):
+            return []
+        cleaned = []
+        seen = set()
+        for c in colors:
+            if c is None:
+                continue
+            s = str(c).strip()
+            if not s:
+                continue
+            k = s.casefold()
+            if k in seen:
+                continue
+            seen.add(k)
+            cleaned.append(s)
+        return sorted(cleaned, key=lambda x: x.casefold())
+
+    def _load_size_options_for_account(account_id):
+        if not account_id:
+            return _default_size_options()
+        resp = users_table.get_item(Key={"user_id": f"account_settings:{account_id}"})
+        item = resp.get("Item") or {}
+        sizes = item.get("size_options")
+        if not isinstance(sizes, list):
+            return _default_size_options()
+        cleaned = []
+        seen = set()
+        for s in sizes:
+            if s is None:
+                continue
+            val = str(s).strip()
+            if not val:
+                continue
+            k = val.casefold()
+            if k in seen:
+                continue
+            seen.add(k)
+            cleaned.append(val)
+        return sorted(cleaned, key=lambda x: x.casefold())
+
+    color_options = _load_color_options_for_account(account_id)
+    size_options = _load_size_options_for_account(account_id)
+
     fields_config = get_all_fields(account_id, field_config_table, entity)
 
     force_no_next = request.args.get("force_no_next")
@@ -2390,6 +2636,8 @@ def list_raw_itens(
                     itens_count=1,
                     current_page=1,
                     fields_config=fields_config,
+                    color_options=color_options,
+                    size_options=size_options,
                 )
             else:
                 flash("Item não encontrado ou já deletado.", "warning")
@@ -2577,6 +2825,8 @@ def list_raw_itens(
         custom_fields_preview=custom_fields_preview,
         has_next=has_next,
         has_prev=current_page > 1,
+        color_options=color_options,
+        size_options=size_options,
     )
 
 

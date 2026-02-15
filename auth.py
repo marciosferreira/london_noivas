@@ -8,7 +8,6 @@ from flask import session
 from flask import request
 import json
 import requests
-import stripe
 from boto3.dynamodb.conditions import Key
 import os
 from urllib.parse import urlparse
@@ -37,6 +36,104 @@ from utils import (
 def init_auth_routes(
     app, users_table, reset_tokens_table, payment_transactions_table, field_config_table
 ):
+    def _color_settings_key(account_id):
+        return f"account_settings:{account_id}"
+
+    def _default_size_options():
+        return ["P", "M", "G", "Extra G"]
+
+    def _load_color_options(account_id):
+        if not account_id:
+            return []
+        resp = users_table.get_item(Key={"user_id": _color_settings_key(account_id)})
+        item = resp.get("Item") or {}
+        colors = item.get("color_options")
+        if not isinstance(colors, list):
+            return []
+
+        out = []
+        seen = set()
+        for c in colors:
+            if c is None:
+                continue
+            s = str(c).strip()
+            if not s:
+                continue
+            k = s.casefold()
+            if k in seen:
+                continue
+            seen.add(k)
+            out.append(s)
+        return sorted(out, key=lambda x: str(x).casefold())
+
+    def _save_color_options(account_id, colors):
+        if not account_id:
+            raise ValueError("account_id não encontrado na sessão.")
+        cleaned = []
+        seen = set()
+        for c in colors or []:
+            if c is None:
+                continue
+            s = str(c).strip()
+            if not s:
+                continue
+            k = s.casefold()
+            if k in seen:
+                continue
+            seen.add(k)
+            cleaned.append(s)
+        users_table.update_item(
+            Key={"user_id": _color_settings_key(account_id)},
+            UpdateExpression="SET color_options = :c",
+            ExpressionAttributeValues={":c": cleaned},
+        )
+
+    def _load_size_options(account_id):
+        if not account_id:
+            return _default_size_options()
+        resp = users_table.get_item(Key={"user_id": _color_settings_key(account_id)})
+        item = resp.get("Item") or {}
+        sizes = item.get("size_options")
+        if not isinstance(sizes, list):
+            return _default_size_options()
+
+        out = []
+        seen = set()
+        for s in sizes:
+            if s is None:
+                continue
+            val = str(s).strip()
+            if not val:
+                continue
+            k = val.casefold()
+            if k in seen:
+                continue
+            seen.add(k)
+            out.append(val)
+        return out
+
+    def _save_size_options(account_id, sizes):
+        if not account_id:
+            raise ValueError("account_id não encontrado na sessão.")
+        cleaned = []
+        seen = set()
+        for s in sizes or []:
+            if s is None:
+                continue
+            val = str(s).strip()
+            if not val:
+                continue
+            k = val.casefold()
+            if k in seen:
+                continue
+            seen.add(k)
+            cleaned.append(val)
+        users_table.update_item(
+            Key={"user_id": _color_settings_key(account_id)},
+            UpdateExpression="SET size_options = :s",
+            ExpressionAttributeValues={":s": cleaned},
+        )
+
     # Registration route
     @app.route("/register", methods=["GET", "POST"])
     def register():
@@ -61,17 +158,17 @@ def init_auth_routes(
 
         next_url = _safe_next_url(request.args.get("next") or request.form.get("next"))
 
-        if session.get("logged_in"):  # Verifica se o usuário já está logado
-            # flash("Você já está logado!", "info")
+        if session.get("logged_in") and request.method == "GET":
             return redirect(next_url or _default_redirect_for_role(session.get("role")))
 
         remember_me = request.form.get("remember_me")
 
         if request.method == "POST":
+            if session.get("logged_in"):
+                session.clear()
             email = request.form.get("email")
             password = request.form.get("password")
 
-            # Passo 1: Buscar o user_id pelo email no GSI
             response = users_table.query(
                 IndexName="email-index",
                 KeyConditionExpression="email = :email",
@@ -86,61 +183,79 @@ def init_auth_routes(
                 )
                 return redirect(url_for("login"))
 
-            user_id = items[0]["user_id"]
+            user = None
+            stored_hash = None
+            user_id = None
+            candidates = []
+            for candidate in items:
+                candidate_user_id = candidate.get("user_id")
+                if not candidate_user_id:
+                    continue
+                resp = users_table.get_item(Key={"user_id": candidate_user_id})
+                candidate_user = resp.get("Item")
+                if not candidate_user:
+                    continue
+                candidates.append(candidate_user)
 
-            # Passo 2: Buscar os dados completos do usuário
-            response = users_table.get_item(Key={"user_id": user_id})
-            if "Item" not in response:
+            for candidate_user in candidates:
+                if candidate_user.get("role") != "general_admin":
+                    continue
+                candidate_hash = candidate_user.get("password_hash")
+                if candidate_hash and check_password_hash(candidate_hash, password):
+                    user = candidate_user
+                    stored_hash = candidate_hash
+                    user_id = candidate_user.get("user_id")
+                    break
+
+            if not user:
+                for candidate_user in candidates:
+                    candidate_hash = candidate_user.get("password_hash")
+                    if candidate_hash and check_password_hash(candidate_hash, password):
+                        user = candidate_user
+                        stored_hash = candidate_hash
+                        user_id = candidate_user.get("user_id")
+                        break
+
+            if not user:
                 flash(
                     "E-mail ou senha incorretos.",
                     "danger",
                 )
                 return redirect(url_for("login"))
 
-            user = response["Item"]
-            stored_hash = user.get("password_hash")
             username = user.get("username")
             account_id = user.get("account_id")
             status = user.get("status", "active")
+            role = user.get("role", "user")
 
-            # Se status for "canceled", não permite login
             if status == "canceled":
                 flash("Conta cancelada. Será deletada em breve.", "danger")
                 return redirect(url_for("login"))
 
-            # Verifica se a senha está correta
-            if check_password_hash(stored_hash, password):
-
-                if remember_me:
-                    session.permanent = True
-                else:
-                    session.permanent = False
-
-                # Se o e-mail não estiver confirmado
-                if not user.get("email_confirmed", False):
-                    return redirect(
-                        url_for(
-                            "login",
-                            email_not_confirmed="true",
-                            email=email,
-                            next=next_url,
-                        )
+            if role != "general_admin" and status != "active":
+                if status == "pending":
+                    flash(
+                        "Conta aguardando aprovação do administrador. Entre em contato com o suporte.",
+                        "warning",
                     )
+                else:
+                    flash("Conta inativa. Entre em contato com o suporte.", "danger")
+                return redirect(url_for("login"))
 
-                session["logged_in"] = True
-                session["email"] = email
-                session["role"] = user.get("role", "user")
-                session["username"] = username
-                session["user_id"] = user_id
-                session["account_id"] = account_id
+            if remember_me:
+                session.permanent = True
+            else:
+                session.permanent = False
 
-                flash("Você está logado agora!", "info")
-                return redirect(next_url or _default_redirect_for_role(session.get("role")))
+            session["logged_in"] = True
+            session["email"] = user.get("email") or email
+            session["role"] = role
+            session["username"] = username
+            session["user_id"] = user_id
+            session["account_id"] = account_id
 
-            flash(
-                "E-mail ou senha incorretos.",
-                "danger",
-            )
+            flash("Você está logado agora!", "info")
+            return redirect(next_url or _default_redirect_for_role(session.get("role")))
 
         return render_template("login.html")
 
@@ -746,21 +861,10 @@ def init_auth_routes(
 
     @app.route("/logout")
     def logout():
-        # Armazena mensagens flash antes de limpar a sessão
+        session.clear()
         flash("Você saiu com sucesso!", "success")
-
-        session.pop("logged_in", None)
-
-        # Redireciona para a página inicial
         return redirect(url_for("index"))
         # User profile settings
-
-    from boto3.dynamodb.conditions import Key
-    from boto3.dynamodb.conditions import Key
-
-    from boto3.dynamodb.conditions import Key
-    from flask import redirect, url_for, render_template, request, flash, session
-    import stripe
 
     @app.route("/adjustments", methods=["GET", "POST"])
     def adjustments():
@@ -778,65 +882,28 @@ def init_auth_routes(
         username = user.get("username", "Usuário Desconhecido")
         user_email = user.get("email", "Usuário Desconhecido")
         current_timezone = user.get("timezone", "America/Sao_Paulo")
-        stripe_customer_id = user.get("stripe_customer_id")
+        can_manage_colors = session.get("role") in ["admin", "general_admin"]
+        can_manage_sizes = session.get("role") in ["admin", "general_admin"]
+        color_options = []
+        if can_manage_colors:
+            try:
+                color_options = _load_color_options(session.get("account_id"))
+            except Exception as e:
+                print(f"Erro ao carregar cores: {e}")
+                flash(f"Erro ao carregar cores: {e}", "danger")
+                color_options = []
 
-        # checa se o cliente tem cartao salvo
-        def cliente_tem_cartao(stripe_customer_id):
-            payment_methods = stripe.PaymentMethod.list(
-                customer=stripe_customer_id, type="card"
-            )
-            return len(payment_methods.data) > 0
+        size_options = []
+        if can_manage_sizes:
+            try:
+                size_options = _load_size_options(session.get("account_id"))
+            except Exception as e:
+                print(f"Erro ao carregar tamanhos: {e}")
+                flash(f"Erro ao carregar tamanhos: {e}", "danger")
+                size_options = []
 
         transactions = []
-        current_transaction = None
-
-        if stripe_customer_id:
-            try:
-                transactions_response = payment_transactions_table.query(
-                    IndexName="customer_id-index",
-                    KeyConditionExpression=Key("customer_id").eq(stripe_customer_id),
-                )
-                transactions = transactions_response.get("Items", [])
-
-                # Ordena do mais recente para o mais antigo
-                transactions.sort(key=lambda x: x.get("updated_at", 0), reverse=True)
-
-                # Encontra a transação mais recente com status válido
-                for tx in transactions:
-                    if tx.get("subscription_status") in [
-                        "trialing",
-                        "active",
-                        "past_due",
-                        "unpaid",
-                        "canceled",
-                        "paused",
-                    ]:
-                        current_transaction = tx
-                        break
-
-            except Exception as e:
-                print("🔴 Erro ao buscar transações:", e)
-                flash("Erro ao buscar dados de cobrança.", "danger")
-        # inserir info sobre se o cliente tem cartão cadastrado
-        if current_transaction:
-            current_transaction["has_card"] = cliente_tem_cartao(stripe_customer_id)
-
-        # Garante que current_transaction tenha todas as chaves esperadas
-        expected_keys = [
-            "subscription_status",
-            "created_at",
-            "current_period_end",
-            "payment_status",
-            "cancel_at_period_end",
-            "has_card",
-        ]
-
-        # Garante que current_transaction nunca seja None
-        current_transaction = current_transaction or {}
-
-        # Preenche valores ausentes com None
-        for key in expected_keys:
-            current_transaction.setdefault(key, None)
+        current_transaction = {}
 
         return render_template(
             "adjustments.html",
@@ -845,6 +912,10 @@ def init_auth_routes(
             current_timezone=current_timezone,
             current_transaction=current_transaction,
             transactions=transactions,
+            can_manage_colors=can_manage_colors,
+            color_options=color_options,
+            can_manage_sizes=can_manage_sizes,
+            size_options=size_options,
             timezones=[
                 "America/Sao_Paulo",
                 "America/Fortaleza",
@@ -860,6 +931,224 @@ def init_auth_routes(
             ],
         )
 
+    @app.route("/colors/add", methods=["POST"])
+    def add_color_option():
+        if not session.get("logged_in"):
+            return redirect(url_for("login"))
+
+        if session.get("role") not in ["admin", "general_admin"]:
+            flash("Você não tem permissão para acessar esta funcionalidade.", "danger")
+            return redirect(url_for("adjustments"))
+
+        raw = request.form.get("color", "")
+        color = str(raw).strip()
+        if not color:
+            flash("Informe uma cor válida.", "danger")
+            return redirect(url_for("adjustments"))
+
+        account_id = session.get("account_id")
+        existing = _load_color_options(account_id)
+        wanted_key = color.casefold()
+        if any(str(c).strip().casefold() == wanted_key for c in existing):
+            flash("Essa cor já existe.", "warning")
+            return redirect(url_for("adjustments"))
+
+        existing.append(color)
+        try:
+            _save_color_options(account_id, existing)
+            flash("Cor adicionada com sucesso.", "success")
+        except Exception as e:
+            print(f"Erro ao adicionar cor: {e}")
+            flash(f"Erro ao adicionar cor: {e}", "danger")
+        return redirect(url_for("adjustments"))
+
+    @app.route("/colors/delete", methods=["POST"])
+    def delete_color_option():
+        if not session.get("logged_in"):
+            return redirect(url_for("login"))
+
+        if session.get("role") not in ["admin", "general_admin"]:
+            flash("Você não tem permissão para acessar esta funcionalidade.", "danger")
+            return redirect(url_for("adjustments"))
+
+        raw = request.form.get("color", "")
+        color = str(raw).strip()
+        if not color:
+            flash("Informe uma cor válida.", "danger")
+            return redirect(url_for("adjustments"))
+
+        account_id = session.get("account_id")
+        existing = _load_color_options(account_id)
+        wanted_key = color.casefold()
+        next_colors = [c for c in existing if str(c).strip().casefold() != wanted_key]
+        if len(next_colors) == len(existing):
+            flash("Cor não encontrada.", "warning")
+            return redirect(url_for("adjustments"))
+
+        try:
+            _save_color_options(account_id, next_colors)
+            flash("Cor removida com sucesso.", "success")
+        except Exception as e:
+            print(f"Erro ao remover cor: {e}")
+            flash(f"Erro ao remover cor: {e}", "danger")
+        return redirect(url_for("adjustments"))
+
+    @app.route("/colors/edit", methods=["POST"])
+    def edit_color_option():
+        if not session.get("logged_in"):
+            return redirect(url_for("login"))
+
+        if session.get("role") not in ["admin", "general_admin"]:
+            flash("Você não tem permissão para acessar esta funcionalidade.", "danger")
+            return redirect(url_for("adjustments"))
+
+        old_raw = request.form.get("old_color", "")
+        new_raw = request.form.get("new_color", "")
+        old_color = str(old_raw).strip()
+        new_color = str(new_raw).strip()
+        if not old_color or not new_color:
+            flash("Informe uma cor válida.", "danger")
+            return redirect(url_for("adjustments"))
+
+        account_id = session.get("account_id")
+        existing = _load_color_options(account_id)
+        old_key = old_color.casefold()
+        new_key = new_color.casefold()
+
+        if old_key != new_key and any(str(c).strip().casefold() == new_key for c in existing):
+            flash("Essa cor já existe.", "warning")
+            return redirect(url_for("adjustments"))
+
+        updated = []
+        replaced = False
+        for c in existing:
+            if not replaced and str(c).strip().casefold() == old_key:
+                updated.append(new_color)
+                replaced = True
+            else:
+                updated.append(c)
+
+        if not replaced:
+            flash("Cor não encontrada.", "warning")
+            return redirect(url_for("adjustments"))
+
+        try:
+            _save_color_options(account_id, updated)
+            flash("Cor atualizada com sucesso.", "success")
+        except Exception as e:
+            print(f"Erro ao editar cor: {e}")
+            flash(f"Erro ao editar cor: {e}", "danger")
+        return redirect(url_for("adjustments"))
+
+    @app.route("/sizes/add", methods=["POST"])
+    def add_size_option():
+        if not session.get("logged_in"):
+            return redirect(url_for("login"))
+
+        if session.get("role") not in ["admin", "general_admin"]:
+            flash("Você não tem permissão para acessar esta funcionalidade.", "danger")
+            return redirect(url_for("adjustments"))
+
+        raw = request.form.get("size", "")
+        size = str(raw).strip()
+        if not size:
+            flash("Informe um tamanho válido.", "danger")
+            return redirect(url_for("adjustments"))
+
+        account_id = session.get("account_id")
+        existing = _load_size_options(account_id)
+        wanted_key = size.casefold()
+        if any(str(s).strip().casefold() == wanted_key for s in existing):
+            flash("Esse tamanho já existe.", "warning")
+            return redirect(url_for("adjustments"))
+
+        existing.append(size)
+        try:
+            _save_size_options(account_id, existing)
+            flash("Tamanho adicionado com sucesso.", "success")
+        except Exception as e:
+            print(f"Erro ao adicionar tamanho: {e}")
+            flash(f"Erro ao adicionar tamanho: {e}", "danger")
+        return redirect(url_for("adjustments"))
+
+    @app.route("/sizes/delete", methods=["POST"])
+    def delete_size_option():
+        if not session.get("logged_in"):
+            return redirect(url_for("login"))
+
+        if session.get("role") not in ["admin", "general_admin"]:
+            flash("Você não tem permissão para acessar esta funcionalidade.", "danger")
+            return redirect(url_for("adjustments"))
+
+        raw = request.form.get("size", "")
+        size = str(raw).strip()
+        if not size:
+            flash("Informe um tamanho válido.", "danger")
+            return redirect(url_for("adjustments"))
+
+        account_id = session.get("account_id")
+        existing = _load_size_options(account_id)
+        wanted_key = size.casefold()
+        next_sizes = [s for s in existing if str(s).strip().casefold() != wanted_key]
+        if len(next_sizes) == len(existing):
+            flash("Tamanho não encontrado.", "warning")
+            return redirect(url_for("adjustments"))
+
+        try:
+            _save_size_options(account_id, next_sizes)
+            flash("Tamanho removido com sucesso.", "success")
+        except Exception as e:
+            print(f"Erro ao remover tamanho: {e}")
+            flash(f"Erro ao remover tamanho: {e}", "danger")
+        return redirect(url_for("adjustments"))
+
+    @app.route("/sizes/edit", methods=["POST"])
+    def edit_size_option():
+        if not session.get("logged_in"):
+            return redirect(url_for("login"))
+
+        if session.get("role") not in ["admin", "general_admin"]:
+            flash("Você não tem permissão para acessar esta funcionalidade.", "danger")
+            return redirect(url_for("adjustments"))
+
+        old_raw = request.form.get("old_size", "")
+        new_raw = request.form.get("new_size", "")
+        old_size = str(old_raw).strip()
+        new_size = str(new_raw).strip()
+        if not old_size or not new_size:
+            flash("Informe um tamanho válido.", "danger")
+            return redirect(url_for("adjustments"))
+
+        account_id = session.get("account_id")
+        existing = _load_size_options(account_id)
+        old_key = old_size.casefold()
+        new_key = new_size.casefold()
+
+        if old_key != new_key and any(str(s).strip().casefold() == new_key for s in existing):
+            flash("Esse tamanho já existe.", "warning")
+            return redirect(url_for("adjustments"))
+
+        updated = []
+        replaced = False
+        for s in existing:
+            if not replaced and str(s).strip().casefold() == old_key:
+                updated.append(new_size)
+                replaced = True
+            else:
+                updated.append(s)
+
+        if not replaced:
+            flash("Tamanho não encontrado.", "warning")
+            return redirect(url_for("adjustments"))
+
+        try:
+            _save_size_options(account_id, updated)
+            flash("Tamanho atualizado com sucesso.", "success")
+        except Exception as e:
+            print(f"Erro ao editar tamanho: {e}")
+            flash(f"Erro ao editar tamanho: {e}", "danger")
+        return redirect(url_for("adjustments"))
+
     @app.route("/admin-dashboard")
     def admin_dashboard():
         if not session.get("logged_in"):
@@ -868,8 +1157,6 @@ def init_auth_routes(
         if session.get("role") != "general_admin":
             flash("Você não tem permissão para acessar esta página.", "danger")
             return redirect(url_for("rented"))
-
-        from app import itens_table, clients_table, transactions_table
 
         # Pega informações da navegação
         nav_stack_str = request.args.get("nav_stack", "[]")
@@ -887,26 +1174,203 @@ def init_auth_routes(
         if next_key and len(nav_stack) < page:
             nav_stack.append(next_key)
 
-        users_with_stats = []
-        for user in users_page:
-            stats = get_user_stats(
-                user["user_id"],
-                users_table,
-                itens_table,
-                clients_table,
-                transactions_table,
-            )
-            if stats:
-                users_with_stats.append(stats)
-
         return render_template(
             "admin_dashboard.html",
-            users=users_with_stats,
+            users=users_page,
             nav_stack=json.dumps(nav_stack),
             page=page,
             has_next=bool(next_key),
             has_prev=page > 1,
         )
+
+    @app.route("/admin/accounts/approve", methods=["POST"])
+    def approve_account():
+        if not session.get("logged_in"):
+            return redirect(url_for("login"))
+
+        if session.get("role") != "general_admin":
+            flash("Você não tem permissão para acessar esta funcionalidade.", "danger")
+            return redirect(url_for("rented"))
+
+        raw = request.form.get("account_id", "")
+        account_id = str(raw).strip()
+        if not account_id:
+            flash("account_id inválido.", "danger")
+            return redirect(url_for("admin_dashboard"))
+
+        try:
+            scan_kwargs = {
+                "FilterExpression": "account_id = :aid",
+                "ExpressionAttributeValues": {":aid": account_id},
+                "ProjectionExpression": "user_id",
+            }
+            updated = 0
+            while True:
+                resp = users_table.scan(**scan_kwargs)
+                for it in resp.get("Items", []):
+                    uid = it.get("user_id")
+                    if not uid:
+                        continue
+                    users_table.update_item(
+                        Key={"user_id": uid},
+                        UpdateExpression="SET #s = :s",
+                        ExpressionAttributeNames={"#s": "status"},
+                        ExpressionAttributeValues={":s": "active"},
+                    )
+                    updated += 1
+                last_key = resp.get("LastEvaluatedKey")
+                if not last_key:
+                    break
+                scan_kwargs["ExclusiveStartKey"] = last_key
+
+            if updated == 0:
+                flash("Nenhum usuário encontrado para esta conta.", "warning")
+            else:
+                flash("Conta aprovada com sucesso.", "success")
+        except Exception as e:
+            print(f"Erro ao aprovar conta: {e}")
+            flash(f"Erro ao aprovar conta: {e}", "danger")
+
+        return redirect(url_for("admin_dashboard"))
+
+    @app.route("/admin/accounts/set-status", methods=["POST"])
+    def set_account_status():
+        if not session.get("logged_in"):
+            return redirect(url_for("login"))
+
+        if session.get("role") != "general_admin":
+            flash("Você não tem permissão para acessar esta funcionalidade.", "danger")
+            return redirect(url_for("rented"))
+
+        account_id = str(request.form.get("account_id", "")).strip()
+        status = str(request.form.get("status", "")).strip()
+        if not account_id:
+            flash("account_id inválido.", "danger")
+            return redirect(url_for("admin_dashboard"))
+        if status not in ["active", "inactive"]:
+            flash("Status inválido.", "danger")
+            return redirect(url_for("admin_dashboard"))
+
+        try:
+            scan_kwargs = {
+                "FilterExpression": "account_id = :aid",
+                "ExpressionAttributeValues": {":aid": account_id},
+                "ProjectionExpression": "user_id",
+            }
+            updated = 0
+            while True:
+                resp = users_table.scan(**scan_kwargs)
+                for it in resp.get("Items", []):
+                    uid = it.get("user_id")
+                    if not uid:
+                        continue
+                    users_table.update_item(
+                        Key={"user_id": uid},
+                        UpdateExpression="SET #s = :s",
+                        ExpressionAttributeNames={"#s": "status"},
+                        ExpressionAttributeValues={":s": status},
+                    )
+                    updated += 1
+                last_key = resp.get("LastEvaluatedKey")
+                if not last_key:
+                    break
+                scan_kwargs["ExclusiveStartKey"] = last_key
+
+            if updated == 0:
+                flash("Nenhum usuário encontrado para esta conta.", "warning")
+            else:
+                flash("Status da conta atualizado.", "success")
+        except Exception as e:
+            print(f"Erro ao atualizar status da conta: {e}")
+            flash(f"Erro ao atualizar status da conta: {e}", "danger")
+
+        return redirect(url_for("admin_dashboard"))
+
+    @app.route("/admin/users/create", methods=["POST"])
+    def admin_create_user():
+        if not session.get("logged_in"):
+            return redirect(url_for("login"))
+
+        if session.get("role") != "general_admin":
+            flash("Você não tem permissão para acessar esta funcionalidade.", "danger")
+            return redirect(url_for("rented"))
+
+        username = (request.form.get("username") or "").strip()
+        password = (request.form.get("password") or "").strip()
+
+        if not username or not password:
+            flash("Informe nome e senha.", "danger")
+            return redirect(url_for("admin_dashboard"))
+
+        account_id = session.get("account_id")
+        email = session.get("email")
+        if not account_id or not email:
+            flash("Sessão inválida. Faça login novamente.", "danger")
+            return redirect(url_for("login"))
+
+        status = "active"
+
+        try:
+            ok = create_user(
+                email=email,
+                username=username,
+                password=password,
+                users_table=users_table,
+                app=app,
+                payment_transactions_table=payment_transactions_table,
+                field_config_table=field_config_table,
+                role="admin",
+                user_ip=get_user_ip(),
+                status=status,
+                account_id=account_id,
+                send_confirmation_email_flag=False,
+            )
+            if ok:
+                flash("Usuário criado com sucesso.", "success")
+            else:
+                flash("Não foi possível criar o usuário.", "danger")
+        except Exception as e:
+            print(f"Erro ao criar usuário: {e}")
+            flash(f"Erro ao criar usuário: {e}", "danger")
+
+        return redirect(url_for("admin_dashboard"))
+
+    @app.route("/admin/users/delete", methods=["POST"])
+    def admin_delete_user():
+        if not session.get("logged_in"):
+            return redirect(url_for("login"))
+
+        if session.get("role") != "general_admin":
+            flash("Você não tem permissão para acessar esta funcionalidade.", "danger")
+            return redirect(url_for("rented"))
+
+        user_id = str(request.form.get("user_id", "")).strip()
+        if not user_id:
+            flash("Usuário inválido.", "danger")
+            return redirect(url_for("admin_dashboard"))
+
+        try:
+            resp = users_table.get_item(Key={"user_id": user_id})
+            item = resp.get("Item")
+            if not item:
+                flash("Usuário não encontrado.", "warning")
+                return redirect(url_for("admin_dashboard"))
+
+            if item.get("role") != "admin":
+                flash("Apenas usuários admin podem ser deletados aqui.", "danger")
+                return redirect(url_for("admin_dashboard"))
+
+            if item.get("account_id") != session.get("account_id"):
+                flash("Você não tem permissão para deletar este usuário.", "danger")
+                return redirect(url_for("admin_dashboard"))
+
+            users_table.delete_item(Key={"user_id": user_id})
+            flash("Usuário deletado com sucesso.", "success")
+        except Exception as e:
+            print(f"Erro ao deletar usuário: {e}")
+            flash(f"Erro ao deletar usuário: {e}", "danger")
+
+        return redirect(url_for("admin_dashboard"))
 
     # Login as user (impersonation)
     @app.route("/login-as-user/<user_id>")
@@ -999,44 +1463,18 @@ def create_user(
     role="admin",
     user_ip=None,
     status="active",
+    account_id=None,
+    send_confirmation_email_flag=True,
 ):
-    """Create a new user and inicia trial Stripe automaticamente."""
-    from boto3.dynamodb.conditions import Key
-
+    """Create a new user."""
     with app.app_context():
         password_hash = generate_password_hash(password, method="pbkdf2:sha256")
-        email_token = secrets.token_urlsafe(16)
         user_id = str(uuid.uuid4())
-        account_id = str(uuid.uuid4())
+        account_id = str(account_id).strip() if account_id else str(uuid.uuid4())
         current_user_id = session.get("user_id") if "user_id" in session else None
         user_utc = get_user_timezone(users_table, current_user_id)
 
-        response = users_table.query(
-            IndexName="email-index", KeyConditionExpression=Key("email").eq(email)
-        )
-        if response["Count"] > 0:
-            return False  # E-mail já cadastrado
-
         try:
-            # Verificar se o Stripe está habilitado
-            use_stripe = os.getenv('USE_STRIPE', 'false').lower() == 'true'
-            stripe_customer_id = None
-            
-            if use_stripe:
-                customer = stripe.Customer.create(
-                    email=email,
-                    name=username,
-                    metadata={"account_id": account_id},
-                )
-                stripe_customer_id = customer.id
-
-                subscription = stripe.Subscription.create(
-                    customer=stripe_customer_id,
-                    items=[{"price": os.getenv("STRIPE_PRICE_ID")}],
-                    trial_period_days=30,
-                    metadata={"account_id": account_id},
-                )
-
             item = {
                 "user_id": user_id,
                 "account_id": account_id,
@@ -1045,25 +1483,36 @@ def create_user(
                 "password_hash": password_hash,
                 "role": role,
                 "created_at": datetime.datetime.now(user_utc).isoformat(),
-                "email_confirmed": False,
-                "email_token": email_token,
-                "last_email_sent": datetime.datetime.now(user_utc).isoformat(),
+                "email_confirmed": True,
                 "status": status,
             }
-            
-            # Só adicionar stripe_customer_id se o Stripe estiver habilitado
-            if use_stripe and stripe_customer_id:
-                item["stripe_customer_id"] = stripe_customer_id
-                
+
             if user_ip:
                 item["ip"] = user_ip
 
             users_table.put_item(Item=item)
 
-            confirm_url = url_for("confirm_email", token=email_token, _external=True)
-            send_confirmation_email(email, username, confirm_url)
+            if send_confirmation_email_flag:
+                email_token = secrets.token_urlsafe(16)
+                users_table.update_item(
+                    Key={"user_id": user_id},
+                    UpdateExpression="SET email_token = :t, last_email_sent = :d",
+                    ExpressionAttributeValues={
+                        ":t": email_token,
+                        ":d": datetime.datetime.now(user_utc).isoformat(),
+                    },
+                )
+                confirm_url = url_for("confirm_email", token=email_token, _external=True)
+                send_confirmation_email(email, username, confirm_url)
+
+            admin_email = None
+            try:
+                if session.get("role") == "general_admin":
+                    admin_email = session.get("email")
+            except Exception:
+                admin_email = None
             send_admin_notification_email(
-                admin_email="marciosferreira@yahoo.com.br",
+                admin_email=admin_email or "marciosferreira@yahoo.com.br",
                 new_user_email=email,
                 new_user_username=username,
             )
@@ -1084,9 +1533,9 @@ def get_all_users(users_table, last_evaluated_key=None, limit=5):
         query_kwargs = {
             "IndexName": "role-index",
             "KeyConditionExpression": "#r = :r",
-            "ExpressionAttributeNames": {"#r": "role"},
             "ExpressionAttributeValues": {":r": "admin"},
-            "ProjectionExpression": "#r, user_id, username, email",
+            "ProjectionExpression": "#r, user_id, username, email, account_id, #s",
+            "ExpressionAttributeNames": {"#r": "role", "#s": "status"},
             "Limit": limit,
         }
 

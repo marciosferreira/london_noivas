@@ -417,9 +417,16 @@ def get_user_ip():
     return ip
 
 
-import boto3
+_dynamodb_kwargs = {"region_name": aws_region}
+if aws_access_key_id and aws_secret_access_key:
+    _dynamodb_kwargs.update(
+        {
+            "aws_access_key_id": aws_access_key_id,
+            "aws_secret_access_key": aws_secret_access_key,
+        }
+    )
 
-dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+dynamodb = boto3.resource("dynamodb", **_dynamodb_kwargs)
 accounts_table = dynamodb.Table("alugueqqc_accounts_table")
 
 

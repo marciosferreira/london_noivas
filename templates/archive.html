@@ -65,7 +65,7 @@
               <span class="text-end">
                 {% set value = item[field.id] if field.id in item else '' %} {% if value == 'None' or value is none %}
                 <span class="text-muted">-</span>
-                {% else %} {% if field.type == "date" %} {{ value | format_date }} {% elif field.type in ["value", "item_value"] %} {% if value|float == 0 %} Consulte o preço do aluguel {% else %} {{ value |
+                {% else %} {% if field.type == "date" %} {{ value | format_date }} {% elif field.type in ["value", "item_value"] %} {% if value|float == 0 %} Valor do aluguel: Consulte {% else %} {{ value |
                 format_brl }} {% endif %} {% else %} {{ value | truncate(30, True) }} {% endif %} {% endif %}
               </span>
             </div>

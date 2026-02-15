@@ -53,6 +53,22 @@
           </div>
           {% endfor %}
 
+        {% elif field.id == "cor" %}
+          <select name="{{ field.id }}" class="form-select">
+            <option value="">Todas</option>
+            {% for opt in (color_options or []) %}
+              <option value="{{ opt }}" {% if request.args.get(field.id) == opt %}selected{% endif %}>{{ opt }}</option>
+            {% endfor %}
+          </select>
+
+        {% elif field.id == "tamanho" %}
+          <select name="{{ field.id }}" class="form-select">
+            <option value="">Todos</option>
+            {% for opt in (size_options or []) %}
+              <option value="{{ opt }}" {% if request.args.get(field.id) == opt %}selected{% endif %}>{{ opt }}</option>
+            {% endfor %}
+          </select>
+
         {% elif field.type in ["text", "item_custom_id", "item_description", "item_obs"] %}
           <input type="text" name="{{ field.id }}" class="form-control"
                  value="{{ request.args.get(field.id, '') }}" placeholder="Buscar {{ field.label }}">

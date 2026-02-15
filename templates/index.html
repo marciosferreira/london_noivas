@@ -548,10 +548,12 @@
                         dress.title || "Sugestão Exclusiva", 
                         dress.description, 
                         dress.id, 
-                        dress.price || "Consulte o preço do aluguel",
+                        dress.price || "Valor do aluguel: Consulte",
                         'ai_result',
                         dress.customId,
-                        dress.occasions
+                        dress.occasions,
+                        dress.color || dress.cor || dress.cores,
+                        dress.size || dress.tamanho
                     )};
 
                     document.getElementById('suggestions-container').classList.add('hidden');
@@ -613,10 +615,12 @@
                             item.title || "Sugestão Exclusiva", 
                             item.description, 
                             item.id, 
-                            item.price || "Consulte o preço do aluguel",
+                            item.price || "Valor do aluguel: Consulte",
                             'ai_suggestion',
                             item.customId,
-                            item.occasions
+                            item.occasions,
+                            item.color || item.cor || item.cores,
+                            item.size || item.tamanho
                         );
                         
                         div.innerHTML = `
@@ -935,7 +939,9 @@
                                 <span class="text-london-gold font-bold tracking-widest text-xs uppercase mb-2 block">London Noivas Collection</span>
                                 <h3 id="catalog-modal-title" class="text-3xl md:text-4xl font-serif text-stone-900 mb-2 leading-tight"></h3>
                         <p id="catalog-modal-occasions" class="text-stone-500 font-serif mb-2">Ocasiões: <span id="catalog-modal-occasions-value"></span></p>
-                        <p id="catalog-modal-price" class="text-2xl text-stone-600 font-serif mb-2"></p>
+                        <p id="catalog-modal-color" class="text-stone-500 font-serif mb-2 hidden">Cor: <span id="catalog-modal-color-value"></span></p>
+                        <p id="catalog-modal-size" class="text-stone-500 font-serif mb-2 hidden">Tamanho: <span id="catalog-modal-size-value"></span></p>
+                        <p id="catalog-modal-price" class="text-stone-500 font-serif mb-2 hidden">Valor do aluguel: <span id="catalog-modal-price-value"></span></p>
                                 <p class="text-xs text-stone-400 mb-6 font-mono">ID: <span id="catalog-modal-id-value"></span></p>
                                 
                                 <div class="w-12 h-1 bg-stone-200 mb-8"></div>
@@ -978,27 +984,52 @@
             const data = window.catalogData && window.catalogData[itemId];
             if (data) {
                 // Pass UUID as itemId, and customId as display param
-                openCatalogModal(data.imageUrl, data.title, data.description, itemId, data.price, source, data.customId, data.occasions);
+                openCatalogModal(data.imageUrl, data.title, data.description, itemId, data.price, source, data.customId, data.occasions, data.color, data.size);
             } else {
                 console.error('Dados do item não encontrados para ID:', itemId);
             }
         }
 
-        function openCatalogModal(imageUrl, title, description, itemId, price, source, customDisplayId, occasions) {
+        function openCatalogModal(imageUrl, title, description, itemId, price, source, customDisplayId, occasions, color, size) {
             const idToShow = customDisplayId || itemId;
 
             // Handle Price Display Logic
             let displayPrice = price;
             if (!price || price === '0' || price === 0 || price === '0.00' || price === '0,00') {
-                displayPrice = 'Consulte o preço do aluguel';
+                displayPrice = 'Valor do aluguel: Consulte';
             }
 
             document.getElementById('catalog-modal-img').src = imageUrl || 'https://via.placeholder.com/600x800?text=Sem+Imagem';
             document.getElementById('catalog-modal-title').textContent = title;
             document.getElementById('catalog-modal-desc').textContent = description;
-            document.getElementById('catalog-modal-price').textContent = displayPrice;
+            const priceRow = document.getElementById('catalog-modal-price');
+            const priceValue = document.getElementById('catalog-modal-price-value');
+            const priceText = (displayPrice || '').toString().trim();
+            if (priceValue) priceValue.textContent = priceText.replace(/^Valor do aluguel:\s*/i, '').trim();
+            if (priceRow) {
+                if (priceText) priceRow.classList.remove('hidden');
+                else priceRow.classList.add('hidden');
+            }
             document.getElementById('catalog-modal-id-value').textContent = idToShow;
             document.getElementById('catalog-modal-occasions-value').textContent = occasions || 'Várias';
+
+            const colorRow = document.getElementById('catalog-modal-color');
+            const colorValue = document.getElementById('catalog-modal-color-value');
+            const colorText = (color || '').toString().trim();
+            if (colorValue) colorValue.textContent = colorText;
+            if (colorRow) {
+                if (colorText) colorRow.classList.remove('hidden');
+                else colorRow.classList.add('hidden');
+            }
+
+            const sizeRow = document.getElementById('catalog-modal-size');
+            const sizeValue = document.getElementById('catalog-modal-size-value');
+            const sizeText = (size || '').toString().trim();
+            if (sizeValue) sizeValue.textContent = sizeText;
+            if (sizeRow) {
+                if (sizeText) sizeRow.classList.remove('hidden');
+                else sizeRow.classList.add('hidden');
+            }
             
             const phoneNumber = "5592993531943";
             
@@ -1088,7 +1119,7 @@
                                     : Array.isArray(item.occasions)
                                         ? item.occasions.join(', ')
                                         : '';
-                                div.onclick = () => openCatalogModal(item.image_url, item.title, item.description, item.id, 'Consulte o preço do aluguel', 'similar', item.customId, itemOccasions);
+                                div.onclick = () => openCatalogModal(item.image_url, item.title, item.description, item.id, 'Valor do aluguel: Consulte', 'similar', item.customId, itemOccasions, item.color, item.size);
                                 div.innerHTML = `
                                     <div class="aspect-[3/4] bg-stone-100 overflow-hidden mb-2 rounded-sm relative">
                                         <img src="${item.image_url}" class="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110" alt="${item.title}">
@@ -1121,7 +1152,7 @@
             const itemId = urlParams.get('item');
             if (itemId && window.catalogData && window.catalogData[itemId]) {
                 const item = window.catalogData[itemId];
-                openCatalogModal(item.imageUrl, item.title, item.description, itemId, item.price, 'url_load', item.customId, item.occasions);
+                openCatalogModal(item.imageUrl, item.title, item.description, itemId, item.price, 'url_load', item.customId, item.occasions, item.color, item.size);
             }
         });
     </script>

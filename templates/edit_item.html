@@ -19,14 +19,6 @@
     </a>
   </div>
 
-  <!-- Alert Customizar Campos -->
-  <div class="alert alert-primary d-flex justify-content-between align-items-center shadow-sm" role="alert">
-    <div>
-      <i class="fas fa-info-circle me-2"></i>Dica: Acesse <a href="/custom_fields/item" class="alert-link">Customizar Campos</a> para criar novos ou ajustar os existentes.
-    </div>
-    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
-  </div>
-
   <!-- Form Card -->
   <div class="row justify-content-center">
     <div class="col-lg-10 col-xl-8">
@@ -71,7 +63,31 @@
                   {% set valor = "0" %}
                 {% endif %}
 
-                {% if field.type == "text" or field.type == "item_obs" or field.type == "item_custom_id" or field.type == "item_description" or field.type == "item_title" %}
+                {% set label_text = (field.label if field.fixed else field.title) %}
+                {% set is_color_field = field.id in ["cor","color","item_cor","item_color"] or (label_text and label_text|lower == "cor") %}
+                {% set is_size_field = field.id in ["tamanho","size","item_tamanho","item_size"] or (label_text and label_text|lower == "tamanho") %}
+
+                {% if is_color_field and color_options %}
+                <select class="form-select" id="{{ field.id }}" name="{{ field.id }}" {% if field.required %}required{% endif %}>
+                  <option value="">Selecione</option>
+                  {% for c in color_options %}
+                  {% set valor_norm = valor|string|trim|lower %}
+                  {% set c_norm = c|string|trim|lower %}
+                  <option value="{{ c }}" {% if valor_norm == c_norm %}selected{% endif %}>{{ c }}</option>
+                  {% endfor %}
+                </select>
+
+                {% elif is_size_field and size_options %}
+                <select class="form-select" id="{{ field.id }}" name="{{ field.id }}" {% if field.required %}required{% endif %}>
+                  <option value="">Selecione</option>
+                  {% for s in size_options %}
+                  {% set valor_norm = valor|string|trim|lower %}
+                  {% set s_norm = s|string|trim|lower %}
+                  <option value="{{ s }}" {% if valor_norm == s_norm %}selected{% endif %}>{{ s }}</option>
+                  {% endfor %}
+                </select>
+
+                {% elif field.type == "text" or field.type == "item_obs" or field.type == "item_custom_id" or field.type == "item_description" or field.type == "item_title" %}
                 <input type="text" class="form-control" id="{{ field.id }}" name="{{ field.id }}" value="{{ valor }}" {% if field.required %}required{% endif %} {% if field.type == 'item_custom_id' or field.id == 'item_custom_id' %}readonly style="background-color: #e9ecef; cursor: not-allowed;" title="Não é possível alterar este ID"{% endif %} />
 
                 {% elif field.type == "value" or field.type == "item_value" or field.type == "number" %}

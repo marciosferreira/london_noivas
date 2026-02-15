@@ -721,7 +721,7 @@ def validate_and_enrich_candidates(candidates_metadata):
                 RequestItems={
                     'alugueqqc_itens': {
                         'Keys': chunk,
-                        'ProjectionExpression': 'item_id, #st, title, item_title, item_description, item_image_url, item_value, item_custom_id, category, item_category, occasion_noiva, occasion_civil, occasion_madrinha, occasion_mae_dos_noivos, occasion_formatura, occasion_debutante, occasion_gala, occasion_convidada',
+                        'ProjectionExpression': 'item_id, #st, title, item_title, item_description, item_image_url, item_value, item_custom_id, category, item_category, cor, cores, tamanho, occasion_noiva, occasion_civil, occasion_madrinha, occasion_mae_dos_noivos, occasion_formatura, occasion_debutante, occasion_gala, occasion_convidada',
                         'ExpressionAttributeNames': {'#st': 'status'}
                     }
                 }
@@ -775,6 +775,9 @@ def validate_and_enrich_candidates(candidates_metadata):
             meta['customId'] = db_item.get('item_custom_id')
             # UUID (System ID)
             meta['item_id'] = db_item.get('item_id')
+            meta['cor'] = db_item.get('cor', meta.get('cor'))
+            meta['cores'] = db_item.get('cores', meta.get('cores'))
+            meta['tamanho'] = db_item.get('tamanho', meta.get('tamanho'))
             cat_slug = _category_slug(meta)
             meta['item_category'] = db_item.get('item_category', meta.get('item_category'))
             meta['category_slug'] = cat_slug
@@ -1051,6 +1054,17 @@ def ai_search():
                         results = _filter_items_by_occasions(results, target_occasions)
                     
                     # Formata para Frontend (Objetos Completos)
+                    def _extract_color_value(obj):
+                        v = obj.get("cor") or obj.get("cores") or obj.get("color") or obj.get("colors")
+                        if isinstance(v, (list, tuple)):
+                            for x in v:
+                                if isinstance(x, str) and x.strip():
+                                    return x.strip()
+                            return ""
+                        if isinstance(v, str):
+                            return v.strip()
+                        return ""
+
                     for item in results:
                         occs = []
                         if _flag_is_set(item.get('occasion_noiva')): occs.append('Noiva')
@@ -1068,6 +1082,7 @@ def ai_search():
                             "title": item.get('title', 'Vestido Exclusivo'),
                             "description": item.get('description', ''),
                             "price": item.get('price', "Consulte valor"),
+                            "color": _extract_color_value(item),
                             "category": item.get('category', 'Festa'),
                             "occasions": ", ".join(occs) if occs else "Várias",
                             "image_url": item.get('imageUrl') or url_for('static', filename=f"dresses/{item['file_name']}")
@@ -1172,6 +1187,28 @@ def ai_similar(item_id):
         target_occ = _normalize_occasion_inputs(req_occ)
         target_set = set(target_occ)
 
+        def _extract_color_value(obj):
+            v = obj.get("cor") or obj.get("cores") or obj.get("color") or obj.get("colors")
+            if isinstance(v, (list, tuple)):
+                for x in v:
+                    if isinstance(x, str) and x.strip():
+                        return x.strip()
+                return ""
+            if isinstance(v, str):
+                return v.strip()
+            return ""
+
+        def _extract_size_value(obj):
+            v = obj.get("tamanho") or obj.get("size") or obj.get("item_tamanho") or obj.get("item_size") or obj.get("sizes")
+            if isinstance(v, (list, tuple)):
+                for x in v:
+                    if isinstance(x, str) and x.strip():
+                        return x.strip()
+                return ""
+            if isinstance(v, str):
+                return v.strip()
+            return ""
+
         if isinstance(query_hint, str) and query_hint.strip():
             results = execute_catalog_search_loose(query_hint, k=max(limit * 4, 20), target_occasions=target_occ)
             collected = []
@@ -1193,6 +1230,8 @@ def ai_similar(item_id):
                     "image_url": item.get("imageUrl") or url_for("static", filename=f"dresses/{item['file_name']}"),
                     "description": item.get("description", ""),
                     "category": item.get("category", "Outros"),
+                    "color": _extract_color_value(item),
+                    "size": _extract_size_value(item),
                     "occasions": _get_occasions_list(item),
                 })
             return jsonify({"suggestions": suggestions})
@@ -1281,6 +1320,8 @@ def ai_similar(item_id):
                 "image_url": item.get("imageUrl") or url_for("static", filename=f"dresses/{item['file_name']}"),
                 "description": item.get("description", ""),
                 "category": item.get("category", "Outros"),
+                "color": _extract_color_value(item),
+                "size": _extract_size_value(item),
                 "occasions": _get_occasions_list(item),
             })
 
@@ -1310,6 +1351,28 @@ def ai_catalog_search():
     try:
         target_occasion = (data.get("occasion") or data.get("category") or "").lower().strip()
         rewritten = _rewrite_catalog_query(query, target_occasion)
+
+        def _extract_color_value(obj):
+            v = obj.get("cor") or obj.get("cores") or obj.get("color") or obj.get("colors")
+            if isinstance(v, (list, tuple)):
+                for x in v:
+                    if isinstance(x, str) and x.strip():
+                        return x.strip()
+                return ""
+            if isinstance(v, str):
+                return v.strip()
+            return ""
+
+        def _extract_size_value(obj):
+            v = obj.get("tamanho") or obj.get("size") or obj.get("item_tamanho") or obj.get("item_size") or obj.get("sizes")
+            if isinstance(v, (list, tuple)):
+                for x in v:
+                    if isinstance(x, str) and x.strip():
+                        return x.strip()
+                return ""
+            if isinstance(v, str):
+                return v.strip()
+            return ""
 
         query_for_embedding = _query_embedding_text_from_rewrite(rewritten, target_occasion) if isinstance(rewritten, dict) else None
         if not isinstance(query_for_embedding, str) or not query_for_embedding.strip():
@@ -1386,9 +1449,11 @@ def ai_catalog_search():
                 "title": item.get('title', 'Vestido'),
                 "imageUrl": item.get('imageUrl') or url_for('static', filename=f"dresses/{item['file_name']}"),
                 "description": item.get('description', ''),
-                "price": item.get('price', "Consulte o preço do aluguel"),
+                "price": item.get('price', "Valor do aluguel: Consulte"),
                 "customId": item.get('customId'), # Adicionado para consistência
                 "category": item.get('category', 'Outros'),
+                "color": _extract_color_value(item),
+                "size": _extract_size_value(item),
                 "occasions": _get_occasions_list(item)
             })
                 

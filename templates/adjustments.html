@@ -1,356 +1,199 @@
-
 {% extends "base.html" %}
 
-{% block title %}Ajustes e Planos{% endblock %}
+{% block title %}Ajustes{% endblock %}
 
 {% block styles %}
   <link rel="stylesheet" href="{{ url_for('static', filename='style_adjustments.css') }}" />
 {% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-  <h2 class="text-center text-dark-blue mb-4">Ajustes e Planos</h2>
+<div class="adjustments-page">
+  <div class="container py-4">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4">
+      <div>
+        <h2 class="mb-1">Ajustes</h2>
+        <div class="text-muted">Gerencie informações da conta e preferências.</div>
+      </div>
+    </div>
 
-  <div class="d-flex flex-wrap justify-content-center align-items-stretch gap-4">
+    <div class="row g-4">
+      <div class="col-12 col-lg-6">
+        <div class="card shadow-sm h-100">
+          <div class="card-header bg-white">
+            <strong>Nome da Loja</strong>
+          </div>
+          <div class="card-body">
+            <form method="POST" action="{{ url_for('change_username') }}">
+              <div class="mb-3">
+                <label class="form-label mb-1"><strong>Nome atual</strong></label>
+                <input type="text" class="form-control" value="{{ username }}" disabled />
+              </div>
+              <div class="mb-3">
+                <label for="new_username" class="form-label mb-1">Novo nome</label>
+                <input type="text" id="new_username" name="new_username" class="form-control" required minlength="3" maxlength="15" />
+              </div>
+              <button type="submit" class="btn btn-primary w-100">Atualizar</button>
+            </form>
+          </div>
+        </div>
+      </div>
 
- <!-- CARD: Plano e Assinatura -->
-<div class="card shadow-sm" style="flex: 1 1 350px; max-width: 500px;">
-  <div class="card-body d-flex flex-column justify-content-center text-center">
-    <h5 class="card-title text-center">Seu Plano</h5>
+      {% if can_manage_colors %}
+      <div class="col-12 col-lg-6">
+        <div class="card shadow-sm h-100" id="colors">
+          <div class="card-header bg-white">
+            <strong>Cores</strong>
+          </div>
+          <div class="card-body">
+            <form method="POST" action="{{ url_for('add_color_option') }}">
+              <div class="input-group">
+                <input type="text" class="form-control" name="color" placeholder="Ex: Terracota" />
+                <button class="btn btn-outline-primary" type="submit">Adicionar</button>
+              </div>
+            </form>
 
-    {% if current_transaction %}
-      {% set status = current_transaction.subscription_status %}
-      {% set inicio = current_transaction.created_at | datetimeformat %}
-      {% set fim = current_transaction.current_period_end | datetimeformat %}
-      {% set payment_status = current_transaction.payment_status %}
-      {% set cancel_at_period_end = current_transaction.cancel_at_period_end %}
-      {% set has_card = current_transaction.has_card %}
-
+            <div class="mt-3">
+              {% if color_options %}
+                <ul class="list-group">
+                  {% for c in color_options %}
+                    <li class="list-group-item d-flex align-items-center py-2">
+                      <div class="d-flex align-items-center gap-2 flex-nowrap w-100">
+                        <form method="POST" action="{{ url_for('edit_color_option') }}" class="m-0 d-flex align-items-center gap-2 flex-nowrap flex-grow-1">
+                          <input type="hidden" name="old_color" value="{{ c }}">
+                          <input type="text" class="form-control form-control-sm flex-grow-1" name="new_color" value="{{ c }}" />
+                          <button type="submit" class="btn btn-sm btn-outline-primary">Salvar</button>
+                        </form>
+                        <form method="POST" action="{{ url_for('delete_color_option') }}" class="m-0 flex-shrink-0">
+                          <input type="hidden" name="color" value="{{ c }}">
+                          <button type="submit" class="btn btn-sm btn-outline-danger">Excluir</button>
+                        </form>
+                      </div>
+                    </li>
+                  {% endfor %}
+                </ul>
+              {% else %}
+                <p class="text-muted mb-0">Nenhuma cor cadastrada.</p>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
       {% endif %}
 
+      {% if can_manage_sizes %}
+      <div class="col-12 col-lg-6">
+        <div class="card shadow-sm h-100" id="sizes">
+          <div class="card-header bg-white">
+            <strong>Tamanhos</strong>
+          </div>
+          <div class="card-body">
+            <form method="POST" action="{{ url_for('add_size_option') }}">
+              <div class="input-group">
+                <input type="text" class="form-control" name="size" placeholder="Ex: PP ou 38" />
+                <button class="btn btn-outline-primary" type="submit">Adicionar</button>
+              </div>
+            </form>
 
-<!-- Seção: Trial ativo e pagamento não cancelado -->
-{% if status == "trialing" and payment_status != "canceled" %}
-  <div class="alert alert-info no-autoclose">
-    <strong>Período de Teste Ativo</strong><br>
-    Você pode usar todos os recursos até <strong>{{ fim }} h</strong>.
-  </div>
-
-  <!-- Sub-seção: Sem cancelamento agendado -->
-  {% if cancel_at_period_end is none or cancel_at_period_end == False %}
-
-    <!-- Sub-subseção: Cliente ainda não tem cartão -->
-    {% if not has_card %}
-      <p class="text-muted text-center">Você não cadastrou nenhum cartão. Cadastre-o para evitar interrupções.</p>
-      <p class="text-muted text-center">
-        No botão abaixo você pode:<br>
-        - Cadastrar cartão<br>
-        - Cancelar sua assinatura
-      </p>
-      <a href="{{ url_for('billing') }}" class="btn btn-outline-warning w-100 mt-2">Acessar</a>
-
-    <!-- Sub-subseção: Cliente já tem cartão -->
-    {% else %}
-      <p class="text-muted text-center">Você já cadastrou seu cartão para renovação automática.</p>
-      <p class="text-muted text-center">
-        No botão abaixo você pode:<br>
-        - Alterar cartão<br>
-        - Cancelar sua assinatura
-      </p>
-      <a href="{{ url_for('billing') }}" class="btn btn-outline-warning w-100 mt-2">Acessar</a>
-    {% endif %}
-
-  <!-- Sub-seção: Cancelamento agendado -->
-  {% else %}
-    <p class="text-muted text-center">Você solicitou cancelamento da assinatura após o teste.</p>
-    <p class="text-muted text-center">Acesse o link abaixo para renovar a assinatura após o teste.</p>
-    <a href="{{ url_for('billing') }}" class="btn btn-outline-warning w-100 mt-2">Acessar</a>
-  {% endif %}
-
-<!-- Seção: Assinatura cancelada manualmente -->
-{% elif payment_status == "canceled" %}
-  <div class="alert alert-danger no-autoclose">
-    <strong>Assinatura Cancelada</strong><br>
-    Sua assinatura está cancelada. Crie uma nova a qualquer momento.
-  </div>
-  <button id="checkout-button" class="btn btn-primary w-100 mt-3">Assinar Plano Business</button>
-
-<!-- Seção: Assinatura ativa e paga -->
-{% elif payment_status == "paid" and status == "active" %}
-
-  <!-- Sub-seção: Renovação automática ativada -->
-  {% if cancel_at_period_end is not defined or cancel_at_period_end == False %}
-    <div class="alert alert-success no-autoclose">
-      <strong>Assinatura Ativa</strong><br>
-      Sua assinatura está ativa e será renovada em <strong>{{ fim }} h</strong>.
-    </div>
-    <a href="{{ url_for('billing') }}" class="btn btn-outline-secondary w-100 mt-2">Gerenciar/Cancelar</a>
-
-  <!-- Sub-seção: Renovação desativada -->
-  {% else %}
-    <div class="alert alert-success no-autoclose">
-      <strong>Assinatura Ativa</strong><br>
-      Sua assinatura está ativa e termina em <strong>{{ fim }} h</strong>. Ela não será renovada.
-    </div>
-    <p class="text-muted text-center">Acesse o link abaixo para permitir a renovação.</p>
-    <a href="{{ url_for('billing') }}" class="btn btn-outline-secondary w-100 mt-2">Acessar</a>
-  {% endif %}
-
-{% elif status == "paused" and payment_status == "paid" %}
-<div class="alert alert-warning no-autoclose">
-  <strong>Plano Suspenso</strong><br>
-  Seu período de teste expirou em <strong>{{ fim }}</strong> e o plano foi suspenso porque você não informou um cartão de crédito válido.
-</div>
-<p class="text-muted text-center">Efetue um pagamento para ativar sua assinatura.</p>
-<a href="{{ url_for('billing') }}" class="btn btn-outline-warning w-100 mt-2">
-  Assinar/Cancelar
-</a>
-
-{% elif status == "paused" and payment_status == "canceled" %}
-        <div class="alert alert-danger no-autoclose">
-          <strong>Assinatura Cancelada</strong><br>
-          Você encerrou sua assinatura. Crie uma nova a qualquer momento.
-        </div>
-        <button id="checkout-button" class="btn btn-primary w-100 mt-3">Assinar Plano Business</button>
-
-
-{% endif %}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  </div>
-</div>
-
-
-
-      <!-- CARD: Nome da Loja -->
-      <div class="card shadow-sm " style="flex: 1 1 350px; max-width: 500px;">
-        <div class="card-body d-flex flex-column justify-content-center text-center">
-          <h5 class="card-title text-center">Nome da Loja</h5>
-          <form method="POST" action="{{ url_for('change_username') }}">
-            <div class="mb-3">
-              <label class="form-label"><strong>Nome atual da sua Loja:</strong></label>
-              <input type="text" class="form-control" value="{{ username }}" disabled />
+            <div class="mt-3">
+              {% if size_options %}
+                <ul class="list-group">
+                  {% for s in size_options %}
+                    <li class="list-group-item d-flex align-items-center py-2">
+                      <div class="d-flex align-items-center gap-2 flex-nowrap w-100">
+                        <form method="POST" action="{{ url_for('edit_size_option') }}" class="m-0 d-flex align-items-center gap-2 flex-nowrap flex-grow-1">
+                          <input type="hidden" name="old_size" value="{{ s }}">
+                          <input type="text" class="form-control form-control-sm flex-grow-1" name="new_size" value="{{ s }}" />
+                          <button type="submit" class="btn btn-sm btn-outline-primary">Salvar</button>
+                        </form>
+                        <form method="POST" action="{{ url_for('delete_size_option') }}" class="m-0 flex-shrink-0">
+                          <input type="hidden" name="size" value="{{ s }}">
+                          <button type="submit" class="btn btn-sm btn-outline-danger">Excluir</button>
+                        </form>
+                      </div>
+                    </li>
+                  {% endfor %}
+                </ul>
+              {% else %}
+                <p class="text-muted mb-0">Nenhum tamanho cadastrado.</p>
+              {% endif %}
             </div>
-            <div class="mb-3">
-              <label for="new_username" class="form-label">Novo nome da sua loja:</label>
-              <input type="text" id="new_username" name="new_username" class="form-control" required minlength="3" maxlength="15" />
-            </div>
-            <button type="submit" class="btn btn-primary w-100 mt-auto">Atualizar nome da loja</button>
-          </form>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="col-12 col-lg-6">
+        <div class="card shadow-sm h-100">
+          <div class="card-header bg-white">
+            <strong>Alterar Senha</strong>
+          </div>
+          <div class="card-body">
+            <form method="POST" action="{{ url_for('change_password') }}">
+              <div class="mb-3">
+                <label for="current_password" class="form-label mb-1">Senha Atual</label>
+                <input type="password" id="current_password" name="current_password" class="form-control" required />
+              </div>
+              <div class="mb-3">
+                <label for="new_password" class="form-label mb-1">Nova Senha</label>
+                <input type="password" id="new_password" name="new_password" class="form-control" required minlength="8" />
+              </div>
+              <div class="mb-3">
+                <label for="confirm_new_password" class="form-label mb-1">Confirme a Nova Senha</label>
+                <input type="password" id="confirm_new_password" name="confirm_new_password" class="form-control" required />
+              </div>
+              <button type="submit" class="btn btn-primary w-100">Alterar</button>
+            </form>
+          </div>
         </div>
       </div>
 
-        <!-- CARD: Alterar Senha -->
-    <div class="card shadow-sm " style="flex: 1 1 350px; max-width: 500px;">
-      <div class="card-body d-flex flex-column justify-content-center text-center">
-        <h5 class="card-title text-center">Alterar Senha</h5>
-        <form method="POST" action="{{ url_for('change_password') }}">
-          <p class="text-muted text-center">Por segurança, digite sua senha atual antes de criar uma nova.</p>
-          <div class="mb-3">
-            <label for="current_password" class="form-label">Senha Atual</label>
-            <input type="password" id="current_password" name="current_password" class="form-control" required />
+      <div class="col-12 col-lg-6">
+        <div class="card shadow-sm h-100">
+          <div class="card-header bg-white">
+            <strong>Alterar E-mail</strong>
           </div>
-          <div class="mb-3">
-            <label for="new_password" class="form-label">Nova Senha</label>
-            <input type="password" id="new_password" name="new_password" class="form-control" required minlength="8" />
+          <div class="card-body">
+            <form method="POST" action="{{ url_for('request_email_change') }}">
+              <div class="mb-3">
+                <label class="form-label mb-1"><strong>E-mail atual</strong></label>
+                <input type="email" class="form-control" value="{{ email }}" disabled />
+              </div>
+              <div class="mb-3">
+                <label for="new_email" class="form-label mb-1">Novo e-mail</label>
+                <input type="email" id="new_email" name="new_email" class="form-control" required />
+              </div>
+              <button type="submit" class="btn btn-primary w-100">Atualizar</button>
+            </form>
           </div>
-          <div class="mb-3">
-            <label for="confirm_new_password" class="form-label">Confirme a Nova Senha</label>
-            <input type="password" id="confirm_new_password" name="confirm_new_password" class="form-control" required />
-          </div>
-          <button type="submit" class="btn btn-primary w-100 mt-auto">Alterar Senha</button>
-        </form>
+        </div>
       </div>
-    </div>
 
-    <!-- CARD: Alterar E-mail -->
-    <div class="card shadow-sm " style="flex: 1 1 350px; max-width: 500px;">
-      <div class="card-body d-flex flex-column justify-content-center text-center">
-        <h5 class="card-title text-center">Alterar E-mail</h5>
-        <form method="POST" action="{{ url_for('request_email_change') }}">
-          <p class="text-muted text-center">Digite um novo endereço de e-mail para atualizar sua conta.</p>
-          <div class="mb-3">
-            <label class="form-label"><strong>E-mail Atual:</strong></label>
-            <input type="email" class="form-control" value="{{ email }}" disabled />
+      <div class="col-12 col-lg-6">
+        <div class="card shadow-sm h-100">
+          <div class="card-header bg-white">
+            <strong>Fuso Horário</strong>
           </div>
-          <div class="mb-3">
-            <label for="new_email" class="form-label">Novo E-mail</label>
-            <input type="email" id="new_email" name="new_email" class="form-control" required />
+          <div class="card-body">
+            <form method="POST" action="{{ url_for('change_timezone') }}">
+              <div class="mb-3">
+                <label for="timezone" class="form-label mb-1">Fuso horário</label>
+                <select id="timezone" name="timezone" class="form-select" required>
+                  {% for tz in timezones %}
+                    <option value="{{ tz }}" {% if tz == current_timezone %}selected{% endif %}>{{ tz }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <button type="submit" class="btn btn-primary w-100">Atualizar</button>
+            </form>
           </div>
-          <button type="submit" class="btn btn-primary w-100 mt-auto">Atualizar E-mail</button>
-        </form>
-      </div>
-    </div>
-
-
-    <!-- CARD: Fuso Horário -->
-    <div class="card shadow-sm " style="flex: 1 1 350px; max-width: 500px;">
-      <div class="card-body d-flex flex-column justify-content-center text-center">
-        <h5 class="card-title text-center">Fuso Horário</h5>
-        <form method="POST" action="{{ url_for('change_timezone') }}">
-          <p class="text-muted text-center">Escolha o seu fuso horário atual.</p>
-          <p class="text-muted text-center">Importante para que os alertas e datas de retirada e devolução estejam corretos.
-          <div class="mb-3">
-            <label for="timezone" class="form-label">Fuso Horário:</label>
-            <select id="timezone" name="timezone" class="form-select" required>
-              {% for tz in timezones %}
-                <option value="{{ tz }}" {% if tz == current_timezone %}selected{% endif %}>{{ tz }}</option>
-              {% endfor %}
-            </select>
-          </div>
-          <button type="submit" class="btn btn-primary w-100 mt-auto">Atualizar Fuso Horário</button>
-        </form>
-      </div>
-    </div>
-
-    <!-- CARD: Cancelar Conta -->
-    <div class="card shadow-sm " style="flex: 1 1 350px; max-width: 500px;">
-      <div class="card-body d-flex flex-column justify-content-center text-center">
-        <h5 class="card-title text-center">Cancelar sua Conta</h5>
-        <div class="text-center">
-          <button id="delete-account-btn" class="btn btn-outline-danger w-100 mt-auto">Prosseguir</button>
-          <p class="text-muted mt-2" style="font-size: 0.9rem;">
-            Sua conta será marcada como cancelada e excluída em breve.
-          </p>
         </div>
       </div>
     </div>
-
   </div>
 </div>
-<div style="height: 50px"></div>
 {% endblock %}
 
 {% block scripts %}
-<script>
-  const checkoutBtn = document.getElementById('checkout-button');
-  if (checkoutBtn) {
-    checkoutBtn.addEventListener('click', async () => {
-      const response = await fetch('/create_checkout_session', { method: 'POST' });
-      const data = await response.json();
-
-      if (data.checkout_url) {
-        window.location.href = data.checkout_url;
-      } else {
-        alert('Erro ao iniciar pagamento. Tente novamente.');
-      }
-    });
-  }
-</script>
-
-
-
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-<script>
-  document.getElementById('cancel-button')?.addEventListener('click', function() {
-    Swal.fire({
-      title: 'Cancelar assinatura?',
-      text: "Seu plano Business continuará ativo até o final do período já pago.",
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#d33',
-      cancelButtonColor: '#3085d6',
-      confirmButtonText: 'Sim, cancelar!',
-      cancelButtonText: 'Não, voltar'
-    }).then((result) => {
-      if (result.isConfirmed) {
-        // 🔥 Envia o POST manualmente usando fetch
-        fetch("{{ url_for('adjustments') }}", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-          },
-          body: ""  // Se quiser enviar algo aqui, tipo "action=cancel", pode colocar
-        }).then(response => {
-          if (response.ok) {
-            // 🔥 Segundo alerta após o POST ter sido enviado com sucesso
-            Swal.fire({
-              title: 'Pedido de cancelamento enviado!',
-              text: 'Seu plano continuará ativo até o fim do período já pago.',
-              icon: 'info',
-              confirmButtonText: 'Entendi'
-            }).then(() => {
-              window.location.reload();  // 🔥 Depois do segundo alerta, força reload
-            });
-          } else {
-            Swal.fire(
-              'Erro!',
-              'Não foi possível enviar o pedido de cancelamento.',
-              'error'
-            );
-          }
-        }).catch(() => {
-          Swal.fire(
-            'Erro!',
-            'Não foi possível se comunicar com o servidor.',
-            'error'
-          );
-        });
-      }
-    });
-  });
-  </script>
-
-
-  <script>
-    document.getElementById('delete-account-btn')?.addEventListener('click', function () {
-      Swal.fire({
-        title: 'Tem certeza?',
-        text: "Essa ação irá cancelar sua conta. Ela será excluída permanentemente em breve.",
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#d33',
-        cancelButtonColor: '#3085d6',
-        confirmButtonText: 'Sim, cancelar conta!',
-        cancelButtonText: 'Não, voltar'
-      }).then((result) => {
-        if (result.isConfirmed) {
-          fetch("{{ url_for('adjustments') }}", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/x-www-form-urlencoded",
-            },
-            body: "cancel_account=true"
-          }).then(response => {
-            if (response.ok) {
-              Swal.fire({
-                title: 'Conta cancelada!',
-                text: 'Você será desconectado agora.',
-                icon: 'success',
-                confirmButtonText: 'Ok'
-              }).then(() => {
-                window.location.href = "{{ url_for('logout') }}";
-              });
-            } else {
-              Swal.fire('Erro!', 'Não foi possível cancelar sua conta.', 'error');
-            }
-          }).catch(() => {
-            Swal.fire('Erro!', 'Não foi possível se comunicar com o servidor.', 'error');
-          });
-        }
-      });
-    });
-  </script>
-
 {% endblock %}
-
-

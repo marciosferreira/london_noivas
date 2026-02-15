@@ -10,15 +10,6 @@ from flask import Flask, request, session
 # Define o fuso horário de Manaus
 load_dotenv()  # only for setting up the env as debug
 
-
-import stripe
-
-stripe.api_key = os.getenv("STRIPE_SECRET_KEY")  # Backend
-STRIPE_PUBLIC_KEY = os.getenv("STRIPE_PUBLIC_KEY")  # Frontend
-STRIPE_PRICE_ID = os.getenv("STRIPE_PRICE_ID")  # ID do plano
-STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
-
-
 # Configurações AWS
 aws_region = "us-east-1"
 aws_access_key_id = os.getenv("AWS_ACCESS_KEY_ID")
