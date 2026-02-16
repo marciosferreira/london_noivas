@@ -46,9 +46,21 @@
           </div>
           <div class="card-body">
             <form method="POST" action="{{ url_for('add_color_option') }}">
-              <div class="input-group">
-                <input type="text" class="form-control" name="color" placeholder="Ex: Terracota" />
-                <button class="btn btn-outline-primary" type="submit">Adicionar</button>
+              <div class="row g-2">
+                <div class="col-12 col-md-5">
+                  <select class="form-select" name="color_base" required>
+                    <option value="">Cor base</option>
+                    {% for b in base_color_options %}
+                      <option value="{{ b }}">{{ b }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="col-12 col-md-5">
+                  <input type="text" class="form-control" name="color_name" placeholder="Nome comercial (ex: Terracota)" required />
+                </div>
+                <div class="col-12 col-md-2 d-grid">
+                  <button class="btn btn-outline-primary" type="submit">Adicionar</button>
+                </div>
               </div>
             </form>
 
@@ -59,12 +71,19 @@
                     <li class="list-group-item d-flex align-items-center py-2">
                       <div class="d-flex align-items-center gap-2 flex-nowrap w-100">
                         <form method="POST" action="{{ url_for('edit_color_option') }}" class="m-0 d-flex align-items-center gap-2 flex-nowrap flex-grow-1">
-                          <input type="hidden" name="old_color" value="{{ c }}">
-                          <input type="text" class="form-control form-control-sm flex-grow-1" name="new_color" value="{{ c }}" />
+                          <input type="hidden" name="old_color_base" value="{{ c.base }}">
+                          <input type="hidden" name="old_color_name" value="{{ c.name }}">
+                          <select class="form-select form-select-sm" name="new_color_base" required>
+                            {% for b in base_color_options %}
+                              <option value="{{ b }}" {% if b == c.base %}selected{% endif %}>{{ b }}</option>
+                            {% endfor %}
+                          </select>
+                          <input type="text" class="form-control form-control-sm flex-grow-1" name="new_color_name" value="{{ c.name }}" required />
                           <button type="submit" class="btn btn-sm btn-outline-primary">Salvar</button>
                         </form>
                         <form method="POST" action="{{ url_for('delete_color_option') }}" class="m-0 flex-shrink-0">
-                          <input type="hidden" name="color" value="{{ c }}">
+                          <input type="hidden" name="color_base" value="{{ c.base }}">
+                          <input type="hidden" name="color_name" value="{{ c.name }}">
                           <button type="submit" class="btn btn-sm btn-outline-danger">Excluir</button>
                         </form>
                       </div>

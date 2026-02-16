@@ -38,6 +38,16 @@
             <div class="col-12 col-md-6">
               <strong>{{ field.label }}:</strong>
               <br />
+              {% if field.id == 'cor' %}
+              {% set base_color = item.get('cor_base') or item.get('color_base') or '' %}
+              {% set commercial_color = item.get('cor_comercial') or item.get('color_comercial') or '' %}
+              {% set fallback_color = item.get('cor') or item.get('color') or item.get('cores') or '' %}
+              {% if base_color or commercial_color %}
+              {{ (base_color and ('base: ' ~ base_color) or '') ~ (commercial_color and ((base_color and ' / ') or '') ~ 'comercial: ' ~ commercial_color or '') }}
+              {% else %}
+              {{ fallback_color if fallback_color else '-' }}
+              {% endif %}
+              {% else %}
               {% set value = item[field.id] if field.id in item else '' %} {% if value == 'None' or value is none %}
               <span class="text-muted">-</span>
               {% else %}
@@ -47,6 +57,7 @@
                 field.type in ["phone", "client_phone"] %} {{ value | format_phone }} {% elif field.id == "transaction_status" %} {{
                 status_mapping.get(value, value) }} {% else %} {{ value }} {% endif %}
               </span>
+              {% endif %}
               {% endif %}
             </div>
             {% endif %} {% endif %} {% endfor %}

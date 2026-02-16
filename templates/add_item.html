@@ -33,7 +33,7 @@
             <input type="hidden" name="next" value="{{ request.args.get('next', url_for('index')) }}" />
 
             <div class="row g-3">
-              {% for field in all_fields if field.visible and field.id != 'category_raw' %}
+              {% for field in all_fields if field.visible and field.id != 'category_raw' and field.id not in ["cor_base", "cor_comercial"] %}
               <div class="col-md-6">
                 <label for="{{ field.id }}" class="form-label fw-semibold text-secondary small text-uppercase mb-1">
                   {{ field.label if field.fixed else field.title }}{% if field.required %} <span class="text-danger">*</span>{% endif %}
@@ -57,13 +57,19 @@
                 {% set is_color_field = field.id in ["cor","color","item_cor","item_color"] or (label_text and label_text|lower == "cor") %}
                 {% set is_size_field = field.id in ["tamanho","size","item_tamanho","item_size"] or (label_text and label_text|lower == "tamanho") %}
 
-                {% if is_color_field and color_options %}
+                {% if is_color_field and color_pairs %}
+                {% set current_name = item.get('cor_comercial') or valor|string|trim %}
+                {% set current_base = item.get('cor_base') or '' %}
                 <select class="form-select" id="{{ field.id }}" name="{{ field.id }}" {% if field.required %}required{% endif %}>
                   <option value="">Selecione</option>
-                  {% for c in color_options %}
-                  {% set valor_norm = valor|string|trim|lower %}
-                  {% set c_norm = c|string|trim|lower %}
-                  <option value="{{ c }}" {% if valor_norm == c_norm %}selected{% endif %}>{{ c }}</option>
+                  {% for c in color_pairs %}
+                  {% set opt_value = c.name ~ '||' ~ c.base %}
+                  {% set opt_label = c.name ~ (c.base and (' (' ~ c.base ~ ')') or '') %}
+                  {% set name_norm = current_name|string|trim|lower %}
+                  {% set base_norm = current_base|string|trim|lower %}
+                  {% set c_name_norm = c.name|string|trim|lower %}
+                  {% set c_base_norm = c.base|string|trim|lower %}
+                  <option value="{{ opt_value }}" {% if name_norm == c_name_norm and base_norm == c_base_norm %}selected{% endif %}>{{ opt_label }}</option>
                   {% endfor %}
                 </select>
 

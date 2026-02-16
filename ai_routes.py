@@ -91,7 +91,11 @@ def _load_color_options_for_account(account_id):
     for c in colors:
         if c is None:
             continue
-        s = str(c).strip()
+        if isinstance(c, dict):
+            s = c.get("name") or c.get("color") or c.get("comercial") or c.get("cor")
+        else:
+            s = c
+        s = str(s).strip() if s is not None else ""
         if not s:
             continue
         k = s.casefold()
@@ -100,21 +104,6 @@ def _load_color_options_for_account(account_id):
         seen.add(k)
         out.append(s)
     return sorted(out, key=lambda x: str(x).casefold())
-
-_COLOR_FAMILY_MAP = {
-    "azul": [
-        "azul claro",
-        "azul marinho",
-        "azul royal",
-        "azul ceu",
-        "azul céu",
-        "azul bebe",
-        "azul bebê",
-        "azul petroleo",
-        "azul petróleo",
-        "azul turquesa",
-    ],
-}
 
 def _expand_color_terms(colors):
     raw = _ensure_list(colors)
@@ -128,8 +117,6 @@ def _expand_color_terms(colors):
     for c in raw:
         norm = _normalize_text(c)
         expanded.append(c)
-        if norm in _COLOR_FAMILY_MAP:
-            expanded.extend(_COLOR_FAMILY_MAP[norm])
         if available:
             for opt in available:
                 opt_norm = _normalize_text(opt)
@@ -146,16 +133,62 @@ def _expand_color_terms(colors):
     return unique
 
 def _extract_color_list(obj):
-    v = obj.get("cor") or obj.get("cores") or obj.get("color") or obj.get("colors")
-    if isinstance(v, (list, tuple)):
-        return [x for x in v if str(x).strip()]
-    if isinstance(v, str):
-        return [v] if v.strip() else []
-    return []
+    if not isinstance(obj, dict):
+        return []
+    values = []
+    for key in ["cor_base", "color_base", "cor_comercial", "color_comercial"]:
+        values.extend(_ensure_list(obj.get(key)))
+    mf = obj.get("metadata_filters")
+    if isinstance(mf, dict):
+        values.extend(_ensure_list(mf.get("cor_base")))
+        values.extend(_ensure_list(mf.get("cor_comercial")))
+    return [v for v in values if str(v).strip()]
 
 def _extract_color_value(obj):
     vals = _extract_color_list(obj)
     return vals[0].strip() if vals else ""
+
+def _extract_color_base_value(obj):
+    v = obj.get("cor_base") or obj.get("color_base")
+    if isinstance(v, (list, tuple)):
+        for x in v:
+            if isinstance(x, str) and x.strip():
+                return x.strip()
+        return ""
+    if isinstance(v, str):
+        return v.strip()
+    mf = obj.get("metadata_filters")
+    if isinstance(mf, dict):
+        v = mf.get("cor_base")
+        if isinstance(v, (list, tuple)):
+            for x in v:
+                if isinstance(x, str) and x.strip():
+                    return x.strip()
+            return ""
+        if isinstance(v, str):
+            return v.strip()
+    return ""
+
+def _extract_color_commercial_value(obj):
+    v = obj.get("cor_comercial") or obj.get("color_comercial")
+    if isinstance(v, (list, tuple)):
+        for x in v:
+            if isinstance(x, str) and x.strip():
+                return x.strip()
+        return ""
+    if isinstance(v, str):
+        return v.strip()
+    mf = obj.get("metadata_filters")
+    if isinstance(mf, dict):
+        v = mf.get("cor_comercial")
+        if isinstance(v, (list, tuple)):
+            for x in v:
+                if isinstance(x, str) and x.strip():
+                    return x.strip()
+            return ""
+        if isinstance(v, str):
+            return v.strip()
+    return ""
 
 def _extract_size_list(obj):
     v = obj.get("tamanho") or obj.get("size") or obj.get("item_tamanho") or obj.get("item_size") or obj.get("sizes")
@@ -190,6 +223,8 @@ def _build_suggestion(item):
         "description": item.get("description", ""),
         "price": item.get("price", "Consulte valor"),
         "color": _extract_color_value(item),
+        "color_base": _extract_color_base_value(item),
+        "color_comercial": _extract_color_commercial_value(item),
         "size": _extract_size_value(item),
         "category": item.get("category", "Festa"),
         "occasions": _get_occasions_list(item) if isinstance(item, dict) else "",
@@ -358,22 +393,11 @@ def _category_slug(meta):
 
 def _seed_inventory_context():
     return {
-        "noiva": {
-            "estilos": ["Sereia", "Princesa", "Evasê", "Boho Chic", "Minimalista", "Clássico"],
-            "tecidos": ["Zibelina", "Renda", "Tule", "Cetim", "Seda", "Crepe"],
-            "decotes": ["Tomara que caia", "Decote em V", "Canoa", "Ombro a ombro", "Frente única"],
-            "detalhes": ["Brilho", "Pedraria", "Cauda longa", "Fenda", "Manga longa", "Costas abertas"],
-            "cores": ["Off-white", "Branco", "Pérola", "Champagne"],
-            "ocasioes": ["Noiva"],
-        },
-        "festa": {
-            "estilos": ["Sereia", "Princesa", "Evasê", "Reto", "Clássico", "Moderno"],
-            "tecidos": ["Renda", "Tule", "Cetim", "Seda", "Crepe", "Chiffon"],
-            "decotes": ["Tomara que caia", "Decote em V", "Ombro a ombro", "Frente única"],
-            "detalhes": ["Brilho", "Pedraria", "Fenda", "Manga longa", "Costas abertas"],
-            "cores": ["Azul royal", "Azul marinho", "Verde esmeralda", "Vermelho", "Rosa", "Preto", "Prata"],
-            "ocasioes": ["Madrinha", "Formatura", "Debutante", "Gala", "Convidada"],
-        },
+        "estilos": ["Sereia", "Princesa", "Evasê", "Reto", "Boho Chic", "Minimalista", "Clássico", "Moderno"],
+        "tecidos": ["Zibelina", "Renda", "Tule", "Cetim", "Seda", "Crepe", "Chiffon"],
+        "decotes": ["Tomara que caia", "Decote em V", "Canoa", "Ombro a ombro", "Frente única"],
+        "detalhes": ["Brilho", "Pedraria", "Cauda longa", "Fenda", "Manga longa", "Costas abertas"],
+        "ocasioes": ["Noiva", "Civil", "Madrinha", "Mãe dos Noivos", "Formatura", "Debutante", "Gala", "Convidada"],
     }
 
 def _top_values(counts, limit=12):
@@ -382,16 +406,11 @@ def _top_values(counts, limit=12):
 
 def _build_inventory_digest(meta_list):
     seed = _seed_inventory_context()
-
-    by_cat = {
-        "noiva": {k: {} for k in seed["noiva"].keys()},
-        "festa": {k: {} for k in seed["festa"].keys()},
-    }
+    counts = {k: {} for k in seed.keys()}
 
     for m in meta_list or []:
         if not isinstance(m, dict):
             continue
-        cat = _category_slug(m)
         mf = m.get("metadata_filters")
         if not isinstance(mf, dict):
             mf = {}
@@ -399,7 +418,7 @@ def _build_inventory_digest(meta_list):
         def bump(facet, values):
             if not values:
                 return
-            target = by_cat.get(cat, {}).get(facet)
+            target = counts.get(facet)
             if target is None:
                 return
             for v in values:
@@ -412,17 +431,14 @@ def _build_inventory_digest(meta_list):
         bump("estilos", mf.get("silhouette"))
         bump("decotes", mf.get("neckline"))
         bump("detalhes", mf.get("details"))
-        bump("cores", mf.get("colors"))
         bump("ocasioes", mf.get("occasions"))
 
     digest = {}
-    for cat in ["noiva", "festa"]:
-        digest[cat] = {}
-        for facet, seed_values in seed[cat].items():
-            counts = by_cat[cat].get(facet, {})
-            observed = _top_values(counts, limit=12)
-            combined = list(dict.fromkeys(seed_values + observed))
-            digest[cat][facet] = combined[:16]
+    for facet, seed_values in seed.items():
+        facet_counts = counts.get(facet, {})
+        observed = _top_values(facet_counts, limit=12)
+        combined = list(dict.fromkeys(seed_values + observed))
+        digest[facet] = combined[:16]
 
     return digest
 
@@ -460,15 +476,19 @@ def _rewrite_catalog_query(query, target_occasion):
         return cached.get("data") or {"query_reescrita": query}
 
     digest_for_prompt = {}
-    for cat in ["noiva", "festa"]:
-        by_cat = inventory_digest.get(cat)
-        if not isinstance(by_cat, dict):
-            continue
-        for facet, values in by_cat.items():
+    if isinstance(inventory_digest, dict):
+        for facet, values in inventory_digest.items():
             if not isinstance(values, list):
                 continue
             digest_for_prompt.setdefault(facet, [])
             digest_for_prompt[facet].extend([str(v) for v in values if str(v).strip()])
+    account_id = session.get("account_id") if session else None
+    if not account_id:
+        account_id = _pick_public_account_id()
+    available_colors = _load_color_options_for_account(account_id) if account_id else []
+    if available_colors:
+        digest_for_prompt.setdefault("cores", [])
+        digest_for_prompt["cores"].extend(available_colors)
     for facet, values in list(digest_for_prompt.items()):
         digest_for_prompt[facet] = list(dict.fromkeys(values))[:32]
 
@@ -480,6 +500,7 @@ def _rewrite_catalog_query(query, target_occasion):
         "Se o usuário pedir um atributo/valor que não aparece nos exemplos, mantenha mesmo assim e liste em atributos_novos.\n"
         "Não invente que o inventário possui algo; apenas descreva preferências do usuário.\n"
         "Trate negativas: quando houver 'sem X' ou 'não X', registre X em termos_excluir e também como 'não X' no facet apropriado em atributos_extraidos (ex.: 'não tomara que caia' em decote; 'sem fenda' em detalhes).\n"
+        "Extraia cores em dois campos: cor_base (cores genéricas) e cor_comercial (nomes comerciais). Se houver só uma cor sem qualificador, use cor_base. Não use o campo 'cor' ou 'colors'.\n"
         "Responda apenas com JSON válido (sem markdown)."
     )
 
@@ -529,10 +550,10 @@ def _query_embedding_text_from_rewrite(data, target_occasion=None):
         return None
     attrs = data.get("atributos_extraidos")
     tokens = []
-    order = ["silhouette","neckline","sleeves","details","fabrics","colors","occasions"]
+    order = ["silhouette","neckline","sleeves","details","fabrics","cor_base","cor_comercial","occasions"]
     alt = {
-        "cor":"colors",
-        "cores":"colors",
+        "cor base":"cor_base",
+        "cor comercial":"cor_comercial",
         "estilo":"silhouette",
         "estilos":"silhouette",
         "decote":"neckline",
@@ -585,10 +606,10 @@ def _query_embedding_text_from_rewrite_attrs_only(data):
     if not isinstance(attrs, dict):
         return None
     tokens = []
-    order = ["silhouette","neckline","sleeves","details","fabrics","colors"]
+    order = ["silhouette","neckline","sleeves","details","fabrics","cor_base","cor_comercial"]
     alt = {
-        "cor":"colors",
-        "cores":"colors",
+        "cor base":"cor_base",
+        "cor comercial":"cor_comercial",
         "estilo":"silhouette",
         "estilos":"silhouette",
         "decote":"neckline",
@@ -626,9 +647,9 @@ def _apply_facet_constraints(candidates, rewrite_data):
         return _normalize_text(x)
     req = {}
     req_neg = {}
+    color_base_req = set()
+    color_comercial_req = set()
     key_map = {
-        "cor":"colors",
-        "cores":"colors",
         "estilo":"silhouette",
         "estilos":"silhouette",
         "decote":"neckline",
@@ -643,7 +664,24 @@ def _apply_facet_constraints(candidates, rewrite_data):
         "ocasioes":"occasions",
         "ocasiões":"occasions",
     }
-    for k in ["colors","silhouette","neckline","sleeves","details","fabrics","occasions"]:
+    def collect_colors(values):
+        out = []
+        for key in values:
+            if key not in attrs:
+                continue
+            raw = attrs.get(key)
+            if isinstance(raw, list):
+                out.extend(raw)
+            elif isinstance(raw, str) and raw.strip():
+                out.append(raw)
+        return out
+    base_vals = collect_colors(["cor_base","cor base"])
+    comercial_vals = collect_colors(["cor_comercial","cor comercial"])
+    if base_vals:
+        color_base_req = set(norm(s) for s in base_vals if str(s).strip())
+    if comercial_vals:
+        color_comercial_req = set(norm(s) for s in comercial_vals if str(s).strip())
+    for k in ["silhouette","neckline","sleeves","details","fabrics","occasions"]:
         v = _get_attr_from_rewrite(attrs, k, key_map)
         if isinstance(v, list):
             if k == "occasions":
@@ -673,7 +711,7 @@ def _apply_facet_constraints(candidates, rewrite_data):
                 neg.add(val.replace("nao ", "").replace("não ", "").strip())
             if neg:
                 req_neg[k] = neg
-    if not req:
+    if not req and not (color_base_req or color_comercial_req):
         return candidates
     def has_intersection(values, needed, facet):
         if not isinstance(values, list):
@@ -696,8 +734,18 @@ def _apply_facet_constraints(candidates, rewrite_data):
     for c in candidates:
         mf = c.get("metadata_filters", {}) or {}
         ok = True
-        for k in ["colors","silhouette","occasions"]:
-            if k in req and not has_intersection(mf.get(k), req[k], k):
+        if color_base_req or color_comercial_req:
+            mf_colors = mf.get("colors")
+            if not isinstance(mf_colors, list):
+                ok = False
+            else:
+                normalized_colors = set(norm(x) for x in mf_colors if str(x).strip())
+                if color_base_req and not normalized_colors.intersection(color_base_req):
+                    ok = False
+                if ok and color_comercial_req and not normalized_colors.intersection(color_comercial_req):
+                    ok = False
+        for k in ["silhouette","occasions"]:
+            if ok and k in req and not has_intersection(mf.get(k), req[k], k):
                 ok = False
                 break
         if ok and req_neg:
@@ -732,9 +780,9 @@ def _rerank_by_facets(candidates, rewrite_data):
     def norm(x):
         return _normalize_text(x)
     need = {}
+    color_base_need = set()
+    color_comercial_need = set()
     key_map = {
-        "cor":"colors",
-        "cores":"colors",
         "estilo":"silhouette",
         "estilos":"silhouette",
         "decote":"neckline",
@@ -749,7 +797,24 @@ def _rerank_by_facets(candidates, rewrite_data):
         "ocasioes":"occasions",
         "ocasiões":"occasions",
     }
-    for k in ["colors","silhouette","neckline","sleeves","details","fabrics","occasions"]:
+    def collect_colors(values):
+        out = []
+        for key in values:
+            if key not in attrs:
+                continue
+            raw = attrs.get(key)
+            if isinstance(raw, list):
+                out.extend(raw)
+            elif isinstance(raw, str) and raw.strip():
+                out.append(raw)
+        return out
+    base_vals = collect_colors(["cor_base","cor base"])
+    comercial_vals = collect_colors(["cor_comercial","cor comercial"])
+    if base_vals:
+        color_base_need = set(norm(s) for s in base_vals if str(s).strip())
+    if comercial_vals:
+        color_comercial_need = set(norm(s) for s in comercial_vals if str(s).strip())
+    for k in ["silhouette","neckline","sleeves","details","fabrics","occasions"]:
         v = _get_attr_from_rewrite(attrs, k, key_map)
         if isinstance(v, list):
             if k == "occasions":
@@ -764,10 +829,18 @@ def _rerank_by_facets(candidates, rewrite_data):
                     need[k] = {occ}
             else:
                 need[k] = {norm(v)}
-    weights = {"colors":2,"silhouette":2,"neckline":1,"sleeves":1,"details":1,"fabrics":1,"occasions":1}
+    weights = {"color_base":2,"color_comercial":2,"silhouette":2,"neckline":1,"sleeves":1,"details":1,"fabrics":1,"occasions":1}
     def score(c):
         mf = c.get("metadata_filters", {}) or {}
         s = 0
+        if color_base_need or color_comercial_need:
+            vals = mf.get("colors")
+            if isinstance(vals, list):
+                nv = set(norm(x) for x in vals if str(x).strip())
+                if color_base_need and nv.intersection(color_base_need):
+                    s += weights["color_base"]
+                if color_comercial_need and nv.intersection(color_comercial_need):
+                    s += weights["color_comercial"]
         for k, req in need.items():
             vals = mf.get(k)
             if isinstance(vals, list):
@@ -794,9 +867,9 @@ def _rerank_by_facets_loose(candidates, rewrite_data):
     def norm(x):
         return _normalize_text(x)
     need = {}
+    color_base_need = set()
+    color_comercial_need = set()
     key_map = {
-        "cor":"colors",
-        "cores":"colors",
         "estilo":"silhouette",
         "estilos":"silhouette",
         "decote":"neckline",
@@ -807,16 +880,41 @@ def _rerank_by_facets_loose(candidates, rewrite_data):
         "tecido":"fabrics",
         "tecidos":"fabrics",
     }
-    for k in ["colors","silhouette","neckline","sleeves","details","fabrics"]:
+    def collect_colors(values):
+        out = []
+        for key in values:
+            if key not in attrs:
+                continue
+            raw = attrs.get(key)
+            if isinstance(raw, list):
+                out.extend(raw)
+            elif isinstance(raw, str) and raw.strip():
+                out.append(raw)
+        return out
+    base_vals = collect_colors(["cor_base","cor base"])
+    comercial_vals = collect_colors(["cor_comercial","cor comercial"])
+    if base_vals:
+        color_base_need = set(norm(s) for s in base_vals if str(s).strip())
+    if comercial_vals:
+        color_comercial_need = set(norm(s) for s in comercial_vals if str(s).strip())
+    for k in ["silhouette","neckline","sleeves","details","fabrics"]:
         v = _get_attr_from_rewrite(attrs, k, key_map)
         if isinstance(v, list):
             need[k] = set(norm(s) for s in v if str(s).strip())
         elif isinstance(v, str) and v.strip():
             need[k] = {norm(v)}
-    weights = {"colors":2,"silhouette":2,"neckline":1,"sleeves":1,"details":1,"fabrics":1}
+    weights = {"color_base":2,"color_comercial":2,"silhouette":2,"neckline":1,"sleeves":1,"details":1,"fabrics":1}
     def score(c):
         mf = c.get("metadata_filters", {}) or {}
         s = 0
+        if color_base_need or color_comercial_need:
+            vals = mf.get("colors")
+            if isinstance(vals, list):
+                nv = set(norm(x) for x in vals if str(x).strip())
+                if color_base_need and nv.intersection(color_base_need):
+                    s += weights["color_base"]
+                if color_comercial_need and nv.intersection(color_comercial_need):
+                    s += weights["color_comercial"]
         for k, req in need.items():
             vals = mf.get(k)
             if isinstance(vals, list):
@@ -1114,7 +1212,12 @@ def _mcp_tools():
         account_id = _pick_public_account_id()
     available_colors = _load_color_options_for_account(account_id)
     colors_text = ", ".join(available_colors) if available_colors else "não informado"
-    description = f"Busca por similaridade semântica com filtros de ocasião, cor e tamanho. Cores disponíveis para consulta: {colors_text}."
+    description = (
+        "Busca por similaridade semântica com filtros de ocasião, cor_base/cor_comercial e tamanho. "
+        "Se houver dúvida sobre a cor comercial, deixe colors vazio e use apenas a cor base. "
+        "Se houver dúvida sobre a cor base, deixe colors vazio. "
+        f"Cores disponíveis para consulta: {colors_text}."
+    )
     return [
         {
             "name": "buscar_por_similaridade",
@@ -1136,7 +1239,8 @@ def _mcp_tools():
                     },
                     "colors": {
                         "type": "array",
-                        "items": {"type": "string"}
+                        "items": {"type": "string"},
+                        "description": "Use apenas cor_base e/ou cor_comercial. Se houver dúvida, deixe vazio."
                     },
                     "sizes": {
                         "type": "array",
@@ -1198,8 +1302,6 @@ def _run_db_search(args):
     sizes = _ensure_list(args.get("sizes") or args.get("tamanhos") or args.get("size") or args.get("tamanho"))
     occasions = _normalize_occasion_inputs(args.get("occasions") or args.get("ocasioes") or args.get("occasion"))
     exact_color_terms = _normalize_set(colors)
-    expanded_colors = _expand_color_terms(colors)
-    desired_colors = _normalize_set(expanded_colors)
     limit = int(args.get("limit") or args.get("k") or 4)
     if limit < 1:
         limit = 1
@@ -1207,7 +1309,7 @@ def _run_db_search(args):
         limit = 24
     if not metadata or not index:
         load_resources()
-    candidates = _filter_metadata_candidates(expanded_colors, occasions, max_candidates=max(200, limit * 40))
+    candidates = _filter_metadata_candidates(colors, occasions, max_candidates=max(200, limit * 40))
     enriched = validate_and_enrich_candidates(candidates)
     desired_sizes = _normalize_set(sizes)
     desired_occ_set = set(occasions)
@@ -1242,21 +1344,25 @@ def _run_similarity_search(args):
     sizes = _ensure_list(args.get("sizes") or args.get("tamanhos") or args.get("size") or args.get("tamanho"))
     occasions = _normalize_occasion_inputs(args.get("occasions") or args.get("ocasioes") or args.get("occasion"))
     exact_color_terms = _normalize_set(colors)
-    expanded_colors = _expand_color_terms(colors)
-    desired_colors = _normalize_set(expanded_colors)
+    desired_colors = exact_color_terms
     query = args.get("other_characteristics") or args.get("demais_caracteristicas") or args.get("query") or ""
     limit = int(args.get("limit") or args.get("k") or 5)
     if limit < 1:
         limit = 1
     if limit > 5:
         limit = 5
-    if not query.strip():
-        query = " ".join(_ensure_list(colors) + _ensure_list(sizes) + _ensure_list(occasions)).strip()
+    query_terms = []
+    if isinstance(query, str) and query.strip():
+        query_terms.append(query.strip())
+    query_terms.extend(_ensure_list(colors))
+    query_terms.extend(_ensure_list(sizes))
+    query_terms.extend(_ensure_list(occasions))
+    query = " ".join([str(t).strip() for t in query_terms if str(t).strip()]).strip()
     if not query:
         return {"items": [], "color_relaxation_notice": ""}
     debug_payload = {
         "colors": colors,
-        "expanded_colors": expanded_colors,
+        "expanded_colors": [],
         "sizes": sizes,
         "occasions": occasions,
         "other_characteristics": query,
@@ -1269,7 +1375,6 @@ def _run_similarity_search(args):
     desired_sizes = _normalize_set(sizes)
     desired_occ_set = set(occasions)
     exact_items = []
-    relaxed_items = []
     for item in results:
         if desired_sizes and not _matches_any(_extract_size_list(item), desired_sizes):
             continue
@@ -1280,38 +1385,12 @@ def _run_similarity_search(args):
         if exact_color_terms:
             if _matches_any(item_colors, exact_color_terms):
                 exact_items.append(item)
-            elif desired_colors and _matches_any(item_colors, desired_colors):
-                relaxed_items.append(item)
         else:
             exact_items.append(item)
-        if exact_color_terms:
-            if len(exact_items) >= 5 and len(exact_items) >= limit:
-                break
-            if len(exact_items) + len(relaxed_items) >= limit and len(exact_items) < 5:
-                break
-            if len(exact_items) >= limit:
-                break
-        else:
-            if len(exact_items) >= limit:
-                break
-    if not exact_color_terms or len(exact_items) >= 5:
-        result_payload = {"items": exact_items[:limit], "color_relaxation_notice": ""}
-        print("bella_tool_result", json.dumps({"count": len(result_payload["items"]), "color_relaxation_notice": ""}, ensure_ascii=False))
-        return result_payload
-    combined = (exact_items + relaxed_items)[:limit]
-    similar_colors = []
-    seen = set()
-    for c in expanded_colors:
-        k = _normalize_text(c)
-        if not k or k in exact_color_terms or k in seen:
-            continue
-        seen.add(k)
-        similar_colors.append(c)
-    notice = ""
-    if combined and similar_colors:
-        notice = "Sugestões de cor similar usadas porque havia menos de 5 opções na cor exata: " + ", ".join(similar_colors) + "."
-    result_payload = {"items": combined, "color_relaxation_notice": notice}
-    print("bella_tool_result", json.dumps({"count": len(result_payload["items"]), "color_relaxation_notice": notice}, ensure_ascii=False))
+        if len(exact_items) >= limit:
+            break
+    result_payload = {"items": exact_items[:limit], "color_relaxation_notice": ""}
+    print("bella_tool_result", json.dumps({"count": len(result_payload["items"]), "color_relaxation_notice": ""}, ensure_ascii=False))
     return result_payload
 
 def _summarize_items_for_llm(items):
@@ -1325,7 +1404,8 @@ def _summarize_items_for_llm(items):
         payload.append({
             "title": suggestion.get("title") or "",
             "description": (suggestion.get("description") or "")[:240],
-            "color": suggestion.get("color") or "",
+            "color_base": suggestion.get("color_base") or "",
+            "color_comercial": suggestion.get("color_comercial") or "",
             "size": suggestion.get("size") or "",
             "occasions": suggestion.get("occasions") or [],
             "image_url": suggestion.get("image_url") or "",
@@ -1347,6 +1427,8 @@ def _summarize_items_for_client(items):
             "description": (suggestion.get("description") or "")[:240],
             "price": suggestion.get("price") or "",
             "color": suggestion.get("color") or "",
+            "color_base": suggestion.get("color_base") or "",
+            "color_comercial": suggestion.get("color_comercial") or "",
             "size": suggestion.get("size") or "",
             "occasions": suggestion.get("occasions") or [],
             "image_url": suggestion.get("image_url") or "",
@@ -1527,6 +1609,28 @@ def ai_similar(item_id):
                 return v.strip()
             return ""
 
+        def _extract_color_base_value(obj):
+            v = obj.get("cor_base") or obj.get("color_base")
+            if isinstance(v, (list, tuple)):
+                for x in v:
+                    if isinstance(x, str) and x.strip():
+                        return x.strip()
+                return ""
+            if isinstance(v, str):
+                return v.strip()
+            return ""
+
+        def _extract_color_commercial_value(obj):
+            v = obj.get("cor_comercial") or obj.get("color_comercial")
+            if isinstance(v, (list, tuple)):
+                for x in v:
+                    if isinstance(x, str) and x.strip():
+                        return x.strip()
+                return ""
+            if isinstance(v, str):
+                return v.strip()
+            return ""
+
         def _extract_size_value(obj):
             v = obj.get("tamanho") or obj.get("size") or obj.get("item_tamanho") or obj.get("item_size") or obj.get("sizes")
             if isinstance(v, (list, tuple)):
@@ -1560,6 +1664,8 @@ def ai_similar(item_id):
                     "description": item.get("description", ""),
                     "category": item.get("category", "Outros"),
                     "color": _extract_color_value(item),
+                    "color_base": _extract_color_base_value(item),
+                    "color_comercial": _extract_color_commercial_value(item),
                     "size": _extract_size_value(item),
                     "occasions": _get_occasions_list(item),
                 })
@@ -1650,6 +1756,8 @@ def ai_similar(item_id):
                 "description": item.get("description", ""),
                 "category": item.get("category", "Outros"),
                 "color": _extract_color_value(item),
+                "color_base": _extract_color_base_value(item),
+                "color_comercial": _extract_color_commercial_value(item),
                 "size": _extract_size_value(item),
                 "occasions": _get_occasions_list(item),
             })
@@ -1683,6 +1791,28 @@ def ai_catalog_search():
 
         def _extract_color_value(obj):
             v = obj.get("cor") or obj.get("cores") or obj.get("color") or obj.get("colors")
+            if isinstance(v, (list, tuple)):
+                for x in v:
+                    if isinstance(x, str) and x.strip():
+                        return x.strip()
+                return ""
+            if isinstance(v, str):
+                return v.strip()
+            return ""
+
+        def _extract_color_base_value(obj):
+            v = obj.get("cor_base") or obj.get("color_base")
+            if isinstance(v, (list, tuple)):
+                for x in v:
+                    if isinstance(x, str) and x.strip():
+                        return x.strip()
+                return ""
+            if isinstance(v, str):
+                return v.strip()
+            return ""
+
+        def _extract_color_commercial_value(obj):
+            v = obj.get("cor_comercial") or obj.get("color_comercial")
             if isinstance(v, (list, tuple)):
                 for x in v:
                     if isinstance(x, str) and x.strip():
@@ -1782,6 +1912,8 @@ def ai_catalog_search():
                 "customId": item.get('customId'), # Adicionado para consistência
                 "category": item.get('category', 'Outros'),
                 "color": _extract_color_value(item),
+                "color_base": _extract_color_base_value(item),
+                "color_comercial": _extract_color_commercial_value(item),
                 "size": _extract_size_value(item),
                 "occasions": _get_occasions_list(item)
             })

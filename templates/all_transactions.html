@@ -77,6 +77,16 @@
             <div class="d-flex justify-content-between small border-bottom pb-1">
               <span class="text-muted">{{ field.label }}</span>
               <span class="text-end">
+                {% if field.id == 'cor' %}
+                {% set base_color = item.get('cor_base') or item.get('color_base') or '' %}
+                {% set commercial_color = item.get('cor_comercial') or item.get('color_comercial') or '' %}
+                {% set fallback_color = item.get('cor') or item.get('color') or item.get('cores') or '' %}
+                {% if base_color or commercial_color %}
+                {{ (base_color and ('base: ' ~ base_color) or '') ~ (commercial_color and ((base_color and ' / ') or '') ~ 'comercial: ' ~ commercial_color or '') }}
+                {% else %}
+                {{ fallback_color if fallback_color else '-' }}
+                {% endif %}
+                {% else %}
                 {% set value = item[field.id] if field.id in item else '' %} {% if value == 'None' or value is none %}
                 <span class="text-muted">-</span>
                 {% else %} {% if field.type in ["phone", "client_phone"] %} {{ value | format_phone }} {% elif field.type == "date" %} {{ value |
@@ -84,6 +94,7 @@
                 ["value", "item_value", "transaction_price", "transaction_value_paid"] %} {{ value | format_currency }} {% elif field.type in ["cpf",
                 "client_cpf"] %} {{ value | format_cpf }} {% elif field.type in ["cnpj", "client_cnpj"] %} {{ value | format_cnpj }} {% elif field.id
                 == "transaction_status" %} {{ status_map.get(value, value) }} {% else %} {{ value | string | truncate(30, True) }} {% endif %} {% endif %}
+                {% endif %}
               </span>
             </div>
             {% endif %} {% endfor %}

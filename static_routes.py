@@ -637,6 +637,7 @@ def init_static_routes(
         try:
             page = request.args.get('page', 1, type=int)
             active_occasion = request.args.get("occasion", "", type=str)
+            requested_item_id = request.args.get("item", "", type=str)
             per_page = 12
             
             # Fetch all available items (same as index) but filtered by account
@@ -719,10 +720,42 @@ def init_static_routes(
             start = (page - 1) * per_page
             end = start + per_page
             current_itens = itens[start:end]
+
+            if requested_item_id:
+                found_in_page = any(
+                    isinstance(item, dict) and str(item.get("item_id")) == str(requested_item_id)
+                    for item in current_itens
+                )
+                if not found_in_page:
+                    target_item = next(
+                        (
+                            item
+                            for item in itens
+                            if isinstance(item, dict) and str(item.get("item_id")) == str(requested_item_id)
+                        ),
+                        None,
+                    )
+                    if not target_item:
+                        target_item = next(
+                            (
+                                item
+                                for item in all_items
+                                if isinstance(item, dict) and str(item.get("item_id")) == str(requested_item_id)
+                            ),
+                            None,
+                        )
+                    if target_item:
+                        current_itens = [target_item] + [
+                            item
+                            for item in current_itens
+                            if not (isinstance(item, dict) and str(item.get("item_id")) == str(requested_item_id))
+                        ]
+                        if len(current_itens) > per_page:
+                            current_itens = current_itens[:per_page]
             
             return render_template(
                 "catalogo.html", 
-                itens=current_itens, 
+                itens=current_itens,
                 fields_config=fields_config,
                 page=page,
                 total_pages=total_pages,

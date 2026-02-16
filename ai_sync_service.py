@@ -10,6 +10,7 @@ import subprocess
 import re
 import unicodedata
 import time
+import argparse
 import faiss # Import faiss for direct index checking
 from botocore.exceptions import ClientError
 from openai import OpenAI
@@ -25,6 +26,7 @@ METADATA_FILE = os.path.join(BASE_DIR, 'vector_store_metadata.pkl')
 INDEX_FILE = os.path.join(BASE_DIR, 'vector_store.index')
 CREATE_VECTOR_SCRIPT = os.path.join(BASE_DIR, 'embeddings_creation', 'create_vector_store.py')
 SKILL_FILE = os.path.join(BASE_DIR, '.trae', 'skills', 'bella-search-mcp', 'SKILL.md')
+DEFAULT_AI_SYNC_ACCOUNT_ID = "37d5b37f-c920-4090-a682-7e1ed2e31a0f"
 
 # AWS & OpenAI
 dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
@@ -114,6 +116,20 @@ def _build_tool_context(existing_data, limit_per_facet=40):
         out[k] = [v for v, _ in items[:limit_per_facet]]
     return out
 
+def _infer_account_id(existing_data):
+    counts = {}
+    for entry in existing_data or []:
+        if not isinstance(entry, dict):
+            continue
+        account_id = entry.get("account_id") or entry.get("item_account_id") or entry.get("accountId")
+        account_id = str(account_id or "").strip()
+        if not account_id:
+            continue
+        counts[account_id] = counts.get(account_id, 0) + 1
+    if not counts:
+        return None
+    return sorted(counts.items(), key=lambda x: (-x[1], x[0]))[0][0]
+
 def _update_skill_context(context):
     if not os.path.exists(SKILL_FILE):
         return
@@ -197,8 +213,13 @@ def _metadata_filters_from_structured(structured):
     if occasions_value is None:
         occasions_value = structured.get("ocasiao")
 
+    cor_comercial = _to_list(structured.get("cor_comercial"))
+    cor_base = _to_list(structured.get("cor_base"))
+    colors = _clean_unique_strings(cor_comercial + cor_base)
     filters = {
-        "colors": _to_list(structured.get("cor")),
+        "cor_comercial": _clean_unique_strings(cor_comercial),
+        "cor_base": _clean_unique_strings(cor_base),
+        "colors": colors,
         "fabrics": _to_list(structured.get("tecido")),
         "silhouette": _to_list(structured.get("estilo")),
         "neckline": _to_list(structured.get("decote")),
@@ -226,7 +247,7 @@ def _pick_ai_sync_account_id():
     raw = os.getenv("AI_SYNC_ACCOUNT_ID") or os.getenv("PUBLIC_CATALOG_ACCOUNT_IDS") or ""
     raw = str(raw or "").strip()
     if not raw:
-        return None
+        return DEFAULT_AI_SYNC_ACCOUNT_ID
     parts = [p.strip() for p in raw.split(",") if p.strip()]
     return parts[0] if parts else None
 
@@ -260,6 +281,22 @@ def _split_multi_values(value):
     chunks = re.split(r"[/,]|\s+e\s+", s)
     return [c.strip() for c in chunks if c and str(c).strip()]
 
+def _normalize_color_entry(entry):
+    if entry is None:
+        return None
+    if isinstance(entry, dict):
+        name = entry.get("name") or entry.get("color") or entry.get("comercial") or entry.get("cor")
+        base = entry.get("base") or entry.get("cor_base") or entry.get("base_color")
+        name = str(name).strip() if name else ""
+        base = str(base).strip() if base else ""
+        if not name:
+            return None
+        return {"name": name, "base": base}
+    name = str(entry).strip()
+    if not name:
+        return None
+    return {"name": name, "base": ""}
+
 def _load_account_settings_options(account_id):
     if not account_id:
         return {"colors": [], "sizes": []}
@@ -272,17 +309,32 @@ def _load_account_settings_options(account_id):
     sizes = item.get("size_options")
     colors = colors if isinstance(colors, list) else []
     sizes = sizes if isinstance(sizes, list) else []
+    cleaned_pairs = []
+    seen_pairs = set()
+    for c in colors:
+        entry = _normalize_color_entry(c)
+        if not entry:
+            continue
+        key = (entry["base"].casefold(), entry["name"].casefold())
+        if key in seen_pairs:
+            continue
+        seen_pairs.add(key)
+        cleaned_pairs.append(entry)
+    cleaned_colors = [entry["name"] for entry in cleaned_pairs if entry.get("name")]
     return {
-        "colors": sorted(_clean_unique_strings(colors), key=lambda x: x.casefold()),
+        "colors": sorted(_clean_unique_strings(cleaned_colors), key=lambda x: x.casefold()),
+        "color_pairs": sorted(cleaned_pairs, key=lambda x: (x["base"].casefold(), x["name"].casefold())),
         "sizes": sorted(_clean_unique_strings(sizes), key=lambda x: x.casefold()),
     }
 
 def _scan_items_for_color_and_size_options(max_items=2500):
     colors = []
+    cor_base = []
+    cor_comercial = []
     sizes = []
 
     scan_kwargs = {
-        "ProjectionExpression": "cor, cores, tamanho, #st",
+        "ProjectionExpression": "cor, cores, cor_base, cor_comercial, tamanho, #st",
         "ExpressionAttributeNames": {"#st": "status"},
     }
     resp = itens_table.scan(**scan_kwargs)
@@ -296,6 +348,8 @@ def _scan_items_for_color_and_size_options(max_items=2500):
 
             colors.extend(_split_multi_values(item.get("cor")))
             colors.extend(_split_multi_values(item.get("cores")))
+            cor_base.extend(_split_multi_values(item.get("cor_base")))
+            cor_comercial.extend(_split_multi_values(item.get("cor_comercial")))
             sizes.extend(_split_multi_values(item.get("tamanho")))
 
             processed += 1
@@ -311,6 +365,8 @@ def _scan_items_for_color_and_size_options(max_items=2500):
 
     return {
         "colors": sorted(_clean_unique_strings(colors), key=lambda x: x.casefold()),
+        "cor_base": sorted(_clean_unique_strings(cor_base), key=lambda x: x.casefold()),
+        "cor_comercial": sorted(_clean_unique_strings(cor_comercial), key=lambda x: x.casefold()),
         "sizes": sorted(_clean_unique_strings(sizes), key=lambda x: x.casefold()),
     }
 
@@ -354,8 +410,252 @@ def _merge_occasions(metadata_filters, db_occasions):
         metadata_filters.pop("occasions", None)
     return metadata_filters
 
+def _colors_from_db_item(item):
+    if not isinstance(item, dict):
+        return []
+    values = []
+    for key in ["cor_comercial", "cor_base", "cores", "color", "item_cor", "item_color"]:
+        values.extend(_split_multi_values(item.get(key)))
+    return sorted(_clean_unique_strings(values), key=lambda x: x.casefold())
+
+def _merge_colors(metadata_filters, db_colors):
+    if not isinstance(metadata_filters, dict):
+        return metadata_filters
+    existing = metadata_filters.get("colors")
+    if not isinstance(existing, list):
+        existing = []
+    merged = _clean_unique_strings(list(existing) + list(db_colors or []))
+    if merged:
+        metadata_filters["colors"] = merged
+    else:
+        metadata_filters.pop("colors", None)
+    return metadata_filters
+
+def _sizes_from_db_item(item):
+    if not isinstance(item, dict):
+        return []
+    values = []
+    for key in ["tamanho", "size", "item_tamanho", "item_size"]:
+        values.extend(_split_multi_values(item.get(key)))
+    return sorted(_clean_unique_strings(values), key=lambda x: x.casefold())
+
+def _format_db_multi_value(values):
+    if values is None:
+        return None
+    if isinstance(values, list):
+        cleaned = _clean_unique_strings(values)
+        if not cleaned:
+            return None
+        if len(cleaned) == 1:
+            return cleaned[0]
+        return ", ".join(cleaned)
+    s = str(values).strip()
+    return s if s else None
+
+def _update_db_fields(item_id, description, title, metadata_filters):
+    updates = []
+    values = {}
+
+    if description is not None:
+        updates.append("description = :d")
+        updates.append("item_description = :d")
+        values[":d"] = description or ""
+    if title is not None:
+        updates.append("title = :t")
+        updates.append("item_title = :t")
+        values[":t"] = title or ""
+
+    if isinstance(metadata_filters, dict):
+        cor_base = _format_db_multi_value(metadata_filters.get("cor_base"))
+        cor_comercial = _format_db_multi_value(metadata_filters.get("cor_comercial"))
+        if cor_base:
+            updates.append("cor_base = :cb")
+            values[":cb"] = cor_base
+        if cor_comercial:
+            updates.append("cor_comercial = :cc")
+            updates.append("cor = :cc")
+            values[":cc"] = cor_comercial
+
+        occs = _normalize_occasions_list(metadata_filters.get("occasions"))
+        if occs:
+            values[":one"] = "1"
+            mapping = [
+                ("Noiva", "occasion_noiva"),
+                ("Civil", "occasion_civil"),
+                ("Madrinha", "occasion_madrinha"),
+                ("Mãe dos Noivos", "occasion_mae_dos_noivos"),
+                ("Formatura", "occasion_formatura"),
+                ("Debutante", "occasion_debutante"),
+                ("Gala", "occasion_gala"),
+                ("Convidada", "occasion_convidada"),
+            ]
+            occ_set = set(occs)
+            for label, key in mapping:
+                if label in occ_set:
+                    updates.append(f"{key} = :one")
+
+    if not updates:
+        return
+
+    try:
+        itens_table.update_item(
+            Key={'item_id': item_id},
+            UpdateExpression="SET " + ", ".join(updates),
+            ExpressionAttributeValues=values,
+        )
+    except Exception as e:
+        print(f"Erro ao atualizar campos do item {item_id}: {e}")
+
+def backfill_db_from_jsonl(jsonl_path=None, dry_run=False, limit=None):
+    path = jsonl_path or DATASET_FILE
+    if not os.path.exists(path):
+        print(f"Arquivo não encontrado: {path}")
+        return {"status": "error", "message": "arquivo não encontrado"}
+
+    total = 0
+    missing = 0
+    skipped = 0
+    updated = 0
+    errors = 0
+    occ_map = [
+        ("Noiva", "occasion_noiva"),
+        ("Civil", "occasion_civil"),
+        ("Madrinha", "occasion_madrinha"),
+        ("Mãe dos Noivos", "occasion_mae_dos_noivos"),
+        ("Formatura", "occasion_formatura"),
+        ("Debutante", "occasion_debutante"),
+        ("Gala", "occasion_gala"),
+        ("Convidada", "occasion_convidada"),
+    ]
+
+    with open(path, "r", encoding="utf-8") as f:
+        for line in f:
+            if limit and total >= limit:
+                break
+            if not line.strip():
+                continue
+            try:
+                data = json.loads(line)
+            except Exception:
+                continue
+            total += 1
+            item_id = str(data.get("custom_id") or data.get("item_id") or "").strip()
+            if not item_id:
+                skipped += 1
+                continue
+            try:
+                resp = itens_table.get_item(Key={"item_id": item_id})
+                item = resp.get("Item")
+            except Exception as e:
+                print(f"Erro ao buscar item {item_id}: {e}")
+                errors += 1
+                continue
+            if not item:
+                missing += 1
+                continue
+
+            updates = []
+            values = {}
+
+            def add_update(field, value):
+                key = f":v{len(values)}"
+                updates.append(f"{field} = {key}")
+                values[key] = value
+
+            description = data.get("description")
+            title = data.get("title")
+            if description is not None:
+                add_update("description", description or "")
+            if description is not None:
+                add_update("item_description", description or "")
+            if title is not None:
+                add_update("title", title or "")
+            if title is not None:
+                add_update("item_title", title or "")
+
+            metadata_filters = data.get("metadata_filters")
+            if isinstance(metadata_filters, dict):
+                cor_base = _format_db_multi_value(metadata_filters.get("cor_base"))
+                cor_comercial = _format_db_multi_value(metadata_filters.get("cor_comercial"))
+                if cor_base:
+                    add_update("cor_base", cor_base)
+                if cor_comercial:
+                    add_update("cor_comercial", cor_comercial)
+                if cor_comercial:
+                    add_update("cor", cor_comercial)
+
+                occs = _normalize_occasions_list(metadata_filters.get("occasions"))
+                if occs:
+                    occ_set = set(occs)
+                    for label, key in occ_map:
+                        if label in occ_set:
+                            add_update(key, "1")
+
+            if not updates:
+                skipped += 1
+                continue
+
+            if dry_run:
+                updated += 1
+                continue
+
+            try:
+                itens_table.update_item(
+                    Key={"item_id": item_id},
+                    UpdateExpression="SET " + ", ".join(updates),
+                    ExpressionAttributeValues=values,
+                )
+                updated += 1
+            except Exception as e:
+                print(f"Erro ao atualizar item {item_id}: {e}")
+                errors += 1
+
+    summary = {
+        "status": "success",
+        "total": total,
+        "updated": updated,
+        "missing": missing,
+        "skipped": skipped,
+        "errors": errors,
+        "dry_run": bool(dry_run),
+    }
+    print(json.dumps(summary, ensure_ascii=False))
+    return summary
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--jsonl", default=DATASET_FILE)
+    parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--limit", type=int, default=0)
+    args = parser.parse_args()
+    backfill_db_from_jsonl(args.jsonl, dry_run=args.dry_run, limit=args.limit or None)
+
+def _build_embedding_text_from_item(metadata_filters, title, description, item_obs, sizes):
+    parts = []
+    if isinstance(metadata_filters, dict):
+        for k in ["silhouette", "neckline", "fabrics", "details", "cor_base", "cor_comercial", "colors", "sleeves", "occasions"]:
+            vals = metadata_filters.get(k)
+            if isinstance(vals, list):
+                parts.extend([str(v).strip() for v in vals if str(v).strip()])
+    if sizes:
+        parts.extend([str(v).strip() for v in sizes if str(v).strip()])
+    if title:
+        parts.append(str(title).strip())
+    if description:
+        parts.append(str(description).strip())
+    if item_obs:
+        parts.append(str(item_obs).strip())
+    seen = set()
+    cleaned = []
+    for p in parts:
+        q = _normalize_text(p)
+        if q and q not in seen:
+            seen.add(q)
+            cleaned.append(p)
+    return " ".join(cleaned)[:400]
+
 def _build_inventory_examples(existing_data, limit_per_facet=8):
-    seed = {
+    vocab = {
         "tecido": ["Zibelina", "Renda", "Tule", "Cetim", "Seda", "Crepe", "Chiffon", "Organza"],
         "estilo": ["Sereia", "Princesa", "Evasê", "Reto", "Boho Chic", "Minimalista", "Clássico", "Moderno"],
         "decote": ["Tomara que caia", "Decote em V", "Canoa", "Ombro a ombro", "Frente única", "Coração"],
@@ -364,42 +664,57 @@ def _build_inventory_examples(existing_data, limit_per_facet=8):
     }
 
     tool_ctx = _build_tool_context(existing_data or [], limit_per_facet=max(8, int(limit_per_facet or 0)))
-    facet_map = {
-        "fabrics": "tecido",
-        "silhouette": "estilo",
-        "neckline": "decote",
-        "sleeves": "mangas",
-        "details": "detalhes",
-    }
 
-    vocab = {}
-    for src_key, dst_key in facet_map.items():
-        observed = tool_ctx.get(src_key) if isinstance(tool_ctx, dict) else []
-        observed = observed if isinstance(observed, list) else []
-        merged = list(dict.fromkeys((seed.get(dst_key) or []) + [str(v).strip() for v in observed if str(v).strip()]))
-        vocab[dst_key] = merged[:limit_per_facet]
-
-    account_id = _pick_ai_sync_account_id()
+    account_id = _pick_ai_sync_account_id() or _infer_account_id(existing_data)
     settings = _load_account_settings_options(account_id)
-    if settings.get("colors") or settings.get("sizes"):
+    if account_id:
         options = settings
+        if not options.get("sizes"):
+            fallback = _scan_items_for_color_and_size_options(max_items=2500)
+            options = {**options, "sizes": fallback.get("sizes", [])}
     else:
-        options = _scan_items_for_color_and_size_options(max_items=2500)
+        fallback = _scan_items_for_color_and_size_options(max_items=2500)
+        options = {
+            "colors": [],
+            "color_pairs": [],
+            "sizes": fallback.get("sizes", []),
+        }
 
-    occasion_options = _default_occasion_options()
+    dynamic_occasions = tool_ctx.get("occasions") if isinstance(tool_ctx, dict) else []
+    dynamic_occasions = dynamic_occasions if isinstance(dynamic_occasions, list) else []
+    occasion_options = _clean_unique_strings(dynamic_occasions) or _default_occasion_options()
     colors_options = options.get("colors") or []
+    color_pairs = options.get("color_pairs") or []
     sizes_options = options.get("sizes") or []
-
+    cor_comercial = [str(c.get("name") or "").strip() for c in color_pairs if str(c.get("name") or "").strip()]
+    cor_base = [str(c.get("base") or "").strip() for c in color_pairs if str(c.get("base") or "").strip()]
+    if not cor_comercial:
+        cor_comercial = colors_options
+    if not cor_base:
+        cor_base = colors_options
     return {
         "opcoes_validas": {
             "occasions": occasion_options,
-            "cor": colors_options[:80],
-            "tamanho": sizes_options[:60],
+            "cor_comercial": _clean_unique_strings(cor_comercial)[:80],
+            "cor_base": _clean_unique_strings(cor_base)[:80],
         },
         "exemplos_vocabulario": vocab,
     }
 
-def _extract_metadata_filters(description):
+def _extract_color_options_from_inventory_examples(inventory_examples):
+    if not isinstance(inventory_examples, dict):
+        return []
+    options = inventory_examples.get("opcoes_validas")
+    if not isinstance(options, dict):
+        return []
+    colors = []
+    for key in ["cor_comercial", "cor_base"]:
+        values = options.get(key)
+        if isinstance(values, list):
+            colors.extend(values)
+    return _clean_unique_strings(colors)
+
+def _extract_metadata_filters(description, color_options=None):
     text = _normalize_text(description)
 
     fabrics = [
@@ -457,27 +772,11 @@ def _extract_metadata_filters(description):
         ("drapeado", ["drapeado", "drapeados"]),
     ]
 
-    colors = [
-        ("off-white", ["off white", "off-white", "ivory", "marfim", "perola", "pérola", "champagne", "branco neve", "branco-neve", "branco gelo", "branco-gelo"]),
-        ("branco", ["branco"]),
-        ("preto", ["preto"]),
-        ("azul-marinho", ["azul marinho", "azul-marinho"]),
-        ("azul-royal", ["azul royal", "azul-royal"]),
-        ("azul-claro", ["azul claro", "azul-claro"]),
-        ("verde-esmeralda", ["verde esmeralda", "verde-esmeralda"]),
-        ("verde", ["verde"]),
-        ("vermelho", ["vermelho"]),
-        ("bordo", ["bordo", "bordô"]),
-        ("vinho", ["vinho"]),
-        ("rosa", ["rosa"]),
-        ("roxo", ["roxo"]),
-        ("lilas", ["lilas", "lilás"]),
-        ("prata", ["prata"]),
-        ("dourado", ["dourado"]),
-        ("magenta", ["magenta"]),
-        ("terracota", ["terracota"]),
-        ("amarelo", ["amarelo", "mostarda"]),
-    ]
+    colors = []
+    for c in color_options or []:
+        name = str(c).strip()
+        if name:
+            colors.append((name, [name]))
 
     occasions = [
         ("debutante", ["debutante", "15 anos", "quinze anos"]),
@@ -515,7 +814,7 @@ def _extract_metadata_filters(description):
 def _synthesize_embedding_text(metadata_filters, title):
     parts = []
     if isinstance(metadata_filters, dict):
-        for k in ["silhouette", "neckline", "fabrics", "details", "colors", "sleeves", "occasions"]:
+        for k in ["silhouette", "neckline", "fabrics", "details", "cor_base", "cor_comercial", "colors", "sleeves", "occasions"]:
             vals = metadata_filters.get(k)
             if isinstance(vals, list):
                 parts.extend([str(v).strip() for v in vals if str(v).strip()])
@@ -686,53 +985,62 @@ def generate_dress_metadata(image_input, existing_desc=None, existing_title=None
             if not base64_image:
                 base64_image = encode_image(image_input)
 
+            system_prompt = (
+                "Você descreve vestidos para um catálogo de busca.\n"
+                "Responda apenas com JSON válido (sem markdown).\n"
+                "Não inclua tamanho, manequim, medidas, altura, peso, ou suposições de tamanho.\n"
+                "Não inclua preço.\n"
+                "Use português do Brasil."
+            )
+            user_text = (
+                "Analise a imagem e retorne um JSON com este schema:\n"
+                "{\n"
+                "  \"descricao\": \"string (máx 70 palavras, objetiva, para busca)\",\n"
+                "  \"titulo\": \"string (máx 5 palavras)\",\n"
+                "  \"occasions\": [\"...\"] (multi-label; pode ter 0, 1 ou várias; exemplos: Noiva, Civil, Madrinha, Formatura, Debutante, Gala, Convidada, Mãe dos Noivos),\n"
+                "  \"cor_comercial\": [\"...\"],\n"
+                "  \"cor_base\": [\"...\"],\n"
+                "  \"tecido\": [\"...\"],\n"
+                "  \"estilo\": [\"...\"],\n"
+                "  \"decote\": [\"...\"],\n"
+                "  \"mangas\": [\"...\"],\n"
+                "  \"detalhes\": [\"...\"],\n"
+                "  \"keywords\": [\"...\"]\n"
+                "}\n"
+                "Contexto do catálogo (use como vocabulário; quando possível, escolha exatamente das opções):\n"
+                f"{json.dumps(inventory_examples or {}, ensure_ascii=False)}\n"
+                "Regras:\n"
+                "- As listas de exemplos em exemplos_vocabulario são apenas ilustrativas; não são opções válidas.\n"
+                "- 'cor_comercial' é o nome popular da cor usado no mercado da moda; escolha apenas opções válidas da lista opcoes_validas.cor_comercial.\n"
+                "- 'cor_base' é a categoria base da cor; escolha apenas opções válidas da lista opcoes_validas.cor_base.\n"
+                "- Se não houver correspondência clara, retorne lista vazia em cor_comercial e cor_base.\n"
+                "- Para 'occasions', use apenas opções válidas quando houver correspondência clara; caso contrário, lista vazia.\n"
+                "- Não retorne 'tamanho' (ele não faz parte do schema).\n"
+                "Se algum campo não for possível inferir com segurança, retorne lista vazia.\n"
+                "Regras de classificação (occasions):\n"
+                "- Formatura: brilho intenso, fendas, recortes, cores vibrantes, sexy/moderno.\n"
+                "- Madrinha: elegante/romântico, tons pastéis/terrosos, sem protagonismo excessivo.\n"
+                "- Gala: luxo, estruturado, cauda, bordado pesado, red carpet/black tie.\n"
+                "- Debutante: princesa volumoso ou balada curto/brilho.\n"
+                "- Mãe dos Noivos: sofisticado, mais cobertura, renda nobre, cores clássicas.\n"
+                "- Convidada: bonito mas menos protagonista.\n"
+                "- Noiva e Civil podem coexistir (um mesmo vestido pode servir para ambos).\n"
+            )
+            print("PROMPT_SYSTEM_VISAO:\n" + system_prompt)
+            print("PROMPT_USER_VISAO:\n" + user_text)
             response = client.chat.completions.create(
                 model="gpt-4o",
                 messages=[
                     {
                         "role": "system",
-                        "content": (
-                            "Você descreve vestidos para um catálogo de busca.\n"
-                            "Responda apenas com JSON válido (sem markdown).\n"
-                            "Não inclua tamanho, manequim, medidas, altura, peso, ou suposições de tamanho.\n"
-                            "Não inclua preço.\n"
-                            "Use português do Brasil."
-                        ),
+                        "content": system_prompt,
                     },
                     {
                         "role": "user",
                         "content": [
                             {
                                 "type": "text",
-                                "text": (
-                                    "Analise a imagem e retorne um JSON com este schema:\n"
-                                    "{\n"
-                                    "  \"descricao\": \"string (máx 70 palavras, objetiva, para busca)\",\n"
-                                    "  \"titulo\": \"string (máx 5 palavras)\",\n"
-                                    "  \"occasions\": [\"...\"] (multi-label; pode ter 0, 1 ou várias; exemplos: Noiva, Civil, Madrinha, Formatura, Debutante, Gala, Convidada, Mae dos Noivos),\n"
-                                    "  \"cor\": [\"...\"],\n"
-                                    "  \"tecido\": [\"...\"],\n"
-                                    "  \"estilo\": [\"...\"],\n"
-                                    "  \"decote\": [\"...\"],\n"
-                                    "  \"mangas\": [\"...\"],\n"
-                                    "  \"detalhes\": [\"...\"],\n"
-                                    "  \"keywords\": [\"...\"]\n"
-                                    "}\n"
-                                    "Contexto do catálogo (use como vocabulário; quando possível, escolha exatamente das opções):\n"
-                                    f"{json.dumps(inventory_examples or {}, ensure_ascii=False)}\n"
-                                    "Regras:\n"
-                                    "- Para 'cor' e 'occasions', use apenas opções válidas quando houver correspondência clara; caso contrário, lista vazia.\n"
-                                    "- Não retorne 'tamanho' (ele não faz parte do schema).\n"
-                                    "Se algum campo não for possível inferir com segurança, retorne lista vazia.\n"
-                                    "Regras de classificação (occasions):\n"
-                                    "- Formatura: brilho intenso, fendas, recortes, cores vibrantes, sexy/moderno.\n"
-                                    "- Madrinha: elegante/romântico, tons pastéis/terrosos, sem protagonismo excessivo.\n"
-                                    "- Gala: luxo, estruturado, cauda, bordado pesado, red carpet/black tie.\n"
-                                    "- Debutante: princesa volumoso ou balada curto/brilho.\n"
-                                    "- Mae dos Noivos: sofisticado, mais cobertura, renda nobre, cores clássicas.\n"
-                                    "- Convidada: bonito mas menos protagonista.\n"
-                                    "- Noiva e Civil podem coexistir (um mesmo vestido pode servir para ambos).\n"
-                                ),
+                                "text": user_text,
                             },
                             {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}},
                         ],
@@ -863,6 +1171,7 @@ def sync_index(reset_local=False, force_regenerate=False):
         [d for d in existing_data if d.get('custom_id') not in deleted_ids_set],
         limit_per_facet=8,
     )
+    dynamic_color_options = _extract_color_options_from_inventory_examples(inventory_examples)
     
     # B. Filtrar Deletados e Pendentes (serão reprocessados)
     deleted_ids_set = set(deleted_ids)
@@ -888,7 +1197,7 @@ def sync_index(reset_local=False, force_regenerate=False):
         print(f"Removidos {initial_count - len(existing_data)} itens do dataset (deletados={removed_deleted_count}, pendentes={removed_pending_count}, pendentes_remove={removed_pending_remove_count}).")
 
     # C. Processar Novos Itens (Missing + Pending)
-    items_to_process = set(missing_ids) | set(pending_ids)  # não inclui pending_remove
+    items_to_process = list(set(missing_ids) | set(pending_ids))  # não inclui pending_remove
     total_items = len(items_to_process)
     _progress_start(total_items)
     start_time = time.time()
@@ -911,7 +1220,6 @@ def sync_index(reset_local=False, force_regenerate=False):
                 print(f"Item {item_id} sem imagem, pulando.")
                 continue 
             
-            # Download da Imagem (Em Memória)
             ext = 'jpg'
             if '.' in image_url:
                 parts = image_url.split('.')
@@ -923,56 +1231,63 @@ def sync_index(reset_local=False, force_regenerate=False):
             # mas NÃO salvamos o arquivo no disco.
             filename = f"{item_id}.{ext}"
 
+            existing_desc = item.get("description") or item.get("item_description")
+            existing_title = item.get("title") or item.get("item_title")
             processed_so_far += 1
             avg = (time.time() - start_time) / max(1, processed_so_far)
             eta = int(max(0, (total_items - processed_so_far) * avg))
             _progress_update(processed_so_far, item_id, eta)
-            print(f"[{processed_so_far}/{total_items}] Baixando imagem em memória: {item_id} (ETA ~{eta}s)")
-            try:
-                r = requests.get(image_url, timeout=15)
-                if r.status_code == 200:
-                    image_bytes = r.content
-                else:
-                    print(f"Falha ao baixar imagem: {r.status_code}")
-                    failed_items.append(f"{item_id}: Falha download imagem status {r.status_code}")
+
+            force_vision_item = str(item.get("embedding_force_vision") or "").strip().lower() in ["1", "true", "yes", "sim"]
+            if item_id in pending_ids_set and not force_vision_item:
+                print(f"[{processed_so_far}/{total_items}] Atualizando embedding sem visão: {item_id} (ETA ~{eta}s)")
+                metadata_filters = _extract_metadata_filters(existing_desc, color_options=dynamic_color_options) if existing_desc else {}
+                if not isinstance(metadata_filters, dict):
+                    metadata_filters = {}
+                metadata_filters = _merge_occasions(metadata_filters, _occasions_from_db_item(item))
+                metadata_filters = _merge_colors(metadata_filters, _colors_from_db_item(item))
+                sizes = _sizes_from_db_item(item)
+                embedding_text = _build_embedding_text_from_item(
+                    metadata_filters,
+                    existing_title,
+                    existing_desc,
+                    item.get("item_obs"),
+                    sizes,
+                ) or existing_desc or existing_title or ""
+                description = existing_desc or ""
+                title = existing_title or ""
+            else:
+                print(f"[{processed_so_far}/{total_items}] Baixando imagem em memória: {item_id} (ETA ~{eta}s)")
+                try:
+                    r = requests.get(image_url, timeout=15)
+                    if r.status_code == 200:
+                        image_bytes = r.content
+                    else:
+                        print(f"Falha ao baixar imagem: {r.status_code}")
+                        failed_items.append(f"{item_id}: Falha download imagem status {r.status_code}")
+                        continue
+                except Exception as e:
+                    print(f"Exceção no download: {e}")
+                    failed_items.append(f"{item_id}: Exceção download")
                     continue
-            except Exception as e:
-                print(f"Exceção no download: {e}")
-                failed_items.append(f"{item_id}: Exceção download")
-                continue
 
-            # Gera Metadados
-            print(f"[{processed_so_far}/{total_items}] Gerando metadados IA: {item_id}")
-            
-            existing_desc = item.get("description") or item.get("item_description")
-            existing_title = item.get("title") or item.get("item_title")
-
-            # Passa os bytes da imagem diretamente
-            description, title, structured = generate_dress_metadata(
-                image_bytes,
-                existing_desc,
-                existing_title,
-                inventory_examples=inventory_examples,
-                force_vision=force_regenerate,
-                copywriting=True,
-            )
-            
-            metadata_filters = _metadata_filters_from_structured(structured) or _extract_metadata_filters(description)
-            metadata_filters = _merge_occasions(metadata_filters, _occasions_from_db_item(item))
-            embedding_text = _synthesize_embedding_text(metadata_filters, title) or description
-            
-            try:
-                itens_table.update_item(
-                    Key={'item_id': item_id},
-                    UpdateExpression="SET description = :d, item_description = :d, title = :t, item_title = :t",
-                    ExpressionAttributeValues={
-                        ':d': description or '',
-                        ':t': title or ''
-                    }
+                print(f"[{processed_so_far}/{total_items}] Gerando metadados IA: {item_id}")
+                description, title, structured = generate_dress_metadata(
+                    image_bytes,
+                    existing_desc,
+                    existing_title,
+                    inventory_examples=inventory_examples,
+                    force_vision=force_regenerate,
+                    copywriting=True,
                 )
-            except Exception as e:
-                print(f"Erro ao atualizar descrição/título do item {item_id}: {e}")
+                
+                metadata_filters = _metadata_filters_from_structured(structured) or _extract_metadata_filters(description, color_options=dynamic_color_options)
+                metadata_filters = _merge_occasions(metadata_filters, _occasions_from_db_item(item))
+                metadata_filters = _merge_colors(metadata_filters, _colors_from_db_item(item))
+                embedding_text = _synthesize_embedding_text(metadata_filters, title) or description
             
+            _update_db_fields(item_id, description, title, metadata_filters)
+
             new_entry = {
                 "file_name": filename,
                 "custom_id": item_id,
@@ -989,7 +1304,7 @@ def sync_index(reset_local=False, force_regenerate=False):
                 try:
                     itens_table.update_item(
                         Key={'item_id': item_id},
-                        UpdateExpression="REMOVE embedding_status"
+                        UpdateExpression="REMOVE embedding_status, embedding_force_vision"
                     )
                 except Exception as e:
                     print(f"Erro ao remover flag pending do item {item_id}: {e}")
@@ -1007,7 +1322,7 @@ def sync_index(reset_local=False, force_regenerate=False):
         for entry in existing_data:
             if isinstance(entry, dict):
                 if "metadata_filters" not in entry or not isinstance(entry.get("metadata_filters"), dict) or not entry.get("metadata_filters"):
-                    entry["metadata_filters"] = _extract_metadata_filters(entry.get("description"))
+                    entry["metadata_filters"] = _extract_metadata_filters(entry.get("description"), color_options=dynamic_color_options)
                 if not entry.get("embedding_text"):
                     entry["embedding_text"] = _synthesize_embedding_text(entry.get("metadata_filters"), entry.get("title")) or entry.get("description")
             f.write(json.dumps(entry, ensure_ascii=False) + '\n')

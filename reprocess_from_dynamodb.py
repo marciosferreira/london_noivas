@@ -50,7 +50,8 @@ Selecione TODAS as categorias que se aplicam. Use os critérios abaixo para gara
 Gere um JSON puro com:
 - `description`: Texto rico, persuasivo e detalhado (2-3 frases).
 - `occasions`: Lista de strings.
-- `colors`: Lista com cor principal e matiz (ex: ["Verde", "Verde Esmeralda"]).
+- `cor_base`: Lista com a cor base (ex: ["Verde"]).
+- `cor_comercial`: Lista com a cor comercial específica (ex: ["Verde Esmeralda"]).
 - `fabrics`: Lista de tecidos identificados.
 - `details`: Lista de detalhes visuais.
 - `keywords`: 5-10 palavras-chave para SEO.
@@ -138,18 +139,70 @@ def analyze_image(image_path):
         print(f"Erro OpenAI: {e}")
         return None
 
+def _to_list(value):
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return [str(v).strip() for v in value if str(v).strip()]
+    if isinstance(value, str):
+        s = value.strip()
+        return [s] if s else []
+    return []
+
+def _unique_preserve(values):
+    out = []
+    seen = set()
+    for v in values or []:
+        key = str(v).strip().casefold()
+        if not key or key in seen:
+            continue
+        seen.add(key)
+        out.append(str(v).strip())
+    return out
+
+def _load_existing_custom_ids(path):
+    existing = set()
+    if not os.path.exists(path):
+        return existing
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            for line in f:
+                if not line.strip():
+                    continue
+                try:
+                    data = json.loads(line)
+                except Exception:
+                    continue
+                cid = str(data.get("custom_id") or "").strip()
+                if cid:
+                    existing.add(cid)
+    except Exception:
+        return existing
+    return existing
+
 def main():
     if not os.path.exists(TEMP_IMG_DIR):
         os.makedirs(TEMP_IMG_DIR)
         
     items = scan_active_items()
-    
-    with open(OUTPUT_FILE, 'w', encoding='utf-8') as outfile:
+    max_new_items = 3
+    processed_count = 0
+    written_count = 0
+
+    existing_ids = _load_existing_custom_ids(OUTPUT_FILE)
+    file_mode = "a" if existing_ids else "w"
+    with open(OUTPUT_FILE, file_mode, encoding='utf-8') as outfile:
         
         for i, db_item in enumerate(items):
+            if processed_count >= max_new_items:
+                break
             custom_id = db_item.get('item_custom_id')
             image_url = db_item.get('item_image_url')
             title = db_item.get('title', 'Sem Título')
+            
+            if custom_id and custom_id in existing_ids:
+                continue
+            processed_count += 1
             
             print(f"[{i+1}/{len(items)}] ID: {custom_id} | {title}")
             
@@ -172,6 +225,12 @@ def main():
                         cat_slug = "geral"
 
                     # Construir item completo
+                    cor_comercial = _to_list(ai_data.get("cor_comercial") or ai_data.get("cor comercial"))
+                    cor_base = _to_list(ai_data.get("cor_base") or ai_data.get("cor base"))
+                    if not cor_comercial and not cor_base:
+                        cor_comercial = _to_list(ai_data.get("colors") or ai_data.get("cor") or ai_data.get("cores"))
+                    colors = _unique_preserve(list(cor_comercial) + list(cor_base))
+
                     item_data = {
                         "custom_id": custom_id,
                         "item_id": db_item.get('item_id'),
@@ -181,7 +240,7 @@ def main():
                         "category_slug": cat_slug,
                         "metadata_filters": {
                             "occasions": ai_data.get('occasions', []),
-                            "colors": ai_data.get('colors', []),
+                            "colors": colors,
                             "fabrics": ai_data.get('fabrics', []),
                             "details": ai_data.get('details', [])
                         },
@@ -190,14 +249,15 @@ def main():
                     
                     # Embedding Text Rico
                     occasions = " ".join(ai_data.get('occasions', []))
-                    colors = " ".join(ai_data.get('colors', []))
+                    colors_text = " ".join(colors)
                     details = " ".join(ai_data.get('details', []))
                     keywords = ai_data.get('keywords', "")
                     
-                    item_data['embedding_text'] = f"{title} {occasions} {colors} {details} {keywords} {item_data['description']}"
+                    item_data['embedding_text'] = f"{title} {occasions} {colors_text} {details} {keywords} {item_data['description']}"
                     
                     outfile.write(json.dumps(item_data, ensure_ascii=False) + '\n')
                     outfile.flush() # Garante gravação imediata
+                    written_count += 1
                     print(f"   [V] Sucesso! Ocasiões: {occasions}")
                 else:
                     print(f"   [X] Falha na IA. Pulando.")

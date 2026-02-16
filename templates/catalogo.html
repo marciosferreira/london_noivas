@@ -157,6 +157,8 @@
                         price: '{{ item.item_value }}',
                         customId: '{{ item.item_custom_id }}',
                         color: '{{ (item.cor or item.cores or "") | string | replace("'", "\\'") }}',
+                        colorBase: '{{ (item.cor_base or "") | string | replace("'", "\\'") }}',
+                        colorCommercial: '{{ (item.cor_comercial or "") | string | replace("'", "\\'") }}',
                         size: '{{ (item.tamanho or item.size or "") | string | replace("'", "\\'") }}',
                         occasions: '{{ occs | join(", ") }}'
                     };
@@ -218,7 +220,7 @@
                         <span class="text-london-gold font-bold tracking-widest text-xs uppercase mb-2 block">London Noivas Collection</span>
                         <h3 id="modal-title" class="text-3xl md:text-4xl font-serif text-stone-900 mb-2 leading-tight"></h3>
                         <p id="modal-occasions" class="text-stone-500 font-serif mb-2">Ocasiões: <span id="modal-occasions-value"></span></p>
-                        <p id="modal-color" class="text-stone-500 font-serif mb-2 hidden">Cor: <span id="modal-color-value"></span></p>
+                        <p id="modal-color" class="text-stone-500 font-serif mb-2 hidden"><span id="modal-color-value"></span></p>
                         <p id="modal-size" class="text-stone-500 font-serif mb-2 hidden">Tamanho: <span id="modal-size-value"></span></p>
                         <p id="modal-price" class="text-stone-500 font-serif mb-2 hidden">Valor do aluguel: <span id="modal-price-value"></span></p>
                         <p class="text-xs text-stone-400 mb-6 font-mono">ID: <span id="modal-id-value"></span></p>
@@ -261,13 +263,26 @@
         function openCatalogModalById(itemId, source) {
             const data = window.catalogData && window.catalogData[itemId];
             if (data) {
-                openCatalogModal(data.imageUrl, data.title, data.description, itemId, data.price, source, data.customId, data.occasions, data.color, data.size);
+                openCatalogModal(
+                    data.imageUrl,
+                    data.title,
+                    data.description,
+                    itemId,
+                    data.price,
+                    source,
+                    data.customId,
+                    data.occasions,
+                    data.color,
+                    data.size,
+                    data.colorBase,
+                    data.colorCommercial
+                );
             } else {
                 console.error('Dados do item não encontrados para ID:', itemId);
             }
         }
 
-        function openCatalogModal(imageUrl, title, description, itemId, price, source, customDisplayId, occasions, color, size) {
+        function openCatalogModal(imageUrl, title, description, itemId, price, source, customDisplayId, occasions, color, size, colorBase, colorCommercial) {
             const idToShow = customDisplayId || itemId;
             
             // Handle Price Display Logic
@@ -292,7 +307,11 @@
 
             const colorRow = document.getElementById('modal-color');
             const colorValue = document.getElementById('modal-color-value');
-            const colorText = (color || '').toString().trim();
+            const baseText = (colorBase || '').toString().trim();
+            const commercialText = (colorCommercial || '').toString().trim();
+            const colorText = (baseText || commercialText)
+                ? [baseText ? `Cor base: ${baseText}` : '', commercialText ? `Cor comercial: ${commercialText}` : ''].filter(Boolean).join(' / ')
+                : (color || '').toString().trim();
             if (colorValue) colorValue.textContent = colorText;
             if (colorRow) {
                 if (colorText) colorRow.classList.remove('hidden');
@@ -387,6 +406,8 @@
                                     image_url: d.imageUrl,
                                     description: d.description,
                                     color: d.color,
+                                    colorBase: d.colorBase,
+                                    colorCommercial: d.colorCommercial,
                                     size: d.size,
                                     occasions: d.occasions
                                 }));
@@ -407,7 +428,9 @@
                                     : Array.isArray(item.occasions)
                                         ? item.occasions.join(', ')
                                         : '';
-                                div.onclick = () => openCatalogModal(item.image_url, item.title, item.description, item.id, 'Valor do aluguel: Consulte', 'similar', item.customId, itemOccasions, item.color, item.size);
+                                const suggestionBase = item.colorBase || item.color_base || item.cor_base || '';
+                                const suggestionCommercial = item.colorCommercial || item.color_comercial || item.cor_comercial || '';
+                                div.onclick = () => openCatalogModal(item.image_url, item.title, item.description, item.id, 'Valor do aluguel: Consulte', 'similar', item.customId, itemOccasions, item.color, item.size, suggestionBase, suggestionCommercial);
                                 div.innerHTML = `
                                     <div class="aspect-[3/4] bg-stone-100 overflow-hidden mb-2 rounded-sm relative">
                                         <img src="${item.image_url}" class="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110" alt="${item.title}">
@@ -530,20 +553,25 @@
                     : Array.isArray(item.occasions)
                         ? item.occasions.join(', ')
                         : '';
+                const colorBase = item.color_base || item.cor_base || item.colorBase || item.corBase || '';
+                const colorCommercial = item.color_comercial || item.cor_comercial || item.colorCommercial || item.corCommercial || '';
+                const colorFallback = item.color || item.cor || item.cores || '';
                 window.catalogData[item.item_id] = {
                     imageUrl: item.imageUrl,
                     title: item.title,
                     description: item.description,
                     price: item.price,
                     customId: item.customId || item.item_id,
-                    color: item.color,
+                    color: colorFallback,
+                    colorBase: colorBase,
+                    colorCommercial: colorCommercial,
                     size: item.size,
                     occasions: itemOccasions
                 };
 
                 const div = document.createElement('div');
                 div.className = 'group bg-white rounded-sm shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden animate-fadeIn';
-                div.onclick = () => openCatalogModal(item.imageUrl, item.title, item.description, item.item_id, item.price, 'ai_search', item.customId, itemOccasions, item.color, item.size);
+                div.onclick = () => openCatalogModal(item.imageUrl, item.title, item.description, item.item_id, item.price, 'ai_search', item.customId, itemOccasions, colorFallback, item.size, colorBase, colorCommercial);
                 
                 div.innerHTML = `
                     <div class="aspect-[3/4] overflow-hidden bg-stone-200 relative">
@@ -600,7 +628,7 @@
             const itemId = urlParams.get('item');
             if (itemId && window.catalogData && window.catalogData[itemId]) {
                 const item = window.catalogData[itemId];
-                openCatalogModal(item.imageUrl, item.title, item.description, itemId, item.price, 'direct', item.customId, item.occasions, item.color, item.size);
+                openCatalogModal(item.imageUrl, item.title, item.description, itemId, item.price, 'direct', item.customId, item.occasions, item.color, item.size, item.colorBase, item.colorCommercial);
             }
         });
     </script>
@@ -623,6 +651,16 @@
                 'transport_type': 'beacon'
             });
         }
+
+        window.addEventListener('load', () => {
+            const params = new URLSearchParams(window.location.search);
+            const itemId = params.get('item');
+            if (itemId) {
+                setTimeout(() => {
+                    openCatalogModalById(itemId, 'link');
+                }, 200);
+            }
+        });
     </script>
     <!-- Full Screen Image Modal -->
     <div id="full-image-modal" class="fixed inset-0 z-[200] hidden" role="dialog" aria-modal="true">

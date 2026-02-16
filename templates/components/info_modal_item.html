@@ -33,11 +33,26 @@
           <div class="row g-3">
             {% for field in fields_config if field.type != 'item_image_url' and field.id != 'featured' %}
             <div class="col-12 col-md-6">
+              {% set label_text = field.label or '' %}
+              {% set is_color_field = field.id in ['cor','color','item_cor','item_color'] or (label_text and label_text|lower == 'cor') %}
+              {% if not is_color_field %}
               <strong>{{ field.label }}:</strong>
               <br />
+              {% endif %}
+              {% if is_color_field %}
+              {% set base_color = item.get('cor_base') or item.get('color_base') or '' %}
+              {% set commercial_color = item.get('cor_comercial') or item.get('color_comercial') or '' %}
+              {% set fallback_color = item.get('cor') or item.get('color') or item.get('cores') or '' %}
+              {% if base_color or commercial_color %}
+              {{ (base_color and ('base: ' ~ base_color) or '') ~ (commercial_color and ((base_color and ' / ') or '') ~ 'comercial: ' ~ commercial_color or '') }}
+              {% else %}
+              {{ fallback_color if fallback_color else '-' }}
+              {% endif %}
+              {% else %}
               {% set value = item[field.id] if field.id in item else '' %} {% if value == 'None' or value is none %}
               <span class="text-muted">-</span>
               {% else %} {% if field.type == "date" %} {{ value | format_date }} {% elif field.type in ["value", "item_value"] %} {{ value | format_brl }} {% else %} {{ value }} {% endif %} {% endif %}
+              {% endif %}
             </div>
             {% endfor %}
           </div>

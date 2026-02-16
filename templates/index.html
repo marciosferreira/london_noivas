@@ -386,13 +386,26 @@
                     </div>
                 </div>
             </div>
+            <div id="chat-overlay" class="fixed inset-0 z-[90] hidden" aria-hidden="true">
+                <div class="absolute inset-0 bg-stone-900/70 backdrop-blur-sm"></div>
+                <div class="relative h-full w-full flex flex-col p-4 md:p-6">
+                    <div class="flex items-center justify-between text-white mb-4">
+                        <span class="text-sm tracking-widest font-semibold">ESTILISTA VIRTUAL COM IA</span>
+                        <button id="chat-overlay-close" class="rounded-full bg-white/20 p-2 text-white hover:bg-white/30" onclick="collapseChatUI()" aria-label="Fechar chat">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div id="chat-overlay-panel" class="flex-1 min-h-0"></div>
+                </div>
+            </div>
 
             <script>
                 let conversationHistory = [];
+                const chatStorageKey = 'bella_chat_history';
 
-                function resetChat() {
-                    conversationHistory = [];
-                    const container = document.getElementById('chat-messages');
+                function renderWelcome(container) {
                     container.innerHTML = `
                         <div class="flex gap-3">
                             <div class="w-8 h-8 rounded-full bg-london-gold flex items-center justify-center text-white flex-shrink-0">
@@ -405,6 +418,55 @@
                             </div>
                         </div>
                     `;
+                }
+
+                function saveChatHistory() {
+                    try {
+                        const trimmed = conversationHistory.slice(-10);
+                        conversationHistory = trimmed;
+                        localStorage.setItem(chatStorageKey, JSON.stringify(trimmed));
+                    } catch (error) {
+                        return;
+                    }
+                }
+
+                function loadChatHistory() {
+                    try {
+                        const raw = localStorage.getItem(chatStorageKey);
+                        if (!raw) return [];
+                        const parsed = JSON.parse(raw);
+                        if (!Array.isArray(parsed)) return [];
+                        const cleaned = parsed.filter((msg) => msg && ['user', 'assistant'].includes(msg.role) && msg.content);
+                        return cleaned.slice(-10);
+                    } catch (error) {
+                        return [];
+                    }
+                }
+
+                function restoreChatHistory() {
+                    const container = document.getElementById('chat-messages');
+                    if (!container) return;
+                    renderWelcome(container);
+                    const stored = loadChatHistory();
+                    if (!stored.length) {
+                        conversationHistory = [];
+                        return;
+                    }
+                    conversationHistory = stored;
+                    stored.forEach((msg) => {
+                        addMessage(msg.content, msg.role === 'assistant' ? 'bot' : 'user');
+                    });
+                }
+
+                window.addEventListener('load', () => {
+                    restoreChatHistory();
+                });
+
+                function resetChat() {
+                    conversationHistory = [];
+                    const container = document.getElementById('chat-messages');
+                    renderWelcome(container);
+                    saveChatHistory();
                     
                     // Reset layout
                     const chatWrapper = document.getElementById('chat-wrapper');
@@ -437,46 +499,47 @@
                     }
                 }
 
+                const chatOverlayState = {
+                    expanded: false,
+                    parent: null,
+                    nextSibling: null
+                };
+
                 function expandChatUI() {
-                    const shell = document.getElementById('ai-chat-shell');
-                    const container = document.getElementById('ai-chat-container');
-                    const closeBtn = document.getElementById('ai-chat-close');
                     const expandBtn = document.getElementById('ai-chat-expand');
                     const chatBox = document.getElementById('chat-box-container');
-                    const layoutRow = document.querySelector('#ai-chat-container > div');
-                    if (!shell || !container || !chatBox) return;
+                    const overlay = document.getElementById('chat-overlay');
+                    const overlayPanel = document.getElementById('chat-overlay-panel');
+                    if (!chatBox || !overlay || !overlayPanel || chatOverlayState.expanded) return;
+                    chatOverlayState.expanded = true;
+                    chatOverlayState.parent = chatBox.parentElement;
+                    chatOverlayState.nextSibling = chatBox.nextElementSibling;
+                    overlay.classList.remove('hidden');
                     document.body.classList.add('overflow-hidden');
-                    shell.classList.add('fixed', 'inset-0', 'z-[80]', 'bg-stone-100', 'overflow-y-auto', 'p-4', 'md:p-6');
-                    container.classList.add('max-w-none', 'w-full');
-                    closeBtn.classList.remove('hidden');
                     if (expandBtn) expandBtn.classList.add('hidden');
-                    if (layoutRow) {
-                        layoutRow.classList.remove('items-center');
-                        layoutRow.classList.add('items-start');
-                    }
+                    overlayPanel.appendChild(chatBox);
                     chatBox.classList.remove('h-[400px]');
-                    chatBox.classList.add('h-[55vh]', 'md:h-[60vh]');
+                    chatBox.classList.add('h-full', 'flex-1', 'min-h-0');
                 }
 
                 function collapseChatUI() {
-                    const shell = document.getElementById('ai-chat-shell');
-                    const container = document.getElementById('ai-chat-container');
-                    const closeBtn = document.getElementById('ai-chat-close');
                     const expandBtn = document.getElementById('ai-chat-expand');
                     const chatBox = document.getElementById('chat-box-container');
-                    const layoutRow = document.querySelector('#ai-chat-container > div');
-                    if (!shell || !container || !chatBox) return;
+                    const overlay = document.getElementById('chat-overlay');
+                    if (!chatBox || !overlay || !chatOverlayState.expanded) return;
+                    overlay.classList.add('hidden');
                     document.body.classList.remove('overflow-hidden');
-                    shell.classList.remove('fixed', 'inset-0', 'z-[80]', 'bg-stone-100', 'overflow-y-auto', 'p-4', 'md:p-6');
-                    container.classList.remove('max-w-none', 'w-full');
-                    closeBtn.classList.add('hidden');
                     if (expandBtn) expandBtn.classList.remove('hidden');
                     chatBox.classList.add('h-[400px]');
-                    chatBox.classList.remove('h-[55vh]', 'md:h-[60vh]');
-                    if (layoutRow) {
-                        layoutRow.classList.add('items-center');
-                        layoutRow.classList.remove('items-start');
+                    chatBox.classList.remove('h-full', 'flex-1', 'min-h-0');
+                    if (chatOverlayState.parent) {
+                        if (chatOverlayState.nextSibling) {
+                            chatOverlayState.parent.insertBefore(chatBox, chatOverlayState.nextSibling);
+                        } else {
+                            chatOverlayState.parent.appendChild(chatBox);
+                        }
                     }
+                    chatOverlayState.expanded = false;
                 }
 
                 async function sendMessage() {
@@ -488,16 +551,18 @@
                     addMessage(message, 'user');
                     input.value = '';
                     conversationHistory.push({ role: "user", content: message });
+                    saveChatHistory();
                     setChatBusy(true);
                     const loadingId = addLoading();
 
                     try {
+                        const historySnapshot = conversationHistory.slice(-10);
                         const response = await fetch('/api/ai-search', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ 
                                 message: message,
-                                history: conversationHistory 
+                                history: historySnapshot
                             })
                         });
                         
@@ -508,6 +573,7 @@
                         if (data.reply) {
                             addMessage(data.reply, 'bot', data.items || []);
                             conversationHistory.push({ role: "assistant", content: data.reply });
+                            saveChatHistory();
                         }
                         const resultFrame = document.getElementById('result-frame');
                         const suggestionsContainer = document.getElementById('suggestions-container');
@@ -571,7 +637,9 @@
                                     item.customId,
                                     item.occasions,
                                     item.color,
-                                    item.size
+                                    item.size,
+                                    item.color_base || item.cor_base || item.colorBase || item.corBase,
+                                    item.color_comercial || item.cor_comercial || item.colorCommercial || item.corCommercial
                                 );
                             });
                         });
@@ -650,17 +718,20 @@
                         if (overlay) overlay.classList.add('hidden');
                         
                         openCatalogModal(
-                        dress.image_url, 
-                        dress.title || "Sugestão Exclusiva", 
-                        dress.description, 
-                        dress.id, 
-                        dress.price || "Valor do aluguel: Consulte",
-                        'ai_result',
-                        dress.customId,
-                        dress.occasions,
-                        dress.color || dress.cor || dress.cores,
-                        dress.size || dress.tamanho
-                    )};
+                            dress.image_url,
+                            dress.title || "Sugestão Exclusiva",
+                            dress.description,
+                            dress.id,
+                            dress.price || "Valor do aluguel: Consulte",
+                            'ai_result',
+                            dress.customId,
+                            dress.occasions,
+                            dress.color || dress.cor || dress.cores,
+                            dress.size || dress.tamanho,
+                            dress.color_base || dress.cor_base || dress.colorBase || dress.corBase,
+                            dress.color_comercial || dress.cor_comercial || dress.colorCommercial || dress.corCommercial
+                        )
+                    };
 
                     document.getElementById('suggestions-container').classList.add('hidden');
 
@@ -700,16 +771,18 @@
                         const div = document.createElement('div');
                         div.className = "aspect-[3/4] bg-stone-200 cursor-pointer overflow-hidden rounded-sm relative group";
                         div.onclick = () => openCatalogModal(
-                            item.image_url, 
-                            item.title || "Sugestão Exclusiva", 
-                            item.description, 
-                            item.id, 
+                            item.image_url,
+                            item.title || "Sugestão Exclusiva",
+                            item.description,
+                            item.id,
                             item.price || "Valor do aluguel: Consulte",
                             'ai_suggestion',
                             item.customId,
                             item.occasions,
                             item.color || item.cor || item.cores,
-                            item.size || item.tamanho
+                            item.size || item.tamanho,
+                            item.color_base || item.cor_base || item.colorBase || item.corBase,
+                            item.color_comercial || item.cor_comercial || item.colorCommercial || item.corCommercial
                         );
                         
                         div.innerHTML = `
@@ -1028,7 +1101,7 @@
                                 <span class="text-london-gold font-bold tracking-widest text-xs uppercase mb-2 block">London Noivas Collection</span>
                                 <h3 id="catalog-modal-title" class="text-3xl md:text-4xl font-serif text-stone-900 mb-2 leading-tight"></h3>
                         <p id="catalog-modal-occasions" class="text-stone-500 font-serif mb-2">Ocasiões: <span id="catalog-modal-occasions-value"></span></p>
-                        <p id="catalog-modal-color" class="text-stone-500 font-serif mb-2 hidden">Cor: <span id="catalog-modal-color-value"></span></p>
+                        <p id="catalog-modal-color" class="text-stone-500 font-serif mb-2 hidden"><span id="catalog-modal-color-value"></span></p>
                         <p id="catalog-modal-size" class="text-stone-500 font-serif mb-2 hidden">Tamanho: <span id="catalog-modal-size-value"></span></p>
                         <p id="catalog-modal-price" class="text-stone-500 font-serif mb-2 hidden">Valor do aluguel: <span id="catalog-modal-price-value"></span></p>
                                 <p class="text-xs text-stone-400 mb-6 font-mono">ID: <span id="catalog-modal-id-value"></span></p>
@@ -1073,13 +1146,26 @@
             const data = window.catalogData && window.catalogData[itemId];
             if (data) {
                 // Pass UUID as itemId, and customId as display param
-                openCatalogModal(data.imageUrl, data.title, data.description, itemId, data.price, source, data.customId, data.occasions, data.color, data.size);
+                openCatalogModal(
+                    data.imageUrl,
+                    data.title,
+                    data.description,
+                    itemId,
+                    data.price,
+                    source,
+                    data.customId,
+                    data.occasions,
+                    data.color,
+                    data.size,
+                    data.colorBase,
+                    data.colorCommercial
+                );
             } else {
                 console.error('Dados do item não encontrados para ID:', itemId);
             }
         }
 
-        function openCatalogModal(imageUrl, title, description, itemId, price, source, customDisplayId, occasions, color, size) {
+        function openCatalogModal(imageUrl, title, description, itemId, price, source, customDisplayId, occasions, color, size, colorBase, colorCommercial) {
             const idToShow = customDisplayId || itemId;
 
             // Handle Price Display Logic
@@ -1104,7 +1190,11 @@
 
             const colorRow = document.getElementById('catalog-modal-color');
             const colorValue = document.getElementById('catalog-modal-color-value');
-            const colorText = (color || '').toString().trim();
+            const baseText = (colorBase || '').toString().trim();
+            const commercialText = (colorCommercial || '').toString().trim();
+            const colorText = (baseText || commercialText)
+                ? [baseText ? `Cor base: ${baseText}` : '', commercialText ? `Cor comercial: ${commercialText}` : ''].filter(Boolean).join(' / ')
+                : (color || '').toString().trim();
             if (colorValue) colorValue.textContent = colorText;
             if (colorRow) {
                 if (colorText) colorRow.classList.remove('hidden');
@@ -1208,7 +1298,20 @@
                                     : Array.isArray(item.occasions)
                                         ? item.occasions.join(', ')
                                         : '';
-                                div.onclick = () => openCatalogModal(item.image_url, item.title, item.description, item.id, 'Valor do aluguel: Consulte', 'similar', item.customId, itemOccasions, item.color, item.size);
+                                div.onclick = () => openCatalogModal(
+                                    item.image_url,
+                                    item.title,
+                                    item.description,
+                                    item.id,
+                                    'Valor do aluguel: Consulte',
+                                    'similar',
+                                    item.customId,
+                                    itemOccasions,
+                                    item.color,
+                                    item.size,
+                                    item.color_base || item.cor_base || item.colorBase || item.corBase,
+                                    item.color_comercial || item.cor_comercial || item.colorCommercial || item.corCommercial
+                                );
                                 div.innerHTML = `
                                     <div class="aspect-[3/4] bg-stone-100 overflow-hidden mb-2 rounded-sm relative">
                                         <img src="${item.image_url}" class="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110" alt="${item.title}">
@@ -1241,7 +1344,20 @@
             const itemId = urlParams.get('item');
             if (itemId && window.catalogData && window.catalogData[itemId]) {
                 const item = window.catalogData[itemId];
-                openCatalogModal(item.imageUrl, item.title, item.description, itemId, item.price, 'url_load', item.customId, item.occasions, item.color, item.size);
+                openCatalogModal(
+                    item.imageUrl,
+                    item.title,
+                    item.description,
+                    itemId,
+                    item.price,
+                    'url_load',
+                    item.customId,
+                    item.occasions,
+                    item.color,
+                    item.size,
+                    item.colorBase,
+                    item.colorCommercial
+                );
             }
         });
     </script>

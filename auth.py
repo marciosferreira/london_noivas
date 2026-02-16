@@ -43,7 +43,36 @@ def init_auth_routes(
     def _default_size_options():
         return ["P", "M", "G", "Extra G"]
 
-    def _load_color_options(account_id):
+    BASE_COLORS = [
+        "Branco",
+        "Preto",
+        "Azul",
+        "Verde",
+        "Rosa",
+        "Vermelho/Vinho",
+        "Amarelo/Laranja",
+        "Bege/Nude",
+        "Roxo/Lilás",
+        "Cinza/Metal",
+    ]
+
+    def _normalize_color_entry(entry):
+        if entry is None:
+            return None
+        if isinstance(entry, dict):
+            name = entry.get("name") or entry.get("color") or entry.get("comercial") or entry.get("cor")
+            base = entry.get("base") or entry.get("cor_base") or entry.get("base_color")
+            name = str(name).strip() if name else ""
+            base = str(base).strip() if base else ""
+            if not name:
+                return None
+            return {"name": name, "base": base}
+        name = str(entry).strip()
+        if not name:
+            return None
+        return {"name": name, "base": ""}
+
+    def _load_color_pairs(account_id):
         if not account_id:
             return []
         resp = users_table.get_item(Key={"user_id": _color_settings_key(account_id)})
@@ -51,20 +80,32 @@ def init_auth_routes(
         colors = item.get("color_options")
         if not isinstance(colors, list):
             return []
-
         out = []
         seen = set()
         for c in colors:
-            if c is None:
+            entry = _normalize_color_entry(c)
+            if not entry:
                 continue
-            s = str(c).strip()
-            if not s:
+            key = (entry["base"].casefold(), entry["name"].casefold())
+            if key in seen:
                 continue
-            k = s.casefold()
-            if k in seen:
+            seen.add(key)
+            out.append(entry)
+        return sorted(out, key=lambda x: (x["base"].casefold(), x["name"].casefold()))
+
+    def _load_color_options(account_id):
+        pairs = _load_color_pairs(account_id)
+        out = []
+        seen = set()
+        for entry in pairs:
+            name = entry.get("name", "")
+            if not name:
                 continue
-            seen.add(k)
-            out.append(s)
+            key = name.casefold()
+            if key in seen:
+                continue
+            seen.add(key)
+            out.append(name)
         return sorted(out, key=lambda x: str(x).casefold())
 
     def _save_color_options(account_id, colors):
@@ -73,16 +114,14 @@ def init_auth_routes(
         cleaned = []
         seen = set()
         for c in colors or []:
-            if c is None:
+            entry = _normalize_color_entry(c)
+            if not entry:
                 continue
-            s = str(c).strip()
-            if not s:
+            key = (entry["base"].casefold(), entry["name"].casefold())
+            if key in seen:
                 continue
-            k = s.casefold()
-            if k in seen:
-                continue
-            seen.add(k)
-            cleaned.append(s)
+            seen.add(key)
+            cleaned.append(entry)
         users_table.update_item(
             Key={"user_id": _color_settings_key(account_id)},
             UpdateExpression="SET color_options = :c",
@@ -888,7 +927,7 @@ def init_auth_routes(
         color_options = []
         if can_manage_colors:
             try:
-                color_options = _load_color_options(session.get("account_id"))
+                color_options = _load_color_pairs(session.get("account_id"))
             except Exception as e:
                 print(f"Erro ao carregar cores: {e}")
                 flash(f"Erro ao carregar cores: {e}", "danger")
@@ -915,6 +954,7 @@ def init_auth_routes(
             transactions=transactions,
             can_manage_colors=can_manage_colors,
             color_options=color_options,
+            base_color_options=BASE_COLORS,
             can_manage_sizes=can_manage_sizes,
             size_options=size_options,
             timezones=[
@@ -941,20 +981,25 @@ def init_auth_routes(
             flash("Você não tem permissão para acessar esta funcionalidade.", "danger")
             return redirect(url_for("adjustments"))
 
-        raw = request.form.get("color", "")
-        color = str(raw).strip()
-        if not color:
+        name_raw = request.form.get("color_name", "")
+        base_raw = request.form.get("color_base", "")
+        name = str(name_raw).strip()
+        base = str(base_raw).strip()
+        if not name:
             flash("Informe uma cor válida.", "danger")
+            return redirect(url_for("adjustments"))
+        if base and base not in BASE_COLORS:
+            flash("Cor base inválida.", "danger")
             return redirect(url_for("adjustments"))
 
         account_id = session.get("account_id")
-        existing = _load_color_options(account_id)
-        wanted_key = color.casefold()
-        if any(str(c).strip().casefold() == wanted_key for c in existing):
+        existing = _load_color_pairs(account_id)
+        wanted_key = (base.casefold(), name.casefold())
+        if any((c.get("base","").casefold(), c.get("name","").casefold()) == wanted_key for c in existing):
             flash("Essa cor já existe.", "warning")
             return redirect(url_for("adjustments"))
 
-        existing.append(color)
+        existing.append({"base": base, "name": name})
         try:
             _save_color_options(account_id, existing)
             flash("Cor adicionada com sucesso.", "success")
@@ -972,16 +1017,24 @@ def init_auth_routes(
             flash("Você não tem permissão para acessar esta funcionalidade.", "danger")
             return redirect(url_for("adjustments"))
 
-        raw = request.form.get("color", "")
-        color = str(raw).strip()
-        if not color:
+        name_raw = request.form.get("color_name", "")
+        base_raw = request.form.get("color_base", "")
+        name = str(name_raw).strip()
+        base = str(base_raw).strip()
+        if not name or not base:
             flash("Informe uma cor válida.", "danger")
+            return redirect(url_for("adjustments"))
+        if base not in BASE_COLORS:
+            flash("Cor base inválida.", "danger")
             return redirect(url_for("adjustments"))
 
         account_id = session.get("account_id")
-        existing = _load_color_options(account_id)
-        wanted_key = color.casefold()
-        next_colors = [c for c in existing if str(c).strip().casefold() != wanted_key]
+        existing = _load_color_pairs(account_id)
+        wanted_key = (base.casefold(), name.casefold()) if base else ("", name.casefold())
+        next_colors = [
+            c for c in existing
+            if (c.get("base","").casefold(), c.get("name","").casefold()) != wanted_key
+        ]
         if len(next_colors) == len(existing):
             flash("Cor não encontrada.", "warning")
             return redirect(url_for("adjustments"))
@@ -1003,28 +1056,36 @@ def init_auth_routes(
             flash("Você não tem permissão para acessar esta funcionalidade.", "danger")
             return redirect(url_for("adjustments"))
 
-        old_raw = request.form.get("old_color", "")
-        new_raw = request.form.get("new_color", "")
-        old_color = str(old_raw).strip()
-        new_color = str(new_raw).strip()
-        if not old_color or not new_color:
+        old_name_raw = request.form.get("old_color_name", "")
+        old_base_raw = request.form.get("old_color_base", "")
+        new_name_raw = request.form.get("new_color_name", "")
+        new_base_raw = request.form.get("new_color_base", "")
+        old_name = str(old_name_raw).strip()
+        old_base = str(old_base_raw).strip()
+        new_name = str(new_name_raw).strip()
+        new_base = str(new_base_raw).strip()
+        if not old_name or not new_name or not new_base:
             flash("Informe uma cor válida.", "danger")
+            return redirect(url_for("adjustments"))
+        if new_base not in BASE_COLORS:
+            flash("Cor base inválida.", "danger")
             return redirect(url_for("adjustments"))
 
         account_id = session.get("account_id")
-        existing = _load_color_options(account_id)
-        old_key = old_color.casefold()
-        new_key = new_color.casefold()
+        existing = _load_color_pairs(account_id)
+        old_key = (old_base.casefold(), old_name.casefold()) if old_base else ("", old_name.casefold())
+        new_key = (new_base.casefold(), new_name.casefold())
 
-        if old_key != new_key and any(str(c).strip().casefold() == new_key for c in existing):
+        if old_key != new_key and any((c.get("base","").casefold(), c.get("name","").casefold()) == new_key for c in existing):
             flash("Essa cor já existe.", "warning")
             return redirect(url_for("adjustments"))
 
         updated = []
         replaced = False
         for c in existing:
-            if not replaced and str(c).strip().casefold() == old_key:
-                updated.append(new_color)
+            c_key = (str(c.get("base") or "").casefold(), str(c.get("name") or "").casefold())
+            if not replaced and c_key == old_key:
+                updated.append({"base": new_base, "name": new_name})
                 replaced = True
             else:
                 updated.append(c)

@@ -172,7 +172,7 @@ def init_item_routes(
         user_id = session.get("user_id")
         account_id = session.get("account_id")
 
-        def _load_color_options_for_account(account_id):
+        def _load_color_pairs_for_account(account_id):
             if not account_id:
                 return []
             resp = users_table.get_item(Key={"user_id": f"account_settings:{account_id}"})
@@ -185,15 +185,44 @@ def init_item_routes(
             for c in colors:
                 if c is None:
                     continue
-                s = str(c).strip()
-                if not s:
+                if isinstance(c, dict):
+                    name = c.get("name") or c.get("color") or c.get("comercial") or c.get("cor")
+                    base = c.get("base") or c.get("cor_base") or c.get("base_color")
+                else:
+                    name = c
+                    base = ""
+                name = str(name).strip() if name is not None else ""
+                base = str(base).strip() if base is not None else ""
+                if not name:
                     continue
-                k = s.casefold()
-                if k in seen:
+                key = (base.casefold(), name.casefold())
+                if key in seen:
                     continue
-                seen.add(k)
-                cleaned.append(s)
+                seen.add(key)
+                cleaned.append({"name": name, "base": base})
+            return sorted(cleaned, key=lambda x: (x["name"].casefold(), x["base"].casefold()))
+
+        def _load_color_options_for_account(account_id):
+            pairs = _load_color_pairs_for_account(account_id)
+            cleaned = []
+            seen = set()
+            for c in pairs:
+                name = c.get("name") or ""
+                key = name.casefold()
+                if not name or key in seen:
+                    continue
+                seen.add(key)
+                cleaned.append(name)
             return sorted(cleaned, key=lambda x: x.casefold())
+
+        def _parse_color_value(raw):
+            raw = str(raw or "").strip()
+            if not raw:
+                return "", ""
+            if "||" in raw:
+                name, base = raw.split("||", 1)
+                return name.strip(), base.strip()
+            return raw, ""
 
         def _default_size_options():
             return ["P", "M", "G", "Extra G"]
@@ -220,6 +249,58 @@ def init_item_routes(
                 seen.add(k)
                 cleaned.append(val)
             return sorted(cleaned, key=lambda x: x.casefold())
+
+        def _build_ai_inventory_examples(account_id):
+            color_pairs = _load_color_pairs_for_account(account_id)
+            sizes = _load_size_options_for_account(account_id)
+            cor_comercial = [c.get("name") for c in color_pairs if c.get("name")]
+            cor_base = [c.get("base") for c in color_pairs if c.get("base")]
+            mapa = {c.get("name"): c.get("base") for c in color_pairs if c.get("name")}
+            return {
+                "opcoes_validas": {
+                    "occasions": [
+                        "Noiva",
+                        "Civil",
+                        "Madrinha",
+                        "Mãe dos Noivos",
+                        "Formatura",
+                        "Debutante",
+                        "Gala",
+                        "Convidada",
+                    ],
+                    "cor": cor_comercial,
+                    "cor_comercial": cor_comercial,
+                    "cor_base": cor_base,
+                    "mapa_cor_comercial_para_base": mapa,
+                    "tamanho": sizes,
+                }
+            }
+
+        def _build_ai_inventory_examples(account_id):
+            color_pairs = _load_color_pairs_for_account(account_id)
+            sizes = _load_size_options_for_account(account_id)
+            cor_comercial = [c.get("name") for c in color_pairs if c.get("name")]
+            cor_base = [c.get("base") for c in color_pairs if c.get("base")]
+            mapa = {c.get("name"): c.get("base") for c in color_pairs if c.get("name")}
+            return {
+                "opcoes_validas": {
+                    "occasions": [
+                        "Noiva",
+                        "Civil",
+                        "Madrinha",
+                        "Mãe dos Noivos",
+                        "Formatura",
+                        "Debutante",
+                        "Gala",
+                        "Convidada",
+                    ],
+                    "cor": cor_comercial,
+                    "cor_comercial": cor_comercial,
+                    "cor_base": cor_base,
+                    "mapa_cor_comercial_para_base": mapa,
+                    "tamanho": sizes,
+                }
+            }
 
         # -------------------------- GET --------------------------
         if request.method == "GET":
@@ -252,6 +333,7 @@ def init_item_routes(
 
 
             all_fields = get_all_fields("item")
+            color_pairs = _load_color_pairs_for_account(account_id)
             color_options = _load_color_options_for_account(account_id)
             size_options = _load_size_options_for_account(account_id)
 
@@ -264,6 +346,7 @@ def init_item_routes(
                 title=title,
                 item={},
                 color_options=color_options,
+                color_pairs=color_pairs,
                 size_options=size_options,
             )
         # -------------------------- POST --------------------------
@@ -305,9 +388,16 @@ def init_item_routes(
                 # is_fixed ignorado pois tudo agora é raiz
                 raw_value = request.form.get(field_id, "").strip()
                 value = raw_value
+                label_text = (field.get("label") or "").strip().lower()
+                is_color_field = field_id in ["cor", "color", "item_cor", "item_color"] or label_text == "cor"
 
                 if field_id == "item_image_url":
                     value = handle_image_upload(image_file, "N/A")
+                elif is_color_field:
+                    name, base = _parse_color_value(value)
+                    value = name
+                    item_data["cor_base"] = base
+                    item_data["cor_comercial"] = name
 
                 elif value:
                     # 🔸 Limpa número/monetário
@@ -354,7 +444,13 @@ def init_item_routes(
                     from ai_sync_service import generate_dress_metadata
                     
                     print("Gerando metadados IA em tempo real...")
-                    gen_desc, gen_title, _ = generate_dress_metadata(image_bytes_for_ai, description_value, title_value)
+                    inventory_examples = _build_ai_inventory_examples(account_id)
+                    gen_desc, gen_title, structured = generate_dress_metadata(
+                        image_bytes_for_ai,
+                        description_value,
+                        title_value,
+                        inventory_examples=inventory_examples,
+                    )
                     
                     # Atualiza os campos
                     if "description" in item_data: item_data["description"] = gen_desc
@@ -364,6 +460,32 @@ def init_item_routes(
                     if "title" in item_data: item_data["title"] = gen_title
                     elif "item_title" in item_data: item_data["item_title"] = gen_title
                     else: item_data["item_title"] = gen_title # Default
+
+                    if isinstance(structured, dict):
+                        cor_comercial = str(structured.get("cor_comercial") or "").strip()
+                        cor_base = str(structured.get("cor_base") or "").strip()
+                        if not cor_comercial:
+                            cor_raw = structured.get("cor")
+                            if isinstance(cor_raw, list) and cor_raw:
+                                cor_comercial = str(cor_raw[0]).strip()
+                            elif isinstance(cor_raw, str):
+                                cor_comercial = cor_raw.strip()
+                        if cor_comercial:
+                            item_data["cor_comercial"] = cor_comercial
+                            item_data["cor"] = cor_comercial
+                            if not cor_base:
+                                match = next(
+                                    (
+                                        c.get("base")
+                                        for c in color_pairs
+                                        if str(c.get("name") or "").casefold() == cor_comercial.casefold()
+                                    ),
+                                    "",
+                                )
+                                if match:
+                                    cor_base = match
+                        if cor_base:
+                            item_data["cor_base"] = cor_base
                     
                 except Exception as e:
                     flash(f"Erro ao gerar descrição/título via IA: {str(e)}. O item não foi salvo.", "danger")
@@ -375,6 +497,7 @@ def init_item_routes(
                         title=title,
                         item={**item_data},
                         color_options=_load_color_options_for_account(account_id),
+                        color_pairs=_load_color_pairs_for_account(account_id),
                         size_options=_load_size_options_for_account(account_id),
                     )
 
@@ -399,6 +522,7 @@ def init_item_routes(
                         title=title,
                         item={**item_data},
                         color_options=_load_color_options_for_account(account_id),
+                        color_pairs=_load_color_pairs_for_account(account_id),
                         size_options=_load_size_options_for_account(account_id),
                     )
 
@@ -588,7 +712,7 @@ def init_item_routes(
         next_page = request.args.get("next", url_for("index"))
         account_id = session.get("account_id")
 
-        def _load_color_options_for_account(account_id):
+        def _load_color_pairs_for_account(account_id):
             if not account_id:
                 return []
             resp = users_table.get_item(Key={"user_id": f"account_settings:{account_id}"})
@@ -601,15 +725,44 @@ def init_item_routes(
             for c in colors:
                 if c is None:
                     continue
-                s = str(c).strip()
-                if not s:
+                if isinstance(c, dict):
+                    name = c.get("name") or c.get("color") or c.get("comercial") or c.get("cor")
+                    base = c.get("base") or c.get("cor_base") or c.get("base_color")
+                else:
+                    name = c
+                    base = ""
+                name = str(name).strip() if name is not None else ""
+                base = str(base).strip() if base is not None else ""
+                if not name:
                     continue
-                k = s.casefold()
-                if k in seen:
+                key = (base.casefold(), name.casefold())
+                if key in seen:
                     continue
-                seen.add(k)
-                cleaned.append(s)
+                seen.add(key)
+                cleaned.append({"name": name, "base": base})
+            return sorted(cleaned, key=lambda x: (x["name"].casefold(), x["base"].casefold()))
+
+        def _load_color_options_for_account(account_id):
+            pairs = _load_color_pairs_for_account(account_id)
+            cleaned = []
+            seen = set()
+            for c in pairs:
+                name = c.get("name") or ""
+                key = name.casefold()
+                if not name or key in seen:
+                    continue
+                seen.add(key)
+                cleaned.append(name)
             return sorted(cleaned, key=lambda x: x.casefold())
+
+        def _parse_color_value(raw):
+            raw = str(raw or "").strip()
+            if not raw:
+                return "", ""
+            if "||" in raw:
+                name, base = raw.split("||", 1)
+                return name.strip(), base.strip()
+            return raw, ""
 
         def _default_size_options():
             return ["P", "M", "G", "Extra G"]
@@ -644,6 +797,7 @@ def init_item_routes(
             flash("Item não encontrado.", "danger")
             return redirect(url_for("inventory"))
 
+        color_pairs = _load_color_pairs_for_account(account_id)
         color_options = _load_color_options_for_account(account_id)
         size_options = _load_size_options_for_account(account_id)
 
@@ -692,9 +846,16 @@ def init_item_routes(
                     continue
 
                 value = raw_value
+                label_text = (field.get("label") or "").strip().lower()
+                is_color_field = field_id in ["cor", "color", "item_cor", "item_color"] or label_text == "cor"
 
                 if field_id == "item_image_url":
                     value = new_image_url
+                elif is_color_field:
+                    name, base = _parse_color_value(value)
+                    value = name
+                    updates["cor_base"] = base
+                    updates["cor_comercial"] = name
                 elif field_type in ["value", "item_value"]:
                     try:
                         value = Decimal(value.replace(".", "").replace(",", "."))
@@ -747,11 +908,42 @@ def init_item_routes(
                     if image_bytes_for_ai:
                         from ai_sync_service import generate_dress_metadata
                         print("Gerando metadados IA em edição...")
-                        gen_desc, gen_title, _ = generate_dress_metadata(image_bytes_for_ai, curr_desc, curr_title)
+                        inventory_examples = _build_ai_inventory_examples(account_id)
+                        gen_desc, gen_title, structured = generate_dress_metadata(
+                            image_bytes_for_ai,
+                            curr_desc,
+                            curr_title,
+                            inventory_examples=inventory_examples,
+                        )
                         
                         # Aplica os valores gerados
                         updates[desc_id] = gen_desc
                         updates[title_id] = gen_title
+                        if isinstance(structured, dict):
+                            cor_comercial = str(structured.get("cor_comercial") or "").strip()
+                            cor_base = str(structured.get("cor_base") or "").strip()
+                            if not cor_comercial:
+                                cor_raw = structured.get("cor")
+                                if isinstance(cor_raw, list) and cor_raw:
+                                    cor_comercial = str(cor_raw[0]).strip()
+                                elif isinstance(cor_raw, str):
+                                    cor_comercial = cor_raw.strip()
+                            if cor_comercial:
+                                updates["cor_comercial"] = cor_comercial
+                                updates["cor"] = cor_comercial
+                                if not cor_base:
+                                    match = next(
+                                        (
+                                            c.get("base")
+                                            for c in color_pairs
+                                            if str(c.get("name") or "").casefold() == cor_comercial.casefold()
+                                        ),
+                                        "",
+                                    )
+                                    if match:
+                                        cor_base = match
+                            if cor_base:
+                                updates["cor_base"] = cor_base
                         
                 except Exception as e:
                     flash(f"Erro ao gerar descrição/título via IA: {str(e)}. O item não foi salvo.", "danger")
@@ -760,6 +952,7 @@ def init_item_routes(
                         item={**item, **updates},
                         all_fields=all_fields,
                         color_options=color_options,
+                        color_pairs=color_pairs,
                         size_options=size_options,
                         next=next_page,
                         title="Editar item",
@@ -805,18 +998,28 @@ def init_item_routes(
                     occasion_remove.append(attr)
                     occasion_changes = True
 
-            if not changes and not occasion_changes:
+            force_vision = request.form.get("force_vision") == "on"
+            existing_force_vision = str(item.get("embedding_force_vision") or "").strip()
+            clear_force_vision = (not force_vision) and bool(existing_force_vision)
+
+            if not changes and not occasion_changes and not force_vision and not clear_force_vision:
                 flash("Nenhuma alteração foi feita.", "warning")
                 return redirect(next_page)
             
-            # Se houve alterações relevantes (Título, Descrição ou Imagem), marca para re-embedding
+            # Se houve alterações relevantes (Título, Descrição, Imagem ou Cor), marca para re-embedding
             image_changed = "item_image_url" in changes
             title_changed = "title" in changes or "item_title" in changes
             desc_changed = "description" in changes or "item_description" in changes
+            color_changed = any(
+                key in changes
+                for key in ["cor", "cor_comercial", "cor_base", "cores", "color", "item_cor", "item_color"]
+            )
             
             # Se algum dos 3 mudou, marca como pending
-            if image_changed or title_changed or desc_changed or occasion_changes:
+            if image_changed or title_changed or desc_changed or occasion_changes or color_changed or force_vision:
                 changes["embedding_status"] = "pending"
+            if force_vision:
+                changes["embedding_force_vision"] = "1"
 
             # Atualiza item no DynamoDB
             set_parts = []
@@ -841,6 +1044,11 @@ def init_item_routes(
                 remove_parts.append(f"#{key}")
                 expression_names[f"#{key}"] = key
 
+            if clear_force_vision:
+                remove_parts.append("embedding_force_vision")
+                if not image_changed and not title_changed and not desc_changed and not occasion_changes and not color_changed:
+                    remove_parts.append("embedding_status")
+
             update_expr = []
             if set_parts:
                 update_expr.append("SET " + ", ".join(set_parts))
@@ -853,7 +1061,7 @@ def init_item_routes(
             }
             if expression_values:
                 update_kwargs["ExpressionAttributeValues"] = expression_values
-            if expression_names:
+            if expression_names and any(name in update_kwargs["UpdateExpression"] for name in expression_names.keys()):
                 update_kwargs["ExpressionAttributeNames"] = expression_names
             itens_table.update_item(**update_kwargs)
 
@@ -899,6 +1107,7 @@ def init_item_routes(
             prepared[field_id] = item.get(field_id, "")
 
         prepared["item_id"] = item["item_id"]
+        prepared["embedding_force_vision"] = item.get("embedding_force_vision")
 
         def _first_color_value(value):
             if value is None:
@@ -921,6 +1130,15 @@ def init_item_routes(
                 or item.get("item_cor")
                 or item.get("item_color")
             )
+        prepared["cor_comercial"] = _first_color_value(item.get("cor_comercial") or prepared.get("cor"))
+        prepared["cor_base"] = _first_color_value(item.get("cor_base"))
+        if not prepared.get("cor_base") and prepared.get("cor_comercial") and color_pairs:
+            match = next(
+                (c.get("base") for c in color_pairs if str(c.get("name") or "").casefold() == prepared["cor_comercial"].casefold()),
+                "",
+            )
+            if match:
+                prepared["cor_base"] = match
 
         def _first_size_value(value):
             if value is None:
@@ -955,19 +1173,19 @@ def init_item_routes(
         origin_status = "available" if origin == "inventory" else "archive"
         title = "Editar item em inventário" if origin_status == "available" else "Editar item em arquivo"
 
-        if color_options:
-            current_color = (
-                prepared.get("cor")
-                or prepared.get("color")
-                or prepared.get("item_cor")
-                or prepared.get("item_color")
-            )
-            if current_color:
-                current_color_str = _first_color_value(current_color)
-                if current_color_str:
-                    key = current_color_str.casefold()
-                    if all(str(c).strip().casefold() != key for c in color_options):
-                        color_options = sorted([*color_options, current_color_str], key=lambda x: x.casefold())
+        if color_pairs:
+            current_name = prepared.get("cor_comercial") or ""
+            current_base = prepared.get("cor_base") or ""
+            if current_name:
+                key = (current_base.casefold(), current_name.casefold())
+                if all(
+                    (str(c.get("base") or "").casefold(), str(c.get("name") or "").casefold()) != key
+                    for c in color_pairs
+                ):
+                    color_pairs = sorted(
+                        [*color_pairs, {"name": current_name, "base": current_base}],
+                        key=lambda x: (x["name"].casefold(), x["base"].casefold()),
+                    )
 
         if size_options:
             current_size = (
@@ -988,6 +1206,7 @@ def init_item_routes(
             item=prepared,
             all_fields=all_fields,
             color_options=color_options,
+            color_pairs=color_pairs,
             size_options=size_options,
             next=next_page,
             title=title,
@@ -2498,7 +2717,11 @@ def list_raw_itens(
         for c in colors:
             if c is None:
                 continue
-            s = str(c).strip()
+            if isinstance(c, dict):
+                s = c.get("name") or c.get("color") or c.get("comercial") or c.get("cor")
+            else:
+                s = c
+            s = str(s).strip() if s is not None else ""
             if not s:
                 continue
             k = s.casefold()
@@ -2770,6 +2993,58 @@ def list_raw_itens(
         args["force_no_next"] = ["1"]
         redirect_qs = urlencode(args, doseq=True)
         return redirect(f"{request.path}{'?' + redirect_qs if redirect_qs else ''}")
+
+    def _first_color_value(value):
+        if value is None:
+            return ""
+        if isinstance(value, str):
+            return value.strip()
+        if isinstance(value, (list, tuple, set)):
+            for v in value:
+                picked = _first_color_value(v)
+                if picked:
+                    return picked
+            return ""
+        return str(value).strip()
+
+    def _normalize_item_colors(item):
+        if not isinstance(item, dict):
+            return
+        base = _first_color_value(item.get("cor_base"))
+        commercial = _first_color_value(item.get("cor_comercial"))
+        if not commercial:
+            commercial = _first_color_value(
+                item.get("cor")
+                or item.get("cores")
+                or item.get("color")
+                or item.get("item_cor")
+                or item.get("item_color")
+            )
+        if not base:
+            mapping = item.get("mapa_cor_comercial_para_base") or {}
+            if isinstance(mapping, dict) and commercial:
+                mapped = mapping.get(commercial)
+                if mapped:
+                    base = _first_color_value(mapped)
+                else:
+                    commercial_cf = str(commercial).strip().casefold()
+                    for name, base_value in mapping.items():
+                        if not base_value:
+                            continue
+                        if str(base_value).strip().casefold() == commercial_cf:
+                            base = _first_color_value(base_value)
+                            if name and str(name).strip():
+                                commercial = _first_color_value(name)
+                            break
+        if base:
+            item["cor_base"] = base
+        if commercial:
+            item["cor_comercial"] = commercial
+        if not _first_color_value(item.get("cor")):
+            item["cor"] = commercial or base or ""
+
+    for item in valid_itens:
+        _normalize_item_colors(item)
 
     fields_config = sorted(fields_config, key=lambda x: x["order_sequence"])
 
