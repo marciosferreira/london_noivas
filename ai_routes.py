@@ -1600,7 +1600,7 @@ def ai_search():
 
         for _ in range(max_turns):
             response = client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4o-mini",
                 messages=messages,
                 tools=tools,
                 tool_choice="auto"
@@ -1659,7 +1659,7 @@ def ai_search():
 
         if not reply_text:
             final_response = client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4o-mini",
                 messages=messages
             )
             reply_text = final_response.choices[0].message.content
