@@ -1021,7 +1021,7 @@ def validate_and_enrich_candidates(candidates_metadata):
                 RequestItems={
                     'alugueqqc_itens': {
                         'Keys': chunk,
-                        'ProjectionExpression': 'item_id, #st, title, item_title, item_description, item_image_url, item_value, item_custom_id, category, item_category, cor, cores, tamanho, occasion_noiva, occasion_civil, occasion_madrinha, occasion_mae_dos_noivos, occasion_formatura, occasion_debutante, occasion_gala, occasion_convidada',
+                        'ProjectionExpression': 'item_id, #st, title, item_title, item_description, item_image_url, item_value, item_custom_id, category, item_category, cor, cores, cor_base, cor_comercial, tamanho, occasion_noiva, occasion_civil, occasion_madrinha, occasion_mae_dos_noivos, occasion_formatura, occasion_debutante, occasion_gala, occasion_convidada',
                         'ExpressionAttributeNames': {'#st': 'status'}
                     }
                 }
@@ -1077,6 +1077,8 @@ def validate_and_enrich_candidates(candidates_metadata):
             meta['item_id'] = db_item.get('item_id')
             meta['cor'] = db_item.get('cor', meta.get('cor'))
             meta['cores'] = db_item.get('cores', meta.get('cores'))
+            meta['cor_base'] = db_item.get('cor_base', meta.get('cor_base'))
+            meta['cor_comercial'] = db_item.get('cor_comercial', meta.get('cor_comercial'))
             meta['tamanho'] = db_item.get('tamanho', meta.get('tamanho'))
             cat_slug = _category_slug(meta)
             meta['item_category'] = db_item.get('item_category', meta.get('item_category'))
@@ -1930,7 +1932,9 @@ def ai_catalog_search():
     data = request.get_json()
     query = data.get('query', '')
     page = int(data.get('page', 1))
-    limit = int(data.get('limit', 4))
+    limit = int(data.get('limit', 8))
+    if limit < 8:
+        limit = 8
     
     if not query:
         return jsonify({"error": "Query vazia"}), 400
