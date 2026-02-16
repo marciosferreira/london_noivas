@@ -300,4 +300,5 @@ def inject_now():
 if __name__ == "__main__":
     # Determina se está no localhost
     debug_mode = os.getenv("debug_env", "false").lower() == "true"
-    app.run(debug=True, host="localhost", port=5000)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(debug=debug_mode, host="0.0.0.0", port=port)
