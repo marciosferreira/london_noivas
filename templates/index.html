@@ -1220,8 +1220,7 @@
             const isAiItem = itemId && itemId.toString().startsWith('ai_');
 
             if (!isAiItem) {
-                // Update URL to include item_id (UUID) for regular items
-                const url = new URL(window.location);
+                const url = new URL('/catalogo', window.location.origin);
                 url.searchParams.set('item', itemId);
                 window.history.pushState({}, '', url);
                 text += `\nLink: ${url.toString()}`;

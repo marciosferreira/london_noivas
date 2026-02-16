@@ -105,6 +105,39 @@ def _load_color_options_for_account(account_id):
         out.append(s)
     return sorted(out, key=lambda x: str(x).casefold())
 
+def _load_color_pairs_for_account(account_id):
+    if not account_id or not users_table:
+        return []
+    try:
+        resp = users_table.get_item(Key={"user_id": f"account_settings:{account_id}"})
+        item = resp.get("Item") or {}
+    except Exception:
+        item = {}
+    colors = item.get("color_options")
+    if not isinstance(colors, list):
+        return []
+    out = []
+    seen = set()
+    for c in colors:
+        if c is None:
+            continue
+        if isinstance(c, dict):
+            name = c.get("name") or c.get("color") or c.get("comercial") or c.get("cor")
+            base = c.get("base") or c.get("cor_base") or c.get("base_color")
+        else:
+            name = c
+            base = ""
+        name = str(name).strip() if name else ""
+        base = str(base).strip() if base else ""
+        if not name:
+            continue
+        key = (base.casefold(), name.casefold())
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append({"name": name, "base": base})
+    return sorted(out, key=lambda x: (x["base"].casefold(), x["name"].casefold()))
+
 def _expand_color_terms(colors):
     raw = _ensure_list(colors)
     expanded = []
@@ -141,6 +174,28 @@ def _extract_color_list(obj):
     mf = obj.get("metadata_filters")
     if isinstance(mf, dict):
         values.extend(_ensure_list(mf.get("cor_base")))
+        values.extend(_ensure_list(mf.get("cor_comercial")))
+    return [v for v in values if str(v).strip()]
+
+def _extract_color_base_list(obj):
+    if not isinstance(obj, dict):
+        return []
+    values = []
+    for key in ["cor_base", "color_base"]:
+        values.extend(_ensure_list(obj.get(key)))
+    mf = obj.get("metadata_filters")
+    if isinstance(mf, dict):
+        values.extend(_ensure_list(mf.get("cor_base")))
+    return [v for v in values if str(v).strip()]
+
+def _extract_color_commercial_list(obj):
+    if not isinstance(obj, dict):
+        return []
+    values = []
+    for key in ["cor_comercial", "color_comercial"]:
+        values.extend(_ensure_list(obj.get(key)))
+    mf = obj.get("metadata_filters")
+    if isinstance(mf, dict):
         values.extend(_ensure_list(mf.get("cor_comercial")))
     return [v for v in values if str(v).strip()]
 
@@ -1210,14 +1265,26 @@ def _mcp_tools():
     account_id = session.get("account_id") if session else None
     if not account_id:
         account_id = _pick_public_account_id()
-    available_colors = _load_color_options_for_account(account_id)
-    colors_text = ", ".join(available_colors) if available_colors else "não informado"
+    color_pairs = _load_color_pairs_for_account(account_id)
+    cor_base_options = [str(c.get("base") or "").strip() for c in color_pairs if str(c.get("base") or "").strip()]
+    cor_comercial_options = [str(c.get("name") or "").strip() for c in color_pairs if str(c.get("name") or "").strip()]
+    if not cor_base_options:
+        cor_base_options = _load_color_options_for_account(account_id)
+    if not cor_comercial_options:
+        cor_comercial_options = _load_color_options_for_account(account_id)
+    colors_base_text = ", ".join(cor_base_options) if cor_base_options else "não informado"
+    colors_comercial_text = ", ".join(cor_comercial_options) if cor_comercial_options else "não informado"
     description = (
         "Busca por similaridade semântica com filtros de ocasião, cor_base/cor_comercial e tamanho. "
-        "Se houver dúvida sobre a cor comercial, deixe colors vazio e use apenas a cor base. "
-        "Se houver dúvida sobre a cor base, deixe colors vazio. "
-        f"Cores disponíveis para consulta: {colors_text}."
+        "Para cor, use cor_base e cor_comercial separadamente. "
+        "Se houver dúvida sobre a cor comercial, deixe cor_comercial vazio e use apenas cor_base. "
+        "Se houver dúvida sobre a cor base, deixe cor_base vazio. "
+        "Se cor_comercial não retornar resultados, refaça a busca apenas com cor_base. "
+        f"Cores base disponíveis: {colors_base_text}. "
+        f"Cores comerciais disponíveis: {colors_comercial_text}."
     )
+    cor_base_items = {"type": "string", "enum": cor_base_options} if cor_base_options else {"type": "string"}
+    cor_comercial_items = {"type": "string", "enum": cor_comercial_options} if cor_comercial_options else {"type": "string"}
     return [
         {
             "name": "buscar_por_similaridade",
@@ -1237,10 +1304,15 @@ def _mcp_tools():
                         },
                         "default": ["Gala"]
                     },
-                    "colors": {
+                    "cor_base": {
                         "type": "array",
-                        "items": {"type": "string"},
-                        "description": "Use apenas cor_base e/ou cor_comercial. Se houver dúvida, deixe vazio."
+                        "items": cor_base_items,
+                        "description": "Cor base disponível no acervo. Se houver dúvida, deixe vazio."
+                    },
+                    "cor_comercial": {
+                        "type": "array",
+                        "items": cor_comercial_items,
+                        "description": "Cor comercial disponível no acervo. Se houver dúvida, deixe vazio."
                     },
                     "sizes": {
                         "type": "array",
@@ -1277,18 +1349,19 @@ def _mcp_to_openai_tools(mcp_tools):
         })
     return openai_tools
 
-def _filter_metadata_candidates(colors, occasions, max_candidates):
+def _filter_metadata_candidates(cor_base, cor_comercial, occasions, max_candidates):
     if not metadata:
         return []
-    desired_colors = _normalize_set(colors)
+    desired_base = _normalize_set(cor_base)
+    desired_comercial = _normalize_set(cor_comercial)
     desired_occasions = _normalize_occasion_inputs(occasions)
     desired_set = set(desired_occasions)
     collected = []
     for meta in metadata:
-        if desired_colors:
-            mf = meta.get("metadata_filters") or {}
-            if not _matches_any(mf.get("colors"), desired_colors):
-                continue
+        if desired_base and not _matches_any(_extract_color_base_list(meta), desired_base):
+            continue
+        if desired_comercial and not _matches_any(_extract_color_commercial_list(meta), desired_comercial):
+            continue
         if desired_set:
             if not (set(_meta_occasions(meta)) & desired_set):
                 continue
@@ -1298,10 +1371,14 @@ def _filter_metadata_candidates(colors, occasions, max_candidates):
     return collected
 
 def _run_db_search(args):
-    colors = _ensure_list(args.get("colors") or args.get("cores"))
+    cor_base = _ensure_list(args.get("cor_base") or args.get("corBase"))
+    cor_comercial = _ensure_list(args.get("cor_comercial") or args.get("corComercial"))
+    colors = [*cor_base, *cor_comercial]
     sizes = _ensure_list(args.get("sizes") or args.get("tamanhos") or args.get("size") or args.get("tamanho"))
     occasions = _normalize_occasion_inputs(args.get("occasions") or args.get("ocasioes") or args.get("occasion"))
     exact_color_terms = _normalize_set(colors)
+    desired_base = _normalize_set(cor_base)
+    desired_comercial = _normalize_set(cor_comercial)
     limit = int(args.get("limit") or args.get("k") or 4)
     if limit < 1:
         limit = 1
@@ -1309,13 +1386,15 @@ def _run_db_search(args):
         limit = 24
     if not metadata or not index:
         load_resources()
-    candidates = _filter_metadata_candidates(colors, occasions, max_candidates=max(200, limit * 40))
+    candidates = _filter_metadata_candidates(cor_base, cor_comercial, occasions, max_candidates=max(200, limit * 40))
     enriched = validate_and_enrich_candidates(candidates)
     desired_sizes = _normalize_set(sizes)
     desired_occ_set = set(occasions)
     filtered = []
     for item in enriched:
-        if desired_colors and not _matches_any(_extract_color_list(item), desired_colors):
+        if desired_base and not _matches_any(_extract_color_base_list(item), desired_base):
+            continue
+        if desired_comercial and not _matches_any(_extract_color_commercial_list(item), desired_comercial):
             continue
         if desired_sizes and not _matches_any(_extract_size_list(item), desired_sizes):
             continue
@@ -1340,53 +1419,70 @@ def _run_db_search(args):
     }
 
 def _run_similarity_search(args):
-    colors = _ensure_list(args.get("colors") or args.get("cores"))
+    cor_base = _ensure_list(args.get("cor_base") or args.get("corBase"))
+    cor_comercial = _ensure_list(args.get("cor_comercial") or args.get("corComercial"))
+    colors = [*cor_base, *cor_comercial]
     sizes = _ensure_list(args.get("sizes") or args.get("tamanhos") or args.get("size") or args.get("tamanho"))
     occasions = _normalize_occasion_inputs(args.get("occasions") or args.get("ocasioes") or args.get("occasion"))
     exact_color_terms = _normalize_set(colors)
-    desired_colors = exact_color_terms
+    desired_base = _normalize_set(cor_base)
+    desired_comercial = _normalize_set(cor_comercial)
     query = args.get("other_characteristics") or args.get("demais_caracteristicas") or args.get("query") or ""
     limit = int(args.get("limit") or args.get("k") or 5)
     if limit < 1:
         limit = 1
     if limit > 5:
         limit = 5
+    candidate_k = max(limit * 6, 20)
+    if desired_base or desired_comercial:
+        if not index or not metadata:
+            load_resources()
+        ntotal = int(getattr(index, "ntotal", 0) or 0)
+        if ntotal <= 0:
+            ntotal = len(metadata) if isinstance(metadata, list) else 0
+        if ntotal > 0:
+            candidate_k = ntotal
+        else:
+            candidate_k = max(limit * 20, 120)
     query_terms = []
     if isinstance(query, str) and query.strip():
         query_terms.append(query.strip())
-    query_terms.extend(_ensure_list(colors))
+    query_terms.extend(_ensure_list(cor_base))
+    query_terms.extend(_ensure_list(cor_comercial))
     query_terms.extend(_ensure_list(sizes))
     query_terms.extend(_ensure_list(occasions))
     query = " ".join([str(t).strip() for t in query_terms if str(t).strip()]).strip()
     if not query:
         return {"items": [], "color_relaxation_notice": ""}
     debug_payload = {
-        "colors": colors,
+        "cor_base": cor_base,
+        "cor_comercial": cor_comercial,
         "expanded_colors": [],
         "sizes": sizes,
         "occasions": occasions,
         "other_characteristics": query,
         "limit": limit,
+        "candidate_k": candidate_k,
     }
     print("bella_tool_preprocessed", json.dumps(debug_payload, ensure_ascii=False))
-    results = execute_catalog_search(query, k=max(limit * 6, 20))
+    results = execute_catalog_search(query, k=candidate_k)
     if occasions:
         results = _filter_items_by_occasions(results, occasions)
     desired_sizes = _normalize_set(sizes)
     desired_occ_set = set(occasions)
     exact_items = []
     for item in results:
+        if desired_base and not _matches_any(_extract_color_base_list(item), desired_base):
+            continue
+        if desired_comercial and not _matches_any(_extract_color_commercial_list(item), desired_comercial):
+            continue
         if desired_sizes and not _matches_any(_extract_size_list(item), desired_sizes):
             continue
-        if desired_occ_set:
-            if not (set(_get_occasion_slugs(item)) & desired_occ_set):
-                continue
-        item_colors = _extract_color_list(item)
-        if exact_color_terms:
-            if _matches_any(item_colors, exact_color_terms):
-                exact_items.append(item)
-        else:
-            exact_items.append(item)
+        if desired_occ_set and not (set(_get_occasion_slugs(item)) & desired_occ_set):
+            continue
+        if exact_color_terms and not _matches_any(_extract_color_list(item), exact_color_terms):
+            continue
+        exact_items.append(item)
         if len(exact_items) >= limit:
             break
     result_payload = {"items": exact_items[:limit], "color_relaxation_notice": ""}
@@ -1471,10 +1567,10 @@ def ai_search():
         "USO DE FERRAMENTAS:\n"
         "- Use apenas `buscar_por_similaridade` em todas as buscas.\n"
         "- Quando a cliente perguntar sobre a loja (nome, ramo, endereço, horário, atendimento ou política de venda), use `consultar_contexto_loja` apenas como contexto e responda de forma natural, sem copiar o markdown literalmente.\n"
-        "- Sempre preencha `occasions`, `colors`, `sizes` e `other_characteristics` conforme o pedido.\n"
+        "- Sempre preencha `occasions`, `cor_base`, `cor_comercial`, `sizes` e `other_characteristics` conforme o pedido.\n"
         "- Sempre preencha `occasions` com uma das opções: Noiva, Civil, Madrinha, Mãe dos Noivos, Formatura, Debutante, Gala, Convidada.\n"
         "- Se não houver ocasião explícita, use Gala como padrão.\n"
-        "- Se a cliente disser uma cor genérica (ex.: azul), inclua essa cor em `colors`.\n"
+        "- Se a cliente disser uma cor genérica (ex.: azul), inclua essa cor em `cor_base`.\n"
         "- Se a busca não retornar nada, faça nova busca relaxando critérios (cor próxima, tamanho aproximado, ocasião relacionada) e informe isso no texto.\n"
         "- A ferramenta retorna JSON com `items` e pode incluir `color_relaxation_notice`; se presente, informe que são sugestões similares.\n"
     )
@@ -1491,6 +1587,10 @@ def ai_search():
     messages.append({"role": "user", "content": user_message})
 
     tools = _mcp_to_openai_tools(_mcp_tools())
+    try:
+        current_app.logger.info("bella_tool_schema tools=%s", json.dumps(tools, ensure_ascii=False))
+    except Exception:
+        pass
 
     try:
         reply_text = ""
@@ -1618,6 +1718,16 @@ def ai_similar(item_id):
                 return ""
             if isinstance(v, str):
                 return v.strip()
+            mf = obj.get("metadata_filters")
+            if isinstance(mf, dict):
+                v = mf.get("cor_base")
+                if isinstance(v, (list, tuple)):
+                    for x in v:
+                        if isinstance(x, str) and x.strip():
+                            return x.strip()
+                    return ""
+                if isinstance(v, str):
+                    return v.strip()
             return ""
 
         def _extract_color_commercial_value(obj):
@@ -1642,18 +1752,55 @@ def ai_similar(item_id):
                 return v.strip()
             return ""
 
+        target_idx = -1
+        for i, item in enumerate(metadata):
+            if str(item.get('custom_id')) == str(item_id):
+                target_idx = i
+                break
+
+        target_flags = None
+        try:
+            if itens_table:
+                resp = itens_table.get_item(Key={"item_id": str(item_id)})
+                target_flags = resp.get("Item")
+        except Exception:
+            target_flags = None
+
+        target_color_base_raw = _extract_color_base_value(target_flags) if isinstance(target_flags, dict) else ""
+        if not target_color_base_raw and target_idx != -1 and isinstance(metadata[target_idx], dict):
+            target_color_base_raw = _extract_color_base_value(metadata[target_idx])
+        target_color_base = _normalize_text(target_color_base_raw) if target_color_base_raw else ""
+
         if isinstance(query_hint, str) and query_hint.strip():
             results = execute_catalog_search_loose(query_hint, k=max(limit * 4, 20), target_occasions=target_occ)
             collected = []
             seen_ids = set()
+            secondary = []
+            secondary_ids = set()
             for item in results:
                 sid = str(item.get("item_id") or item.get("custom_id") or "")
                 if not sid or sid == str(item_id) or sid in seen_ids:
                     continue
+                if target_color_base:
+                    item_base = _normalize_text(_extract_color_base_value(item) or "")
+                    if not item_base or item_base != target_color_base:
+                        if sid not in secondary_ids:
+                            secondary.append(item)
+                            secondary_ids.add(sid)
+                        continue
                 seen_ids.add(sid)
                 collected.append(item)
                 if len(collected) >= limit:
                     break
+            if target_color_base and len(collected) < limit and secondary:
+                for item in secondary:
+                    sid = str(item.get("item_id") or item.get("custom_id") or "")
+                    if not sid or sid in seen_ids:
+                        continue
+                    seen_ids.add(sid)
+                    collected.append(item)
+                    if len(collected) >= limit:
+                        break
             suggestions = []
             for item in collected:
                 suggestions.append({
@@ -1671,27 +1818,10 @@ def ai_similar(item_id):
                 })
             return jsonify({"suggestions": suggestions})
 
-        # Encontrar índice do item
-        target_idx = -1
-        for i, item in enumerate(metadata):
-            # Comparação robusta (str vs str)
-            if str(item.get('custom_id')) == str(item_id):
-                target_idx = i
-                break
-        
         if target_idx == -1:
             return jsonify({"error": "Item não encontrado no índice"}), 404
 
         query_vector = index.reconstruct(target_idx).reshape(1, -1)
-        principal_cat = _category_slug(metadata[target_idx])
-
-        target_flags = None
-        try:
-            if itens_table:
-                resp = itens_table.get_item(Key={"item_id": str(item_id)})
-                target_flags = resp.get("Item")
-        except Exception:
-            target_flags = None
 
         if not target_occ:
             target_occ = _get_occasion_slugs(target_flags) if isinstance(target_flags, dict) else []
@@ -1702,6 +1832,10 @@ def ai_similar(item_id):
                     target_occ = [o for o in (_canonical_occasion(x) for x in occ) if o]
             target_set = set(target_occ)
 
+        if not target_color_base and isinstance(metadata[target_idx], dict):
+            target_color_base_raw = _extract_color_base_value(metadata[target_idx])
+            target_color_base = _normalize_text(target_color_base_raw) if target_color_base_raw else ""
+
         ntotal = int(getattr(index, "ntotal", 0) or 0)
         if ntotal <= 0:
             ntotal = len(metadata) if isinstance(metadata, list) else 0
@@ -1711,6 +1845,8 @@ def ai_similar(item_id):
 
         collected = []
         seen_ids = set()
+        secondary = []
+        secondary_ids = set()
         processed_k = 0
         k = min(max(50, limit * 20), ntotal)
 
@@ -1728,8 +1864,6 @@ def ai_similar(item_id):
             valid_candidates = validate_and_enrich_candidates(raw_candidates)
 
             for item in valid_candidates:
-                if _category_slug(item) != principal_cat:
-                    continue
                 if target_set:
                     occ_slugs = _get_occasion_slugs(item)
                     if not occ_slugs or not (set(occ_slugs) & target_set):
@@ -1737,6 +1871,13 @@ def ai_similar(item_id):
                 sid = str(item.get("item_id") or item.get("custom_id") or "")
                 if not sid or sid in seen_ids:
                     continue
+                if target_color_base:
+                    item_base = _normalize_text(_extract_color_base_value(item) or "")
+                    if not item_base or item_base != target_color_base:
+                        if sid not in secondary_ids:
+                            secondary.append(item)
+                            secondary_ids.add(sid)
+                        continue
                 seen_ids.add(sid)
                 collected.append(item)
                 if len(collected) >= limit:
@@ -1745,6 +1886,16 @@ def ai_similar(item_id):
             if len(collected) >= limit or processed_k >= ntotal:
                 break
             k = min(ntotal, max(processed_k + 50, k * 2))
+
+        if target_color_base and len(collected) < limit and secondary:
+            for item in secondary:
+                sid = str(item.get("item_id") or item.get("custom_id") or "")
+                if not sid or sid in seen_ids:
+                    continue
+                seen_ids.add(sid)
+                collected.append(item)
+                if len(collected) >= limit:
+                    break
 
         suggestions = []
         for item in collected:

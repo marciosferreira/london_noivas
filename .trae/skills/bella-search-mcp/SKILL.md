@@ -148,7 +148,8 @@ python .trae/skills/bella-search-mcp/main.py < payload.json
     "Alça fina",
     "Um ombro só",
     "Manga curta",
-    "Manga longa"
+    "Manga longa",
+    "sem-manga"
   ],
   "details": [
     "Fenda",
@@ -159,8 +160,8 @@ python .trae/skills/bella-search-mcp/main.py < payload.json
     "Flor",
     "Laço",
     "Bordado",
-    "Pedraria",
     "Camadas",
+    "Pedraria",
     "Costas abertas",
     "Detalhe floral",
     "Recortes",
@@ -171,12 +172,13 @@ python .trae/skills/bella-search-mcp/main.py < payload.json
     "Capa",
     "Esvoaçante",
     "Flor no ombro",
-    "Flores aplicadas",
     "Mangas caídas",
     "Recortes laterais",
     "Renda",
     "Saia fluida",
-    "Saia volumosa"
+    "Saia volumosa",
+    "brilho",
+    "pedraria"
   ]
 }
 ```
