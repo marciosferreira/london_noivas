@@ -1457,7 +1457,6 @@ def _run_similarity_search(args):
     debug_payload = {
         "cor_base": cor_base,
         "cor_comercial": cor_comercial,
-        "expanded_colors": [],
         "sizes": sizes,
         "occasions": occasions,
         "other_characteristics": query,
