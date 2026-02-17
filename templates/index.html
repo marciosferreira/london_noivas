@@ -287,7 +287,7 @@
                         <span class="text-london-gold font-bold tracking-widest text-sm">ESTILISTA VIRTUAL COM IA</span>
                         <h2 class="text-4xl md:text-5xl font-serif text-stone-800">Encontre o vestido perfeito com a Bella</h2>
                         <p class="text-stone-600 leading-relaxed">
-                            Descreva a ocasião e o estilo que você imagina. A Bella entende sua descrição e busca no nosso acervo para sugerir as melhores opções — com fotos e alternativas parecidas.
+                            Descreva a ocasião, a cor e o estilo que você imagina. A Bella entende sua descrição e busca no nosso acervo para sugerir as melhores opções — com fotos e alternativas parecidas.
                         </p>
                         
                         <div id="chat-box-container" class="bg-white rounded-sm shadow-lg border border-stone-200 overflow-hidden flex flex-col h-[400px]">
@@ -674,6 +674,26 @@
                     return listProcessed.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-london-gold underline" target="_blank" rel="noopener noreferrer">$1</a>');
                 }
 
+                function scrollChatToMessage(container, messageEl, block) {
+                    if (!container || !messageEl) return;
+                    const margin = 8;
+                    const top = messageEl.offsetTop - margin;
+                    const bottom = messageEl.offsetTop + messageEl.offsetHeight + margin;
+                    let targetTop = container.scrollTop;
+                    if (block === 'start') {
+                        targetTop = top;
+                    } else if (block === 'end') {
+                        targetTop = bottom - container.clientHeight;
+                    } else {
+                        if (top < container.scrollTop) {
+                            targetTop = top;
+                        } else if (bottom > (container.scrollTop + container.clientHeight)) {
+                            targetTop = bottom - container.clientHeight;
+                        }
+                    }
+                    container.scrollTop = Math.max(0, targetTop);
+                }
+
                 function addMessage(text, sender, items, options) {
                     const container = document.getElementById('chat-messages');
                     const resolvedOptions = options && typeof options === 'object' ? options : {};
@@ -727,7 +747,7 @@
                     
                     container.appendChild(div);
                     if (forceScroll || wasNearBottom) {
-                        div.scrollIntoView({ block });
+                        scrollChatToMessage(container, div, block);
                     }
                     return div;
                 }
@@ -757,7 +777,7 @@
                     `;
                     container.appendChild(div);
                     if (forceScroll || (!doNotScroll && wasNearBottom)) {
-                        div.scrollIntoView({ block: 'end' });
+                        scrollChatToMessage(container, div, 'end');
                     }
                     return id;
                 }
@@ -1028,7 +1048,7 @@
                     <span class="text-sm bg-stone-100 text-stone-500 px-3 py-1 rounded-full">Beta</span>
                 </div>
                 <p class="text-base text-stone-600 mb-5 font-light leading-relaxed">
-                    Oi! Eu sou a Bella, sua estilista virtual com IA. Descreva a ocasião e o estilo do vestido e eu te mostro as melhores opções do nosso acervo.
+                    Oi! Eu sou a Bella, sua estilista virtual com IA. Descreva a ocasião, a cor e o estilo do vestido e eu te mostro as melhores opções do nosso acervo.
                     <span class="block text-sm text-stone-400 mt-3 italic border-t border-stone-100 pt-3">Ex: "Procuro um vestido sereia com brilho para um casamento à noite"</span>
                 </p>
                 <div class="flex gap-2 relative">
