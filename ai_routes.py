@@ -10,13 +10,44 @@ import threading
 import boto3
 from boto3.dynamodb.conditions import Key
 from flask import Blueprint, request, jsonify, url_for, current_app, session
-from openai import OpenAI
 from dotenv import load_dotenv
 from ai_sync_service import get_index_status, sync_index as service_sync_index, get_progress
 
-# Configuração
-load_dotenv()
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+def _sanitize_env_value(value):
+    if not value:
+        return None
+    return value.strip().strip("'\"`")
+
+def _normalize_langfuse_env():
+    public_key = _sanitize_env_value(os.environ.get("LANGFUSE_PUBLIC_KEY"))
+    secret_key = _sanitize_env_value(os.environ.get("LANGFUSE_SECRET_KEY"))
+    base_url = _sanitize_env_value(
+        os.environ.get("LANGFUSE_BASE_URL") or os.environ.get("LANGFUSE_HOST")
+    )
+    if base_url:
+        base_url = base_url.rstrip("/")
+    if public_key:
+        os.environ["LANGFUSE_PUBLIC_KEY"] = public_key
+    if secret_key:
+        os.environ["LANGFUSE_SECRET_KEY"] = secret_key
+    if base_url:
+        os.environ["LANGFUSE_BASE_URL"] = base_url
+        os.environ.setdefault("LANGFUSE_HOST", base_url)
+
+def _build_openai_client():
+    api_key = os.getenv("OPENAI_API_KEY")
+    try:
+        from langfuse.openai import openai as langfuse_openai
+        if api_key:
+            langfuse_openai.api_key = api_key
+        return langfuse_openai
+    except Exception:
+        from openai import OpenAI
+        return OpenAI(api_key=api_key)
+
+load_dotenv(override=False)
+_normalize_langfuse_env()
+client = _build_openai_client()
 
 # Inicializa DynamoDB (Para validação de consistência)
 try:

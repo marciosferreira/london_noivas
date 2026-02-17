@@ -2,13 +2,44 @@ import json
 import os
 import faiss
 import numpy as np
-from openai import OpenAI
 from dotenv import load_dotenv
 import pickle
 import hashlib
 
-# Carrega variáveis de ambiente
-load_dotenv()
+def _sanitize_env_value(value):
+    if not value:
+        return None
+    return value.strip().strip("'\"`")
+
+def _normalize_langfuse_env():
+    public_key = _sanitize_env_value(os.environ.get("LANGFUSE_PUBLIC_KEY"))
+    secret_key = _sanitize_env_value(os.environ.get("LANGFUSE_SECRET_KEY"))
+    base_url = _sanitize_env_value(
+        os.environ.get("LANGFUSE_BASE_URL") or os.environ.get("LANGFUSE_HOST")
+    )
+    if base_url:
+        base_url = base_url.rstrip("/")
+    if public_key:
+        os.environ["LANGFUSE_PUBLIC_KEY"] = public_key
+    if secret_key:
+        os.environ["LANGFUSE_SECRET_KEY"] = secret_key
+    if base_url:
+        os.environ["LANGFUSE_BASE_URL"] = base_url
+        os.environ.setdefault("LANGFUSE_HOST", base_url)
+
+def _build_openai_client():
+    api_key = os.getenv("OPENAI_API_KEY")
+    try:
+        from langfuse.openai import openai as langfuse_openai
+        if api_key:
+            langfuse_openai.api_key = api_key
+        return langfuse_openai
+    except Exception:
+        from openai import OpenAI
+        return OpenAI(api_key=api_key)
+
+load_dotenv(override=False)
+_normalize_langfuse_env()
 
 # Configuração de Arquivos
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -18,7 +49,7 @@ METADATA_FILE = os.path.join(BASE_DIR, "..", "vector_store_metadata.pkl")
 CACHE_FILE = os.path.join(BASE_DIR, "embeddings_cache.pkl")
 
 EMBEDDING_MODEL = "text-embedding-3-small"
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+client = _build_openai_client()
 
 def get_embedding(text):
     text = text.replace("\n", " ")

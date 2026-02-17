@@ -10,5 +10,6 @@ qrcode[pil]
 requests
 stripe
 openai
+langfuse
 faiss-cpu
 numpy
