@@ -98,25 +98,30 @@ def _ensure_list(value):
 def _normalize_set(value):
     return set(_normalize_text(v) for v in _ensure_list(value) if str(v).strip())
 
+DEFAULT_PUBLIC_ACCOUNT_ID = "37d5b37f-c920-4090-a682-7e1ed2e31a0f"
+
 def _pick_public_account_id():
     raw = os.getenv("AI_SYNC_ACCOUNT_ID") or os.getenv("PUBLIC_CATALOG_ACCOUNT_IDS") or ""
     raw = str(raw or "").strip()
     if not raw:
-        return None
+        return DEFAULT_PUBLIC_ACCOUNT_ID
     parts = [p.strip() for p in raw.split(",") if p.strip()]
-    return parts[0] if parts else None
+    if not parts:
+        raise RuntimeError("Conta pública inválida. Configure AI_SYNC_ACCOUNT_ID ou PUBLIC_CATALOG_ACCOUNT_IDS.")
+    return parts[0]
 
 def _load_color_options_for_account(account_id):
-    if not account_id or not users_table:
-        return []
-    try:
-        resp = users_table.get_item(Key={"user_id": f"account_settings:{account_id}"})
-        item = resp.get("Item") or {}
-    except Exception:
-        item = {}
+    if not account_id:
+        raise RuntimeError("account_id ausente para carregar cores.")
+    if not users_table:
+        raise RuntimeError("users_table indisponível para carregar cores.")
+    resp = users_table.get_item(Key={"user_id": f"account_settings:{account_id}"})
+    item = resp.get("Item") or {}
+    if not item:
+        raise RuntimeError(f"account_settings não encontrado para {account_id}.")
     colors = item.get("color_options")
     if not isinstance(colors, list):
-        return []
+        raise RuntimeError(f"color_options inválido para {account_id}.")
     out = []
     seen = set()
     for c in colors:
@@ -134,19 +139,22 @@ def _load_color_options_for_account(account_id):
             continue
         seen.add(k)
         out.append(s)
+    if not out:
+        raise RuntimeError(f"color_options vazio para {account_id}.")
     return sorted(out, key=lambda x: str(x).casefold())
 
 def _load_color_pairs_for_account(account_id):
-    if not account_id or not users_table:
-        return []
-    try:
-        resp = users_table.get_item(Key={"user_id": f"account_settings:{account_id}"})
-        item = resp.get("Item") or {}
-    except Exception:
-        item = {}
+    if not account_id:
+        raise RuntimeError("account_id ausente para carregar cores.")
+    if not users_table:
+        raise RuntimeError("users_table indisponível para carregar cores.")
+    resp = users_table.get_item(Key={"user_id": f"account_settings:{account_id}"})
+    item = resp.get("Item") or {}
+    if not item:
+        raise RuntimeError(f"account_settings não encontrado para {account_id}.")
     colors = item.get("color_options")
     if not isinstance(colors, list):
-        return []
+        raise RuntimeError(f"color_options inválido para {account_id}.")
     out = []
     seen = set()
     for c in colors:
@@ -167,6 +175,8 @@ def _load_color_pairs_for_account(account_id):
             continue
         seen.add(key)
         out.append({"name": name, "base": base})
+    if not out:
+        raise RuntimeError(f"color_options vazio para {account_id}.")
     return sorted(out, key=lambda x: (x["base"].casefold(), x["name"].casefold()))
 
 def _color_enums_for_account():
@@ -176,12 +186,12 @@ def _color_enums_for_account():
     color_pairs = _load_color_pairs_for_account(account_id)
     cor_base_options = [str(c.get("base") or "").strip() for c in color_pairs if str(c.get("base") or "").strip()]
     cor_comercial_options = [str(c.get("name") or "").strip() for c in color_pairs if str(c.get("name") or "").strip()]
-    if not cor_base_options:
-        cor_base_options = _load_color_options_for_account(account_id)
-    if not cor_comercial_options:
-        cor_comercial_options = _load_color_options_for_account(account_id)
     cor_base_options = list(dict.fromkeys(cor_base_options))
     cor_comercial_options = list(dict.fromkeys(cor_comercial_options))
+    if not cor_base_options:
+        raise RuntimeError(f"cor_base vazio para {account_id}.")
+    if not cor_comercial_options:
+        raise RuntimeError(f"cor_comercial vazio para {account_id}.")
     return cor_base_options, cor_comercial_options
 
 def _validate_similarity_args(args):
@@ -1763,7 +1773,11 @@ def ai_search():
     
     messages.append({"role": "user", "content": user_message})
 
-    tools = _mcp_to_openai_tools(_mcp_tools())
+    try:
+        tools = _mcp_to_openai_tools(_mcp_tools())
+    except Exception as e:
+        current_app.logger.error("bella_tool_schema_error error=%s", str(e))
+        return jsonify({"error": "tool_schema_error", "message": str(e)}), 500
     try:
         current_app.logger.info("bella_tool_schema tools=%s", json.dumps(tools, ensure_ascii=False))
     except Exception:
