@@ -138,6 +138,67 @@ def _load_color_pairs_for_account(account_id):
         out.append({"name": name, "base": base})
     return sorted(out, key=lambda x: (x["base"].casefold(), x["name"].casefold()))
 
+def _color_enums_for_account():
+    account_id = session.get("account_id") if session else None
+    if not account_id:
+        account_id = _pick_public_account_id()
+    color_pairs = _load_color_pairs_for_account(account_id)
+    cor_base_options = [str(c.get("base") or "").strip() for c in color_pairs if str(c.get("base") or "").strip()]
+    cor_comercial_options = [str(c.get("name") or "").strip() for c in color_pairs if str(c.get("name") or "").strip()]
+    if not cor_base_options:
+        cor_base_options = _load_color_options_for_account(account_id)
+    if not cor_comercial_options:
+        cor_comercial_options = _load_color_options_for_account(account_id)
+    cor_base_options = list(dict.fromkeys(cor_base_options))
+    cor_comercial_options = list(dict.fromkeys(cor_comercial_options))
+    return cor_base_options, cor_comercial_options
+
+def _validate_similarity_args(args):
+    errors = []
+    def check_list(keys, label):
+        for key in keys:
+            if key in args and args[key] is not None and not isinstance(args[key], list):
+                errors.append({"field": label, "message": f"{label} deve ser lista"})
+        for key in keys:
+            if key in args and args[key] is not None:
+                return args[key]
+        return []
+    cor_base = check_list(["cor_base", "corBase"], "cor_base")
+    cor_comercial = check_list(["cor_comercial", "corComercial"], "cor_comercial")
+    occasions = check_list(["occasions", "ocasioes", "occasion"], "occasions")
+    check_list(["sizes", "tamanhos", "size", "tamanho"], "sizes")
+    if errors:
+        return errors
+    cor_base_options, cor_comercial_options = _color_enums_for_account()
+    if cor_base_options:
+        invalid = [v for v in cor_base if v not in cor_base_options]
+        if invalid:
+            errors.append({
+                "field": "cor_base",
+                "message": "Valores inválidos",
+                "invalid": invalid,
+                "allowed": cor_base_options,
+            })
+    if cor_comercial_options:
+        invalid = [v for v in cor_comercial if v not in cor_comercial_options]
+        if invalid:
+            errors.append({
+                "field": "cor_comercial",
+                "message": "Valores inválidos",
+                "invalid": invalid,
+                "allowed": cor_comercial_options,
+            })
+    allowed_occasions = ["Noiva", "Civil", "Madrinha", "Mãe dos Noivos", "Formatura", "Debutante", "Gala", "Convidada"]
+    invalid_occ = [v for v in occasions if v not in allowed_occasions]
+    if invalid_occ:
+        errors.append({
+            "field": "occasions",
+            "message": "Valores inválidos",
+            "invalid": invalid_occ,
+            "allowed": allowed_occasions,
+        })
+    return errors
+
 def _expand_color_terms(colors):
     raw = _ensure_list(colors)
     expanded = []
@@ -1170,6 +1231,45 @@ def execute_catalog_search(query, k=5):
         print(f"Erro em execute_catalog_search: {e}")
         return []
 
+def execute_catalog_search_raw(query, k=5):
+    global index, metadata
+    if not index or not metadata:
+        load_resources()
+        if not index or not metadata:
+            print("Erro: Índice não disponível para execute_catalog_search_raw")
+            return []
+    try:
+        query_embedding = get_embedding(query)
+        query_vector = np.array([query_embedding]).astype('float32')
+        ntotal = int(getattr(index, "ntotal", 0) or 0)
+        if ntotal <= 0:
+            ntotal = len(metadata) if isinstance(metadata, list) else 0
+        if ntotal <= 0:
+            return []
+        desired = int(k or 0)
+        if desired < 1:
+            desired = 1
+        if desired > ntotal:
+            desired = ntotal
+        distances, indices = index.search(query_vector, desired)
+        raw_candidates = []
+        seen_custom_ids = set()
+        for idx in indices[0]:
+            if idx == -1:
+                continue
+            meta = metadata[int(idx)].copy()
+            cid = meta.get("custom_id")
+            if cid and cid in seen_custom_ids:
+                continue
+            if cid:
+                seen_custom_ids.add(cid)
+            raw_candidates.append(meta)
+        valid_candidates = validate_and_enrich_candidates(raw_candidates)
+        return valid_candidates[:desired]
+    except Exception as e:
+        print(f"Erro em execute_catalog_search_raw: {e}")
+        return []
+
 def execute_catalog_search_loose(query, k=5, target_occasions=None):
     global index, metadata
     
@@ -1274,20 +1374,16 @@ def _mcp_tools():
         cor_base_options = _load_color_options_for_account(account_id)
     if not cor_comercial_options:
         cor_comercial_options = _load_color_options_for_account(account_id)
-    colors_base_text = ", ".join(cor_base_options) if cor_base_options else "não informado"
-    colors_comercial_text = ", ".join(cor_comercial_options) if cor_comercial_options else "não informado"
+    cor_base_options = list(dict.fromkeys(cor_base_options))
+    cor_comercial_options = list(dict.fromkeys(cor_comercial_options))
     description = (
         "Busca por similaridade semântica com filtros de ocasião, cor_base/cor_comercial e tamanho. "
-        "Para cor, use cor_base e cor_comercial separadamente. "
-        "Se houver dúvida sobre a cor comercial, deixe cor_comercial vazio e use apenas cor_base. "
-        "Se houver dúvida sobre a cor base, deixe cor_base vazio. "
-        "Se cor_comercial não retornar resultados, refaça a busca apenas com cor_base. "
-        f"Cores base disponíveis: {colors_base_text}. "
-        f"Cores comerciais disponíveis: {colors_comercial_text}."
+        "Use cor_base e cor_comercial para restringir a busca e sizes quando houver preferência. "
+        "Se uma cor ou tamanho não estiver claro, deixe o campo vazio e faça follow-up."
     )
     cor_base_items = {"type": "string", "enum": cor_base_options} if cor_base_options else {"type": "string"}
     cor_comercial_items = {"type": "string", "enum": cor_comercial_options} if cor_comercial_options else {"type": "string"}
-    return [
+    tools = [
         {
             "name": "buscar_por_similaridade",
             "description": description,
@@ -1296,7 +1392,7 @@ def _mcp_tools():
                 "properties": {
                     "other_characteristics": {
                         "type": "string",
-                        "description": "Características livres como tomara que caia, renda, brilho, fenda, cauda sereia."
+                        "description": "Características livres como tomara que caia, renda, brilho, fenda, cauda sereia, etc."
                     },
                     "occasions": {
                         "type": "array",
@@ -1304,17 +1400,17 @@ def _mcp_tools():
                             "type": "string",
                             "enum": ["Noiva","Civil","Madrinha","Mãe dos Noivos","Formatura","Debutante","Gala","Convidada"]
                         },
-                        "default": ["Gala"]
+                        "description": "Ocasiões suportadas. Se não houver ocasião explícita ou no contexto, deixe vazio."
                     },
                     "cor_base": {
                         "type": "array",
                         "items": cor_base_items,
-                        "description": "Cor base disponível no acervo. Se houver dúvida, deixe vazio."
+                        "description": "Cor base disponível no acervo. Se o usuário digitar cor parcial ou com erro, escolha a opção MAIS PRÓXIMA do enum e use o texto EXATO. Ex: vermelho -> Vermelho/Vinho (se existir). Se houver dúvida, deixe vazio."
                     },
                     "cor_comercial": {
                         "type": "array",
                         "items": cor_comercial_items,
-                        "description": "Cor comercial disponível no acervo. Se houver dúvida, deixe vazio."
+                        "description": "Cor comercial disponível no acervo. Se o usuário digitar cor parcial ou com erro, escolha a opção MAIS PRÓXIMA do enum e use o texto EXATO. Se houver dúvida, deixe vazio."
                     },
                     "sizes": {
                         "type": "array",
@@ -1325,7 +1421,7 @@ def _mcp_tools():
                         "default": 6
                     }
                 },
-                "required": ["occasions"]
+                "required": []
             }
         },
         {
@@ -1337,6 +1433,9 @@ def _mcp_tools():
             }
         }
     ]
+    print("bella_tool_schema_after_context", json.dumps(tools, ensure_ascii=False))
+    print("#####################")
+    return tools
 
 def _mcp_to_openai_tools(mcp_tools):
     openai_tools = []
@@ -1373,11 +1472,21 @@ def _filter_metadata_candidates(cor_base, cor_comercial, occasions, max_candidat
     return collected
 
 def _run_db_search(args):
-    cor_base = _ensure_list(args.get("cor_base") or args.get("corBase"))
-    cor_comercial = _ensure_list(args.get("cor_comercial") or args.get("corComercial"))
+    validation_errors = _validate_similarity_args(args)
+    if validation_errors:
+        return {
+            "items": [],
+            "error": {
+                "type": "validation_error",
+                "message": "Erro de validação nos argumentos da ferramenta.",
+                "details": validation_errors,
+            }
+        }
+    cor_base = args.get("cor_base") or args.get("corBase") or []
+    cor_comercial = args.get("cor_comercial") or args.get("corComercial") or []
     colors = [*cor_base, *cor_comercial]
-    sizes = _ensure_list(args.get("sizes") or args.get("tamanhos") or args.get("size") or args.get("tamanho"))
-    occasions = _normalize_occasion_inputs(args.get("occasions") or args.get("ocasioes") or args.get("occasion"))
+    sizes = args.get("sizes") or args.get("tamanhos") or args.get("size") or args.get("tamanho") or []
+    occasions = _normalize_occasion_inputs(args.get("occasions") or args.get("ocasioes") or args.get("occasion") or [])
     exact_color_terms = _normalize_set(colors)
     desired_base = _normalize_set(cor_base)
     desired_comercial = _normalize_set(cor_comercial)
@@ -1414,6 +1523,14 @@ def _run_db_search(args):
     else:
         exact_filtered = list(filtered)
     no_principal = bool(exact_color_terms and filtered and not exact_filtered)
+    if not filtered:
+        return {
+            "items": [],
+            "error": {
+                "type": "no_results",
+                "message": "Busca não retornou resultados."
+            }
+        }
     return {
         "items": filtered,
         "exact_items": exact_filtered,
@@ -1421,11 +1538,21 @@ def _run_db_search(args):
     }
 
 def _run_similarity_search(args):
-    cor_base = _ensure_list(args.get("cor_base") or args.get("corBase"))
-    cor_comercial = _ensure_list(args.get("cor_comercial") or args.get("corComercial"))
+    validation_errors = _validate_similarity_args(args)
+    if validation_errors:
+        return {
+            "items": [],
+            "error": {
+                "type": "validation_error",
+                "message": "Erro de validação nos argumentos da ferramenta.",
+                "details": validation_errors,
+            }
+        }
+    cor_base = args.get("cor_base") or args.get("corBase") or []
+    cor_comercial = args.get("cor_comercial") or args.get("corComercial") or []
     colors = [*cor_base, *cor_comercial]
-    sizes = _ensure_list(args.get("sizes") or args.get("tamanhos") or args.get("size") or args.get("tamanho"))
-    occasions = _normalize_occasion_inputs(args.get("occasions") or args.get("ocasioes") or args.get("occasion"))
+    sizes = args.get("sizes") or args.get("tamanhos") or args.get("size") or args.get("tamanho") or []
+    occasions = _normalize_occasion_inputs(args.get("occasions") or args.get("ocasioes") or args.get("occasion") or [])
     exact_color_terms = _normalize_set(colors)
     desired_base = _normalize_set(cor_base)
     desired_comercial = _normalize_set(cor_comercial)
@@ -1449,13 +1576,8 @@ def _run_similarity_search(args):
     query_terms = []
     if isinstance(query, str) and query.strip():
         query_terms.append(query.strip())
-    query_terms.extend(_ensure_list(cor_base))
-    query_terms.extend(_ensure_list(cor_comercial))
     query_terms.extend(_ensure_list(sizes))
-    query_terms.extend(_ensure_list(occasions))
     query = " ".join([str(t).strip() for t in query_terms if str(t).strip()]).strip()
-    if not query:
-        return {"items": [], "color_relaxation_notice": ""}
     debug_payload = {
         "cor_base": cor_base,
         "cor_comercial": cor_comercial,
@@ -1466,7 +1588,20 @@ def _run_similarity_search(args):
         "candidate_k": candidate_k,
     }
     print("bella_tool_preprocessed", json.dumps(debug_payload, ensure_ascii=False))
-    results = execute_catalog_search(query, k=candidate_k)
+    if not query:
+        if not (cor_base or cor_comercial or sizes or occasions):
+            return {"items": [], "error": {"type": "no_results", "message": "Busca não retornou resultados."}}
+        db_result = _run_db_search(args)
+        items = db_result.get("exact_items") or db_result.get("items") or []
+        result_payload = {"items": items[:limit]}
+        print("bella_tool_result", json.dumps({"count": len(result_payload["items"])}, ensure_ascii=False))
+        if not result_payload["items"]:
+            result_payload["error"] = {"type": "no_results", "message": "Busca não retornou resultados."}
+        return result_payload
+    if desired_base or desired_comercial or occasions or sizes:
+        results = execute_catalog_search_raw(query, k=candidate_k)
+    else:
+        results = execute_catalog_search(query, k=candidate_k)
     if occasions:
         results = _filter_items_by_occasions(results, occasions)
     desired_sizes = _normalize_set(sizes)
@@ -1486,14 +1621,16 @@ def _run_similarity_search(args):
         exact_items.append(item)
         if len(exact_items) >= limit:
             break
-    result_payload = {"items": exact_items[:limit], "color_relaxation_notice": ""}
-    print("bella_tool_result", json.dumps({"count": len(result_payload["items"]), "color_relaxation_notice": ""}, ensure_ascii=False))
+    result_payload = {"items": exact_items[:limit]}
+    print("bella_tool_result", json.dumps({"count": len(result_payload["items"])}, ensure_ascii=False))
+    if not result_payload["items"]:
+        result_payload["error"] = {"type": "no_results", "message": "Busca não retornou resultados."}
     return result_payload
 
 def _summarize_items_for_llm(items):
-    notice = ""
+    error = None
     if isinstance(items, dict):
-        notice = items.get("color_relaxation_notice") or ""
+        error = items.get("error")
         items = items.get("items") or []
     payload = []
     for item in items:
@@ -1507,12 +1644,15 @@ def _summarize_items_for_llm(items):
             "occasions": suggestion.get("occasions") or [],
             "image_url": suggestion.get("image_url") or "",
         })
-    return {"items": payload, "color_relaxation_notice": notice}
+    response = {"items": payload}
+    if error:
+        response["error"] = error
+    return response
 
 def _summarize_items_for_client(items):
-    notice = ""
+    error = None
     if isinstance(items, dict):
-        notice = items.get("color_relaxation_notice") or ""
+        error = items.get("error")
         items = items.get("items") or []
     payload = []
     for item in items:
@@ -1530,7 +1670,10 @@ def _summarize_items_for_client(items):
             "occasions": suggestion.get("occasions") or [],
             "image_url": suggestion.get("image_url") or "",
         })
-    return {"items": payload, "color_relaxation_notice": notice}
+    response = {"items": payload}
+    if error:
+        response["error"] = error
+    return response
 
 @ai_bp.route('/api/ai-search', methods=['POST'])
 def ai_search():
@@ -1560,6 +1703,7 @@ def ai_search():
         "- Para cada item, escreva: **Título** — descrição breve (1–2 frases). Se houver, inclua cor e tamanho.\n"
         "- Em seguida, exiba a imagem com markdown: ![Título](image_url).\n"
         "- Não mostre IDs nem campos técnicos.\n"
+        "- Após listar os vestidos, explique de forma natural quais filtros foram usados na busca (ex.: cor, ocasião, tamanho ou restrições do pedido). Quando houver contexto anterior influenciando a busca, deixe isso claro.\n"
         "- Se não houver itens, explique e sugira ajustes (cor/tecido/ocasião), fazendo uma pergunta.\n"
         "- SEMPRE finalize com uma pergunta de follow-up.\n"
         "- Quando a cliente mudar a preferência (ex.: 'mais discreto', 'sem fenda', 'menos brilho', 'decote fechado'), refaça a busca com esses critérios e traga novas opções.\n"
@@ -1568,12 +1712,13 @@ def ai_search():
         "USO DE FERRAMENTAS:\n"
         "- Use apenas `buscar_por_similaridade` em todas as buscas.\n"
         "- Quando a cliente perguntar sobre a loja (nome, ramo, endereço, horário, atendimento ou política de venda), use `consultar_contexto_loja` apenas como contexto e responda de forma natural, sem copiar o markdown literalmente.\n"
-        "- Sempre preencha `occasions`, `cor_base`, `cor_comercial`, `sizes` e `other_characteristics` conforme o pedido.\n"
-        "- Sempre preencha `occasions` com uma das opções: Noiva, Civil, Madrinha, Mãe dos Noivos, Formatura, Debutante, Gala, Convidada.\n"
-        "- Se não houver ocasião explícita, use Gala como padrão.\n"
+        "- Preencha `cor_base`, `cor_comercial`, `sizes` e `other_characteristics` conforme o pedido.\n"
+        "- Preencha `occasions` apenas quando houver ocasião explícita ou contexto claro. Use uma das opções: Noiva, Civil, Madrinha, Mãe dos Noivos, Formatura, Debutante, Gala, Convidada.\n"
+        "- Quando a ocasião não estiver clara, deixe `occasions` vazio.\n"
         "- Se a cliente disser uma cor genérica (ex.: azul), inclua essa cor em `cor_base`.\n"
         "- Se a busca não retornar nada, faça nova busca relaxando critérios (cor próxima, tamanho aproximado, ocasião relacionada) e informe isso no texto.\n"
-        "- A ferramenta retorna JSON com `items` e pode incluir `color_relaxation_notice`; se presente, informe que são sugestões similares.\n"
+        "- Se a ferramenta retornar `error`, explique o erro e refaça a chamada corrigindo os campos. Quando `type` for `no_results`, informe que não encontrou resultados e pergunte como ajustar.\n"
+        "- A ferramenta retorna JSON com `items` e pode incluir `error`.\n"
     )
 
     # Constrói mensagens
@@ -1666,7 +1811,8 @@ def ai_search():
         response_payload = {"reply": reply_text}
         if client_payload:
             response_payload["items"] = client_payload.get("items") or []
-            response_payload["color_relaxation_notice"] = client_payload.get("color_relaxation_notice") or ""
+            if client_payload.get("error"):
+                response_payload["error"] = client_payload.get("error")
         return jsonify(response_payload)
 
     except Exception as e:
