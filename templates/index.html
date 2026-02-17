@@ -460,6 +460,14 @@
 
                 window.addEventListener('load', () => {
                     restoreChatHistory();
+                    const container = document.getElementById('chat-messages');
+                    if (container) {
+                        container.addEventListener('scroll', () => {
+                            if (!autoScrollNextAssistant) return;
+                            const distanceToBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+                            if (distanceToBottom > 200) autoScrollNextAssistant = false;
+                        }, { passive: true });
+                    }
                 });
 
                 function resetChat() {
@@ -483,6 +491,8 @@
                 function handleEnter(e) {
                     if (e.key === 'Enter') sendMessage();
                 }
+
+                let autoScrollNextAssistant = false;
 
                 function setChatBusy(isBusy) {
                     const input = document.getElementById('chat-input');
@@ -549,11 +559,12 @@
 
                     expandChatUI();
                     addMessage(message, 'user');
+                    autoScrollNextAssistant = true;
                     input.value = '';
                     conversationHistory.push({ role: "user", content: message });
                     saveChatHistory();
                     setChatBusy(true);
-                    const loadingId = addLoading();
+                    const loadingId = addLoading({ forceScroll: true });
 
                     try {
                         const historySnapshot = conversationHistory.slice(-10);
@@ -571,7 +582,8 @@
                         setChatBusy(false);
                         
                         if (data.reply) {
-                            addMessage(data.reply, 'bot', data.items || []);
+                            addMessage(data.reply, 'bot', data.items || [], { forceScroll: autoScrollNextAssistant, block: 'start' });
+                            autoScrollNextAssistant = false;
                             conversationHistory.push({ role: "assistant", content: data.reply });
                             saveChatHistory();
                         }
@@ -581,35 +593,65 @@
                         if (suggestionsContainer) suggestionsContainer.classList.add('hidden');
                         if (data.error) {
                             if (typeof data.error === "string") {
-                                addMessage("Desculpe, ocorreu um erro: " + data.error, 'bot');
+                                addMessage("Desculpe, ocorreu um erro: " + data.error, 'bot', null, { forceScroll: autoScrollNextAssistant, block: 'start' });
                             } else if (data.error.type && data.error.type !== "no_results") {
                                 const msg = data.error.message || "Erro inesperado.";
-                                addMessage("Desculpe, ocorreu um erro: " + msg, 'bot');
+                                addMessage("Desculpe, ocorreu um erro: " + msg, 'bot', null, { forceScroll: autoScrollNextAssistant, block: 'start' });
                             } else if (!data.reply && data.error.type === "no_results") {
-                                addMessage(data.error.message || "Não encontrei resultados.", 'bot');
+                                addMessage(data.error.message || "Não encontrei resultados.", 'bot', null, { forceScroll: autoScrollNextAssistant, block: 'start' });
                             }
+                            autoScrollNextAssistant = false;
                         }
 
                     } catch (error) {
                         removeMessage(loadingId);
                         setChatBusy(false);
-                        addMessage("Desculpe, tive um problema de conexão. Tente novamente.", 'bot');
+                        addMessage("Desculpe, tive um problema de conexão. Tente novamente.", 'bot', null, { forceScroll: autoScrollNextAssistant, block: 'start' });
+                        autoScrollNextAssistant = false;
                         console.error(error);
                     }
                 }
 
                 function renderMarkdown(text) {
-                    const content = String(text || "")
-                        .replace(/\r\n/g, '\n')
-                        .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<div class="flex justify-center"><img src="$2" alt="$1" class="max-w-[220px] h-auto rounded-sm mt-2 mb-2"></div>')
-                        .replace(/^\s*###\s+(.+)$/gm, '<div class="text-lg font-serif text-stone-900 font-semibold">$1</div>')
-                        .replace(/^\s*##\s+(.+)$/gm, '<div class="text-xl font-serif text-stone-900 font-semibold">$1</div>')
-                        .replace(/^\s*#\s+(.+)$/gm, '<div class="text-2xl font-serif text-stone-900 font-semibold">$1</div>')
+                    const escapeHtml = (value) => String(value ?? "")
+                        .replace(/&/g, "&amp;")
+                        .replace(/</g, "&lt;")
+                        .replace(/>/g, "&gt;");
+
+                    const normalizeUrl = (value) => String(value ?? "")
+                        .trim()
+                        .replace(/^`+|`+$/g, "")
+                        .replace(/^"+|"+$/g, "")
+                        .replace(/^'+|'+$/g, "")
+                        .replace(/&lt;\/?[^&]+?&gt;/g, "");
+
+                    const applyInlineFormatting = (value) => String(value ?? "")
                         .replace(/\*\*([^*]+)\*\*/g, '<strong class="font-serif text-stone-900">$1</strong>')
                         .replace(/__([^_]+)__/g, '<strong class="font-serif text-stone-900">$1</strong>')
                         .replace(/(^|[^*])\*([^*]+)\*(?!\*)/g, '$1<em>$2</em>')
-                        .replace(/(^|[^_])_([^_]+)_(?!_)/g, '$1<em>$2</em>')
-                        .replace(/\n/g, '<br>');
+                        .replace(/(^|[^_])_([^_]+)_(?!_)/g, '$1<em>$2</em>');
+
+                    let content = escapeHtml(text).replace(/\r\n/g, '\n');
+
+                    content = content
+                        .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (match, alt, url) => (
+                            `<div class="flex justify-center"><img src="${normalizeUrl(url)}" alt="${alt}" class="max-w-[220px] h-auto rounded-sm mt-2 mb-2"></div>`
+                        ))
+                        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, label, url) => (
+                            `<a href="${normalizeUrl(url)}" class="text-london-gold underline" target="_blank" rel="noopener noreferrer">${label}</a>`
+                        ))
+                        .replace(/^\s*###\s+(.+)$/gm, '<div class="text-lg font-serif text-stone-900 font-semibold">$1</div>')
+                        .replace(/^\s*##\s+(.+)$/gm, '<div class="text-xl font-serif text-stone-900 font-semibold">$1</div>')
+                        .replace(/^\s*#\s+(.+)$/gm, '<div class="text-2xl font-serif text-stone-900 font-semibold">$1</div>');
+
+                    content = content
+                        .split(/(<[^>]+>)/g)
+                        .map((chunk) => {
+                            if (chunk.startsWith("<")) return chunk;
+                            return applyInlineFormatting(chunk).replace(/\n/g, "<br>");
+                        })
+                        .join("");
+
                     const listProcessed = content
                         .replace(/(?:^|\n)(?:\s*[-*]\s+.+(?:\n|$))+/g, (block) => {
                             const items = block.trim().split(/\n/).map((line) => line.replace(/^\s*[-*]\s+/, '').trim());
@@ -624,8 +666,12 @@
                     return listProcessed.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-london-gold underline" target="_blank" rel="noopener noreferrer">$1</a>');
                 }
 
-                function addMessage(text, sender, items) {
+                function addMessage(text, sender, items, options) {
                     const container = document.getElementById('chat-messages');
+                    const resolvedOptions = options && typeof options === 'object' ? options : {};
+                    const forceScroll = !!resolvedOptions.forceScroll;
+                    const block = resolvedOptions.block || (sender === 'bot' ? 'start' : 'end');
+                    const wasNearBottom = !!container && (container.scrollHeight - container.scrollTop - container.clientHeight) < 120;
                     const div = document.createElement('div');
                     div.className = "flex gap-3 " + (sender === 'user' ? "flex-row-reverse" : "");
                     
@@ -672,12 +718,19 @@
                     }
                     
                     container.appendChild(div);
-                    container.scrollTop = container.scrollHeight;
+                    if (forceScroll || wasNearBottom) {
+                        div.scrollIntoView({ block });
+                    }
+                    return div;
                 }
 
-                function addLoading() {
+                function addLoading(options) {
                     const id = 'loading-' + Date.now();
                     const container = document.getElementById('chat-messages');
+                    const resolvedOptions = options && typeof options === 'object' ? options : {};
+                    const forceScroll = !!resolvedOptions.forceScroll;
+                    const doNotScroll = !!resolvedOptions.doNotScroll;
+                    const wasNearBottom = !!container && (container.scrollHeight - container.scrollTop - container.clientHeight) < 120;
                     const div = document.createElement('div');
                     div.id = id;
                     div.className = "flex gap-3";
@@ -695,7 +748,9 @@
                         </div>
                     `;
                     container.appendChild(div);
-                    container.scrollTop = container.scrollHeight;
+                    if (forceScroll || (!doNotScroll && wasNearBottom)) {
+                        div.scrollIntoView({ block: 'end' });
+                    }
                     return id;
                 }
 
@@ -930,6 +985,7 @@
                             <img src="{{ url_for('static', filename='mapa.png') }}" alt="Localização London Noivas" class="w-full h-full object-cover hover:opacity-90 transition-opacity">
                         </a>
                     </div>
+                    <p class="text-stone-400 text-xs mt-2">OBS: Google Street View não mostra a loja pois está desatualizado</p>
                 </div>
 
                 <div>

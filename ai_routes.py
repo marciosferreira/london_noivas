@@ -1513,7 +1513,7 @@ def _mcp_tools():
         },
         {
             "name": "panorama_cores_ocasioes",
-            "description": "Resumo de cores por ocasião com contagem real do catálogo. Use quando não houver resultados para sugerir cores alternativas.",
+            "description": "Resumo de cores por ocasião com contagem real do catálogo. Use quando não houver resultados obtidos pela tool buscar_por_similaridade e use a resposta desta tool para sugerir cores alternativas.",
             "inputSchema": {
                 "type": "object",
                 "properties": {}
@@ -1795,12 +1795,21 @@ def ai_search():
         "- Em seguida, exiba a imagem com markdown: ![Título](image_url).\n"
         "- Não mostre IDs nem campos técnicos.\n"
         "- Após listar os vestidos, explique de forma natural quais filtros foram usados na busca (ex.: cor, ocasião, tamanho ou restrições do pedido). Quando houver contexto anterior influenciando a busca, deixe isso claro.\n"
-        "- Se não houver itens, explique e sugira ajustes (cor/tecido/ocasião), fazendo uma pergunta.\n"
+        "- Se não houver itens, NÃO invente vestidos. Use a tool `panorama_cores_ocasioes` e proponha alternativas reais do catálogo.\n"
         "- SEMPRE finalize com uma pergunta de follow-up.\n"
         "- Quando a cliente mudar a preferência (ex.: 'mais discreto', 'sem fenda', 'menos brilho', 'decote fechado'), refaça a busca com esses critérios e traga novas opções.\n"
         "- Traduza adjetivos comuns em restrições do catálogo: 'discreto' → silhueta clássica (reto/evasê), decote discreto, sem fenda, poucos detalhes, cores neutras; 'chamativo' → brilho, fenda, decotes marcantes, cores vivas; 'romântico' → renda/volume; etc.\n"
         "- Se não houver opções após os filtros, faça nova busca relaxando critérios (cor próxima, tamanho aproximado, ocasião relacionada) e informe isso no texto.\n"
         "- Quando não houver resultados ou quando vierem menos de 3 opções, use a ferramenta `panorama_cores_ocasioes` para entender a distribuição por ocasião e sugerir alternativas com base em quantidades reais e cores similares.\n"
+        "SEM RESULTADOS (USO DE PANORAMA):\n"
+        "- Quando `buscar_por_similaridade` retornar `items` vazio ou `error.type = no_results`, chame `panorama_cores_ocasioes`.\n"
+        "- Use a resposta do panorama para sugerir alternativas no seguinte formato (exatamente como lista com hífen):\n"
+        "  - Vermelho/Vinho (Bordô) — 7 opções para convidadas e 11 para madrinhas.\n"
+        "  - Verde Esmeralda — disponível em 12 opções para gala.\n"
+        "  - Azul Royal — disponível em 11 opções para gala.\n"
+        "- Regras do formato: 3 a 6 linhas, cada linha é uma cor (cor_base e/ou cor_comercial) e contagens por ocasião com números reais do panorama.\n"
+        "- Priorize ocasiões do pedido; se não houver, priorize Gala, Convidada e Madrinha.\n"
+        "- Se o panorama retornar `total_items = 0`, diga que não há itens no catálogo no momento e peça para ajustar (ou aguardar atualização).\n"
         "USO DE FERRAMENTAS:\n"
         "- Para buscar vestidos e montar recomendações, use `buscar_por_similaridade`.\n"
         "- Para entender disponibilidade por ocasião/cor e sugerir alternativas de forma proativa, use `panorama_cores_ocasioes`.\n"
