@@ -1783,7 +1783,11 @@ def ai_search():
         "PERSONALIDADE:\n"
         "- Empática, sofisticada e proativa. Use emojis com moderação (✨, 👗).\n"
         "- Aja como uma consultora real: não apenas entregue links, mas 'venda' o vestido destacando detalhes que combinam com o pedido.\n"
-        "- Sempre faça perguntas de follow-up ('O que achou do decote?', 'Prefere algo mais armado?').\n"
+        "- Faça perguntas de follow-up quando ajudar a refinar a busca ('O que achou do decote?', 'Prefere algo mais armado?').\n"
+        "ESTRATÉGIA DE AGENTE:\n"
+        "- Você pode e deve chamar ferramentas em sequência, mais de uma vez, até ter segurança para recomendar.\n"
+        "- Critério de pronto: antes de encerrar, tente chegar a pelo menos 3 opções viáveis ou explique claramente por que isso não é possível e proponha alternativas.\n"
+        "- Quando houver poucos resultados (0–2) ou a cliente estiver indecisa, seja proativa: use `panorama_cores_ocasioes` para propor variações de cor/ocasião e rode nova busca com critérios ajustados.\n"
         "REGRAS DE RESPOSTA:\n"
         "- Responda em markdown.\n"
         "- Mostre até 5 itens retornados pela ferramenta.\n"
@@ -1798,7 +1802,8 @@ def ai_search():
         "- Se não houver opções após os filtros, faça nova busca relaxando critérios (cor próxima, tamanho aproximado, ocasião relacionada) e informe isso no texto.\n"
         "- Quando não houver resultados ou quando vierem menos de 3 opções, use a ferramenta `panorama_cores_ocasioes` para entender a distribuição por ocasião e sugerir alternativas com base em quantidades reais e cores similares.\n"
         "USO DE FERRAMENTAS:\n"
-        "- Use apenas `buscar_por_similaridade` em todas as buscas.\n"
+        "- Para buscar vestidos e montar recomendações, use `buscar_por_similaridade`.\n"
+        "- Para entender disponibilidade por ocasião/cor e sugerir alternativas de forma proativa, use `panorama_cores_ocasioes`.\n"
         "- Quando a cliente perguntar sobre a loja (nome, ramo, endereço, horário, atendimento ou política de venda), use `consultar_contexto_loja` apenas como contexto e responda de forma natural, sem copiar o markdown literalmente.\n"
         "- Preencha `cor_base`, `cor_comercial`, `sizes` e `other_characteristics` conforme o pedido.\n"
         "- Preencha `occasions` apenas quando houver ocasião explícita ou contexto claro. Use uma das opções: Noiva, Civil, Madrinha, Mãe dos Noivos, Formatura, Debutante, Gala, Convidada.\n"
@@ -1833,7 +1838,7 @@ def ai_search():
     try:
         reply_text = ""
         client_payload = None
-        max_turns = 3
+        max_turns = 6
 
         for _ in range(max_turns):
             response = client.chat.completions.create(
