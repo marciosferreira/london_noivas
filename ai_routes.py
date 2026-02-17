@@ -1914,8 +1914,11 @@ def ai_search():
         response_payload = {"reply": reply_text}
         if client_payload:
             response_payload["items"] = client_payload.get("items") or []
-            if client_payload.get("error"):
-                response_payload["error"] = client_payload.get("error")
+            error_payload = client_payload.get("error")
+            if isinstance(error_payload, dict) and error_payload.get("type") == "no_results":
+                error_payload = None
+            if error_payload:
+                response_payload["error"] = error_payload
         return jsonify(response_payload)
 
     except Exception as e:
