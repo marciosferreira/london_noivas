@@ -599,6 +599,44 @@ def _build_inventory_digest(meta_list):
 
     return digest
 
+def _build_color_occasion_panorama(meta_list):
+    counts = {}
+    total = 0
+    for item in meta_list or []:
+        if not isinstance(item, dict):
+            continue
+        cor_base = _extract_color_base_value(item)
+        cor_comercial = _extract_color_commercial_value(item)
+        if not cor_base and not cor_comercial:
+            continue
+        occasions = _meta_occasions(item)
+        if not occasions:
+            occasions = ["Sem ocasião"]
+        total += 1
+        for occ in occasions:
+            occ_key = str(occ).strip() or "Sem ocasião"
+            bucket = counts.setdefault(occ_key, {})
+            key = (cor_base or "", cor_comercial or "")
+            bucket[key] = bucket.get(key, 0) + 1
+    payload = []
+    for occ in sorted(counts.keys()):
+        entries = []
+        for (base, comercial), qty in counts[occ].items():
+            entries.append({
+                "cor_base": base,
+                "cor_comercial": comercial,
+                "count": qty
+            })
+        entries = sorted(entries, key=lambda x: (-x["count"], x["cor_base"], x["cor_comercial"]))
+        payload.append({
+            "occasion": occ,
+            "colors": entries
+        })
+    return {
+        "total_items": total,
+        "occasions": payload
+    }
+
 def _extract_json_object(text):
     if not isinstance(text, str):
         return None
@@ -1472,6 +1510,14 @@ def _mcp_tools():
                 "type": "object",
                 "properties": {}
             }
+        },
+        {
+            "name": "panorama_cores_ocasioes",
+            "description": "Resumo de cores por ocasião com contagem real do catálogo. Use quando não houver resultados para sugerir cores alternativas.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {}
+            }
         }
     ]
     print("bella_tool_schema_after_context", json.dumps(tools, ensure_ascii=False))
@@ -1750,6 +1796,7 @@ def ai_search():
         "- Quando a cliente mudar a preferência (ex.: 'mais discreto', 'sem fenda', 'menos brilho', 'decote fechado'), refaça a busca com esses critérios e traga novas opções.\n"
         "- Traduza adjetivos comuns em restrições do catálogo: 'discreto' → silhueta clássica (reto/evasê), decote discreto, sem fenda, poucos detalhes, cores neutras; 'chamativo' → brilho, fenda, decotes marcantes, cores vivas; 'romântico' → renda/volume; etc.\n"
         "- Se não houver opções após os filtros, faça nova busca relaxando critérios (cor próxima, tamanho aproximado, ocasião relacionada) e informe isso no texto.\n"
+        "- Quando não houver resultados ou quando vierem menos de 3 opções, use a ferramenta `panorama_cores_ocasioes` para entender a distribuição por ocasião e sugerir alternativas com base em quantidades reais e cores similares.\n"
         "USO DE FERRAMENTAS:\n"
         "- Use apenas `buscar_por_similaridade` em todas as buscas.\n"
         "- Quando a cliente perguntar sobre a loja (nome, ramo, endereço, horário, atendimento ou política de venda), use `consultar_contexto_loja` apenas como contexto e responda de forma natural, sem copiar o markdown literalmente.\n"
@@ -1824,6 +1871,17 @@ def ai_search():
                             len(summary_payload.get("items") or []),
                         )
                         summary = json.dumps(summary_payload, ensure_ascii=False)
+                    elif tool_name == "panorama_cores_ocasioes":
+                        if not metadata:
+                            load_resources()
+                        panorama_payload = _build_color_occasion_panorama(metadata)
+                        print("bella_tool_raw_result", json.dumps(panorama_payload, ensure_ascii=False))
+                        current_app.logger.info(
+                            "bella_tool_output tool=%s output=%s",
+                            tool_name,
+                            json.dumps(panorama_payload, ensure_ascii=False),
+                        )
+                        summary = json.dumps(panorama_payload, ensure_ascii=False)
                     elif tool_name == "consultar_contexto_loja":
                         context_payload = _store_context_payload()
                         print("bella_tool_raw_result", json.dumps(context_payload, ensure_ascii=False))
