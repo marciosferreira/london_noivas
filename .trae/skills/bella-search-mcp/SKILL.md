@@ -106,13 +106,13 @@ python .trae/skills/bella-search-mcp/main.py < payload.json
     "Rubi",
     "Sálvia",
     "Tiffany",
-    "Âmbar",
     "Bege/Nude",
     "Canário",
     "Gelo",
     "Lilás",
     "Mostarda",
-    "Pink"
+    "Pink",
+    "Roxo"
   ],
   "fabrics": [
     "Tule",
