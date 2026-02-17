@@ -580,7 +580,14 @@
                         if (resultFrame) resultFrame.classList.add('hidden');
                         if (suggestionsContainer) suggestionsContainer.classList.add('hidden');
                         if (data.error) {
-                            addMessage("Desculpe, ocorreu um erro: " + data.error, 'bot');
+                            if (typeof data.error === "string") {
+                                addMessage("Desculpe, ocorreu um erro: " + data.error, 'bot');
+                            } else if (data.error.type && data.error.type !== "no_results") {
+                                const msg = data.error.message || "Erro inesperado.";
+                                addMessage("Desculpe, ocorreu um erro: " + msg, 'bot');
+                            } else if (!data.reply && data.error.type === "no_results") {
+                                addMessage(data.error.message || "Não encontrei resultados.", 'bot');
+                            }
                         }
 
                     } catch (error) {
@@ -592,10 +599,29 @@
                 }
 
                 function renderMarkdown(text) {
-                    return text
+                    const content = String(text || "")
+                        .replace(/\r\n/g, '\n')
                         .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<div class="flex justify-center"><img src="$2" alt="$1" class="max-w-[220px] h-auto rounded-sm mt-2 mb-2"></div>')
+                        .replace(/^###\s+(.+)$/gm, '<div class="text-lg font-serif text-stone-900 font-semibold">$1</div>')
+                        .replace(/^##\s+(.+)$/gm, '<div class="text-xl font-serif text-stone-900 font-semibold">$1</div>')
+                        .replace(/^#\s+(.+)$/gm, '<div class="text-2xl font-serif text-stone-900 font-semibold">$1</div>')
                         .replace(/\*\*([^*]+)\*\*/g, '<strong class="font-serif text-stone-900">$1</strong>')
+                        .replace(/__([^_]+)__/g, '<strong class="font-serif text-stone-900">$1</strong>')
+                        .replace(/(^|[^*])\*([^*]+)\*(?!\*)/g, '$1<em>$2</em>')
+                        .replace(/(^|[^_])_([^_]+)_(?!_)/g, '$1<em>$2</em>')
                         .replace(/\n/g, '<br>');
+                    const listProcessed = content
+                        .replace(/(?:^|\n)(?:\s*[-*]\s+.+(?:\n|$))+/g, (block) => {
+                            const items = block.trim().split(/\n/).map((line) => line.replace(/^\s*[-*]\s+/, '').trim());
+                            const html = items.map((item) => `<li class="list-disc ml-5">${item}</li>`).join('');
+                            return `\n<ul class="my-2">${html}</ul>\n`;
+                        })
+                        .replace(/(?:^|\n)(?:\s*\d+\.\s+.+(?:\n|$))+/g, (block) => {
+                            const items = block.trim().split(/\n/).map((line) => line.replace(/^\s*\d+\.\s+/, '').trim());
+                            const html = items.map((item) => `<li class="list-decimal ml-5">${item}</li>`).join('');
+                            return `\n<ol class="my-2">${html}</ol>\n`;
+                        });
+                    return listProcessed.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-london-gold underline" target="_blank" rel="noopener noreferrer">$1</a>');
                 }
 
                 function addMessage(text, sender, items) {
