@@ -36,24 +36,58 @@
 </head>
 <body class="bg-stone-50 text-stone-800 font-sans antialiased">
 
-    <!-- Header (Simplified) -->
-    <header class="bg-stone-900 py-6 sticky top-0 z-50 shadow-lg">
+    <header id="main-header" class="sticky top-0 left-0 right-0 z-50 bg-stone-900 py-4 shadow-lg">
         <div class="container mx-auto px-6 flex justify-between items-center">
-            <a href="/" class="flex items-center gap-2 group">
+            <div class="flex items-center gap-2">
                 <div class="w-12 h-12 rounded-sm overflow-hidden bg-white">
                     <img src="{{ url_for('static', filename='logo.jpeg') }}" alt="London Noivas Logo" class="w-full h-full object-contain">
                 </div>
-                <h1 class="text-xl font-serif tracking-widest text-white group-hover:text-london-gold transition-colors">
+                <h1 id="header-title" class="text-2xl font-serif tracking-widest text-white">
                     LONDON NOIVAS
                 </h1>
-            </a>
-            <a href="/" class="text-stone-300 hover:text-white text-sm tracking-widest uppercase font-bold transition-colors">
-                &larr; Voltar ao Início
-            </a>
+            </div>
+
+            <nav class="hidden md:flex gap-8 items-center font-medium tracking-wide text-sm">
+                <a href="/" class="nav-link text-white hover:text-london-gold transition-colors">HOME</a>
+                <a href="{{ url_for('index') }}#sobre" class="nav-link text-white hover:text-london-gold transition-colors">SOBRE</a>
+                <a href="{{ url_for('index') }}#contato" class="nav-link text-white hover:text-london-gold transition-colors">CONTATO</a>
+                <a href="https://wa.me/5592993531943" onclick="trackWhatsAppClick('header')" class="bg-london-gold text-white px-6 py-2 rounded-full hover:bg-opacity-90 transition-all shadow-lg">
+                    AGENDAR VISITA
+                </a>
+                
+                {% if session.get('logged_in') %}
+                <a href="{{ url_for('agenda') }}" class="bg-white/10 text-white px-4 py-2 rounded hover:bg-white/20 transition-all text-xs ml-4">
+                    PAINEL
+                </a>
+                {% endif %}
+            </nav>
+            
+            <button id="mobile-menu-btn" class="md:hidden text-london-gold focus:outline-none">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                </svg>
+            </button>
         </div>
     </header>
 
-    <main class="container mx-auto px-6 py-12">
+    <div id="mobile-menu" class="fixed inset-0 z-[60] bg-stone-900/95 backdrop-blur-sm transform translate-x-full transition-transform duration-300 md:hidden flex flex-col justify-center items-center">
+        <button id="close-menu-btn" class="absolute top-6 right-6 text-white hover:text-london-gold transition-colors focus:outline-none">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-10 h-10">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+        </button>
+        
+        <nav class="flex flex-col gap-8 text-center">
+            <a href="/" class="text-2xl font-serif text-white hover:text-london-gold transition-colors" onclick="closeMobileMenu()">INÍCIO</a>
+            <a href="{{ url_for('index') }}#sobre" class="text-2xl font-serif text-white hover:text-london-gold transition-colors" onclick="closeMobileMenu()">SOBRE</a>
+            <a href="{{ url_for('index') }}#contato" class="text-2xl font-serif text-white hover:text-london-gold transition-colors" onclick="closeMobileMenu()">CONTATO</a>
+            <a href="https://wa.me/5592993531943" onclick="trackWhatsAppClick('mobile_menu'); closeMobileMenu()" class="text-xl bg-london-gold text-white px-8 py-3 rounded-full hover:bg-white hover:text-london-gold transition-all shadow-lg mt-4">
+                AGENDAR VISITA
+            </a>
+        </nav>
+    </div>
+
+    <main class="container mx-auto px-6 pt-10 pb-12">
         <div class="text-center mb-16">
             <h2 class="text-4xl md:text-5xl font-serif text-stone-800 mb-4">{{ active_occasion_label }}</h2>
             <div class="w-24 h-1 bg-london-gold mx-auto mb-6"></div>
@@ -743,6 +777,90 @@
                 }
             }
         });
+    </script>
+
+    <div id="ai-stylist-cta" class="fixed bottom-32 right-8 z-50 group">
+        <div id="ai-cta-bubble" class="absolute bottom-full right-0 mb-6 bg-white p-6 rounded-lg shadow-2xl border-l-4 border-london-gold w-[90vw] sm:w-[450px] transform scale-0 opacity-0 group-hover:scale-100 group-hover:opacity-100 group-focus-within:scale-100 group-focus-within:opacity-100 transition-all duration-300 origin-bottom-right">
+            <div class="flex justify-between items-start mb-3">
+                <h4 class="font-serif text-london-gold font-bold text-xl">Estilista Virtual</h4>
+                <span class="text-sm bg-stone-100 text-stone-500 px-3 py-1 rounded-full">Beta</span>
+            </div>
+            <p class="text-base text-stone-600 mb-5 font-light leading-relaxed">
+                Oi! Eu sou a Bella, sua estilista virtual com IA. Descreva a ocasião e o estilo do vestido e eu te mostro as melhores opções do nosso acervo.
+                <span class="block text-sm text-stone-400 mt-3 italic border-t border-stone-100 pt-3">Ex: "Procuro um vestido sereia com brilho para um casamento à noite"</span>
+            </p>
+            <div class="flex gap-2 relative">
+                <input type="text" id="ai-cta-input" placeholder="Digite aqui..." 
+                       class="w-full text-base border border-stone-200 rounded-sm px-4 py-3 pr-12 focus:border-london-gold focus:ring-1 focus:ring-london-gold outline-none transition-all"
+                       onkeypress="handleAiCtaEnter(event)">
+                <button onclick="submitAiCta()" class="absolute right-3 top-1/2 -translate-y-1/2 text-london-gold hover:text-stone-800 transition-colors p-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+    
+        <button class="bg-stone-900 text-white p-4 rounded-full shadow-2xl hover:bg-london-gold transition-colors relative group-hover:rotate-12 duration-300">
+            <span class="absolute -top-1 -right-1 flex h-4 w-4">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-london-gold opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-4 w-4 bg-london-gold border-2 border-white"></span>
+            </span>
+            
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
+            </svg>
+        </button>
+    </div>
+
+    <a href="https://wa.me/5592993531943" class="fixed bottom-8 right-8 bg-green-500 text-white p-4 rounded-full shadow-2xl hover:scale-110 transition-transform z-50 flex items-center gap-2 group">
+        <span class="max-w-0 overflow-hidden group-hover:max-w-xs transition-all duration-500 whitespace-nowrap font-bold">
+            Agendamento/Dúvidas
+        </span>
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.588-5.946 0-6.556 5.332-11.891 11.891-11.891 3.181 0 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.481 8.403 0 6.556-5.332 11.892-11.891 11.892-1.999 0-3.956-.503-5.692-1.448l-6.301 1.666zm6.29-4.143c1.589.943 3.197 1.441 4.934 1.441 5.485 0 9.95-4.465 9.95-9.95 0-2.652-1.036-5.147-2.919-7.031-1.883-1.883-4.384-2.917-7.031-2.917-5.485 0-9.951 4.465-9.951 9.95 0 2.07.635 4.089 1.835 5.823l-1.101 4.022 4.133-1.092zm10.293-7.234c-.298-.15-1.764-.871-2.037-.972-.273-.102-.472-.152-.671.152-.199.303-.771 1.018-.944 1.219-.174.202-.348.227-.646.077-.298-.15-1.258-.464-2.396-1.48-.885-.789-1.483-1.763-1.656-2.064-.174-.302-.018-.465.132-.614.135-.133.298-.348.447-.521.149-.174.199-.298.298-.497.099-.198.05-.373-.025-.522-.075-.15-.671-1.616-.919-2.213-.242-.581-.486-.502-.671-.512-.174-.01-.373-.013-.572-.013-.199 0-.523.075-.795.373-.273.302-1.045 1.018-1.045 2.486s1.07 2.885 1.219 3.085c.149.202 2.105 3.214 5.099 4.507.712.308 1.268.491 1.701.628.715.227 1.365.195 1.879.118.573-.086 1.764-.72 2.013-1.417.248-.696.248-1.292.174-1.417-.074-.125-.272-.201-.57-.352z"/>
+        </svg>
+    </a>
+
+    <script>
+        function handleAiCtaEnter(e) {
+            if (e.key === 'Enter') submitAiCta();
+        }
+
+        function redirectToBella(text) {
+            const url = new URL(window.location.origin + '/');
+            if (text) {
+                url.searchParams.set('bella_query', text);
+            }
+            url.hash = 'showroom';
+            window.location.href = url.toString();
+        }
+
+        function submitAiCta() {
+            const ctaInput = document.getElementById('ai-cta-input');
+            if (!ctaInput) return;
+            const text = ctaInput.value.trim();
+            redirectToBella(text);
+        }
+    </script>
+
+    <script>
+        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+        const closeMenuBtn = document.getElementById('close-menu-btn');
+        const mobileMenu = document.getElementById('mobile-menu');
+
+        function openMobileMenu() {
+            if (mobileMenu) mobileMenu.classList.remove('translate-x-full');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeMobileMenu() {
+            if (mobileMenu) mobileMenu.classList.add('translate-x-full');
+            document.body.style.overflow = '';
+        }
+
+        if(mobileMenuBtn) mobileMenuBtn.addEventListener('click', openMobileMenu);
+        if(closeMenuBtn) closeMenuBtn.addEventListener('click', closeMobileMenu);
     </script>
 </body>
 </html>

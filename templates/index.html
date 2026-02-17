@@ -77,13 +77,13 @@
 <body class="bg-stone-50 text-stone-800 font-sans antialiased">
 
     <!-- Header -->
-    <header id="main-header" class="absolute top-0 left-0 right-0 z-50 transition-all duration-300 bg-transparent py-6">
+    <header id="main-header" class="sticky top-0 left-0 right-0 z-50 bg-stone-900 py-4 shadow-lg">
         <div class="container mx-auto px-6 flex justify-between items-center">
             <div class="flex items-center gap-2">
-                <div class="w-12 h-12 rounded-sm overflow-hidden bg-white">
+                <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-sm overflow-hidden bg-white">
                     <img src="{{ url_for('static', filename='logo.jpeg') }}" alt="London Noivas Logo" class="w-full h-full object-contain">
                 </div>
-                <h1 id="header-title" class="text-2xl font-serif tracking-widest text-white transition-colors duration-300">
+                <h1 id="header-title" class="text-lg sm:text-2xl font-serif tracking-[0.2em] sm:tracking-widest text-white leading-tight">
                     LONDON NOIVAS
                 </h1>
             </div>
@@ -132,7 +132,7 @@
 
     <main>
         <!-- Hero Section -->
-        <section class="relative h-screen w-full flex items-center justify-center overflow-hidden">
+        <section class="relative min-h-screen w-full flex items-start md:items-center justify-center overflow-visible md:overflow-hidden pt-16 pb-10 md:pt-0 md:pb-0">
             <!-- Background with overlay -->
             <div class="absolute inset-0 z-0">
                 <img 
@@ -143,7 +143,7 @@
                 <div class="absolute inset-0 bg-black/40"></div>
             </div>
 
-            <div class="relative z-10 text-center px-6 max-w-4xl animate-fadeIn pt-20">
+            <div class="relative z-10 text-center px-6 max-w-4xl animate-fadeIn">
                 <span class="text-london-gold font-medium tracking-[0.3em] text-sm md:text-base mb-4 block">ELEGÂNCIA BRITÂNICA EM CADA DETALHE</span>
                 <h2 class="text-4xl md:text-6xl text-white font-serif mb-4 leading-tight">
                     O Vestido dos Seus Sonhos <br/> Está Aqui
@@ -997,6 +997,15 @@
             function handleAiCtaEnter(e) {
                 if (e.key === 'Enter') submitAiCta();
             }
+
+            function redirectToBella(text) {
+                const url = new URL(window.location.origin + '/');
+                if (text) {
+                    url.searchParams.set('bella_query', text);
+                }
+                url.hash = 'showroom';
+                window.location.href = url.toString();
+            }
         
             function submitAiCta() {
                 const ctaContainer = document.getElementById('ai-stylist-cta');
@@ -1006,6 +1015,13 @@
                 const text = ctaInput.value.trim();
         
                 if (text) {
+                    const chatBox = document.getElementById('chat-box-container');
+                    const showroom = document.getElementById('showroom');
+                    if (!chatBox && !showroom) {
+                        redirectToBella(text);
+                        return;
+                    }
+
                     // Close bubble and remove focus
                     ctaInput.blur();
                     if (bubble) {
@@ -1014,16 +1030,18 @@
                     }
 
                     // Scroll to chat box
-                    const chatBox = document.getElementById('chat-box-container');
                     if (chatBox) {
                         chatBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     } else {
-                        const showroom = document.getElementById('showroom');
                         showroom.scrollIntoView({ behavior: 'smooth' });
                     }
         
                     // Set value and send
                     setTimeout(() => {
+                        if (!mainInput) {
+                            redirectToBella(text);
+                            return;
+                        }
                         mainInput.value = text;
                         // Trigger input event to resize if needed (not needed here but good practice)
                         mainInput.focus();
@@ -1048,6 +1066,24 @@
                     }, 800);
                 }
             }
+
+            function consumeBellaQueryFromUrl() {
+                const urlParams = new URLSearchParams(window.location.search);
+                const query = urlParams.get('bella_query');
+                if (!query) return;
+                const input = document.getElementById('chat-input');
+                if (!input) return;
+                input.value = query;
+                input.focus();
+                sendMessage();
+                const url = new URL(window.location.href);
+                url.searchParams.delete('bella_query');
+                window.history.replaceState({}, document.title, url.pathname + url.hash);
+            }
+
+            window.addEventListener('load', () => {
+                setTimeout(consumeBellaQueryFromUrl, 400);
+            });
         </script>
 
         <!-- Floating WhatsApp CTA -->
@@ -1061,38 +1097,6 @@
         </a>
     </footer>
 
-    <!-- Header Scroll Effect Script -->
-    <script>
-        const header = document.getElementById('main-header');
-        const headerTitle = document.getElementById('header-title');
-        const navLinks = document.querySelectorAll('.nav-link');
-
-        window.addEventListener('scroll', () => {
-            if (window.scrollY > 50) {
-                header.classList.remove('bg-transparent', 'py-6');
-                header.classList.add('bg-white', 'shadow-md', 'py-3');
-                
-                headerTitle.classList.remove('text-white');
-                headerTitle.classList.add('text-stone-800');
-                
-                navLinks.forEach(link => {
-                    link.classList.remove('text-white');
-                    link.classList.add('text-stone-600');
-                });
-            } else {
-                header.classList.add('bg-transparent', 'py-6');
-                header.classList.remove('bg-white', 'shadow-md', 'py-3');
-                
-                headerTitle.classList.add('text-white');
-                headerTitle.classList.remove('text-stone-800');
-                
-                navLinks.forEach(link => {
-                    link.classList.add('text-white');
-                    link.classList.remove('text-stone-600');
-                });
-            }
-        });
-    </script>
     <!-- Catalog Modal -->
     <div id="catalog-modal" class="fixed inset-0 z-[100] hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
         <div class="fixed inset-0 bg-stone-900/90 transition-opacity backdrop-blur-sm" onclick="closeCatalogModal()"></div>

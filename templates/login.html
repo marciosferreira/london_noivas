@@ -157,5 +157,61 @@
         </div>
       </div>
     </main>
+
+    <div id="ai-stylist-cta" class="fixed bottom-32 right-8 z-50 group">
+      <div id="ai-cta-bubble" class="absolute bottom-full right-0 mb-6 bg-white p-6 rounded-lg shadow-2xl border-l-4 border-london-gold w-[90vw] sm:w-[450px] transform scale-0 opacity-0 group-hover:scale-100 group-hover:opacity-100 group-focus-within:scale-100 group-focus-within:opacity-100 transition-all duration-300 origin-bottom-right">
+        <div class="flex justify-between items-start mb-3">
+          <h4 class="font-serif text-london-gold font-bold text-xl">Estilista Virtual</h4>
+          <span class="text-sm bg-stone-100 text-stone-500 px-3 py-1 rounded-full">Beta</span>
+        </div>
+        <p class="text-base text-stone-600 mb-5 font-light leading-relaxed">
+          Oi! Eu sou a Bella, sua estilista virtual com IA. Descreva a ocasião e o estilo do vestido e eu te mostro as melhores opções do nosso acervo.
+          <span class="block text-sm text-stone-400 mt-3 italic border-t border-stone-100 pt-3">Ex: "Procuro um vestido sereia com brilho para um casamento à noite"</span>
+        </p>
+        <div class="flex gap-2 relative">
+          <input type="text" id="ai-cta-input" placeholder="Digite aqui..."
+                 class="w-full text-base border border-stone-200 rounded-sm px-4 py-3 pr-12 focus:border-london-gold focus:ring-1 focus:ring-london-gold outline-none transition-all"
+                 onkeypress="handleAiCtaEnter(event)">
+          <button onclick="submitAiCta()" class="absolute right-3 top-1/2 -translate-y-1/2 text-london-gold hover:text-stone-800 transition-colors p-1">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <button class="bg-stone-900 text-white p-4 rounded-full shadow-2xl hover:bg-london-gold transition-colors relative group-hover:rotate-12 duration-300">
+        <span class="absolute -top-1 -right-1 flex h-4 w-4">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-london-gold opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-4 w-4 bg-london-gold border-2 border-white"></span>
+        </span>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
+        </svg>
+      </button>
+    </div>
+
+    <script>
+      function handleAiCtaEnter(e) {
+        if (e.key === 'Enter') submitAiCta();
+      }
+
+      function redirectToBella(text) {
+        const url = new URL(window.location.origin + '/');
+        if (text) {
+          url.searchParams.set('bella_query', text);
+        }
+        url.hash = 'showroom';
+        window.location.href = url.toString();
+      }
+
+      function submitAiCta() {
+        const ctaInput = document.getElementById('ai-cta-input');
+        if (!ctaInput) return;
+        const text = ctaInput.value.trim();
+        redirectToBella(text);
+      }
+    </script>
   </body>
 </html>
