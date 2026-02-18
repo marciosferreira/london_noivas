@@ -8,7 +8,7 @@ import time
 import unicodedata
 import threading
 import boto3
-from boto3.dynamodb.conditions import Key
+from boto3.dynamodb.conditions import Key, Attr
 from flask import Blueprint, request, jsonify, url_for, current_app, session
 from dotenv import load_dotenv
 from ai_sync_service import get_index_status, sync_index as service_sync_index, get_progress
@@ -194,6 +194,64 @@ def _color_enums_for_account():
         raise RuntimeError(f"cor_comercial vazio para {account_id}.")
     return cor_base_options, cor_comercial_options
 
+def _coerce_similarity_color_fields(args):
+    if not isinstance(args, dict):
+        return args
+    cor_base = args.get("cor_base") or args.get("corBase") or []
+    cor_comercial = args.get("cor_comercial") or args.get("corComercial") or []
+    if not isinstance(cor_base, list) or not isinstance(cor_comercial, list):
+        return args
+
+    try:
+        cor_base_options, cor_comercial_options = _color_enums_for_account()
+    except Exception:
+        return args
+
+    base_by_norm = {_normalize_text(v): v for v in (cor_base_options or []) if str(v).strip()}
+    comercial_by_norm = {_normalize_text(v): v for v in (cor_comercial_options or []) if str(v).strip()}
+
+    moved_to_comercial = []
+    kept_base = []
+    for v in cor_base:
+        if not isinstance(v, str) or not v.strip():
+            continue
+        vn = _normalize_text(v)
+        if vn in base_by_norm:
+            kept_base.append(base_by_norm[vn])
+            continue
+        if vn in comercial_by_norm:
+            moved_to_comercial.append(comercial_by_norm[vn])
+            continue
+        kept_base.append(v.strip())
+
+    moved_to_base = []
+    kept_comercial = []
+    for v in cor_comercial:
+        if not isinstance(v, str) or not v.strip():
+            continue
+        vn = _normalize_text(v)
+        if vn in comercial_by_norm:
+            kept_comercial.append(comercial_by_norm[vn])
+            continue
+        if vn in base_by_norm:
+            moved_to_base.append(base_by_norm[vn])
+            continue
+        kept_comercial.append(v.strip())
+
+    kept_base = list(dict.fromkeys(kept_base + moved_to_base))
+    kept_comercial = list(dict.fromkeys(kept_comercial + moved_to_comercial))
+
+    if "cor_base" in args:
+        args["cor_base"] = kept_base
+    elif "corBase" in args:
+        args["corBase"] = kept_base
+    if "cor_comercial" in args:
+        args["cor_comercial"] = kept_comercial
+    elif "corComercial" in args:
+        args["corComercial"] = kept_comercial
+
+    return args
+
 def _validate_similarity_args(args):
     errors = []
     def check_list(keys, label):
@@ -373,6 +431,9 @@ def _meta_occasions(meta):
     return []
 
 def _build_suggestion(item):
+    image_url = item.get("imageUrl") or item.get("item_image_url") or item.get("image_url") or ""
+    if not image_url:
+        image_url = url_for("static", filename=f"dresses/{item['file_name']}") if item.get("file_name") else ""
     return {
         "id": item.get("item_id") or item.get("custom_id") or item.get("id"),
         "customId": item.get("customId") or item.get("item_custom_id") or item.get("custom_id"),
@@ -385,9 +446,7 @@ def _build_suggestion(item):
         "size": _extract_size_value(item),
         "category": item.get("category", "Festa"),
         "occasions": _get_occasions_list(item) if isinstance(item, dict) else "",
-        "image_url": item.get("imageUrl") or item.get("image_url") or (
-            url_for("static", filename=f"dresses/{item['file_name']}") if item.get("file_name") else ""
-        ),
+        "image_url": image_url,
     }
 
 def _slugify(text):
@@ -423,6 +482,112 @@ def _has_occasion(meta, target_occasion):
 
 def _flag_is_set(value):
     return value == "1" or value == 1 or value is True
+
+_OCCASION_LABEL_BY_SLUG = {
+    "noiva": "Noiva",
+    "civil": "Civil",
+    "madrinha": "Madrinha",
+    "mae-dos-noivos": "Mãe dos Noivos",
+    "formatura": "Formatura",
+    "debutante": "Debutante",
+    "gala": "Gala",
+    "convidada": "Convidada",
+}
+
+def _split_multi_text(value):
+    if value is None:
+        return []
+    if isinstance(value, (list, tuple)):
+        parts = []
+        for x in value:
+            if isinstance(x, str) and x.strip():
+                parts.append(x.strip())
+        return parts
+    text = str(value or "").strip()
+    if not text:
+        return []
+    parts = re.split(r"[,\|/;]+", text)
+    out = []
+    for p in parts:
+        q = str(p or "").strip()
+        if q:
+            out.append(q)
+    return out
+
+def _db_color_base_list(item):
+    if not isinstance(item, dict):
+        return []
+    return _split_multi_text(item.get("cor_base") or item.get("color_base"))
+
+def _db_color_commercial_list(item):
+    if not isinstance(item, dict):
+        return []
+    values = []
+    for key in ["cor_comercial", "color_comercial", "cor", "cores", "color", "colors"]:
+        values.extend(_split_multi_text(item.get(key)))
+    seen = set()
+    unique = []
+    for v in values:
+        k = _normalize_text(v)
+        if not k or k in seen:
+            continue
+        seen.add(k)
+        unique.append(v)
+    return unique
+
+def _scan_items_from_db(account_id, desired_base, desired_comercial, desired_occ_set, desired_sizes, limit):
+    if not itens_table:
+        return []
+    if not isinstance(desired_base, set):
+        desired_base = set()
+    if not isinstance(desired_comercial, set):
+        desired_comercial = set()
+    if not isinstance(desired_occ_set, set):
+        desired_occ_set = set()
+    if not isinstance(desired_sizes, set):
+        desired_sizes = set()
+    if limit < 1:
+        limit = 1
+
+    projection = (
+        "item_id, #st, title, item_title, item_description, item_image_url, image_url, "
+        "item_value, item_custom_id, category, item_category, cor, cores, cor_base, cor_comercial, "
+        "tamanho, occasion_noiva, occasion_civil, occasion_madrinha, occasion_mae_dos_noivos, "
+        "occasion_formatura, occasion_debutante, occasion_gala, occasion_convidada"
+    )
+    kwargs = {
+        "ProjectionExpression": projection,
+        "ExpressionAttributeNames": {"#st": "status"},
+    }
+    filt = Attr("status").eq("available")
+    if account_id:
+        filt = filt & Attr("account_id").eq(str(account_id))
+    kwargs["FilterExpression"] = filt
+
+    matched = []
+    resp = itens_table.scan(**kwargs)
+    while True:
+        for item in resp.get("Items", []) or []:
+            image_url = item.get("item_image_url") or item.get("image_url")
+            if not image_url:
+                continue
+            if desired_sizes and not _matches_any(_extract_size_list(item), desired_sizes):
+                continue
+            if desired_occ_set and not (set(_get_occasion_slugs(item)) & desired_occ_set):
+                continue
+            if desired_base or desired_comercial:
+                base_ok = bool(desired_base and _matches_any(_db_color_base_list(item), desired_base))
+                comercial_ok = bool(desired_comercial and _matches_any(_db_color_commercial_list(item), desired_comercial))
+                if not (base_ok or comercial_ok):
+                    continue
+            matched.append(item)
+            if len(matched) >= limit:
+                return matched
+        lek = resp.get("LastEvaluatedKey")
+        if not lek:
+            break
+        resp = itens_table.scan(ExclusiveStartKey=lek, **kwargs)
+    return matched
 
 def _get_occasions_list(item):
     occasions = []
@@ -636,6 +801,64 @@ def _build_color_occasion_panorama(meta_list):
         "total_items": total,
         "occasions": payload
     }
+
+def _build_color_occasion_panorama_from_db(account_id):
+    if not itens_table:
+        return {"total_items": 0, "occasions": []}
+    counts = {}
+    total = 0
+
+    projection = (
+        "item_id, #st, account_id, item_image_url, image_url, cor, cores, cor_base, cor_comercial, "
+        "occasion_noiva, occasion_civil, occasion_madrinha, occasion_mae_dos_noivos, "
+        "occasion_formatura, occasion_debutante, occasion_gala, occasion_convidada"
+    )
+    kwargs = {
+        "ProjectionExpression": projection,
+        "ExpressionAttributeNames": {"#st": "status"},
+    }
+    filt = Attr("status").eq("available")
+    if account_id:
+        filt = filt & Attr("account_id").eq(str(account_id))
+    kwargs["FilterExpression"] = filt
+
+    resp = itens_table.scan(**kwargs)
+    while True:
+        for item in resp.get("Items", []) or []:
+            image_url = item.get("item_image_url") or item.get("image_url")
+            if not image_url:
+                continue
+            base_list = _db_color_base_list(item)
+            comercial_list = _db_color_commercial_list(item)
+            cor_base = base_list[0].strip() if base_list else ""
+            cor_comercial = comercial_list[0].strip() if comercial_list else ""
+            if not cor_base and not cor_comercial:
+                continue
+            slugs = _get_occasion_slugs(item)
+            if slugs:
+                occ_labels = [_OCCASION_LABEL_BY_SLUG.get(s, s) for s in slugs]
+            else:
+                occ_labels = ["Sem ocasião"]
+            total += 1
+            for occ_label in occ_labels:
+                occ_key = str(occ_label).strip() or "Sem ocasião"
+                bucket = counts.setdefault(occ_key, {})
+                key = (cor_base or "", cor_comercial or "")
+                bucket[key] = bucket.get(key, 0) + 1
+        lek = resp.get("LastEvaluatedKey")
+        if not lek:
+            break
+        resp = itens_table.scan(ExclusiveStartKey=lek, **kwargs)
+
+    payload = []
+    for occ in sorted(counts.keys()):
+        entries = []
+        for (base, comercial), qty in counts[occ].items():
+            entries.append({"cor_base": base, "cor_comercial": comercial, "count": qty})
+        entries = sorted(entries, key=lambda x: (-x["count"], x["cor_base"], x["cor_comercial"]))
+        payload.append({"occasion": occ, "colors": entries})
+
+    return {"total_items": total, "occasions": payload}
 
 def _extract_json_object(text):
     if not isinstance(text, str):
@@ -1757,6 +1980,7 @@ def _filter_metadata_candidates(cor_base, cor_comercial, occasions, max_candidat
     return collected
 
 def _run_db_search(args):
+    args = _coerce_similarity_color_fields(args)
     validation_errors = _validate_similarity_args(args)
     if validation_errors:
         return {
@@ -1769,6 +1993,29 @@ def _run_db_search(args):
         }
     cor_base = args.get("cor_base") or args.get("corBase") or []
     cor_comercial = args.get("cor_comercial") or args.get("corComercial") or []
+
+    if cor_comercial:
+        account_id = session.get("account_id") if session else None
+        if not account_id:
+            account_id = _pick_public_account_id()
+        color_pairs = _load_color_pairs_for_account(account_id) if account_id else []
+        commercial_to_base = {}
+        for pair in color_pairs or []:
+            base = str(pair.get("base") or "").strip()
+            name = str(pair.get("name") or "").strip()
+            if base and name:
+                commercial_to_base[_normalize_text(name)] = base
+        mapped_bases = []
+        for cc in _ensure_list(cor_comercial):
+            mapped = commercial_to_base.get(_normalize_text(cc))
+            if mapped and mapped.strip():
+                mapped_bases.append(mapped.strip())
+        mapped_bases = list(dict.fromkeys(mapped_bases))
+        if mapped_bases:
+            desired_base = _normalize_set(cor_base)
+            mapped_set = _normalize_set(mapped_bases)
+            if not desired_base or not (desired_base & mapped_set):
+                cor_base = mapped_bases
     colors = [*cor_base, *cor_comercial]
     sizes = args.get("sizes") or args.get("tamanhos") or args.get("size") or args.get("tamanho") or []
     occasions = _normalize_occasion_inputs(args.get("occasions") or args.get("ocasioes") or args.get("occasion") or [])
@@ -1816,6 +2063,23 @@ def _run_db_search(args):
     exact_filtered = commercial[:limit] if desired_comercial else list(filtered)
     no_principal = bool(desired_comercial and filtered and not exact_filtered)
     if not filtered:
+        account_id = session.get("account_id") if session else None
+        if not account_id:
+            account_id = _pick_public_account_id()
+        fallback_items = _scan_items_from_db(
+            account_id=account_id,
+            desired_base=desired_base,
+            desired_comercial=desired_comercial,
+            desired_occ_set=desired_occ_set,
+            desired_sizes=desired_sizes,
+            limit=limit,
+        )
+        if fallback_items:
+            return {
+                "items": fallback_items,
+                "exact_items": fallback_items if desired_comercial else list(fallback_items),
+                "no_principal": False,
+            }
         return {
             "items": [],
             "error": {
@@ -1830,6 +2094,7 @@ def _run_db_search(args):
     }
 
 def _run_similarity_search(args):
+    args = _coerce_similarity_color_fields(args)
     validation_errors = _validate_similarity_args(args)
     if validation_errors:
         return {
@@ -2110,9 +2375,19 @@ def ai_search():
                         )
                         summary = json.dumps(summary_payload, ensure_ascii=False)
                     elif tool_name == "panorama_cores_ocasioes":
-                        if not metadata:
-                            load_resources()
-                        panorama_payload = _build_color_occasion_panorama(metadata)
+                        account_id = session.get("account_id") if session else None
+                        if not account_id:
+                            account_id = _pick_public_account_id()
+                        panorama_payload = None
+                        if itens_table and account_id:
+                            try:
+                                panorama_payload = _build_color_occasion_panorama_from_db(account_id)
+                            except Exception:
+                                panorama_payload = None
+                        if panorama_payload is None:
+                            if not metadata:
+                                load_resources()
+                            panorama_payload = _build_color_occasion_panorama(metadata)
                         print("bella_tool_raw_result", json.dumps(panorama_payload, ensure_ascii=False))
                         current_app.logger.info(
                             "bella_tool_output tool=%s output=%s",
@@ -2479,6 +2754,10 @@ def ai_catalog_search():
             mapped_base = commercial_to_base.get(_normalize_text(cor_comercial[0]))
             if mapped_base and _normalize_text(mapped_base) in base_norm:
                 cor_base = [base_norm[_normalize_text(mapped_base)]]
+
+        coerced = _coerce_similarity_color_fields({"cor_base": cor_base, "cor_comercial": cor_comercial})
+        cor_base = coerced.get("cor_base") or []
+        cor_comercial = coerced.get("cor_comercial") or []
 
         def _extract_color_value(obj):
             v = obj.get("cor") or obj.get("cores") or obj.get("color") or obj.get("colors")
