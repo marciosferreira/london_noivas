@@ -86,8 +86,8 @@ python .trae/skills/bella-search-mcp/main.py < payload.json
     "Preto Absoluto",
     "Rosa",
     "Marinho",
-    "Vermelho",
     "Petróleo",
+    "Vermelho",
     "Menta",
     "Musgo",
     "Lavanda",
@@ -101,18 +101,18 @@ python .trae/skills/bella-search-mcp/main.py < payload.json
     "Ametista",
     "Dourado",
     "Escarlate",
-    "Terracota",
     "Fúcsia",
     "Marsala",
     "Oliva",
     "Prata",
     "Sálvia",
+    "Terracota",
     "Tiffany",
     "Canário",
+    "Chocolate",
     "Gelo",
-    "Mostarda",
-    "Pink",
-    "Rubi"
+    "Marrom",
+    "Mostarda"
   ],
   "fabrics": [
     "Tule",
@@ -138,7 +138,8 @@ python .trae/skills/bella-search-mcp/main.py < payload.json
     "Romântico",
     "classico",
     "sereia",
-    "princesa"
+    "princesa",
+    "reto"
   ],
   "neckline": [
     "Coração",

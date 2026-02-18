@@ -34,16 +34,22 @@
                             "items": {
                                 "type": "string",
                                 "enum": [
-                                    "Amarelo/Laranja",
+                                    "Amarelo",
+                                    "Laranja",
                                     "Azul",
-                                    "Bege/Nude",
+                                    "Beringela",
+                                    "Nude",
                                     "Branco",
-                                    "Cinza/Metal",
+                                    "Cinza",
+                                    "Metal",
                                     "Preto",
                                     "Rosa",
-                                    "Roxo/Lilás",
+                                    "Roxo",
+                                    "Lilás",
                                     "Verde",
-                                    "Vermelho/Vinho"
+                                    "Vermelho",
+                                    "Vinho",
+                                    "Marrom"
                                 ]
                             },
                             "description": "Cor base disponível no acervo. Se o usuário digitar cor parcial ou com erro, escolha a opção MAIS PRÓXIMA do enum e use o texto EXATO. Ex: vermelho -> Vermelho/Vinho (se existir). Se houver dúvida, deixe vazio."
