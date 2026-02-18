@@ -637,6 +637,7 @@ def init_static_routes(
         try:
             page = request.args.get('page', 1, type=int)
             active_occasion = request.args.get("occasion", "", type=str)
+            active_cor_comercial = request.args.get("cor_comercial", "", type=str).strip()
             requested_item_id = request.args.get("item", "", type=str)
             per_page = 12
             
@@ -694,7 +695,49 @@ def init_static_routes(
                 if any(_slugify(o) == active_occasion for o in occ):
                     filtered_items.append(item)
 
+            commercial_color_counts = {}
+            commercial_color_display_by_norm = {}
+            for item in filtered_items:
+                if not isinstance(item, dict):
+                    continue
+                raw_color = item.get("cor_comercial") or item.get("corCommercial")
+                colors = raw_color if isinstance(raw_color, list) else [raw_color]
+                for c in colors:
+                    if not isinstance(c, str) or not c.strip():
+                        continue
+                    display = c.strip()
+                    norm = _normalize_text(display)
+                    if not norm:
+                        continue
+                    commercial_color_counts[norm] = commercial_color_counts.get(norm, 0) + 1
+                    commercial_color_display_by_norm.setdefault(norm, display)
+
+            commercial_colors = [
+                commercial_color_display_by_norm[norm]
+                for norm, _count in sorted(
+                    commercial_color_counts.items(),
+                    key=lambda kv: (-kv[1], commercial_color_display_by_norm.get(kv[0], kv[0])),
+                )
+            ]
+
             itens = filtered_items
+            if active_cor_comercial:
+                target_norm = _normalize_text(active_cor_comercial)
+                if target_norm:
+                    color_filtered = []
+                    for item in itens:
+                        if not isinstance(item, dict):
+                            continue
+                        raw_color = item.get("cor_comercial") or item.get("corCommercial")
+                        colors = raw_color if isinstance(raw_color, list) else [raw_color]
+                        if any(
+                            isinstance(c, str) and _normalize_text(c) == target_norm
+                            for c in colors
+                            if c is not None
+                        ):
+                            color_filtered.append(item)
+                    itens = color_filtered
+
             for item in itens:
                 if isinstance(item, dict):
                     occ = item.get("_occasions") or []
@@ -764,11 +807,23 @@ def init_static_routes(
                 active_occasion_label=active_occasion_label,
                 active_occasion_description=active_occasion_description,
                 occasion_tabs=occasion_tabs,
+                commercial_colors=commercial_colors,
+                active_cor_comercial=active_cor_comercial,
             )
             
         except Exception as e:
             print(f"Error loading catalogo: {e}")
-            return render_template("catalogo.html", itens=[], fields_config=[], page=1, total_pages=1, active_occasion="", occasion_tabs=[])
+            return render_template(
+                "catalogo.html",
+                itens=[],
+                fields_config=[],
+                page=1,
+                total_pages=1,
+                active_occasion="",
+                occasion_tabs=[],
+                commercial_colors=[],
+                active_cor_comercial="",
+            )
 
     @app.route("/home")
     def home():

@@ -108,35 +108,6 @@
                 Explore nossa coleção completa para cada ocasião.
             </p>
             {% endif %}
-            
-            <!-- AI Search Bar -->
-            <div class="max-w-2xl mx-auto relative group">
-                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-london-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                </div>
-                <input 
-                    type="text" 
-                    id="ai-catalog-search-input"
-                    class="w-full pl-12 pr-4 py-4 bg-white border-2 border-stone-200 rounded-full focus:outline-none focus:border-london-gold focus:ring-1 focus:ring-london-gold transition-all shadow-sm text-stone-700 placeholder-stone-400"
-                    placeholder="Ex: sereia com renda"
-                    onkeypress="handleEnterSearch(event)"
-                >
-                <button 
-                    onclick="performCatalogSearch(1)"
-                    class="absolute right-2 top-2 bottom-2 bg-london-gold text-white px-6 rounded-full hover:bg-stone-800 transition-colors font-medium tracking-wide shadow-md"
-                >
-                    ORDENAR
-                </button>
-            </div>
-            <p class="text-xs text-stone-400 mt-2 italic">Powered by London AI &trade;</p>
-        </div>
-
-        <!-- Loading State -->
-        <div id="search-loading" class="hidden text-center py-12">
-            <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-london-gold border-t-transparent"></div>
-            <p class="mt-4 text-stone-500 font-serif animate-pulse">Consultando nossa estilista virtual...</p>
         </div>
 
         <!-- Occasion Tabs -->
@@ -148,6 +119,23 @@
             </a>
             {% endfor %}
         </div>
+
+        {% if commercial_colors or active_cor_comercial %}
+        <div class="flex flex-wrap gap-2 justify-center mb-10" id="commercial-color-cloud">
+            <a href="{{ url_for('catalogo', occasion=active_occasion) }}"
+               class="px-4 py-2 rounded-full text-xs font-medium tracking-wider border transition-all duration-300 {{ 'bg-stone-800 text-white border-stone-800 shadow-sm' if not active_cor_comercial else 'bg-white text-stone-600 border-stone-200 hover:bg-stone-50 hover:border-stone-800 hover:text-stone-800' }}">
+                TODAS
+            </a>
+            {% if commercial_colors %}
+            {% for cor in commercial_colors %}
+            <a href="{{ url_for('catalogo', occasion=active_occasion, cor_comercial=cor) }}"
+               class="px-4 py-2 rounded-full text-xs font-medium tracking-wider border transition-all duration-300 {{ 'bg-stone-800 text-white border-stone-800 shadow-sm' if active_cor_comercial == cor else 'bg-white text-stone-600 border-stone-200 hover:bg-stone-50 hover:border-stone-800 hover:text-stone-800' }}">
+                {{ cor }}
+            </a>
+            {% endfor %}
+            {% endif %}
+        </div>
+        {% endif %}
 
         {% if active_occasion in ['debutante', 'noiva'] %}
         <div class="max-w-3xl mx-auto mb-10">
@@ -168,6 +156,13 @@
                     <div class="aspect-[3/4] overflow-hidden bg-stone-200 relative">
                         <img src="{{ item.item_image_url }}" alt="{{ item.title }}" class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-700">
                         <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors"></div>
+                        {% if session.get('logged_in') %}
+                        <a href="{{ url_for('edit_item', item_id=item.item_id, next=request.full_path) }}"
+                           onclick="event.stopPropagation();"
+                           class="absolute top-3 left-3 bg-white/95 text-stone-800 px-3 py-1 rounded-full text-xs font-bold tracking-widest uppercase shadow-sm hover:bg-stone-800 hover:text-white transition-colors">
+                            Editar
+                        </a>
+                        {% endif %}
                         <div class="absolute bottom-4 right-4 bg-white/90 p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-stone-800">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
@@ -211,7 +206,7 @@
                 {% endfor %}
             {% else %}
                 <div class="col-span-full text-center py-20 bg-stone-100 rounded-lg">
-                    <p class="text-stone-500 text-xl font-serif">Digite o que procura acima para ver nossa coleção.</p>
+                    <p class="text-stone-500 text-xl font-serif">Nenhum vestido encontrado para esse filtro.</p>
                 </div>
             {% endif %}
         </div>
@@ -219,7 +214,7 @@
         <!-- Pagination Controls -->
         <div id="catalog-pagination" class="{% if total_pages and total_pages > 1 %}flex{% else %}hidden{% endif %} justify-center items-center mt-12 gap-4">
             {% if page and page > 1 %}
-            <a href="{{ url_for('catalogo', page=page-1, occasion=active_occasion) }}" class="px-6 py-3 border border-stone-300 text-stone-600 hover:bg-stone-800 hover:text-white hover:border-stone-800 transition-all font-medium rounded-sm">
+            <a href="{% if active_cor_comercial %}{{ url_for('catalogo', page=page-1, occasion=active_occasion, cor_comercial=active_cor_comercial) }}{% else %}{{ url_for('catalogo', page=page-1, occasion=active_occasion) }}{% endif %}" class="px-6 py-3 border border-stone-300 text-stone-600 hover:bg-stone-800 hover:text-white hover:border-stone-800 transition-all font-medium rounded-sm">
                 &larr; Anterior
             </a>
             {% endif %}
@@ -229,7 +224,7 @@
             </span>
             
             {% if page and total_pages and page < total_pages %}
-            <a href="{{ url_for('catalogo', page=page+1, occasion=active_occasion) }}" class="px-6 py-3 border border-stone-300 text-stone-600 hover:bg-stone-800 hover:text-white hover:border-stone-800 transition-all font-medium rounded-sm">
+            <a href="{% if active_cor_comercial %}{{ url_for('catalogo', page=page+1, occasion=active_occasion, cor_comercial=active_cor_comercial) }}{% else %}{{ url_for('catalogo', page=page+1, occasion=active_occasion) }}{% endif %}" class="px-6 py-3 border border-stone-300 text-stone-600 hover:bg-stone-800 hover:text-white hover:border-stone-800 transition-all font-medium rounded-sm">
                 Próxima &rarr;
             </a>
             {% endif %}
@@ -501,173 +496,7 @@
             window.history.pushState({}, '', url);
         }
 
-        // AI Search Logic
-        let currentSearchQuery = '';
         const activeOccasion = "{{ active_occasion }}";
-
-        function handleEnterSearch(event) {
-            if (event.key === 'Enter') {
-                performCatalogSearch(1);
-            }
-        }
-
-        function performCatalogSearch(page = 1) {
-            const input = document.getElementById('ai-catalog-search-input');
-            const loading = document.getElementById('search-loading');
-            
-            if (page === 1) {
-                currentSearchQuery = input.value.trim();
-            }
-
-            if (!currentSearchQuery) return;
-
-            loading.classList.remove('hidden');
-            
-            trackEvent('ai_catalog_search', {
-                'search_term': currentSearchQuery,
-                'page': page
-            });
-
-            fetch('/api/ai-catalog-search', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ 
-                    query: currentSearchQuery, 
-                    page: page, 
-                    limit: 8,
-                    occasion: activeOccasion
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                loading.classList.add('hidden');
-                if (data.results) {
-                    updateCatalogGrid(data);
-                    const gridElement = document.getElementById('catalog-grid');
-                    if (gridElement) {
-                        const headerOffset = 150;
-                        const elementPosition = gridElement.getBoundingClientRect().top;
-                        const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-                        window.scrollTo({
-                            top: offsetPosition,
-                            behavior: "smooth"
-                        });
-                    }
-                } else if (data.error) {
-                    console.error('Search error:', data.error);
-                    alert('Erro na busca. Tente novamente.');
-                }
-            })
-            .catch(err => {
-                loading.classList.add('hidden');
-                console.error('Fetch error:', err);
-                alert('Erro de conexão.');
-            });
-        }
-
-        function updateCatalogGrid(data) {
-            const items = data.results || [];
-            const currentPage = data.page || 1;
-            const totalPages = data.total_pages || 1;
-            
-            const grid = document.getElementById('catalog-grid');
-            const pagination = document.getElementById('catalog-pagination');
-            
-            grid.innerHTML = '';
-            if (pagination) {
-                pagination.innerHTML = '';
-                pagination.classList.add('hidden');
-            }
-
-            if (items.length === 0) {
-                grid.innerHTML = `
-                    <div class="col-span-full text-center py-20 bg-stone-100 rounded-lg">
-                        <p class="text-stone-500 text-xl font-serif">Nenhum vestido encontrado para sua descrição.</p>
-                        <button onclick="window.location.reload()" class="mt-4 text-london-gold hover:underline">Ver todos os vestidos</button>
-                    </div>
-                `;
-                return;
-            }
-
-            items.forEach(item => {
-                window.catalogData = window.catalogData || {};
-                const itemOccasions = typeof item.occasions === 'string'
-                    ? item.occasions
-                    : Array.isArray(item.occasions)
-                        ? item.occasions.join(', ')
-                        : '';
-                const colorBase = item.color_base || item.cor_base || item.colorBase || item.corBase || '';
-                const colorCommercial = item.color_comercial || item.cor_comercial || item.colorCommercial || item.corCommercial || '';
-                const colorFallback = item.color || item.cor || item.cores || '';
-                window.catalogData[item.item_id] = {
-                    imageUrl: item.imageUrl,
-                    title: item.title,
-                    description: item.description,
-                    price: item.price,
-                    customId: item.customId || item.item_id,
-                    color: colorFallback,
-                    colorBase: colorBase,
-                    colorCommercial: colorCommercial,
-                    size: item.size,
-                    occasions: itemOccasions
-                };
-
-                const div = document.createElement('div');
-                div.className = 'group bg-white rounded-sm shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden animate-fadeIn';
-                div.onclick = () => openCatalogModal(item.imageUrl, item.title, item.description, item.item_id, item.price, 'ai_search', item.customId, itemOccasions, colorFallback, item.size, colorBase, colorCommercial);
-                
-                div.innerHTML = `
-                    <div class="aspect-[3/4] overflow-hidden bg-stone-200 relative">
-                        <img src="${item.imageUrl}" alt="${item.title}" class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-700">
-                        <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors"></div>
-                        <div class="absolute bottom-4 right-4 bg-white/90 p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-stone-800">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-                            </svg>
-                        </div>
-                    </div>
-                    
-                    <div class="p-6">
-                        <h3 class="font-serif text-lg text-stone-800 mb-2 truncate">${item.title}</h3>
-                        ${colorCommercial ? `<p class="text-sm text-stone-500 mb-1">Cor: ${colorCommercial}</p>` : ''}
-                        <p class="text-xs text-london-gold tracking-widest font-bold uppercase">Ver Detalhes</p>
-                    </div>
-                `;
-                
-                grid.appendChild(div);
-            });
-
-            if (pagination && totalPages > 1) {
-                pagination.classList.remove('hidden');
-                let paginationHtml = '';
-                
-                if (currentPage > 1) {
-                    paginationHtml += `
-                        <button onclick="performCatalogSearch(${currentPage - 1})" class="px-6 py-3 border border-stone-300 text-stone-600 hover:bg-stone-800 hover:text-white hover:border-stone-800 transition-all font-medium rounded-sm">
-                            &larr; Anterior
-                        </button>
-                    `;
-                }
-                
-                paginationHtml += `
-                    <span class="font-serif text-stone-500 mx-4">
-                        Página <span class="text-stone-800 font-bold">${currentPage}</span> de ${totalPages}
-                    </span>
-                `;
-                
-                if (currentPage < totalPages) {
-                    paginationHtml += `
-                        <button onclick="performCatalogSearch(${currentPage + 1})" class="px-6 py-3 border border-stone-300 text-stone-600 hover:bg-stone-800 hover:text-white hover:border-stone-800 transition-all font-medium rounded-sm">
-                            Próxima &rarr;
-                        </button>
-                    `;
-                }
-                
-                pagination.innerHTML = paginationHtml;
-            }
-        }
 
         window.addEventListener('load', function() {
             const urlParams = new URLSearchParams(window.location.search);
