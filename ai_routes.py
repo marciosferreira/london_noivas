@@ -1622,6 +1622,118 @@ def _mcp_to_openai_tools(mcp_tools):
         })
     return openai_tools
 
+def _catalog_extractor_tools():
+    account_id = session.get("account_id") if session else None
+    if not account_id:
+        account_id = _pick_public_account_id()
+    try:
+        cor_base_options, cor_comercial_options = _color_enums_for_account()
+    except Exception:
+        fallback = _load_color_options_for_account(account_id) if account_id else []
+        cor_base_options = list(dict.fromkeys([str(x).strip() for x in fallback if str(x).strip()]))
+        cor_comercial_options = list(cor_base_options)
+    cor_base_items = {"type": "string", "enum": cor_base_options} if cor_base_options else {"type": "string"}
+    cor_comercial_items = {"type": "string", "enum": cor_comercial_options} if cor_comercial_options else {"type": "string"}
+    return [
+        {
+            "type": "function",
+            "function": {
+                "name": "extrair_filtros_catalogo",
+                "description": "Extrai filtros estruturados (cor_base, cor_comercial, ocasiões) e outros atributos da consulta do catálogo.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "other_characteristics": {
+                            "type": "string",
+                            "description": "Atributos livres (ex.: brilho, renda, fenda, decote em V). Não repita cores/ocasião se já estiverem nos campos apropriados."
+                        },
+                        "occasions": {
+                            "type": "array",
+                            "items": {
+                                "type": "string",
+                                "enum": ["Noiva", "Civil", "Madrinha", "Mãe dos Noivos", "Formatura", "Debutante", "Gala", "Convidada"],
+                            },
+                            "description": "Ocasiões suportadas. Preencha apenas quando estiver explícito na consulta."
+                        },
+                        "cor_base": {
+                            "type": "array",
+                            "items": cor_base_items,
+                            "description": "Cores base disponíveis. Use somente valores do enum."
+                        },
+                        "cor_comercial": {
+                            "type": "array",
+                            "items": cor_comercial_items,
+                            "description": "Cores comerciais disponíveis. Use somente valores do enum."
+                        },
+                    },
+                    "required": []
+                }
+            }
+        }
+    ]
+
+def _extract_catalog_filters_with_tool(query, target_occasion=None):
+    if not isinstance(query, str):
+        return {}
+    query = query.strip()
+    if not query:
+        return {}
+    tool_name = "extrair_filtros_catalogo"
+    tools = _catalog_extractor_tools()
+    occ_slug = _canonical_occasion(target_occasion) if target_occasion else ""
+    system_prompt = (
+        "Você extrai filtros estruturados de uma consulta de busca em catálogo de vestidos.\n"
+        "Regras:\n"
+        "- Responda chamando a ferramenta.\n"
+        "- Em cor_base e cor_comercial, use SOMENTE valores do enum.\n"
+        "- Se a consulta contiver apenas uma cor, preencha a cor e deixe other_characteristics vazio.\n"
+        "- Se houver ocasião alvo (aba ativa), não invente novas ocasiões.\n"
+    )
+    user_payload = {
+        "consulta_usuario": query,
+        "ocasiao_alvo": occ_slug,
+    }
+    try:
+        resp = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": json.dumps(user_payload, ensure_ascii=False)},
+            ],
+            tools=tools,
+            tool_choice={"type": "function", "function": {"name": tool_name}},
+            temperature=0.0,
+            max_tokens=220,
+        )
+        msg = resp.choices[0].message
+        if not getattr(msg, "tool_calls", None):
+            return {}
+        call = None
+        for tc in msg.tool_calls:
+            if tc.function and tc.function.name == tool_name:
+                call = tc
+                break
+        if not call:
+            return {}
+        args = json.loads(call.function.arguments or "{}")
+        if not isinstance(args, dict):
+            return {}
+        out = {
+            "other_characteristics": str(args.get("other_characteristics") or "").strip(),
+            "cor_base": [str(x).strip() for x in _ensure_list(args.get("cor_base")) if str(x).strip()],
+            "cor_comercial": [str(x).strip() for x in _ensure_list(args.get("cor_comercial")) if str(x).strip()],
+            "occasions": [str(x).strip() for x in _ensure_list(args.get("occasions")) if str(x).strip()],
+        }
+        validation_errors = _validate_similarity_args(out)
+        if validation_errors:
+            return {}
+        out["cor_base"] = list(dict.fromkeys(out["cor_base"]))
+        out["cor_comercial"] = list(dict.fromkeys(out["cor_comercial"]))
+        out["occasions"] = list(dict.fromkeys(out["occasions"]))
+        return out
+    except Exception:
+        return {}
+
 def _filter_metadata_candidates(cor_base, cor_comercial, occasions, max_candidates):
     if not metadata:
         return []
@@ -2319,6 +2431,54 @@ def ai_catalog_search():
 
     try:
         target_occasion = (data.get("occasion") or data.get("category") or "").lower().strip()
+        cor_base = []
+        cor_comercial = []
+        query_for_faiss = query
+        search_occasions = target_occasion or None
+
+        account_id = session.get("account_id") if session else None
+        if not account_id:
+            account_id = _pick_public_account_id()
+        try:
+            base_options, commercial_options = _color_enums_for_account()
+        except Exception:
+            fallback = _load_color_options_for_account(account_id) if account_id else []
+            base_options = list(dict.fromkeys([str(x).strip() for x in fallback if str(x).strip()]))
+            commercial_options = list(base_options)
+
+        base_norm = {_normalize_text(v): v for v in (base_options or []) if str(v).strip()}
+        commercial_norm = {_normalize_text(v): v for v in (commercial_options or []) if str(v).strip()}
+
+        query_tokens = [t for t in str(query or "").replace("\n", " ").split(" ") if t.strip()]
+        joined = " ".join(query_tokens[:2]).strip()
+        joined_norm = _normalize_text(joined)
+        if joined_norm and joined_norm in commercial_norm:
+            cor_comercial = [commercial_norm[joined_norm]]
+        elif joined_norm and joined_norm in base_norm:
+            cor_base = [base_norm[joined_norm]]
+        else:
+            extracted = _extract_catalog_filters_with_tool(query, target_occasion)
+            if extracted:
+                cor_base = [str(x).strip() for x in _ensure_list(extracted.get("cor_base")) if str(x).strip()]
+                cor_comercial = [str(x).strip() for x in _ensure_list(extracted.get("cor_comercial")) if str(x).strip()]
+                other_characteristics = extracted.get("other_characteristics") or ""
+                if isinstance(other_characteristics, str) and other_characteristics.strip():
+                    query_for_faiss = other_characteristics.strip()
+                extracted_occs = extracted.get("occasions") or []
+                if not search_occasions and extracted_occs:
+                    search_occasions = extracted_occs
+
+        if cor_comercial and not cor_base:
+            color_pairs = _load_color_pairs_for_account(account_id) if account_id else []
+            commercial_to_base = {}
+            for pair in color_pairs or []:
+                base = str(pair.get("base") or "").strip()
+                name = str(pair.get("name") or "").strip()
+                if base and name:
+                    commercial_to_base[_normalize_text(name)] = base
+            mapped_base = commercial_to_base.get(_normalize_text(cor_comercial[0]))
+            if mapped_base and _normalize_text(mapped_base) in base_norm:
+                cor_base = [base_norm[_normalize_text(mapped_base)]]
 
         def _extract_color_value(obj):
             v = obj.get("cor") or obj.get("cores") or obj.get("color") or obj.get("colors")
@@ -2373,10 +2533,10 @@ def ai_catalog_search():
         valid_results = search_and_prioritize(
             index=index,
             metadata=metadata,
-            query=query,
-            occasions=target_occasion or None,
-            cor_comercial=None,
-            cor_base=None,
+            query=query_for_faiss,
+            occasions=search_occasions,
+            cor_comercial=cor_comercial or None,
+            cor_base=cor_base or None,
             top_k=ntotal,
         )
 
