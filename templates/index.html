@@ -678,7 +678,7 @@
 
                     content = content
                         .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (match, alt, url) => (
-                            `<div class="flex justify-center my-2"><div class="bg-white p-1 rounded-md shadow-md ring-1 ring-stone-200 hover:shadow-lg transition-shadow"><img src="${normalizeUrl(url)}" alt="${alt}" class="max-w-[240px] h-auto rounded-[0.2rem] object-contain"></div></div>`
+                            `<div class="bella-chat-item flex justify-center my-2"><div class="bella-chat-inner flex flex-col sm:flex-row gap-3 items-start sm:items-center max-w-full"><div class="bella-chat-media bg-white p-1 rounded-md shadow-md ring-1 ring-stone-200 hover:shadow-lg transition-shadow flex-shrink-0"><img src="${normalizeUrl(url)}" alt="${alt}" class="bella-chat-img w-[240px] max-w-[240px] h-auto rounded-[0.2rem] object-contain"></div><div class="bella-chat-meta hidden text-left text-sm text-stone-700 leading-relaxed"></div></div></div>`
                         ))
                         .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, label, url) => (
                             `<a href="${normalizeUrl(url)}" class="text-london-gold underline" target="_blank" rel="noopener noreferrer">${label}</a>`
@@ -749,13 +749,14 @@
                     const markdownText = renderMarkdown(text);
                     div.innerHTML = `
                         ${avatar}
-                        <div class="${bubbleClass} p-3 rounded-lg shadow-sm text-sm max-w-[85%] border">
+                        <div class="bella-chat-bubble ${bubbleClass} p-3 rounded-lg shadow-sm text-sm max-w-[85%] border">
                             ${markdownText}
                         </div>
                     `;
 
                     if (sender === 'bot' && Array.isArray(items) && items.length) {
-                        const images = div.querySelectorAll('img');
+                        const bubble = div.querySelector('.bella-chat-bubble');
+                        const images = div.querySelectorAll('img.bella-chat-img');
                         images.forEach((img) => {
                             const src = img.getAttribute('src') || '';
                             const item = items.find((entry) => entry && entry.image_url === src);
@@ -778,6 +779,96 @@
                                 );
                             });
                         });
+                        if (bubble) {
+                            const wrappers = Array.from(bubble.children).filter((el) => el && el.classList && el.classList.contains('bella-chat-item'));
+                            let cursor = bubble.firstChild;
+                            const isIgnorable = (node) => {
+                                if (!node) return true;
+                                if (node.nodeType === Node.TEXT_NODE) return !node.textContent || !node.textContent.trim();
+                                if (node.nodeType === Node.ELEMENT_NODE) return node.tagName === 'BR';
+                                return true;
+                            };
+                            const extractTextWithBreaks = (nodes) => nodes.map((node) => {
+                                if (!node) return '';
+                                if (node.nodeType === Node.TEXT_NODE) return node.textContent || '';
+                                if (node.nodeType === Node.ELEMENT_NODE) return node.tagName === 'BR' ? '\n' : (node.textContent || '');
+                                return '';
+                            }).join('');
+                            const splitNodesAtOffset = (nodes, offset) => {
+                                const before = [];
+                                const after = [];
+                                let remaining = offset;
+                                nodes.forEach((node) => {
+                                    if (remaining <= 0) {
+                                        after.push(node);
+                                        return;
+                                    }
+                                    if (node.nodeType === Node.TEXT_NODE) {
+                                        const text = node.textContent || '';
+                                        if (remaining >= text.length) {
+                                            before.push(node);
+                                            remaining -= text.length;
+                                            return;
+                                        }
+                                        const second = node.splitText(remaining);
+                                        before.push(node);
+                                        after.push(second);
+                                        remaining = 0;
+                                        return;
+                                    }
+                                    if (node.nodeType === Node.ELEMENT_NODE && node.tagName === 'BR') {
+                                        if (remaining >= 1) {
+                                            before.push(node);
+                                            remaining -= 1;
+                                        } else {
+                                            after.push(node);
+                                        }
+                                        return;
+                                    }
+                                    const text = node.textContent || '';
+                                    if (remaining >= text.length) {
+                                        before.push(node);
+                                        remaining -= text.length;
+                                    } else {
+                                        after.push(node);
+                                    }
+                                });
+                                return { before, after };
+                            };
+                            wrappers.forEach((wrapper, wrapperIndex) => {
+                                const meta = wrapper.querySelector('.bella-chat-meta');
+                                if (!meta) return;
+                                const segmentNodes = [];
+                                while (cursor && cursor !== wrapper) {
+                                    const next = cursor.nextSibling;
+                                    segmentNodes.push(cursor);
+                                    cursor = next;
+                                }
+                                cursor = wrapper.nextSibling;
+                                while (segmentNodes.length && isIgnorable(segmentNodes[0])) segmentNodes.shift();
+                                while (segmentNodes.length && isIgnorable(segmentNodes[segmentNodes.length - 1])) segmentNodes.pop();
+                                if (!segmentNodes.length) return;
+                                let nodesToMove = segmentNodes;
+                                if (wrapperIndex === 0) {
+                                    const segmentText = extractTextWithBreaks(segmentNodes);
+                                    const match = segmentText.match(/(^|\n)\s*1\.\s+/);
+                                    if (match && typeof match.index === 'number') {
+                                        const splitAt = match.index + (match[1] ? match[1].length : 0);
+                                        const { after } = splitNodesAtOffset(segmentNodes, splitAt);
+                                        while (after.length && isIgnorable(after[0])) after.shift();
+                                        while (after.length && isIgnorable(after[after.length - 1])) after.pop();
+                                        nodesToMove = after;
+                                    } else {
+                                        nodesToMove = [];
+                                    }
+                                }
+                                if (!nodesToMove.length) return;
+                                const frag = document.createDocumentFragment();
+                                nodesToMove.forEach((node) => frag.appendChild(node));
+                                meta.appendChild(frag);
+                                meta.classList.remove('hidden');
+                            });
+                        }
                     }
                     
                     container.appendChild(div);
