@@ -405,7 +405,15 @@
                 fetch(`/api/item/${itemId}/visit`, { method: 'POST' })
                     .catch(err => console.error('Error incrementing visit count:', err));
 
-                fetch(`/api/ai-similar/${itemId}?limit=4`)
+                const similarParams = new URLSearchParams();
+                similarParams.set('limit', '4');
+                similarParams.set('no_faiss', '1');
+                if (activeOccasion) similarParams.set('occasions', activeOccasion);
+                else if (occasions) similarParams.set('occasions', occasions);
+                if (colorBase) similarParams.set('cor_base', colorBase);
+                if (colorCommercial) similarParams.set('cor_comercial', colorCommercial);
+
+                fetch(`/api/ai-similar/${itemId}?${similarParams.toString()}`)
                     .then(response => response.json())
                     .then(data => {
                         const normalizeSlug = (s) => (s || '')
@@ -417,7 +425,18 @@
                             .replace(/^_+|_+$/g, '')
                             .replace(/_+/g, '_');
 
+                        const normalizeText = (s) => (s || '')
+                            .toString()
+                            .normalize('NFD')
+                            .replace(/[\u0300-\u036f]/g, '')
+                            .toLowerCase()
+                            .replace(/[^a-z0-9]+/g, ' ')
+                            .trim()
+                            .replace(/\s+/g, ' ');
+
                         const targetOccasion = normalizeSlug((activeOccasion || '').replace(/-/g, '_'));
+                        const targetBase = normalizeText(colorBase || '');
+                        const targetCommercial = normalizeText(colorCommercial || '');
 
                         const parseOccasionsToSlugs = (occasionsStr) => {
                             if (!occasionsStr) return [];
@@ -435,7 +454,7 @@
 
                         const existingIds = new Set(suggestions.map(s => String(s.id)));
                         if (suggestions.length < 4 && window.catalogData && typeof window.catalogData === 'object') {
-                            const localCandidates = Object.entries(window.catalogData)
+                            let localCandidates = Object.entries(window.catalogData)
                                 .filter(([id, d]) => id && d && String(id) !== String(itemId))
                                 .filter(([id, d]) => !existingIds.has(String(id)))
                                 .filter(([id, d]) => !targetOccasion || parseOccasionsToSlugs(d.occasions).includes(targetOccasion))
@@ -451,6 +470,20 @@
                                     size: d.size,
                                     occasions: d.occasions
                                 }));
+
+                            localCandidates = localCandidates.sort((a, b) => {
+                                const aCommercial = normalizeText(a.colorCommercial || '');
+                                const bCommercial = normalizeText(b.colorCommercial || '');
+                                const aBase = normalizeText(a.colorBase || '');
+                                const bBase = normalizeText(b.colorBase || '');
+                                const aCommercialOk = Boolean(targetCommercial && aCommercial && aCommercial === targetCommercial);
+                                const bCommercialOk = Boolean(targetCommercial && bCommercial && bCommercial === targetCommercial);
+                                if (aCommercialOk !== bCommercialOk) return aCommercialOk ? -1 : 1;
+                                const aBaseOk = Boolean(targetBase && aBase && aBase === targetBase);
+                                const bBaseOk = Boolean(targetBase && bBase && bBase === targetBase);
+                                if (aBaseOk !== bBaseOk) return aBaseOk ? -1 : 1;
+                                return 0;
+                            });
 
                             for (const c of localCandidates) {
                                 if (suggestions.length >= 4) break;

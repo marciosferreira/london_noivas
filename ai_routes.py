@@ -2442,14 +2442,9 @@ def ai_search():
 def ai_similar(item_id):
     global index, metadata
     
-    if not index or not metadata:
-        load_resources()
-        if not index or not metadata:
-            return jsonify({"error": "Sistema indisponível"}), 503
-
-    query_hint = request.args.get("q") or request.args.get("query")
-
     try:
+        no_faiss = _flag_is_set(request.args.get("no_faiss") or request.args.get("noFaiss") or request.args.get("no_faiss_search"))
+
         limit = int(request.args.get("limit") or 4)
         if limit < 1:
             limit = 1
@@ -2463,6 +2458,18 @@ def ai_similar(item_id):
                 req_occ = [x.strip() for x in occ_raw.split(",") if x.strip()]
         target_occ = _normalize_occasion_inputs(req_occ)
         target_set = set(target_occ)
+
+        def _extract_list_from_args(keys):
+            for key in keys:
+                values = request.args.getlist(key)
+                if values:
+                    cleaned = [str(x).strip() for x in values if isinstance(x, str) and x.strip()]
+                    if cleaned:
+                        return cleaned
+                raw = request.args.get(key)
+                if isinstance(raw, str) and raw.strip():
+                    return [x.strip() for x in raw.split(",") if x.strip()]
+            return []
 
         def _extract_color_value(obj):
             v = obj.get("cor") or obj.get("cores") or obj.get("color") or obj.get("colors")
@@ -2518,6 +2525,53 @@ def ai_similar(item_id):
                 return v.strip()
             return ""
 
+        def _build_suggestions(items):
+            suggestions = []
+            for item in items:
+                suggestions.append({
+                    "id": item.get("item_id") or item.get("custom_id"),
+                    "customId": item.get("customId"),
+                    "title": item.get("title", "Vestido"),
+                    "image_url": item.get("imageUrl") or url_for("static", filename=f"dresses/{item['file_name']}"),
+                    "description": item.get("description", ""),
+                    "category": item.get("category", "Outros"),
+                    "color": _extract_color_value(item),
+                    "color_base": _extract_color_base_value(item),
+                    "color_comercial": _extract_color_commercial_value(item),
+                    "size": _extract_size_value(item),
+                    "occasions": _get_occasions_list(item),
+                })
+            return suggestions
+
+        if no_faiss:
+            cor_base = _extract_list_from_args(["cor_base", "corBase", "color_base", "colorBase"])
+            cor_comercial = _extract_list_from_args(["cor_comercial", "corComercial", "color_comercial", "colorComercial"])
+            db_limit = min(limit + 1, 5)
+            db_result = _run_db_search({
+                "occasions": target_occ,
+                "cor_base": cor_base,
+                "cor_comercial": cor_comercial,
+                "limit": db_limit,
+            })
+            items = db_result.get("items") or []
+            filtered = []
+            target_id = str(item_id)
+            for item in items:
+                sid = str(item.get("item_id") or item.get("custom_id") or "")
+                if not sid or sid == target_id:
+                    continue
+                filtered.append(item)
+                if len(filtered) >= limit:
+                    break
+            return jsonify({"suggestions": _build_suggestions(filtered)})
+
+        if not index or not metadata:
+            load_resources()
+            if not index or not metadata:
+                return jsonify({"error": "Sistema indisponível"}), 503
+
+        query_hint = request.args.get("q") or request.args.get("query")
+
         target_idx = -1
         for i, item in enumerate(metadata):
             if str(item.get('custom_id')) == str(item_id):
@@ -2567,22 +2621,7 @@ def ai_similar(item_id):
                     collected.append(item)
                     if len(collected) >= limit:
                         break
-            suggestions = []
-            for item in collected:
-                suggestions.append({
-                    "id": item.get("item_id") or item.get("custom_id"),
-                    "customId": item.get("customId"),
-                    "title": item.get("title", "Vestido"),
-                    "image_url": item.get("imageUrl") or url_for("static", filename=f"dresses/{item['file_name']}"),
-                    "description": item.get("description", ""),
-                    "category": item.get("category", "Outros"),
-                    "color": _extract_color_value(item),
-                    "color_base": _extract_color_base_value(item),
-                    "color_comercial": _extract_color_commercial_value(item),
-                    "size": _extract_size_value(item),
-                    "occasions": _get_occasions_list(item),
-                })
-            return jsonify({"suggestions": suggestions})
+            return jsonify({"suggestions": _build_suggestions(collected)})
 
         if target_idx == -1:
             return jsonify({"error": "Item não encontrado no índice"}), 404
@@ -2663,23 +2702,7 @@ def ai_similar(item_id):
                 if len(collected) >= limit:
                     break
 
-        suggestions = []
-        for item in collected:
-            suggestions.append({
-                "id": item.get("item_id") or item.get("custom_id"),
-                "customId": item.get("customId"),
-                "title": item.get("title", "Vestido"),
-                "image_url": item.get("imageUrl") or url_for("static", filename=f"dresses/{item['file_name']}"),
-                "description": item.get("description", ""),
-                "category": item.get("category", "Outros"),
-                "color": _extract_color_value(item),
-                "color_base": _extract_color_base_value(item),
-                "color_comercial": _extract_color_commercial_value(item),
-                "size": _extract_size_value(item),
-                "occasions": _get_occasions_list(item),
-            })
-
-        return jsonify({"suggestions": suggestions})
+        return jsonify({"suggestions": _build_suggestions(collected)})
 
     except Exception as e:
         print(f"Erro ao buscar similares: {e}")

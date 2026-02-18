@@ -413,6 +413,32 @@
                 let conversationHistory = [];
                 const chatStorageKey = 'bella_chat_history';
 
+                function normalizeSavedItems(items) {
+                    if (!Array.isArray(items) || !items.length) return [];
+                    const out = [];
+                    for (const entry of items) {
+                        if (!entry || typeof entry !== 'object') continue;
+                        const imageUrl = entry.image_url || entry.imageUrl || '';
+                        if (!imageUrl) continue;
+                        const normalized = {
+                            id: entry.id || entry.item_id || entry.custom_id,
+                            customId: entry.customId || entry.custom_id,
+                            title: entry.title,
+                            description: entry.description,
+                            price: entry.price,
+                            image_url: imageUrl,
+                            occasions: entry.occasions,
+                            color: entry.color || entry.cor || entry.cores,
+                            size: entry.size || entry.tamanho,
+                            color_base: entry.color_base || entry.cor_base || entry.colorBase || entry.corBase,
+                            color_comercial: entry.color_comercial || entry.cor_comercial || entry.colorCommercial || entry.corCommercial
+                        };
+                        out.push(normalized);
+                        if (out.length >= 6) break;
+                    }
+                    return out;
+                }
+
                 function renderWelcome(container) {
                     container.innerHTML = `
                         <div class="flex gap-3">
@@ -444,7 +470,13 @@
                         if (!raw) return [];
                         const parsed = JSON.parse(raw);
                         if (!Array.isArray(parsed)) return [];
-                        const cleaned = parsed.filter((msg) => msg && ['user', 'assistant'].includes(msg.role) && msg.content);
+                        const cleaned = parsed
+                            .filter((msg) => msg && ['user', 'assistant'].includes(msg.role) && msg.content)
+                            .map((msg) => ({
+                                role: msg.role,
+                                content: msg.content,
+                                items: Array.isArray(msg.items) ? normalizeSavedItems(msg.items) : []
+                            }));
                         return cleaned.slice(-10);
                     } catch (error) {
                         return [];
@@ -462,7 +494,7 @@
                     }
                     conversationHistory = stored;
                     stored.forEach((msg) => {
-                        addMessage(msg.content, msg.role === 'assistant' ? 'bot' : 'user');
+                        addMessage(msg.content, msg.role === 'assistant' ? 'bot' : 'user', msg.role === 'assistant' ? msg.items : null);
                     });
                 }
 
@@ -575,7 +607,10 @@
                     const loadingId = addLoading({ forceScroll: true });
 
                     try {
-                        const historySnapshot = conversationHistory.slice(-10);
+                        const historySnapshot = conversationHistory.slice(-10).map((msg) => ({
+                            role: msg.role,
+                            content: msg.content
+                        }));
                         const response = await fetch('/api/ai-search', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -592,7 +627,7 @@
                         if (data.reply) {
                             addMessage(data.reply, 'bot', data.items || [], { forceScroll: autoScrollNextAssistant, block: 'start' });
                             autoScrollNextAssistant = false;
-                            conversationHistory.push({ role: "assistant", content: data.reply });
+                            conversationHistory.push({ role: "assistant", content: data.reply, items: normalizeSavedItems(data.items || []) });
                             saveChatHistory();
                         }
                         const resultFrame = document.getElementById('result-frame');
@@ -643,7 +678,7 @@
 
                     content = content
                         .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (match, alt, url) => (
-                            `<div class="flex justify-center"><img src="${normalizeUrl(url)}" alt="${alt}" class="max-w-[220px] h-auto rounded-sm mt-2 mb-2"></div>`
+                            `<div class="flex justify-center my-2"><div class="bg-white p-1 rounded-md shadow-md ring-1 ring-stone-200 hover:shadow-lg transition-shadow"><img src="${normalizeUrl(url)}" alt="${alt}" class="max-w-[240px] h-auto rounded-[0.2rem] object-contain"></div></div>`
                         ))
                         .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, label, url) => (
                             `<a href="${normalizeUrl(url)}" class="text-london-gold underline" target="_blank" rel="noopener noreferrer">${label}</a>`
@@ -1366,12 +1401,28 @@
                 fetch(`/api/item/${itemId}/visit`, { method: 'POST' })
                     .catch(err => console.error('Error incrementing visit count:', err));
 
-                const bellaOccParam = Array.isArray(bellaOccasionFilter) && bellaOccasionFilter.length
-                    ? bellaOccasionFilter.join(',')
-                    : '';
-                const bellaOccQuery = bellaOccParam ? `&occasion=${encodeURIComponent(bellaOccParam)}` : '';
-                const bellaQueryParam = bellaQueryFilter ? `&q=${encodeURIComponent(bellaQueryFilter)}` : '';
-                fetch(`/api/ai-similar/${itemId}?limit=4${bellaOccQuery}${bellaQueryParam}`)
+                const isBellaAiModal = source === 'ai_result' || source === 'ai_suggestion';
+
+                let apiUrl = '';
+                if (isBellaAiModal) {
+                    const similarParams = new URLSearchParams();
+                    similarParams.set('limit', '4');
+                    similarParams.set('no_faiss', '1');
+                    if (Array.isArray(bellaOccasionFilter) && bellaOccasionFilter.length) similarParams.set('occasions', bellaOccasionFilter.join(','));
+                    else if (occasions) similarParams.set('occasions', occasions);
+                    if (colorBase) similarParams.set('cor_base', colorBase);
+                    if (colorCommercial) similarParams.set('cor_comercial', colorCommercial);
+                    apiUrl = `/api/ai-similar/${itemId}?${similarParams.toString()}`;
+                } else {
+                    const bellaOccParam = Array.isArray(bellaOccasionFilter) && bellaOccasionFilter.length
+                        ? bellaOccasionFilter.join(',')
+                        : '';
+                    const bellaOccQuery = bellaOccParam ? `&occasion=${encodeURIComponent(bellaOccParam)}` : '';
+                    const bellaQueryParam = bellaQueryFilter ? `&q=${encodeURIComponent(bellaQueryFilter)}` : '';
+                    apiUrl = `/api/ai-similar/${itemId}?limit=4${bellaOccQuery}${bellaQueryParam}`;
+                }
+
+                fetch(apiUrl)
                     .then(response => response.json())
                     .then(data => {
                         const normalizeSlug = (s) => (s || '')
@@ -1382,6 +1433,15 @@
                             .replace(/[^a-z0-9]+/g, '_')
                             .replace(/^_+|_+$/g, '')
                             .replace(/_+/g, '_');
+
+                        const normalizeText = (s) => (s || '')
+                            .toString()
+                            .normalize('NFD')
+                            .replace(/[\u0300-\u036f]/g, '')
+                            .toLowerCase()
+                            .replace(/[^a-z0-9]+/g, ' ')
+                            .trim()
+                            .replace(/\s+/g, ' ');
 
                         const parseOccasionsToSlugs = (occasionsStr) => {
                             if (!occasionsStr) return [];
@@ -1397,9 +1457,52 @@
                             : occasions;
                         const targetOccasions = new Set(parseOccasionsToSlugs(targetOccasionInput));
                         const apiSuggestions = Array.isArray(data.suggestions) ? data.suggestions : [];
-                        const suggestions = targetOccasions.size > 0
+                        let suggestions = targetOccasions.size > 0
                             ? apiSuggestions.filter(s => parseOccasionsToSlugs(s.occasions).some(o => targetOccasions.has(o)))
                             : apiSuggestions;
+
+                        const targetBase = normalizeText(colorBase || '');
+                        const targetCommercial = normalizeText(colorCommercial || '');
+                        const existingIds = new Set(suggestions.map(s => String(s.id)));
+
+                        if (isBellaAiModal && suggestions.length < 4 && window.catalogData && typeof window.catalogData === 'object') {
+                            let localCandidates = Object.entries(window.catalogData)
+                                .filter(([id, d]) => id && d && String(id) !== String(itemId))
+                                .filter(([id, d]) => !existingIds.has(String(id)))
+                                .filter(([id, d]) => targetOccasions.size === 0 || parseOccasionsToSlugs(d.occasions).some(o => targetOccasions.has(o)))
+                                .map(([id, d]) => ({
+                                    id,
+                                    customId: d.customId,
+                                    title: d.title,
+                                    image_url: d.imageUrl,
+                                    description: d.description,
+                                    color: d.color,
+                                    colorBase: d.colorBase,
+                                    colorCommercial: d.colorCommercial,
+                                    size: d.size,
+                                    occasions: d.occasions
+                                }));
+
+                            localCandidates = localCandidates.sort((a, b) => {
+                                const aCommercial = normalizeText(a.colorCommercial || '');
+                                const bCommercial = normalizeText(b.colorCommercial || '');
+                                const aBase = normalizeText(a.colorBase || '');
+                                const bBase = normalizeText(b.colorBase || '');
+                                const aCommercialOk = Boolean(targetCommercial && aCommercial && aCommercial === targetCommercial);
+                                const bCommercialOk = Boolean(targetCommercial && bCommercial && bCommercial === targetCommercial);
+                                if (aCommercialOk !== bCommercialOk) return aCommercialOk ? -1 : 1;
+                                const aBaseOk = Boolean(targetBase && aBase && aBase === targetBase);
+                                const bBaseOk = Boolean(targetBase && bBase && bBase === targetBase);
+                                if (aBaseOk !== bBaseOk) return aBaseOk ? -1 : 1;
+                                return 0;
+                            });
+
+                            for (const c of localCandidates) {
+                                if (suggestions.length >= 4) break;
+                                suggestions.push(c);
+                                existingIds.add(String(c.id));
+                            }
+                        }
 
                         if (suggestions.length > 0) {
                             suggestions.forEach(item => {
