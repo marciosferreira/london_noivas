@@ -1423,6 +1423,91 @@ def execute_catalog_search_loose(query, k=5, target_occasions=None):
         print(f"Erro em execute_catalog_search_loose: {e}")
         return []
 
+def search_and_prioritize(index, metadata, query, occasions=None, cor_comercial=None, cor_base=None, top_k=None):
+    if not index or not metadata:
+        return []
+    if not isinstance(query, str) or not query.strip():
+        return []
+    ntotal = int(getattr(index, "ntotal", 0) or 0)
+    if ntotal <= 0:
+        ntotal = len(metadata) if isinstance(metadata, list) else 0
+    if ntotal <= 0:
+        return []
+
+    desired_k = int(top_k or 0)
+    if desired_k < 1:
+        desired_k = ntotal
+    if desired_k > ntotal:
+        desired_k = ntotal
+
+    desired_occ_set = set(_normalize_occasion_inputs(occasions))
+    desired_comercial = _normalize_set(cor_comercial)
+    desired_base = _normalize_set(cor_base)
+
+    query_preview = str(query or "").replace("\n", " ").strip()
+    if len(query_preview) > 160:
+        query_preview = query_preview[:160] + "..."
+    print("search_and_prioritize_args", json.dumps({
+        "query": query_preview,
+        "occasions": occasions,
+        "cor_comercial": cor_comercial,
+        "cor_base": cor_base,
+        "top_k": top_k,
+    }, ensure_ascii=False))
+
+    query_embedding = get_embedding(query.strip())
+    query_vector = np.array([query_embedding]).astype('float32')
+    distances, indices = index.search(query_vector, desired_k)
+    prio_especifica = []
+    prio_base = []
+    prio_geral = []
+
+    seen_custom_ids = set()
+    batch = []
+
+    def _flush_batch():
+        nonlocal batch
+        if not batch:
+            return
+        valid_items = validate_and_enrich_candidates(batch)
+        for item in valid_items:
+            if desired_occ_set:
+                slugs = _get_occasion_slugs(item)
+                if slugs:
+                    if not (set(slugs) & desired_occ_set):
+                        continue
+                else:
+                    matched = False
+                    for occ in desired_occ_set:
+                        if _has_occasion(item, occ):
+                            matched = True
+                            break
+                    if not matched:
+                        continue
+            if desired_comercial and _matches_any(_extract_color_commercial_list(item), desired_comercial):
+                prio_especifica.append(item)
+            elif desired_base and _matches_any(_extract_color_base_list(item), desired_base):
+                prio_base.append(item)
+            else:
+                prio_geral.append(item)
+        batch = []
+
+    for idx in indices[0]:
+        if idx == -1:
+            continue
+        meta = metadata[int(idx)].copy()
+        cid = meta.get("custom_id")
+        if cid and cid in seen_custom_ids:
+            continue
+        if cid:
+            seen_custom_ids.add(cid)
+        batch.append(meta)
+        if len(batch) >= 250:
+            _flush_batch()
+    _flush_batch()
+
+    return prio_especifica + prio_base + prio_geral
+
 def _store_context_payload():
     markdown = ""
     path = os.getenv("STORE_CONTEXT_MD_PATH") or "store_context.md"
@@ -1546,10 +1631,11 @@ def _filter_metadata_candidates(cor_base, cor_comercial, occasions, max_candidat
     desired_set = set(desired_occasions)
     collected = []
     for meta in metadata:
-        if desired_base and not _matches_any(_extract_color_base_list(meta), desired_base):
-            continue
-        if desired_comercial and not _matches_any(_extract_color_commercial_list(meta), desired_comercial):
-            continue
+        if desired_base or desired_comercial:
+            base_ok = bool(desired_base and _matches_any(_extract_color_base_list(meta), desired_base))
+            comercial_ok = bool(desired_comercial and _matches_any(_extract_color_commercial_list(meta), desired_comercial))
+            if not (base_ok or comercial_ok):
+                continue
         if desired_set:
             if not (set(_meta_occasions(meta)) & desired_set):
                 continue
@@ -1577,39 +1663,46 @@ def _run_db_search(args):
     exact_color_terms = _normalize_set(colors)
     desired_base = _normalize_set(cor_base)
     desired_comercial = _normalize_set(cor_comercial)
-    limit = int(args.get("limit") or args.get("k") or 4)
+    limit = int(args.get("limit") or args.get("k") or 5)
     if limit < 1:
         limit = 1
-    if limit > 24:
-        limit = 24
+    if limit > 5:
+        limit = 5
     if not metadata or not index:
         load_resources()
     candidates = _filter_metadata_candidates(cor_base, cor_comercial, occasions, max_candidates=max(200, limit * 40))
     enriched = validate_and_enrich_candidates(candidates)
     desired_sizes = _normalize_set(sizes)
     desired_occ_set = set(occasions)
-    filtered = []
+    commercial = []
+    base = []
+    general = []
+    seen_custom_ids = set()
     for item in enriched:
-        if desired_base and not _matches_any(_extract_color_base_list(item), desired_base):
-            continue
-        if desired_comercial and not _matches_any(_extract_color_commercial_list(item), desired_comercial):
-            continue
         if desired_sizes and not _matches_any(_extract_size_list(item), desired_sizes):
             continue
         if desired_occ_set:
             if not (set(_get_occasion_slugs(item)) & desired_occ_set):
                 continue
-        filtered.append(item)
-        if len(filtered) >= limit:
-            break
-    exact_filtered = []
-    if exact_color_terms:
-        for item in filtered:
-            if _matches_any(_extract_color_list(item), exact_color_terms):
-                exact_filtered.append(item)
-    else:
-        exact_filtered = list(filtered)
-    no_principal = bool(exact_color_terms and filtered and not exact_filtered)
+        cid = item.get("custom_id")
+        if cid and cid in seen_custom_ids:
+            continue
+        if cid:
+            seen_custom_ids.add(cid)
+        comercial_ok = bool(desired_comercial and _matches_any(_extract_color_commercial_list(item), desired_comercial))
+        base_ok = bool(desired_base and _matches_any(_extract_color_base_list(item), desired_base))
+        if desired_base or desired_comercial:
+            if not (comercial_ok or base_ok):
+                continue
+        if comercial_ok:
+            commercial.append(item)
+        elif base_ok:
+            base.append(item)
+        else:
+            general.append(item)
+    filtered = (commercial + base + general)[:limit]
+    exact_filtered = commercial[:limit] if desired_comercial else list(filtered)
+    no_principal = bool(desired_comercial and filtered and not exact_filtered)
     if not filtered:
         return {
             "items": [],
@@ -1643,7 +1736,7 @@ def _run_similarity_search(args):
     exact_color_terms = _normalize_set(colors)
     desired_base = _normalize_set(cor_base)
     desired_comercial = _normalize_set(cor_comercial)
-    query = args.get("other_characteristics") or args.get("demais_caracteristicas") or args.get("query") or ""
+    query = args.get("other_characteristics")
     limit = int(args.get("limit") or args.get("k") or 5)
     if limit < 1:
         limit = 1
@@ -1660,11 +1753,7 @@ def _run_similarity_search(args):
             candidate_k = ntotal
         else:
             candidate_k = max(limit * 20, 120)
-    query_terms = []
-    if isinstance(query, str) and query.strip():
-        query_terms.append(query.strip())
-    query_terms.extend(_ensure_list(sizes))
-    query = " ".join([str(t).strip() for t in query_terms if str(t).strip()]).strip()
+    query = str(query or "").strip()
     debug_payload = {
         "cor_base": cor_base,
         "cor_comercial": cor_comercial,
@@ -1677,37 +1766,60 @@ def _run_similarity_search(args):
     print("bella_tool_preprocessed", json.dumps(debug_payload, ensure_ascii=False))
     if not query:
         if not (cor_base or cor_comercial or sizes or occasions):
-            return {"items": [], "error": {"type": "no_results", "message": "Busca não retornou resultados."}}
+            return {"items": []}
         db_result = _run_db_search(args)
-        items = db_result.get("exact_items") or db_result.get("items") or []
+        items = db_result.get("items") or []
         result_payload = {"items": items[:limit]}
         print("bella_tool_result", json.dumps({"count": len(result_payload["items"])}, ensure_ascii=False))
         if not result_payload["items"]:
             result_payload["error"] = {"type": "no_results", "message": "Busca não retornou resultados."}
         return result_payload
-    if desired_base or desired_comercial or occasions or sizes:
-        results = execute_catalog_search_raw(query, k=candidate_k)
-    else:
-        results = execute_catalog_search(query, k=candidate_k)
+
+    if not index or not metadata:
+        load_resources()
+    results = search_and_prioritize(
+        index=index,
+        metadata=metadata,
+        query=query,
+        occasions=occasions,
+        cor_comercial=cor_comercial,
+        cor_base=cor_base,
+        top_k=candidate_k,
+    )
     if occasions:
         results = _filter_items_by_occasions(results, occasions)
     desired_sizes = _normalize_set(sizes)
     desired_occ_set = set(occasions)
     exact_items = []
+    fallback_items = []
+    seen_custom_ids = set()
     for item in results:
-        if desired_base and not _matches_any(_extract_color_base_list(item), desired_base):
-            continue
-        if desired_comercial and not _matches_any(_extract_color_commercial_list(item), desired_comercial):
-            continue
         if desired_sizes and not _matches_any(_extract_size_list(item), desired_sizes):
             continue
         if desired_occ_set and not (set(_get_occasion_slugs(item)) & desired_occ_set):
             continue
-        if exact_color_terms and not _matches_any(_extract_color_list(item), exact_color_terms):
+        cid = item.get("custom_id")
+        if cid and cid in seen_custom_ids:
             continue
-        exact_items.append(item)
+        if cid:
+            seen_custom_ids.add(cid)
+        comercial_ok = bool(desired_comercial and _matches_any(_extract_color_commercial_list(item), desired_comercial))
+        base_ok = bool(desired_base and _matches_any(_extract_color_base_list(item), desired_base))
+        if desired_base or desired_comercial:
+            if not (comercial_ok or base_ok):
+                continue
+        if desired_comercial:
+            if comercial_ok:
+                exact_items.append(item)
+            elif base_ok:
+                fallback_items.append(item)
+        else:
+            exact_items.append(item)
         if len(exact_items) >= limit:
             break
+    if desired_comercial and len(exact_items) < limit and fallback_items:
+        needed = limit - len(exact_items)
+        exact_items.extend(fallback_items[:needed])
     result_payload = {"items": exact_items[:limit]}
     print("bella_tool_result", json.dumps({"count": len(result_payload["items"])}, ensure_ascii=False))
     if not result_payload["items"]:
@@ -2207,7 +2319,6 @@ def ai_catalog_search():
 
     try:
         target_occasion = (data.get("occasion") or data.get("category") or "").lower().strip()
-        rewritten = _rewrite_catalog_query(query, target_occasion)
 
         def _extract_color_value(obj):
             v = obj.get("cor") or obj.get("cores") or obj.get("color") or obj.get("colors")
@@ -2253,60 +2364,21 @@ def ai_catalog_search():
                 return v.strip()
             return ""
 
-        query_for_embedding = _query_embedding_text_from_rewrite(rewritten, target_occasion) if isinstance(rewritten, dict) else None
-        if not isinstance(query_for_embedding, str) or not query_for_embedding.strip():
-            query_for_embedding = rewritten.get("query_reescrita") if isinstance(rewritten, dict) else None
-        if not isinstance(query_for_embedding, str) or not query_for_embedding.strip():
-            query_for_embedding = query
-
-        query_embedding = get_embedding(query_for_embedding)
-        query_vector = np.array([query_embedding]).astype('float32')
-
         ntotal = int(getattr(index, "ntotal", 0) or 0)
         if ntotal <= 0:
             ntotal = len(metadata) if isinstance(metadata, list) else 0
         if ntotal <= 0:
             return jsonify({"results": [], "page": 1, "total_pages": 0})
 
-        target_slug = target_occasion.replace("-", "_") if target_occasion else ""
-        db_field = f"occasion_{target_slug}" if target_slug else ""
-        known_occasions = {"occasion_noiva", "occasion_civil", "occasion_madrinha", "occasion_mae_dos_noivos", "occasion_formatura", "occasion_debutante", "occasion_gala", "occasion_convidada"}
-
-        valid_results = []
-        seen_custom_ids = set()
-        processed_k = 0
-        search_k = min(max(200, limit * 25), ntotal)
-
-        while processed_k < ntotal:
-            distances, indices = index.search(query_vector, search_k)
-            new_positions = indices[0][processed_k:search_k]
-            processed_k = search_k
-
-            raw_results = []
-            for idx in new_positions:
-                if idx == -1:
-                    continue
-                meta = metadata[int(idx)].copy()
-                cid = meta.get("custom_id")
-                if cid and cid in seen_custom_ids:
-                    continue
-                if cid:
-                    seen_custom_ids.add(cid)
-                raw_results.append(meta)
-
-            batch_valid = validate_and_enrich_candidates(raw_results)
-
-            if target_occasion:
-                if db_field in known_occasions:
-                    batch_valid = [item for item in batch_valid if _flag_is_set(item.get(db_field))]
-                else:
-                    batch_valid = [item for item in batch_valid if _has_occasion(item, target_occasion)]
-
-            valid_results.extend(batch_valid)
-
-            if processed_k >= ntotal:
-                break
-            search_k = min(ntotal, max(processed_k + 200, search_k * 2))
+        valid_results = search_and_prioritize(
+            index=index,
+            metadata=metadata,
+            query=query,
+            occasions=target_occasion or None,
+            cor_comercial=None,
+            cor_base=None,
+            top_k=ntotal,
+        )
 
         # 3. Paginação em memória
         total_valid = len(valid_results)

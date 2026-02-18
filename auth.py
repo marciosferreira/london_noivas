@@ -49,11 +49,22 @@ def init_auth_routes(
         "Azul",
         "Verde",
         "Rosa",
-        "Vermelho/Vinho",
-        "Amarelo/Laranja",
-        "Bege/Nude",
-        "Roxo/Lilás",
-        "Cinza/Metal",
+        "Vermelho",
+        "Vinho",
+        "Bege",        
+        "Roxo",
+        "Lilás",
+        "Vermelho",
+        "Vinho",
+        "Amarelo",	
+        "Laranja",
+        "Bege",
+        "Nude",
+        "Roxo",
+        "Lilás",
+        "Cinza",
+        "Metal",
+        "Cinza",        
     ]
 
     def _normalize_color_entry(entry):
@@ -1651,6 +1662,7 @@ def get_user_stats(
     except Exception as e:
         print(f"Erro ao recuperar estatísticas do usuário: {e}")
         return None
+    
 
 
 
