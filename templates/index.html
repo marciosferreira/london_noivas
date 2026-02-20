@@ -412,6 +412,7 @@
             <script>
                 let conversationHistory = [];
                 const chatStorageKey = 'bella_chat_history';
+                const chatHistoryLimit = 30;
 
                 function normalizeSavedItems(items) {
                     if (!Array.isArray(items) || !items.length) return [];
@@ -456,7 +457,7 @@
 
                 function saveChatHistory() {
                     try {
-                        const trimmed = conversationHistory.slice(-10);
+                        const trimmed = conversationHistory.slice(-chatHistoryLimit);
                         conversationHistory = trimmed;
                         localStorage.setItem(chatStorageKey, JSON.stringify(trimmed));
                     } catch (error) {
@@ -471,13 +472,13 @@
                         const parsed = JSON.parse(raw);
                         if (!Array.isArray(parsed)) return [];
                         const cleaned = parsed
-                            .filter((msg) => msg && ['user', 'assistant'].includes(msg.role) && msg.content)
+                            .filter((msg) => msg && ['user', 'assistant', 'thought'].includes(msg.role) && msg.content)
                             .map((msg) => ({
                                 role: msg.role,
                                 content: msg.content,
-                                items: Array.isArray(msg.items) ? normalizeSavedItems(msg.items) : []
+                                items: msg.role === 'assistant' && Array.isArray(msg.items) ? normalizeSavedItems(msg.items) : []
                             }));
-                        return cleaned.slice(-10);
+                        return cleaned.slice(-chatHistoryLimit);
                     } catch (error) {
                         return [];
                     }
@@ -494,7 +495,11 @@
                     }
                     conversationHistory = stored;
                     stored.forEach((msg) => {
-                        addMessage(msg.content, msg.role === 'assistant' ? 'bot' : 'user', msg.role === 'assistant' ? msg.items : null);
+                        addMessage(
+                            msg.content,
+                            msg.role === 'assistant' ? 'bot' : (msg.role === 'thought' ? 'thought' : 'user'),
+                            msg.role === 'assistant' ? msg.items : null
+                        );
                     });
                 }
 
@@ -604,13 +609,21 @@
                     conversationHistory.push({ role: "user", content: message });
                     saveChatHistory();
                     setChatBusy(true);
+                    
+                    // Add loading indicator
                     const loadingId = addLoading({ forceScroll: true });
+                    const loadingEl = document.getElementById(loadingId);
+                    const loadingTextEl = loadingEl ? loadingEl.querySelector('span') : null;
 
                     try {
-                        const historySnapshot = conversationHistory.slice(-10).map((msg) => ({
-                            role: msg.role,
-                            content: msg.content
-                        }));
+                        const historySnapshot = conversationHistory
+                            .filter((msg) => msg && ['user', 'assistant'].includes(msg.role) && msg.content)
+                            .slice(-10)
+                            .map((msg) => ({
+                                role: msg.role,
+                                content: msg.content
+                            }));
+                        
                         const response = await fetch('/api/ai-search', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -619,31 +632,73 @@
                                 history: historySnapshot
                             })
                         });
-                        
-                        const data = await response.json();
-                        removeMessage(loadingId);
-                        setChatBusy(false);
-                        
-                        if (data.reply) {
-                            addMessage(data.reply, 'bot', data.items || [], { forceScroll: autoScrollNextAssistant, block: 'start' });
-                            autoScrollNextAssistant = false;
-                            conversationHistory.push({ role: "assistant", content: data.reply, items: normalizeSavedItems(data.items || []) });
+
+                        const reader = response.body.getReader();
+                        const decoder = new TextDecoder();
+                        let buffer = '';
+                        const pensamentosSet = new Set();
+                        const appendThought = (raw) => {
+                            const text = String(raw || '').replace(/^Pensamento:\s*/i, '').trim();
+                            if (!text || pensamentosSet.has(text)) return;
+                            pensamentosSet.add(text);
+                            addMessage(text, 'thought', null, { forceScroll: autoScrollNextAssistant, block: 'end' });
+                            conversationHistory.push({ role: "thought", content: text });
                             saveChatHistory();
-                        }
-                        const resultFrame = document.getElementById('result-frame');
-                        const suggestionsContainer = document.getElementById('suggestions-container');
-                        if (resultFrame) resultFrame.classList.add('hidden');
-                        if (suggestionsContainer) suggestionsContainer.classList.add('hidden');
-                        if (data.error) {
-                            if (typeof data.error === "string") {
-                                addMessage("Desculpe, ocorreu um erro: " + data.error, 'bot', null, { forceScroll: autoScrollNextAssistant, block: 'start' });
-                            } else if (data.error.type && data.error.type !== "no_results") {
-                                const msg = data.error.message || "Erro inesperado.";
-                                addMessage("Desculpe, ocorreu um erro: " + msg, 'bot', null, { forceScroll: autoScrollNextAssistant, block: 'start' });
-                            } else if (!data.reply && data.error.type === "no_results") {
-                                addMessage(data.error.message || "Não encontrei resultados.", 'bot', null, { forceScroll: autoScrollNextAssistant, block: 'start' });
+                        };
+
+                        while (true) {
+                            const { done, value } = await reader.read();
+                            if (done) break;
+                            
+                            buffer += decoder.decode(value, { stream: true });
+                            const lines = buffer.split('\n\n');
+                            buffer = lines.pop(); // Keep the last incomplete chunk
+
+                            for (const line of lines) {
+                                if (line.startsWith('data: ')) {
+                                    try {
+                                        const data = JSON.parse(line.slice(6));
+                                        
+                                        if (data.type === 'thinking' && data.content) {
+                                            appendThought(data.content);
+                                            if (loadingTextEl) loadingTextEl.textContent = 'Bella está pensando';
+                                        } else if (data.reply || data.error || (data.items && data.items.length > 0)) {
+                                            // Final result
+                                            removeMessage(loadingId);
+                                            setChatBusy(false);
+
+                                            const pensamentos = Array.isArray(data.pensamentos) ? data.pensamentos : [];
+                                            pensamentos.forEach(appendThought);
+                                            
+                                            if (data.reply) {
+                                                addMessage(data.reply, 'bot', data.items || [], { forceScroll: autoScrollNextAssistant, block: 'start' });
+                                                autoScrollNextAssistant = false;
+                                                conversationHistory.push({ role: "assistant", content: data.reply, items: normalizeSavedItems(data.items || []) });
+                                                saveChatHistory();
+                                            }
+                                            
+                                            const resultFrame = document.getElementById('result-frame');
+                                            const suggestionsContainer = document.getElementById('suggestions-container');
+                                            if (resultFrame) resultFrame.classList.add('hidden');
+                                            if (suggestionsContainer) suggestionsContainer.classList.add('hidden');
+
+                                            if (data.error) {
+                                                if (typeof data.error === "string") {
+                                                    addMessage("Desculpe, ocorreu um erro: " + data.error, 'bot', null, { forceScroll: autoScrollNextAssistant, block: 'start' });
+                                                } else if (data.error.type && data.error.type !== "no_results") {
+                                                    const msg = data.error.message || "Erro inesperado.";
+                                                    addMessage("Desculpe, ocorreu um erro: " + msg, 'bot', null, { forceScroll: autoScrollNextAssistant, block: 'start' });
+                                                } else if (!data.reply && data.error.type === "no_results") {
+                                                    addMessage(data.error.message || "Não encontrei resultados.", 'bot', null, { forceScroll: autoScrollNextAssistant, block: 'start' });
+                                                }
+                                                autoScrollNextAssistant = false;
+                                            }
+                                        }
+                                    } catch (e) {
+                                        console.error('Error parsing SSE:', e);
+                                    }
+                                }
                             }
-                            autoScrollNextAssistant = false;
                         }
 
                     } catch (error) {
@@ -736,15 +791,18 @@
                     const block = resolvedOptions.block || (sender === 'bot' ? 'start' : 'end');
                     const wasNearBottom = !!container && (container.scrollHeight - container.scrollTop - container.clientHeight) < 120;
                     const div = document.createElement('div');
-                    div.className = "flex gap-3 " + (sender === 'user' ? "flex-row-reverse" : "");
+                    const isUser = sender === 'user';
+                    const isThought = sender === 'thought';
+                    const isBot = sender === 'bot' || isThought;
+                    div.className = "flex gap-3 " + (isUser ? "flex-row-reverse" : "");
                     
-                    const avatar = sender === 'bot' 
+                    const avatar = isBot
                         ? `<div class="w-8 h-8 rounded-full bg-london-gold flex items-center justify-center text-white flex-shrink-0"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" /></svg></div>`
                         : `<div class="w-8 h-8 rounded-full bg-stone-200 flex items-center justify-center text-stone-600 flex-shrink-0"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg></div>`;
                     
-                    const bubbleClass = sender === 'bot' 
-                        ? "bg-white text-stone-700 rounded-tl-none border-stone-100" 
-                        : "bg-stone-800 text-white rounded-tr-none";
+                    const bubbleClass = isThought
+                        ? "bg-stone-50 text-stone-500 rounded-tl-none border-stone-200 italic"
+                        : (isBot ? "bg-white text-stone-700 rounded-tl-none border-stone-100" : "bg-stone-800 text-white rounded-tr-none");
                     
                     const markdownText = renderMarkdown(text);
                     div.innerHTML = `
@@ -893,7 +951,7 @@
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 animate-spin"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" /></svg>
                         </div>
                         <div class="bg-white p-3 rounded-lg rounded-tl-none shadow-sm text-sm text-stone-500 border border-stone-100 flex items-center gap-2">
-                            <span class="italic">Consultando a Bella</span>
+                            <span class="italic">Bella está pensando</span>
                             <div class="flex space-x-1 h-3 items-center">
                                 <div class="w-2 h-2 bg-london-gold rounded-full animate-bounce" style="animation-delay: 0s"></div>
                                 <div class="w-2 h-2 bg-london-gold rounded-full animate-bounce" style="animation-delay: 0.1s"></div>

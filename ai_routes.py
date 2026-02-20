@@ -9,7 +9,7 @@ import unicodedata
 import threading
 import boto3
 from boto3.dynamodb.conditions import Key, Attr
-from flask import Blueprint, request, jsonify, url_for, current_app, session
+from flask import Blueprint, request, jsonify, url_for, current_app, session, Response, stream_with_context
 from dotenv import load_dotenv
 from ai_sync_service import get_index_status, sync_index as service_sync_index, get_progress
 
@@ -210,6 +210,7 @@ def _coerce_similarity_color_fields(args):
     base_by_norm = {_normalize_text(v): v for v in (cor_base_options or []) if str(v).strip()}
     comercial_by_norm = {_normalize_text(v): v for v in (cor_comercial_options or []) if str(v).strip()}
 
+    unknown_terms = []
     moved_to_comercial = []
     kept_base = []
     for v in cor_base:
@@ -222,7 +223,7 @@ def _coerce_similarity_color_fields(args):
         if vn in comercial_by_norm:
             moved_to_comercial.append(comercial_by_norm[vn])
             continue
-        kept_base.append(v.strip())
+        unknown_terms.append(v.strip())
 
     moved_to_base = []
     kept_comercial = []
@@ -236,7 +237,7 @@ def _coerce_similarity_color_fields(args):
         if vn in base_by_norm:
             moved_to_base.append(base_by_norm[vn])
             continue
-        kept_comercial.append(v.strip())
+        unknown_terms.append(v.strip())
 
     kept_base = list(dict.fromkeys(kept_base + moved_to_base))
     kept_comercial = list(dict.fromkeys(kept_comercial + moved_to_comercial))
@@ -249,6 +250,12 @@ def _coerce_similarity_color_fields(args):
         args["cor_comercial"] = kept_comercial
     elif "corComercial" in args:
         args["corComercial"] = kept_comercial
+    if unknown_terms:
+        args["_unknown_color_terms"] = list(dict.fromkeys([t for t in unknown_terms if t]))
+        existing = args.get("other_characteristics")
+        existing_text = str(existing or "").strip()
+        suffix = " ".join([t for t in unknown_terms if t])
+        args["other_characteristics"] = (existing_text + " " + suffix).strip() if existing_text else suffix
 
     return args
 
@@ -268,35 +275,29 @@ def _validate_similarity_args(args):
     check_list(["sizes", "tamanhos", "size", "tamanho"], "sizes")
     if errors:
         return errors
-    cor_base_options, cor_comercial_options = _color_enums_for_account()
-    if cor_base_options:
-        invalid = [v for v in cor_base if v not in cor_base_options]
-        if invalid:
-            errors.append({
-                "field": "cor_base",
-                "message": "Valores inválidos",
-                "invalid": invalid,
-                "allowed": cor_base_options,
-            })
-    if cor_comercial_options:
-        invalid = [v for v in cor_comercial if v not in cor_comercial_options]
-        if invalid:
-            errors.append({
-                "field": "cor_comercial",
-                "message": "Valores inválidos",
-                "invalid": invalid,
-                "allowed": cor_comercial_options,
-            })
-    allowed_occasions = ["Noiva", "Civil", "Madrinha", "Mãe dos Noivos", "Formatura", "Debutante", "Gala", "Convidada"]
-    invalid_occ = [v for v in occasions if v not in allowed_occasions]
-    if invalid_occ:
-        errors.append({
-            "field": "occasions",
-            "message": "Valores inválidos",
-            "invalid": invalid_occ,
-            "allowed": allowed_occasions,
-        })
-    return errors
+    try:
+        cor_base_options, cor_comercial_options = _color_enums_for_account()
+    except Exception:
+        cor_base_options, cor_comercial_options = [], []
+    if cor_base_options and isinstance(cor_base, list):
+        filtered_base = [v for v in cor_base if v in cor_base_options]
+        if "cor_base" in args:
+            args["cor_base"] = filtered_base
+        elif "corBase" in args:
+            args["corBase"] = filtered_base
+    if cor_comercial_options and isinstance(cor_comercial, list):
+        filtered_comercial = [v for v in cor_comercial if v in cor_comercial_options]
+        if "cor_comercial" in args:
+            args["cor_comercial"] = filtered_comercial
+        elif "corComercial" in args:
+            args["corComercial"] = filtered_comercial
+    if isinstance(occasions, list):
+        normalized_occasions = _normalize_occasion_inputs(occasions)
+        for key in ["occasions", "ocasioes", "occasion"]:
+            if key in args:
+                args[key] = normalized_occasions
+                break
+    return []
 
 def _expand_color_terms(colors):
     raw = _ensure_list(colors)
@@ -1053,6 +1054,20 @@ def _query_embedding_text_from_rewrite_attrs_only(data):
     tokens = list(dict.fromkeys(tokens))
     return " ".join(tokens)
 
+def _check_facet_match(vals, reqs):
+    if not vals or not reqs:
+        return False
+    # vals and reqs are sets/lists of normalized strings
+    for r in reqs:
+        for v in vals:
+            if r == v: return True
+            # Partial match: "azul" in "azul marinho" or "verde" in "verde menta"
+            if len(r) > 2 and r in v: return True
+            # Reverse partial: "azul marinho" query matches "azul" item? 
+            # Maybe safer to stick to query-in-item for loose search, 
+            # but for reranking, query "azul" should boost "azul marinho".
+    return False
+
 def _apply_facet_constraints(candidates, rewrite_data):
     if not candidates:
         return candidates
@@ -1137,9 +1152,10 @@ def _apply_facet_constraints(candidates, rewrite_data):
         if facet == "occasions":
             nv = set(_canonical_occasion(x) for x in values if str(x).strip())
             nv = set(x for x in nv if x)
+            return bool(nv.intersection(needed))
         else:
             nv = set(norm(x) for x in values if str(x).strip())
-        return bool(nv.intersection(needed))
+            return _check_facet_match(nv, needed)
     # termos_excluir globais
     exclude_terms = set()
     te = rewrite_data.get("termos_excluir")
@@ -1321,7 +1337,7 @@ def _rerank_by_facets_loose(candidates, rewrite_data):
             need[k] = set(norm(s) for s in v if str(s).strip())
         elif isinstance(v, str) and v.strip():
             need[k] = {norm(v)}
-    weights = {"color_base":2,"color_comercial":2,"silhouette":2,"neckline":1,"sleeves":1,"details":1,"fabrics":1}
+    weights = {"color_base":15,"color_comercial":15,"silhouette":2,"neckline":1,"sleeves":1,"details":1,"fabrics":1}
     def score(c):
         mf = c.get("metadata_filters", {}) or {}
         s = 0
@@ -1329,15 +1345,16 @@ def _rerank_by_facets_loose(candidates, rewrite_data):
             vals = mf.get("colors")
             if isinstance(vals, list):
                 nv = set(norm(x) for x in vals if str(x).strip())
-                if color_base_need and nv.intersection(color_base_need):
+                # Use fuzzy match
+                if color_base_need and _check_facet_match(nv, color_base_need):
                     s += weights["color_base"]
-                if color_comercial_need and nv.intersection(color_comercial_need):
+                if color_comercial_need and _check_facet_match(nv, color_comercial_need):
                     s += weights["color_comercial"]
         for k, req in need.items():
             vals = mf.get(k)
             if isinstance(vals, list):
                 nv = set(norm(x) for x in vals if str(x).strip())
-                if nv.intersection(req):
+                if _check_facet_match(nv, req):
                     s += weights.get(k, 1)
         return s
     ranked = sorted(
@@ -1777,6 +1794,10 @@ def _mcp_tools():
             "inputSchema": {
                 "type": "object",
                 "properties": {
+                    "pensamento": {
+                        "type": "string",
+                        "description": "Pensamento do agente sobre o que pretende fazer e por que decidiu chamar esta ferramenta."
+                    },
                     "other_characteristics": {
                         "type": "string",
                         "description": "Características livres como tomara que caia, renda, brilho, fenda, cauda sereia, etc."
@@ -1808,7 +1829,7 @@ def _mcp_tools():
                         "default": 6
                     }
                 },
-                "required": []
+                "required": ["pensamento"]
             }
         },
         {
@@ -1816,7 +1837,13 @@ def _mcp_tools():
             "description": "Retorna um markdown com contexto oficial da loja para apoiar a resposta. Use quando o cliente perguntar sobre a loja.",
             "inputSchema": {
                 "type": "object",
-                "properties": {}
+                "properties": {
+                    "pensamento": {
+                        "type": "string",
+                        "description": "Pensamento do agente sobre o que pretende fazer e por que decidiu chamar esta ferramenta."
+                    }
+                },
+                "required": ["pensamento"]
             }
         },
         {
@@ -1824,7 +1851,13 @@ def _mcp_tools():
             "description": "Resumo de cores por ocasião com contagem real do catálogo. Use quando não houver resultados obtidos pela tool buscar_por_similaridade e use a resposta desta tool para sugerir cores alternativas.",
             "inputSchema": {
                 "type": "object",
-                "properties": {}
+                "properties": {
+                    "pensamento": {
+                        "type": "string",
+                        "description": "Pensamento do agente sobre o que pretende fazer e por que decidiu chamar esta ferramenta."
+                    }
+                },
+                "required": ["pensamento"]
             }
         }
     ]
@@ -2084,7 +2117,14 @@ def _run_db_search(args):
             "items": [],
             "error": {
                 "type": "no_results",
-                "message": "Busca não retornou resultados."
+                "message": "Busca não retornou resultados.",
+                "requested": {
+                    "cor_base": list(desired_base),
+                    "cor_comercial": list(desired_comercial),
+                    "sizes": list(desired_sizes),
+                    "occasions": list(desired_occ_set),
+                },
+                "agent_guidance": "Não há itens com esses filtros. Sugira alternativas reais do catálogo (use panorama_cores_ocasioes)."
             }
         }
     return {
@@ -2110,6 +2150,7 @@ def _run_similarity_search(args):
     colors = [*cor_base, *cor_comercial]
     sizes = args.get("sizes") or args.get("tamanhos") or args.get("size") or args.get("tamanho") or []
     occasions = _normalize_occasion_inputs(args.get("occasions") or args.get("ocasioes") or args.get("occasion") or [])
+    unknown_color_terms = args.get("_unknown_color_terms") or []
     exact_color_terms = _normalize_set(colors)
     desired_base = _normalize_set(cor_base)
     desired_comercial = _normalize_set(cor_comercial)
@@ -2131,6 +2172,21 @@ def _run_similarity_search(args):
         else:
             candidate_k = max(limit * 20, 120)
     query = str(query or "").strip()
+    if unknown_color_terms and not (cor_base or cor_comercial):
+        return {
+            "items": [],
+            "error": {
+                "type": "no_results",
+                "message": "Cor solicitada não está disponível no catálogo no momento.",
+                "requested": {
+                    "unknown_color_terms": list(unknown_color_terms),
+                    "sizes": list(sizes) if isinstance(sizes, list) else [],
+                    "occasions": list(occasions) if isinstance(occasions, list) else [],
+                    "other_characteristics": query,
+                },
+                "agent_guidance": "Explique que não há itens nessa cor e use panorama_cores_ocasioes para sugerir alternativas reais."
+            }
+        }
     debug_payload = {
         "cor_base": cor_base,
         "cor_comercial": cor_comercial,
@@ -2149,7 +2205,17 @@ def _run_similarity_search(args):
         result_payload = {"items": items[:limit]}
         print("bella_tool_result", json.dumps({"count": len(result_payload["items"])}, ensure_ascii=False))
         if not result_payload["items"]:
-            result_payload["error"] = {"type": "no_results", "message": "Busca não retornou resultados."}
+            result_payload["error"] = {
+                "type": "no_results",
+                "message": "Busca não retornou resultados.",
+                "requested": {
+                    "cor_base": list(cor_base) if isinstance(cor_base, list) else [],
+                    "cor_comercial": list(cor_comercial) if isinstance(cor_comercial, list) else [],
+                    "sizes": list(sizes) if isinstance(sizes, list) else [],
+                    "occasions": list(occasions) if isinstance(occasions, list) else [],
+                },
+                "agent_guidance": "Não há itens com esses filtros. Use panorama_cores_ocasioes para sugerir cores/ocasiões alternativas reais."
+            }
         return result_payload
 
     if not index or not metadata:
@@ -2163,10 +2229,22 @@ def _run_similarity_search(args):
         cor_base=cor_base,
         top_k=candidate_k,
     )
-    if occasions:
-        results = _filter_items_by_occasions(results, occasions)
     desired_sizes = _normalize_set(sizes)
     desired_occ_set = set(occasions)
+    # Re-rank results using loose fuzzy logic to prioritize correct colors
+    # even if vector search found similar items of wrong color
+    rerank_override = {
+        "atributos_extraidos": {
+            "cor_base": list(desired_base),
+            "cor_comercial": list(desired_comercial),
+            "occasions": list(desired_occ_set),
+            "sizes": list(desired_sizes)
+        }
+    }
+    results = _rerank_by_facets_loose(results, rerank_override)
+
+    if occasions:
+        results = _filter_items_by_occasions(results, occasions)
     exact_items = []
     fallback_items = []
     seen_custom_ids = set()
@@ -2200,7 +2278,18 @@ def _run_similarity_search(args):
     result_payload = {"items": exact_items[:limit]}
     print("bella_tool_result", json.dumps({"count": len(result_payload["items"])}, ensure_ascii=False))
     if not result_payload["items"]:
-        result_payload["error"] = {"type": "no_results", "message": "Busca não retornou resultados."}
+        result_payload["error"] = {
+            "type": "no_results",
+            "message": "Busca não retornou resultados.",
+            "requested": {
+                "cor_base": list(cor_base) if isinstance(cor_base, list) else [],
+                "cor_comercial": list(cor_comercial) if isinstance(cor_comercial, list) else [],
+                "sizes": list(sizes) if isinstance(sizes, list) else [],
+                "occasions": list(occasions) if isinstance(occasions, list) else [],
+                "other_characteristics": query,
+            },
+            "agent_guidance": "Explique que não encontrou itens com esses filtros e, em seguida, use panorama_cores_ocasioes para sugerir alternativas reais."
+        }
     return result_payload
 
 def _summarize_items_for_llm(items):
@@ -2259,184 +2348,356 @@ def ai_search():
 
     if not user_message:
         return jsonify({"error": "Mensagem vazia."}), 400
-    current_app.logger.info(
-        "bella_ai_search_start message_len=%s history_len=%s",
-        len(user_message or ""),
-        len(history or []),
-    )
 
-    # System Prompt: Persona Bella (Agente Vendedora)
-    system_prompt = (
-        "Você é a Bella, consultora sênior e estilista da London Noivas. "
-        "Sua missão é entender o sonho da cliente e encontrar o vestido perfeito disponível na loja de aluguéis de vestidos London Noivas. "
-        "PERSONALIDADE:\n"
-        "- Empática, sofisticada e proativa. Use emojis com moderação (✨, 👗).\n"
-        "- Aja como uma consultora real: não apenas entregue links, mas 'venda' o vestido destacando detalhes que combinam com o pedido.\n"
-        "- Faça perguntas de follow-up quando ajudar a refinar a busca ('O que achou do decote?', 'Prefere algo mais armado?').\n"
-        "ESTRATÉGIA DE AGENTE:\n"
-        "- Você pode e deve chamar ferramentas em sequência, mais de uma vez, até ter segurança para recomendar.\n"
-        "- Critério de pronto: antes de encerrar, tente chegar a pelo menos 3 opções viáveis ou explique claramente por que isso não é possível e proponha alternativas.\n"
-        "- Quando houver poucos resultados (0–2) ou a cliente estiver indecisa, seja proativa: use `panorama_cores_ocasioes` para propor variações de cor/ocasião e rode nova busca com critérios ajustados.\n"
-        "REGRAS DE RESPOSTA:\n"
-        "- Responda em markdown.\n"
-        "- Mostre até 5 itens retornados pela ferramenta.\n"
-        "- Para cada item, escreva: **Título** — descrição breve (1–2 frases). Se houver, inclua cor e tamanho.\n"
-        "- Em seguida, exiba a imagem com markdown: ![Título](image_url).\n"
-        "- Não mostre IDs nem campos técnicos.\n"
-        "- Após listar os vestidos, explique de forma natural quais filtros foram usados na busca (ex.: cor, ocasião, tamanho ou restrições do pedido). Quando houver contexto anterior influenciando a busca, deixe isso claro.\n"
-        "- Se não houver itens, NÃO invente vestidos. Use a tool `panorama_cores_ocasioes` e proponha alternativas reais do catálogo.\n"
-        "- SEMPRE finalize com uma pergunta de follow-up.\n"
-        "- Quando a cliente mudar a preferência (ex.: 'mais discreto', 'sem fenda', 'menos brilho', 'decote fechado'), refaça a busca com esses critérios e traga novas opções.\n"
-        "- Traduza adjetivos comuns em restrições do catálogo: 'discreto' → silhueta clássica (reto/evasê), decote discreto, sem fenda, poucos detalhes, cores neutras; 'chamativo' → brilho, fenda, decotes marcantes, cores vivas; 'romântico' → renda/volume; etc.\n"
-        "- Se não houver opções após os filtros, faça nova busca relaxando critérios (cor próxima, tamanho aproximado, ocasião relacionada) e informe isso no texto.\n"
-        "- Quando não houver resultados ou quando vierem menos de 3 opções, use a ferramenta `panorama_cores_ocasioes` para entender a distribuição por ocasião e sugerir alternativas com base em quantidades reais e cores similares.\n"
-        "SEM RESULTADOS (USO DE PANORAMA):\n"
-        "- Quando `buscar_por_similaridade` retornar `items` vazio ou `error.type = no_results`, chame `panorama_cores_ocasioes`.\n"
-        "- Use a resposta do panorama para sugerir alternativas no seguinte formato (exatamente como lista com hífen):\n"
-        "  - Vermelho/Vinho (Bordô) — 7 opções para convidadas e 11 para madrinhas.\n"
-        "  - Verde Esmeralda — disponível em 12 opções para gala.\n"
-        "  - Azul Royal — disponível em 11 opções para gala.\n"
-        "- Regras do formato: 3 a 6 linhas, cada linha é uma cor (cor_base e/ou cor_comercial) e contagens por ocasião com números reais do panorama.\n"
-        "- Priorize ocasiões do pedido; se não houver, priorize Gala, Convidada e Madrinha.\n"
-        "- Se o panorama retornar `total_items = 0`, diga que não há itens no catálogo no momento e peça para ajustar (ou aguardar atualização).\n"
-        "USO DE FERRAMENTAS:\n"
-        "- Para buscar vestidos e montar recomendações, use `buscar_por_similaridade`.\n"
-        "- Para entender disponibilidade por ocasião/cor e sugerir alternativas de forma proativa, use `panorama_cores_ocasioes`.\n"
-        "- Quando a cliente perguntar sobre a loja (nome, ramo, endereço, horário, atendimento ou política de venda), use `consultar_contexto_loja` apenas como contexto e responda de forma natural, sem copiar o markdown literalmente.\n"
-        "- Preencha `cor_base`, `cor_comercial`, `sizes` e `other_characteristics` conforme o pedido.\n"
-        "- Preencha `occasions` apenas quando houver ocasião explícita ou contexto claro. Use uma das opções: Noiva, Civil, Madrinha, Mãe dos Noivos, Formatura, Debutante, Gala, Convidada.\n"
-        "- Quando a ocasião não estiver clara, deixe `occasions` vazio.\n"
-        "- Se a cliente disser uma cor genérica (ex.: azul), inclua essa cor em `cor_base`.\n"
-        "- Se a busca não retornar nada, faça nova busca relaxando critérios (cor próxima, tamanho aproximado, ocasião relacionada) e informe isso no texto.\n"
-        "- Se a ferramenta retornar `error`, explique o erro e refaça a chamada corrigindo os campos. Quando `type` for `no_results`, informe que não encontrou resultados e pergunte como ajustar.\n"
-        "- A ferramenta retorna JSON com `items` e pode incluir `error`.\n"
-    )
-
-    # Constrói mensagens
-    messages = [{"role": "system", "content": system_prompt}]
-    
-    # Adiciona histórico (simplificado)
-    if history:
-        for msg in history:
-            if isinstance(msg, dict) and msg.get('role') in ['user', 'assistant'] and msg.get('content'):
-                messages.append({"role": msg['role'], "content": msg['content']})
-    
-    messages.append({"role": "user", "content": user_message})
-
-    try:
-        tools = _mcp_to_openai_tools(_mcp_tools())
-    except Exception as e:
-        current_app.logger.error("bella_tool_schema_error error=%s", str(e))
-        return jsonify({"error": "tool_schema_error", "message": str(e)}), 500
-    try:
-        current_app.logger.info("bella_tool_schema tools=%s", json.dumps(tools, ensure_ascii=False))
-    except Exception:
-        pass
-
-    try:
-        reply_text = ""
-        client_payload = None
-        max_turns = 6
-
-        for _ in range(max_turns):
-            response = client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=messages,
-                tools=tools,
-                tool_choice="auto"
+    def generate():
+        try:
+            current_app.logger.info(
+                "bella_ai_search_start message_len=%s history_len=%s",
+                len(user_message or ""),
+                len(history or []),
             )
-            response_message = response.choices[0].message
-            if response_message.tool_calls:
-                messages.append(response_message)
-                for tool_call in response_message.tool_calls:
-                    tool_name = tool_call.function.name
-                    args = json.loads(tool_call.function.arguments or "{}")
-                    print("bella_tool_called", json.dumps({"tool": tool_name, "args": args}, ensure_ascii=False))
-                    current_app.logger.info(
-                        "bella_tool_call tool=%s args=%s",
-                        tool_name,
-                        json.dumps(args, ensure_ascii=False),
-                    )
-                    if tool_name == "buscar_por_similaridade":
-                        tool_results = _run_similarity_search(args)
-                        tool_items = tool_results or []
-                        summary_payload = _summarize_items_for_llm(tool_items)
-                        client_payload = _summarize_items_for_client(tool_items)
-                        print("bella_tool_raw_result", json.dumps(summary_payload, ensure_ascii=False))
-                        current_app.logger.info(
-                            "bella_tool_output tool=%s output=%s",
-                            tool_name,
-                            json.dumps(summary_payload, ensure_ascii=False),
-                        )
-                        current_app.logger.info(
-                            "bella_tool_result tool=%s results=%s",
-                            tool_name,
-                            len(summary_payload.get("items") or []),
-                        )
-                        summary = json.dumps(summary_payload, ensure_ascii=False)
-                    elif tool_name == "panorama_cores_ocasioes":
-                        account_id = session.get("account_id") if session else None
-                        if not account_id:
-                            account_id = _pick_public_account_id()
-                        panorama_payload = None
-                        if itens_table and account_id:
-                            try:
-                                panorama_payload = _build_color_occasion_panorama_from_db(account_id)
-                            except Exception:
-                                panorama_payload = None
-                        if panorama_payload is None:
-                            if not metadata:
-                                load_resources()
-                            panorama_payload = _build_color_occasion_panorama(metadata)
-                        print("bella_tool_raw_result", json.dumps(panorama_payload, ensure_ascii=False))
-                        current_app.logger.info(
-                            "bella_tool_output tool=%s output=%s",
-                            tool_name,
-                            json.dumps(panorama_payload, ensure_ascii=False),
-                        )
-                        summary = json.dumps(panorama_payload, ensure_ascii=False)
-                    elif tool_name == "consultar_contexto_loja":
-                        context_payload = _store_context_payload()
-                        print("bella_tool_raw_result", json.dumps(context_payload, ensure_ascii=False))
-                        current_app.logger.info(
-                            "bella_tool_output tool=%s output=%s",
-                            tool_name,
-                            json.dumps(context_payload, ensure_ascii=False),
-                        )
-                        summary = json.dumps(context_payload, ensure_ascii=False)
-                    else:
-                        summary = json.dumps({"error": "tool_not_found"}, ensure_ascii=False)
 
-                    messages.append({
-                        "tool_call_id": tool_call.id,
-                        "role": "tool",
-                        "name": tool_name,
-                        "content": summary
-                    })
-                continue
-            reply_text = response_message.content
-            current_app.logger.info("bella_no_tool_response")
-            break
-
-        if not reply_text:
-            final_response = client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=messages
+            # System Prompt: Persona Bella (Agente Vendedora)
+            system_prompt = (
+                "Você é a Bella, consultora sênior e estilista da London Noivas. "
+                "Sua missão é entender o sonho da cliente e encontrar o vestido perfeito disponível na loja de aluguéis de vestidos London Noivas. "
+                "PERSONALIDADE:\n"
+                "- Empática, sofisticada e proativa. Use emojis com moderação (✨, 👗).\n"
+                "- Aja como uma consultora real: não apenas entregue links, mas 'venda' o vestido destacando detalhes que combinam com o pedido.\n"
+                "- Faça perguntas de follow-up quando ajudar a refinar a busca ('O que achou do decote?', 'Prefere algo mais armado?').\n"
+                "ESTRATÉGIA DE AGENTE:\n"
+                "- Você pode e deve chamar ferramentas em sequência, mais de uma vez, até ter segurança para recomendar.\n"
+                "- Critério de pronto: antes de encerrar, tente chegar a pelo menos 3 opções viáveis ou explique claramente por que isso não é possível e proponha alternativas.\n"
+                "- Quando houver poucos resultados (0–2) ou a cliente estiver indecisa, seja proativa: use `panorama_cores_ocasioes` para propor variações de cor/ocasião e rode nova busca com critérios ajustados.\n"
+                "REGRAS DE RESPOSTA:\n"
+                "- Responda em markdown.\n"
+                "- Mostre até 5 itens retornados pela ferramenta.\n"
+                "- Para cada item, escreva: **Título** — descrição breve (1–2 frases). Se houver, inclua cor e tamanho.\n"
+                "- Em seguida, exiba a imagem com markdown: ![Título](image_url).\n"
+                "- Não mostre IDs nem campos técnicos.\n"
+                "- Após listar os vestidos, explique de forma natural quais filtros foram usados na busca (ex.: cor, ocasião, tamanho ou restrições do pedido). Quando houver contexto anterior influenciando a busca, deixe isso claro.\n"
+                "- Se não houver itens, NÃO invente vestidos. Use a tool `panorama_cores_ocasioes` e proponha alternativas reais do catálogo.\n"
+                "- SEMPRE finalize com uma pergunta de follow-up.\n"
+                "- Quando a cliente mudar a preferência (ex.: 'mais discreto', 'sem fenda', 'menos brilho', 'decote fechado'), refaça a busca com esses critérios e traga novas opções.\n"
+                "- Traduza adjetivos comuns em restrições do catálogo: 'discreto' → silhueta clássica (reto/evasê), decote discreto, sem fenda, poucos detalhes, cores neutras; 'chamativo' → brilho, fenda, decotes marcantes, cores vivas; 'romântico' → renda/volume; etc.\n"
+                "- Se não houver opções após os filtros, faça nova busca relaxando critérios (cor próxima, tamanho aproximado, ocasião relacionada) e informe isso no texto.\n"
+                "- Quando não houver resultados ou quando vierem menos de 3 opções, use a ferramenta `panorama_cores_ocasioes` para entender a distribuição por ocasião e sugerir alternativas com base em quantidades reais e cores similares.\n"
+                "SEM RESULTADOS (USO DE PANORAMA):\n"
+                "- Quando `buscar_por_similaridade` retornar `items` vazio ou `error.type = no_results`, chame `panorama_cores_ocasioes`.\n"
+                "- Use a resposta do panorama para sugerir alternativas no seguinte formato (exatamente como lista com hífen):\n"
+                "  - Vermelho/Vinho (Bordô) — 7 opções para convidadas e 11 para madrinhas.\n"
+                "  - Verde Esmeralda — disponível em 12 opções para gala.\n"
+                "  - Azul Royal — disponível em 11 opções para gala.\n"
+                "- Regras do formato: 3 a 6 linhas, cada linha é uma cor (cor_base e/ou cor_comercial) e contagens por ocasião com números reais do panorama.\n"
+                "- Priorize ocasiões do pedido; se não houver, priorize Gala, Convidada e Madrinha.\n"
+                "- Se o panorama retornar `total_items = 0`, diga que não há itens no catálogo no momento e peça para ajustar (ou aguardar atualização).\n"
+                "USO DE FERRAMENTAS:\n"
+                "- Para buscar vestidos e montar recomendações, use `buscar_por_similaridade`.\n"
+                "- Para entender disponibilidade por ocasião/cor e sugerir alternativas de forma proativa, use `panorama_cores_ocasioes`.\n"
+                "- Quando a cliente perguntar sobre a loja (nome, ramo, endereço, horário, atendimento ou política de venda), use `consultar_contexto_loja` apenas como contexto e responda de forma natural, sem copiar o markdown literalmente.\n"
+                "- Preencha `cor_base`, `cor_comercial`, `sizes` e `other_characteristics` conforme o pedido.\n"
+                "- Preencha `occasions` apenas quando houver ocasião explícita ou contexto claro. Use uma das opções: Noiva, Civil, Madrinha, Mãe dos Noivos, Formatura, Debutante, Gala, Convidada.\n"
+                "- Quando a ocasião não estiver clara, deixe `occasions` vazio.\n"
+                "- Se a cliente disser uma cor genérica (ex.: azul), inclua essa cor em `cor_base`.\n"
+                "- Se a busca não retornar nada, faça nova busca relaxando critérios (cor próxima, tamanho aproximado, ocasião relacionada) e informe isso no texto.\n"
+                "- Se a ferramenta retornar `error`, explique o erro e refaça a chamada corrigindo os campos. Quando `type` for `no_results`, informe que não encontrou resultados e pergunte como ajustar.\n"
+                "- A ferramenta retorna JSON com `items` e pode incluir `error`.\n"
+                "USO DE PENSAMENTO:\n"
+                "- Sempre preencha o campo `pensamento` ao chamar qualquer ferramenta, explicando o que você vai fazer e por que decidiu fazer (ex: \"Claro! Vou buscar no catálogo com esses filtros para ver opções reais.\").\n"
+                "- Use \"Claro!\" no `pensamento` apenas na primeira chamada de ferramenta da conversa; nas chamadas seguintes, comece direto com \"Vou...\".\n"
+                "- Quando a busca anterior não retornar resultados, deixe isso explícito no pensamento e justifique a próxima ferramenta (ex: \"Não encontrei na cor solicitada; vou usar o panorama para sugerir alternativas disponíveis.\").\n"
+                "- Não escreva 'Pensamento:' na resposta final ao usuário.\n"
+                "- Nunca escreva marcadores como [tool_call: ...] ou [toolcall: ...] no texto.\n"
+                "- Se você disser que vai buscar/procurar/pesquisar opções no catálogo, você DEVE chamar `buscar_por_similaridade` e continuar a conversa. Não encerre a resposta só com a promessa.\n"
             )
-            reply_text = final_response.choices[0].message.content
-        response_payload = {"reply": reply_text}
-        if client_payload:
-            response_payload["items"] = client_payload.get("items") or []
-            error_payload = client_payload.get("error")
-            if isinstance(error_payload, dict) and error_payload.get("type") == "no_results":
-                error_payload = None
-            if error_payload:
-                response_payload["error"] = error_payload
-        return jsonify(response_payload)
 
-    except Exception as e:
-        current_app.logger.exception("Erro no Agente Bella")
-        return jsonify({"error": str(e)}), 500
+            # Constrói mensagens
+            messages = [{"role": "system", "content": system_prompt}]
+            
+            # Adiciona histórico (simplificado)
+            if history:
+                for msg in history:
+                    if isinstance(msg, dict) and msg.get('role') in ['user', 'assistant'] and msg.get('content'):
+                        messages.append({"role": msg['role'], "content": msg['content']})
+            
+            messages.append({"role": "user", "content": user_message})
+
+            try:
+                tools = _mcp_to_openai_tools(_mcp_tools())
+            except Exception as e:
+                current_app.logger.error("bella_tool_schema_error error=%s", str(e))
+                yield f"data: {json.dumps({'error': str(e)})}\n\n"
+                return
+
+            try:
+                current_app.logger.info("bella_tool_schema tools=%s", json.dumps(tools, ensure_ascii=False))
+            except Exception:
+                pass
+
+            reply_text = ""
+            client_payload = None
+            max_turns = 6
+            forced_tool_name = None
+            thinking_emitted_any = False
+            pensamentos_emitidos = []
+            last_similarity_request = None
+            last_tool_error = None
+            last_tool_name = None
+
+            for _ in range(max_turns):
+                tool_choice_param = "auto"
+                if forced_tool_name:
+                    tool_choice_param = {"type": "function", "function": {"name": forced_tool_name}}
+                    forced_tool_name = None
+                response = client.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=messages,
+                    tools=tools,
+                    tool_choice=tool_choice_param
+                )
+                response_message = response.choices[0].message
+                sent_thinking = False
+                
+                # Check for "Pensamento" (Thinking)
+                if response_message.content and response_message.tool_calls:
+                    thinking = response_message.content or ""
+                    if thinking.strip():
+                        thinking_payload = thinking.strip()
+                        if thinking_emitted_any:
+                            thinking_payload = re.sub(r"^(Pensamento:\s*)?Claro[!,]?\s+", r"\1", thinking_payload, flags=re.IGNORECASE)
+                        yield f"data: {json.dumps({'type': 'thinking', 'content': thinking_payload})}\n\n"
+                        pensamentos_emitidos.append(thinking_payload)
+                        sent_thinking = True
+                        thinking_emitted_any = True
+
+                if response_message.tool_calls:
+                    messages.append(response_message)
+                    for tool_call in response_message.tool_calls:
+                        tool_call_id = getattr(tool_call, "id", None)
+                        tool_name = ""
+                        args = {}
+                        summary = None
+                        try:
+                            tool_fn = getattr(tool_call, "function", None)
+                            tool_name = str(getattr(tool_fn, "name", "") or "").strip()
+                            raw_args = getattr(tool_fn, "arguments", None) or "{}"
+                            if isinstance(raw_args, str):
+                                args = json.loads(raw_args) if raw_args.strip() else {}
+                            elif isinstance(raw_args, dict):
+                                args = raw_args
+                            else:
+                                args = {}
+                        except Exception as e:
+                            args = {}
+                            summary = json.dumps(
+                                {
+                                    "error": {
+                                        "type": "tool_args_parse_error",
+                                        "message": f"Falha ao ler argumentos da ferramenta: {str(e)}",
+                                    }
+                                },
+                                ensure_ascii=False,
+                            )
+
+                        try:
+                            thought = ""
+                            if isinstance(args, dict):
+                                thought = str(args.pop("thought", "") or args.pop("pensamento", "") or "").strip()
+                            if not sent_thinking:
+                                inferred = thought
+                                if not inferred:
+                                    if tool_name == "buscar_por_similaridade":
+                                        inferred = "Claro! Vou buscar no catálogo opções que combinem com o seu pedido."
+                                    elif tool_name == "panorama_cores_ocasioes":
+                                        inferred = "Claro! Vou verificar quais cores e ocasiões têm mais opções disponíveis no catálogo."
+                                    elif tool_name == "consultar_contexto_loja":
+                                        inferred = "Claro! Vou consultar as informações oficiais da loja para te responder certinho."
+                                    else:
+                                        inferred = "Claro! Vou usar uma ferramenta para te ajudar com isso."
+                                    if tool_name == "panorama_cores_ocasioes" and isinstance(last_tool_error, dict) and last_tool_error.get("type") == "no_results" and last_tool_name == "buscar_por_similaridade":
+                                        requested = last_similarity_request or {}
+                                        occ = requested.get("occasions") or []
+                                        cor_base_prev = requested.get("cor_base") or []
+                                        cor_com_prev = requested.get("cor_comercial") or []
+                                        cores_prev = [*cor_base_prev, *cor_com_prev]
+                                        parts = []
+                                        if occ:
+                                            parts.append(" / ".join([str(x) for x in occ if str(x).strip()]))
+                                        if cores_prev:
+                                            parts.append("cor " + " / ".join([str(x) for x in cores_prev if str(x).strip()]))
+                                        contexto = (" (" + ", ".join(parts) + ")") if parts else ""
+                                        inferred = f"Não encontrei resultados na busca anterior{contexto}; vou usar o panorama para sugerir alternativas reais do catálogo."
+                                    if tool_name == "buscar_por_similaridade" and last_tool_name == "panorama_cores_ocasioes":
+                                        inferred = "Com base no panorama, vou fazer uma nova busca no catálogo ajustando os filtros para encontrar opções reais."
+                                if thinking_emitted_any:
+                                    inferred = re.sub(r"^Claro[!,]?\s+", "", str(inferred or "").strip(), flags=re.IGNORECASE)
+                                thinking_payload = f"Pensamento: {inferred}"
+                                yield f"data: {json.dumps({'type': 'thinking', 'content': thinking_payload})}\n\n"
+                                pensamentos_emitidos.append(thinking_payload)
+                                sent_thinking = True
+                                thinking_emitted_any = True
+
+                            print("bella_tool_called", json.dumps({"tool": tool_name, "args": args}, ensure_ascii=False))
+                            current_app.logger.info(
+                                "bella_tool_call tool=%s args=%s",
+                                tool_name,
+                                json.dumps(args, ensure_ascii=False),
+                            )
+
+                            if not summary:
+                                if tool_name == "buscar_por_similaridade":
+                                    tool_results = _run_similarity_search(args)
+                                    tool_items = tool_results or []
+                                    summary_payload = _summarize_items_for_llm(tool_items)
+                                    client_payload = _summarize_items_for_client(tool_items)
+                                    last_tool_name = "buscar_por_similaridade"
+                                    last_tool_error = tool_results.get("error") if isinstance(tool_results, dict) else None
+                                    last_similarity_request = {
+                                        "cor_base": (args.get("cor_base") or []),
+                                        "cor_comercial": (args.get("cor_comercial") or []),
+                                        "sizes": (args.get("sizes") or []),
+                                        "occasions": (args.get("occasions") or []),
+                                        "other_characteristics": (args.get("other_characteristics") or ""),
+                                    } if isinstance(args, dict) else None
+                                    print("bella_tool_raw_result", json.dumps(summary_payload, ensure_ascii=False))
+                                    current_app.logger.info(
+                                        "bella_tool_output tool=%s output=%s",
+                                        tool_name,
+                                        json.dumps(summary_payload, ensure_ascii=False),
+                                    )
+                                    current_app.logger.info(
+                                        "bella_tool_result tool=%s results=%s",
+                                        tool_name,
+                                        len(summary_payload.get("items") or []),
+                                    )
+                                    summary = json.dumps(summary_payload, ensure_ascii=False)
+                                elif tool_name == "panorama_cores_ocasioes":
+                                    last_tool_name = "panorama_cores_ocasioes"
+                                    last_tool_error = None
+                                    account_id = session.get("account_id") if session else None
+                                    if not account_id:
+                                        account_id = _pick_public_account_id()
+                                    panorama_payload = None
+                                    if itens_table and account_id:
+                                        try:
+                                            panorama_payload = _build_color_occasion_panorama_from_db(account_id)
+                                        except Exception:
+                                            panorama_payload = None
+                                    if panorama_payload is None:
+                                        if not metadata:
+                                            load_resources()
+                                        panorama_payload = _build_color_occasion_panorama(metadata)
+                                    print("bella_tool_raw_result", json.dumps(panorama_payload, ensure_ascii=False))
+                                    current_app.logger.info(
+                                        "bella_tool_output tool=%s output=%s",
+                                        tool_name,
+                                        json.dumps(panorama_payload, ensure_ascii=False),
+                                    )
+                                    summary = json.dumps(panorama_payload, ensure_ascii=False)
+                                elif tool_name == "consultar_contexto_loja":
+                                    context_payload = _store_context_payload()
+                                    print("bella_tool_raw_result", json.dumps(context_payload, ensure_ascii=False))
+                                    current_app.logger.info(
+                                        "bella_tool_output tool=%s output=%s",
+                                        tool_name,
+                                        json.dumps(context_payload, ensure_ascii=False),
+                                    )
+                                    summary = json.dumps(context_payload, ensure_ascii=False)
+                                else:
+                                    summary = json.dumps({"error": {"type": "tool_not_found"}}, ensure_ascii=False)
+                        except Exception as e:
+                            current_app.logger.exception("bella_tool_execution_error tool=%s", tool_name)
+                            summary = json.dumps(
+                                {
+                                    "error": {
+                                        "type": "tool_execution_error",
+                                        "message": str(e),
+                                    }
+                                },
+                                ensure_ascii=False,
+                            )
+                        finally:
+                            if not summary:
+                                summary = json.dumps({"error": {"type": "tool_execution_error"}}, ensure_ascii=False)
+                            if tool_call_id:
+                                messages.append({
+                                    "tool_call_id": tool_call_id,
+                                    "role": "tool",
+                                    "name": tool_name or "unknown_tool",
+                                    "content": summary
+                                })
+                    continue
+                content_text = response_message.content or ""
+                marker = re.search(r"\[(?:tool_?call|toolcall)\s*:\s*([^\]\s]+)\s*\]", content_text, re.IGNORECASE)
+                if marker:
+                    raw = marker.group(1) or ""
+                    normalized = re.sub(r"[^a-z0-9]+", "", raw.lower())
+                    tool_map = {
+                        re.sub(r"[^a-z0-9]+", "", t.lower()): t
+                        for t in ["buscar_por_similaridade", "panorama_cores_ocasioes", "consultar_contexto_loja"]
+                    }
+                    guessed = tool_map.get(normalized)
+                    if not guessed and "buscar" in normalized and "similar" in normalized:
+                        guessed = "buscar_por_similaridade"
+                    if guessed:
+                        messages.append({
+                            "role": "system",
+                            "content": "Use function calling. Não escreva marcadores [tool_call] no texto. Chame a ferramenta agora."
+                        })
+                        forced_tool_name = guessed
+                        continue
+                lowered = content_text.lower()
+                promised_action = bool(re.search(r"\b(vou|vamos)\s+(procurar|buscar|pesquisar|verificar|checar|conferir|consultar)\b", lowered))
+                promised_wait = bool(re.search(r"\b(um momento|um instante|s[oó]\s+um\s+instante|aguarde|j[aá]\s+volto)\b", lowered))
+                promised_catalog = ("vestid" in lowered) or ("opç" in lowered) or ("catálogo" in lowered) or ("catalogo" in lowered)
+                if (promised_action or promised_wait) and promised_catalog:
+                    inferred_tool = None
+                    if "loja" in lowered and re.search(r"\b(consultar|verificar|checar|conferir)\b", lowered):
+                        inferred_tool = "consultar_contexto_loja"
+                    elif ("cores" in lowered or "ocasi" in lowered or "dispon" in lowered or "quant" in lowered) and re.search(r"\b(verificar|checar|conferir)\b", lowered):
+                        inferred_tool = "panorama_cores_ocasioes"
+                    elif re.search(r"\b(procurar|buscar|pesquisar)\b", lowered) or ("vestid" in lowered) or ("opç" in lowered):
+                        inferred_tool = "buscar_por_similaridade"
+                    if inferred_tool:
+                        messages.append({
+                            "role": "system",
+                            "content": "Você prometeu fazer uma busca. Use function calling e chame a ferramenta agora, sem encerrar a resposta."
+                        })
+                        forced_tool_name = inferred_tool
+                        continue
+                reply_text = content_text
+                if reply_text:
+                    reply_text = re.sub(r"^\s*Pensamento:.*(?:\n|$)", "", reply_text, flags=re.IGNORECASE | re.MULTILINE)
+                    reply_text = re.sub(r"^\s*\[(?:tool_?call|toolcall)[^\]]*\]\s*(?:\n|$)", "", reply_text, flags=re.IGNORECASE | re.MULTILINE)
+                    reply_text = reply_text.strip()
+                current_app.logger.info("bella_no_tool_response")
+                break
+
+            if not reply_text:
+                final_response = client.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=messages
+                )
+                reply_text = final_response.choices[0].message.content
+            
+            response_payload = {"reply": reply_text}
+            if pensamentos_emitidos:
+                response_payload["pensamentos"] = pensamentos_emitidos
+            if client_payload:
+                response_payload["items"] = client_payload.get("items") or []
+                error_payload = client_payload.get("error")
+                if isinstance(error_payload, dict) and error_payload.get("type") == "no_results":
+                    error_payload = None
+                if error_payload:
+                    response_payload["error"] = error_payload
+            
+            yield f"data: {json.dumps(response_payload)}\n\n"
+
+        except Exception as e:
+            current_app.logger.exception("Erro no Agente Bella")
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+
+    return Response(stream_with_context(generate()), mimetype='text/event-stream')
 
 @ai_bp.route('/api/ai-similar/<item_id>', methods=['GET'])
 def ai_similar(item_id):
