@@ -58,6 +58,26 @@
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
         }
+        .fade-in { animation: fadeInChat 0.35s ease-out; }
+        @keyframes fadeInChat { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes staggerIn { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: translateX(0); } }
+        .stagger-item { animation: staggerIn 0.3s ease-out both; }
+        .stagger-item:nth-child(1) { animation-delay: 0.05s; }
+        .stagger-item:nth-child(2) { animation-delay: 0.12s; }
+        .stagger-item:nth-child(3) { animation-delay: 0.19s; }
+        .stagger-item:nth-child(4) { animation-delay: 0.26s; }
+        .stagger-item:nth-child(5) { animation-delay: 0.33s; }
+        .stagger-item:nth-child(6) { animation-delay: 0.40s; }
+
+        .chat-scroll::-webkit-scrollbar { width: 6px; }
+        .chat-scroll::-webkit-scrollbar-track { background: transparent; }
+        .chat-scroll::-webkit-scrollbar-thumb { background: #C5A059; border-radius: 3px; }
+
+        .bella-item-card { transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s; }
+        .bella-item-card:hover { border-color: rgba(197, 160, 89, 0.4); box-shadow: 0 4px 12px rgba(197, 160, 89, 0.12), 0 1px 3px rgba(0,0,0,0.06); transform: translateX(2px); }
+        .bella-item-card:active { transform: scale(0.99); }
+        .bella-item-card:hover .item-thumb img { transform: scale(1.08); }
+        .bella-item-card:hover .item-cta { color: #C5A059; text-decoration: underline; }
         /* Custom scrollbar */
         ::-webkit-scrollbar {
             width: 8px;
@@ -290,9 +310,19 @@
                             Descreva a ocasião, a cor e o estilo que você imagina. A Bella entende sua descrição e busca no nosso acervo para sugerir as melhores opções — com fotos e alternativas parecidas.
                         </p>
                         
-                        <div id="chat-box-container" class="bg-white rounded-sm shadow-lg border border-stone-200 overflow-hidden flex flex-col h-[400px]">
-                            <!-- Chat Area -->
-                            <div id="chat-messages" class="flex-1 p-4 overflow-y-auto space-y-4 bg-stone-50">
+                        <div id="chat-box-container" class="bg-white rounded-lg shadow-xl border border-stone-200 overflow-hidden flex flex-col h-[400px]">
+                            <div class="flex items-center justify-between px-4 py-3 bg-stone-900 text-white">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-7 h-7 rounded-full bg-london-gold flex items-center justify-center">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" /></svg>
+                                    </div>
+                                    <span class="text-xs tracking-widest font-semibold">ESTILISTA VIRTUAL COM IA</span>
+                                </div>
+                                <button class="rounded-full bg-white/20 p-1.5 text-white/70 hover:text-white" onclick="collapseChatUI()" aria-label="Fechar chat">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                                </button>
+                            </div>
+                            <div id="chat-messages" class="flex-1 p-4 overflow-y-auto space-y-4 bg-stone-50 chat-scroll">
                                 <div class="flex gap-3">
                                     <div class="w-8 h-8 rounded-full bg-london-gold flex items-center justify-center text-white flex-shrink-0">
                                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
@@ -397,15 +427,7 @@
             <div id="chat-overlay" class="fixed inset-0 z-[90] hidden" aria-hidden="true">
                 <div class="absolute inset-0 bg-stone-900/70 backdrop-blur-sm"></div>
                 <div class="relative h-full w-full flex flex-col p-4 md:p-6">
-                    <div class="flex items-center justify-between text-white mb-4">
-                        <span class="text-sm tracking-widest font-semibold">ESTILISTA VIRTUAL COM IA</span>
-                        <button id="chat-overlay-close" class="rounded-full bg-white/20 p-2 text-white hover:bg-white/30" onclick="collapseChatUI()" aria-label="Fechar chat">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
-                            </svg>
-                        </button>
-                    </div>
-                    <div id="chat-overlay-panel" class="flex-1 min-h-0"></div>
+                    <div id="chat-overlay-panel" class="flex-1 min-h-0 w-full max-w-3xl mx-auto flex"></div>
                 </div>
             </div>
 
@@ -614,6 +636,7 @@
                     const loadingId = addLoading({ forceScroll: true });
                     const loadingEl = document.getElementById(loadingId);
                     const loadingTextEl = loadingEl ? loadingEl.querySelector('span') : null;
+                    const loadingThoughtEl = loadingEl ? loadingEl.querySelector('[data-bella-thinking="1"]') : null;
 
                     try {
                         const historySnapshot = conversationHistory
@@ -637,13 +660,15 @@
                         const decoder = new TextDecoder();
                         let buffer = '';
                         const pensamentosSet = new Set();
+                        let thoughtRawText = '';
                         const appendThought = (raw) => {
                             const text = String(raw || '').replace(/^Pensamento:\s*/i, '').trim();
                             if (!text || pensamentosSet.has(text)) return;
                             pensamentosSet.add(text);
-                            addMessage(text, 'thought', null, { forceScroll: autoScrollNextAssistant, block: 'end' });
-                            conversationHistory.push({ role: "thought", content: text });
-                            saveChatHistory();
+                            thoughtRawText = thoughtRawText ? `${thoughtRawText}\n${text}` : text;
+                            if (loadingThoughtEl) loadingThoughtEl.textContent = thoughtRawText;
+                            const container = document.getElementById('chat-messages');
+                            if (container && loadingEl) scrollChatToMessage(container, loadingEl, 'end');
                         };
 
                         while (true) {
@@ -669,6 +694,11 @@
 
                                             const pensamentos = Array.isArray(data.pensamentos) ? data.pensamentos : [];
                                             pensamentos.forEach(appendThought);
+                                            if (thoughtRawText) {
+                                                addMessage(thoughtRawText, 'thought', null, { forceScroll: autoScrollNextAssistant, block: 'end' });
+                                                conversationHistory.push({ role: "thought", content: thoughtRawText });
+                                                saveChatHistory();
+                                            }
                                             
                                             if (data.reply) {
                                                 addMessage(data.reply, 'bot', data.items || [], { forceScroll: autoScrollNextAssistant, block: 'start' });
@@ -784,6 +814,143 @@
                     container.scrollTop = Math.max(0, targetTop);
                 }
 
+                function escapeHtmlSimple(value) {
+                    return String(value ?? "")
+                        .replace(/&/g, "&amp;")
+                        .replace(/</g, "&lt;")
+                        .replace(/>/g, "&gt;")
+                        .replace(/"/g, "&quot;")
+                        .replace(/'/g, "&#039;");
+                }
+
+                function stripMarkdownImages(value) {
+                    return String(value ?? "").replace(/!\[[^\]]*\]\([^)]+\)/g, "").trim();
+                }
+
+                function stripNumberedResultsList(value) {
+                    const text = String(value ?? "");
+                    const match = text.match(/(^|\n)\s*1\.\s+/m);
+                    if (!match || typeof match.index !== 'number') return text.trim();
+                    const startIndex = match.index + (match[1] ? match[1].length : 0);
+                    const before = text.slice(0, startIndex).trim();
+                    const afterChunk = text.slice(startIndex);
+                    const marker = afterChunk.search(/^\s*(Para esta busca|O que você|Alguma característica|Quer ajustar|Quer que eu)\b/m);
+                    const after = marker >= 0 ? afterChunk.slice(marker).trim() : '';
+                    return [before, after].filter((p) => p && p.trim()).join('\n\n').trim();
+                }
+
+                function renderItemCards(items) {
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'mt-2 fade-in';
+
+                    const list = document.createElement('div');
+                    list.className = 'space-y-1.5';
+                    wrapper.appendChild(list);
+
+                    const total = Array.isArray(items) ? items.length : 0;
+                    (Array.isArray(items) ? items : []).forEach((rawItem, index) => {
+                        const item = rawItem || {};
+                        const imageUrl = (item.image_url || item.imageUrl || '').toString().trim();
+                        const title = (item.title || item.name || 'Sugestão Exclusiva').toString();
+                        const description = (item.description || item.desc || '').toString();
+                        const itemId = (item.id || item.itemId || '').toString();
+                        const price = item.price || "Valor do aluguel: Consulte";
+                        const customId = item.customId || item.custom_id || item.customID || null;
+                        const occasions = item.occasions || '';
+                        const color = item.color || '';
+                        const size = item.size || '';
+                        const colorBase = item.color_base || item.cor_base || item.colorBase || item.corBase || '';
+                        const colorCommercial = item.color_comercial || item.cor_comercial || item.colorCommercial || item.corCommercial || '';
+
+                        const badgeColor = index === 0 ? 'bg-london-gold' : 'bg-stone-600';
+                        const badgeLabel = total === 1 ? '★' : String(index + 1);
+                        const hasImage = !!imageUrl;
+
+                        const tags = [];
+                        const occText = Array.isArray(occasions) ? occasions.join(', ') : String(occasions || '');
+                        const colorText = (colorBase || colorCommercial)
+                            ? [String(colorBase || '').trim(), String(colorCommercial || '').trim()].filter(Boolean).join(' / ')
+                            : String(color || '').trim();
+                        const sizeText = String(size || '').trim();
+
+                        if (occText.trim()) tags.push(occText.trim());
+                        if (colorText) tags.push(colorText);
+                        if (sizeText) tags.push(sizeText);
+
+                        const tagsHtml = tags.slice(0, 3).map((t) =>
+                            `<span class="text-[10px] text-stone-500 bg-stone-50 px-1.5 py-0.5 rounded-full border border-stone-100 leading-none">${escapeHtmlSimple(t)}</span>`
+                        ).join('');
+
+                        const card = document.createElement('div');
+                        card.className = 'bella-item-card stagger-item bg-white rounded-lg border border-stone-200 overflow-hidden cursor-pointer flex';
+
+                        const thumb = document.createElement('div');
+                        if (hasImage) {
+                            thumb.className = 'item-thumb w-[72px] sm:w-[88px] flex-shrink-0 bg-stone-100 overflow-hidden relative self-stretch';
+                            thumb.innerHTML = `
+                                <img src="${escapeHtmlSimple(imageUrl)}" class="w-full h-full object-cover transition-transform duration-500" alt="${escapeHtmlSimple(title)}" loading="lazy">
+                                <div class="absolute top-1.5 left-1.5">
+                                    <span class="${badgeColor} text-white text-[9px] font-bold tracking-wider w-5 h-5 rounded-full flex items-center justify-center shadow-sm">${escapeHtmlSimple(badgeLabel)}</span>
+                                </div>
+                            `;
+                        } else {
+                            thumb.className = 'item-thumb w-[72px] sm:w-[88px] flex-shrink-0 bg-stone-100 overflow-hidden relative self-stretch flex items-center justify-center';
+                            thumb.innerHTML = `
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor" class="w-8 h-8 text-stone-300">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0 0 22.5 18.75V5.25A2.25 2.25 0 0 0 20.25 3H3.75A2.25 2.25 0 0 0 1.5 5.25v13.5A2.25 2.25 0 0 0 3.75 21Z" />
+                                </svg>
+                                <div class="absolute top-1.5 left-1.5">
+                                    <span class="${badgeColor} text-white text-[9px] font-bold tracking-wider w-5 h-5 rounded-full flex items-center justify-center shadow-sm">${escapeHtmlSimple(badgeLabel)}</span>
+                                </div>
+                            `;
+                        }
+
+                        const body = document.createElement('div');
+                        body.className = 'p-2.5 sm:p-3 flex-1 min-w-0 flex flex-col justify-center gap-1';
+                        body.innerHTML = `
+                            <div class="flex items-start justify-between gap-2">
+                                <h4 class="font-serif text-stone-900 text-[13px] sm:text-sm leading-tight">${escapeHtmlSimple(title)}</h4>
+                                ${itemId ? `<span class="text-[9px] text-stone-400 font-mono flex-shrink-0 bg-stone-50 px-1.5 py-0.5 rounded">${escapeHtmlSimple(customId || itemId)}</span>` : ''}
+                            </div>
+                            <p class="text-stone-500 text-[11px] sm:text-xs leading-relaxed line-clamp-2">${escapeHtmlSimple(description)}</p>
+                            <div class="flex items-center gap-1.5 flex-wrap mt-0.5">
+                                ${tagsHtml}
+                                <span class="item-cta text-london-gold text-[11px] font-bold ml-auto flex-shrink-0 transition-colors">Ver detalhes →</span>
+                            </div>
+                        `;
+
+                        card.appendChild(thumb);
+                        card.appendChild(body);
+                        card.addEventListener('click', () => {
+                            openCatalogModal(
+                                imageUrl || 'https://via.placeholder.com/600x800?text=Sem+Imagem',
+                                title,
+                                description,
+                                itemId,
+                                price,
+                                'ai_chat',
+                                customId,
+                                occText,
+                                color,
+                                sizeText,
+                                colorBase,
+                                colorCommercial
+                            );
+                        });
+                        list.appendChild(card);
+                    });
+
+                    const hint = document.createElement('p');
+                    hint.className = 'text-[11px] text-stone-400 mt-2 flex items-center gap-1.5';
+                    hint.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3 h-3"><path stroke-linecap="round" stroke-linejoin="round" d="M15.042 21.672 13.684 16.6m0 0-2.51 2.225.569-9.47 5.227 7.917-3.286-.672ZM12 2.25V4.5m5.834.166-1.591 1.591M20.25 10.5H18M7.757 14.743l-1.59 1.59M6 10.5H3.75m4.007-4.243-1.59-1.59" /></svg>
+                        <span>Toque em qualquer item para ver detalhes completos</span>
+                    `;
+                    wrapper.appendChild(hint);
+
+                    return wrapper;
+                }
+
                 function addMessage(text, sender, items, options) {
                     const container = document.getElementById('chat-messages');
                     const resolvedOptions = options && typeof options === 'object' ? options : {};
@@ -804,129 +971,42 @@
                         ? "bg-stone-50 text-stone-500 rounded-tl-none border-stone-200 italic"
                         : (isBot ? "bg-white text-stone-700 rounded-tl-none border-stone-100" : "bg-stone-800 text-white rounded-tr-none");
                     
-                    const markdownText = renderMarkdown(text);
-                    div.innerHTML = `
-                        ${avatar}
-                        <div class="bella-chat-bubble ${bubbleClass} p-3 rounded-lg shadow-sm text-sm max-w-[85%] border">
-                            ${markdownText}
-                        </div>
-                    `;
-
-                    if (sender === 'bot' && Array.isArray(items) && items.length) {
-                        const bubble = div.querySelector('.bella-chat-bubble');
-                        const images = div.querySelectorAll('img.bella-chat-img');
-                        images.forEach((img) => {
-                            const src = img.getAttribute('src') || '';
-                            const item = items.find((entry) => entry && entry.image_url === src);
-                            if (!item) return;
-                            img.classList.add('cursor-pointer');
-                            img.addEventListener('click', () => {
-                                openCatalogModal(
-                                    item.image_url,
-                                    item.title || "Sugestão Exclusiva",
-                                    item.description || "",
-                                    item.id,
-                                    item.price || "Valor do aluguel: Consulte",
-                                    'ai_chat',
-                                    item.customId,
-                                    item.occasions,
-                                    item.color,
-                                    item.size,
-                                    item.color_base || item.cor_base || item.colorBase || item.corBase,
-                                    item.color_comercial || item.cor_comercial || item.colorCommercial || item.corCommercial
-                                );
-                            });
-                        });
-                        if (bubble) {
-                            const wrappers = Array.from(bubble.children).filter((el) => el && el.classList && el.classList.contains('bella-chat-item'));
-                            let cursor = bubble.firstChild;
-                            const isIgnorable = (node) => {
-                                if (!node) return true;
-                                if (node.nodeType === Node.TEXT_NODE) return !node.textContent || !node.textContent.trim();
-                                if (node.nodeType === Node.ELEMENT_NODE) return node.tagName === 'BR';
-                                return true;
-                            };
-                            const extractTextWithBreaks = (nodes) => nodes.map((node) => {
-                                if (!node) return '';
-                                if (node.nodeType === Node.TEXT_NODE) return node.textContent || '';
-                                if (node.nodeType === Node.ELEMENT_NODE) return node.tagName === 'BR' ? '\n' : (node.textContent || '');
-                                return '';
-                            }).join('');
-                            const splitNodesAtOffset = (nodes, offset) => {
-                                const before = [];
-                                const after = [];
-                                let remaining = offset;
-                                nodes.forEach((node) => {
-                                    if (remaining <= 0) {
-                                        after.push(node);
-                                        return;
-                                    }
-                                    if (node.nodeType === Node.TEXT_NODE) {
-                                        const text = node.textContent || '';
-                                        if (remaining >= text.length) {
-                                            before.push(node);
-                                            remaining -= text.length;
-                                            return;
-                                        }
-                                        const second = node.splitText(remaining);
-                                        before.push(node);
-                                        after.push(second);
-                                        remaining = 0;
-                                        return;
-                                    }
-                                    if (node.nodeType === Node.ELEMENT_NODE && node.tagName === 'BR') {
-                                        if (remaining >= 1) {
-                                            before.push(node);
-                                            remaining -= 1;
-                                        } else {
-                                            after.push(node);
-                                        }
-                                        return;
-                                    }
-                                    const text = node.textContent || '';
-                                    if (remaining >= text.length) {
-                                        before.push(node);
-                                        remaining -= text.length;
-                                    } else {
-                                        after.push(node);
-                                    }
-                                });
-                                return { before, after };
-                            };
-                            wrappers.forEach((wrapper, wrapperIndex) => {
-                                const meta = wrapper.querySelector('.bella-chat-meta');
-                                if (!meta) return;
-                                const segmentNodes = [];
-                                while (cursor && cursor !== wrapper) {
-                                    const next = cursor.nextSibling;
-                                    segmentNodes.push(cursor);
-                                    cursor = next;
-                                }
-                                cursor = wrapper.nextSibling;
-                                while (segmentNodes.length && isIgnorable(segmentNodes[0])) segmentNodes.shift();
-                                while (segmentNodes.length && isIgnorable(segmentNodes[segmentNodes.length - 1])) segmentNodes.pop();
-                                if (!segmentNodes.length) return;
-                                let nodesToMove = segmentNodes;
-                                if (wrapperIndex === 0) {
-                                    const segmentText = extractTextWithBreaks(segmentNodes);
-                                    const match = segmentText.match(/(^|\n)\s*1\.\s+/);
-                                    if (match && typeof match.index === 'number') {
-                                        const splitAt = match.index + (match[1] ? match[1].length : 0);
-                                        const { after } = splitNodesAtOffset(segmentNodes, splitAt);
-                                        while (after.length && isIgnorable(after[0])) after.shift();
-                                        while (after.length && isIgnorable(after[after.length - 1])) after.pop();
-                                        nodesToMove = after;
-                                    } else {
-                                        nodesToMove = [];
-                                    }
-                                }
-                                if (!nodesToMove.length) return;
-                                const frag = document.createDocumentFragment();
-                                nodesToMove.forEach((node) => frag.appendChild(node));
-                                meta.appendChild(frag);
-                                meta.classList.remove('hidden');
-                            });
+                    const hasItems = sender === 'bot' && Array.isArray(items) && items.length;
+                    const cleanText = hasItems ? stripNumberedResultsList(stripMarkdownImages(text)) : text;
+                    const markdownText = renderMarkdown(cleanText);
+                    if (isBot) {
+                        if (isThought) {
+                            div.innerHTML = `
+                                ${avatar}
+                                <div class="flex flex-col gap-1 max-w-[85%]" data-bella-message-body="1">
+                                    <div class="text-[11px] text-stone-400 tracking-wide">Pensamento da IA</div>
+                                    <div class="bella-chat-bubble ${bubbleClass} p-3 rounded-lg shadow-sm text-sm border">
+                                        ${markdownText}
+                                    </div>
+                                </div>
+                            `;
+                        } else {
+                            div.innerHTML = `
+                                ${avatar}
+                                <div class="flex flex-col gap-1 max-w-[85%]" data-bella-message-body="1">
+                                    <div class="bella-chat-bubble ${bubbleClass} p-3 rounded-lg shadow-sm text-sm border">
+                                        ${markdownText}
+                                    </div>
+                                </div>
+                            `;
                         }
+                    } else {
+                        div.innerHTML = `
+                            ${avatar}
+                            <div class="bella-chat-bubble ${bubbleClass} p-3 rounded-lg shadow-sm text-sm max-w-[85%] border">
+                                ${markdownText}
+                            </div>
+                        `;
+                    }
+
+                    if (hasItems) {
+                        const body = div.querySelector('[data-bella-message-body="1"]');
+                        if (body) body.appendChild(renderItemCards(items));
                     }
                     
                     container.appendChild(div);
@@ -950,13 +1030,16 @@
                         <div class="w-8 h-8 rounded-full bg-london-gold flex items-center justify-center text-white flex-shrink-0">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 animate-spin"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" /></svg>
                         </div>
-                        <div class="bg-white p-3 rounded-lg rounded-tl-none shadow-sm text-sm text-stone-500 border border-stone-100 flex items-center gap-2">
-                            <span class="italic">Bella está pensando</span>
-                            <div class="flex space-x-1 h-3 items-center">
-                                <div class="w-2 h-2 bg-london-gold rounded-full animate-bounce" style="animation-delay: 0s"></div>
-                                <div class="w-2 h-2 bg-london-gold rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
-                                <div class="w-2 h-2 bg-london-gold rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+                        <div class="bg-white p-3 rounded-lg rounded-tl-none shadow-sm text-sm text-stone-500 border border-stone-100 flex flex-col gap-2 max-w-[85%]">
+                            <div class="flex items-center gap-2">
+                                <span class="italic">Bella está pensando</span>
+                                <div class="flex space-x-1 h-3 items-center">
+                                    <div class="w-2 h-2 bg-london-gold rounded-full animate-bounce" style="animation-delay: 0s"></div>
+                                    <div class="w-2 h-2 bg-london-gold rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
+                                    <div class="w-2 h-2 bg-london-gold rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+                                </div>
                             </div>
+                            <div data-bella-thinking="1" class="text-xs text-stone-400 whitespace-pre-line"></div>
                         </div>
                     `;
                     container.appendChild(div);
