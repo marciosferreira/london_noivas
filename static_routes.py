@@ -638,6 +638,7 @@ def init_static_routes(
             page = request.args.get('page', 1, type=int)
             active_occasion = request.args.get("occasion", "", type=str)
             active_cor_comercial = request.args.get("cor_comercial", "", type=str).strip()
+            active_tamanho = request.args.get("tamanho", "", type=str).strip()
             requested_item_id = request.args.get("item", "", type=str)
             per_page = 12
             
@@ -720,6 +721,34 @@ def init_static_routes(
                 )
             ]
 
+            size_counts = {}
+            size_display_by_norm = {}
+            for item in filtered_items:
+                if not isinstance(item, dict):
+                    continue
+                raw_size = item.get("tamanho") or item.get("size")
+                sizes = raw_size if isinstance(raw_size, list) else [raw_size]
+                expanded = []
+                for s in sizes:
+                    if not isinstance(s, str):
+                        continue
+                    parts = [p.strip() for p in s.split(",")]
+                    expanded.extend([p for p in parts if p])
+                for s in expanded:
+                    norm = str(s).strip().casefold()
+                    if not norm:
+                        continue
+                    size_counts[norm] = size_counts.get(norm, 0) + 1
+                    size_display_by_norm.setdefault(norm, str(s).strip())
+
+            catalog_sizes = [
+                size_display_by_norm[norm]
+                for norm, _count in sorted(
+                    size_counts.items(),
+                    key=lambda kv: (-kv[1], size_display_by_norm.get(kv[0], kv[0])),
+                )
+            ]
+
             itens = filtered_items
             if active_cor_comercial:
                 target_norm = _normalize_text(active_cor_comercial)
@@ -737,6 +766,26 @@ def init_static_routes(
                         ):
                             color_filtered.append(item)
                     itens = color_filtered
+
+            if active_tamanho:
+                target_size_norm = active_tamanho.strip().casefold()
+                if target_size_norm:
+                    size_filtered = []
+                    for item in itens:
+                        if not isinstance(item, dict):
+                            continue
+                        raw_size = item.get("tamanho") or item.get("size")
+                        sizes = raw_size if isinstance(raw_size, list) else [raw_size]
+                        expanded = []
+                        for s in sizes:
+                            if not isinstance(s, str):
+                                continue
+                            parts = [p.strip() for p in s.split(",")]
+                            expanded.extend([p for p in parts if p])
+                        item_norms = {str(s).strip().casefold() for s in expanded if str(s).strip()}
+                        if target_size_norm in item_norms:
+                            size_filtered.append(item)
+                    itens = size_filtered
 
             for item in itens:
                 if isinstance(item, dict):
@@ -809,6 +858,8 @@ def init_static_routes(
                 occasion_tabs=occasion_tabs,
                 commercial_colors=commercial_colors,
                 active_cor_comercial=active_cor_comercial,
+                catalog_sizes=catalog_sizes,
+                active_tamanho=active_tamanho,
             )
             
         except Exception as e:
@@ -823,6 +874,8 @@ def init_static_routes(
                 occasion_tabs=[],
                 commercial_colors=[],
                 active_cor_comercial="",
+                catalog_sizes=[],
+                active_tamanho="",
             )
 
     @app.route("/home")

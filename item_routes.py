@@ -973,7 +973,8 @@ def init_item_routes(
                     value = ", ".join(cleaned)
                 else:
                     raw_value = request.form.get(field_id, "").strip()
-                    if not raw_value and field_type != "item_image_url":
+                    is_obs_field = field_id in ["item_obs", "obs", "observacoes", "observação", "observacao", "observações"] or "observa" in label_text
+                    if not raw_value and field_type != "item_image_url" and not is_obs_field:
                         continue
                     value = raw_value
 
