@@ -119,12 +119,13 @@
                         src="{{ valor if valor and valor != 'N/A' else url_for('static', filename='item-placeholder.png') }}"
                         class="img-fluid rounded shadow-sm" style="max-height: 150px;" />
                     </div>
+                    <div id="image-thumbs" class="d-flex flex-wrap gap-2 justify-content-center mb-2"></div>
                     <input type="text" name="item_image_url" id="image-url-input" value="{{ valor if valor != 'N/A' else '' }}" style="opacity: 0; position: absolute; left: -9999px" />
                     <div class="d-grid gap-2 col-8 mx-auto">
                         <label class="btn btn-outline-primary btn-sm" for="image_file">
                             <i class="fas fa-upload me-1"></i> Escolher Foto
                         </label>
-                        <input type="file" class="d-none" id="image_file" name="image_file" {% if field.required %}data-required="true"{% endif %} />
+                        <input type="file" class="d-none" id="image_file" name="image_file" multiple {% if field.required %}data-required="true"{% endif %} />
                         <button type="button" onclick="removeImage()" id="remove-btn" class="btn btn-outline-danger btn-sm" style="{{ 'display: block;' if valor and valor != 'N/A' else 'display: none;' }}">
                             <i class="fas fa-trash me-1"></i> Remover
                         </button>
@@ -220,19 +221,56 @@
   function removeImage() {
     document.getElementById('item-image').src = "{{ url_for('static', filename='item-placeholder.png') }}";
     document.getElementById('image-url-input').value = 'DELETE_IMAGE';
+    const thumbs = document.getElementById('image-thumbs');
+    if (thumbs) thumbs.innerHTML = '';
     document.getElementById('remove-btn').style.display = 'none';
     document.getElementById('image_file').value = '';
   }
   
   document.getElementById('image_file')?.addEventListener('change', function (e) {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = function (e) {
-      document.getElementById('item-image').src = e.target.result;
-      document.getElementById('remove-btn').style.display = 'block';
-    };
-    reader.readAsDataURL(file);
+    const files = Array.from(e.target.files || []);
+    const thumbs = document.getElementById('image-thumbs');
+    if (thumbs) thumbs.innerHTML = '';
+    if (!files.length) return;
+
+    document.getElementById('remove-btn').style.display = 'block';
+
+    files.forEach((file, idx) => {
+      const reader = new FileReader();
+      reader.onload = function (ev) {
+        const src = ev.target.result;
+        const wrapper = document.createElement('label');
+        wrapper.className = 'd-inline-flex align-items-center gap-2 border rounded px-2 py-1 bg-white';
+        wrapper.style.cursor = 'pointer';
+
+        const radio = document.createElement('input');
+        radio.type = 'radio';
+        radio.name = 'main_image_index';
+        radio.value = String(idx);
+        radio.className = 'form-check-input m-0';
+        if (idx === 0) radio.checked = true;
+        radio.addEventListener('change', () => {
+          document.getElementById('item-image').src = src;
+        });
+
+        const img = document.createElement('img');
+        img.src = src;
+        img.alt = 'Foto';
+        img.style.height = '44px';
+        img.style.width = '44px';
+        img.style.objectFit = 'cover';
+        img.className = 'rounded';
+
+        wrapper.appendChild(radio);
+        wrapper.appendChild(img);
+        if (thumbs) thumbs.appendChild(wrapper);
+
+        if (idx === 0) {
+          document.getElementById('item-image').src = src;
+        }
+      };
+      reader.readAsDataURL(file);
+    });
   });
 
   // --- Funções Monetárias ---

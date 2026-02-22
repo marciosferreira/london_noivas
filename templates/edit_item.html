@@ -123,18 +123,36 @@
                 </select>
 
                 {% elif field.type == 'item_image_url' %}
+                {% set image_urls = item.get('item_image_urls', []) %}
+                {% if not image_urls and valor and valor != 'N/A' %}
+                  {% set image_urls = [valor] %}
+                {% endif %}
+                {% set main_index = item.get('item_main_image_index') %}
                 <div class="card bg-light border-dashed p-3 text-center">
                     <div class="mb-2">
                         <img id="item-image"
                         src="{{ valor if valor and valor != 'N/A' else url_for('static', filename='item-placeholder.png') }}"
                         class="img-fluid rounded shadow-sm" style="max-height: 150px;" />
                     </div>
+                    <div id="existing-image-thumbs" class="d-flex flex-wrap gap-2 justify-content-center mb-2">
+                      {% for url in image_urls %}
+                        {% set idx = loop.index0 %}
+                        <div class="d-inline-flex align-items-center gap-2 border rounded px-2 py-1 bg-white">
+                          <label class="d-inline-flex align-items-center gap-2 m-0" style="cursor:pointer;">
+                            <input type="radio" name="main_image_index" value="{{ idx }}" class="form-check-input m-0" {% if idx == main_index %}checked{% endif %} data-image-src="{{ url }}">
+                            <img src="{{ url }}" alt="Foto" class="rounded" style="height:44px;width:44px;object-fit:cover;">
+                          </label>
+                          <button type="button" class="btn btn-outline-danger btn-sm py-0 px-2" data-delete-url="{{ url }}" aria-label="Remover imagem">&times;</button>
+                        </div>
+                      {% endfor %}
+                    </div>
+                    <div id="new-image-thumbs" class="d-flex flex-wrap gap-2 justify-content-center mb-2"></div>
                     <input type="text" name="item_image_url" id="image-url-input" value="{{ valor if valor != 'N/A' else '' }}" style="opacity: 0; position: absolute; left: -9999px" />
                     <div class="d-grid gap-2 col-8 mx-auto">
                         <label class="btn btn-outline-primary btn-sm" for="image_file">
                             <i class="fas fa-upload me-1"></i> Escolher Foto
                         </label>
-                        <input type="file" class="d-none" id="image_file" name="image_file" {% if field.required %}data-required="true"{% endif %} />
+                        <input type="file" class="d-none" id="image_file" name="image_file" multiple {% if field.required %}data-required="true"{% endif %} />
                         <button type="button" onclick="removeImage()" id="remove-btn" class="btn btn-outline-danger btn-sm" style="{{ 'display: block;' if valor and valor != 'N/A' else 'display: none;' }}">
                             <i class="fas fa-trash me-1"></i> Remover
                         </button>
@@ -217,21 +235,105 @@
 <script>
   // --- Funções de Imagem ---
   function removeImage() {
-    document.getElementById('item-image').src = "{{ url_for('static', filename='item-placeholder.png') }}";
-    document.getElementById('image-url-input').value = 'DELETE_IMAGE';
-    document.getElementById('remove-btn').style.display = 'none';
-    document.getElementById('image_file').value = '';
+    const selected = document.querySelector('#existing-image-thumbs input[name="main_image_index"]:checked');
+    if (selected) {
+      const src = selected.getAttribute('data-image-src');
+      if (src) markImageForDeletion(src);
+      const wrapper = selected.closest('div');
+      if (wrapper) wrapper.remove();
+      selected.checked = false;
+      updatePreviewAfterDeletion();
+      document.getElementById('remove-btn').style.display = document.querySelectorAll('#existing-image-thumbs [data-delete-url]').length ? 'block' : 'none';
+      return;
+    }
   }
+
+  function markImageForDeletion(url) {
+    const form = document.querySelector('form');
+    if (!form || !url) return;
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = 'delete_image_urls';
+    input.value = url;
+    form.appendChild(input);
+  }
+
+  function updatePreviewAfterDeletion() {
+    const remaining = document.querySelector('#existing-image-thumbs input[name="main_image_index"]');
+    if (remaining) {
+      const src = remaining.getAttribute('data-image-src');
+      if (src) document.getElementById('item-image').src = src;
+      return;
+    }
+    document.getElementById('item-image').src = "{{ url_for('static', filename='item-placeholder.png') }}";
+  }
+
+  document.addEventListener('click', function (e) {
+    const btn = e.target && e.target.closest ? e.target.closest('[data-delete-url]') : null;
+    if (!btn) return;
+    const url = btn.getAttribute('data-delete-url');
+    markImageForDeletion(url);
+    const wrapper = btn.closest('div');
+    const radio = wrapper ? wrapper.querySelector('input[name="main_image_index"]') : null;
+    if (radio && radio.checked) {
+      radio.checked = false;
+    }
+    if (wrapper) wrapper.remove();
+    updatePreviewAfterDeletion();
+    const hasAny = document.querySelectorAll('#existing-image-thumbs [data-delete-url]').length > 0;
+    document.getElementById('remove-btn').style.display = hasAny ? 'block' : 'none';
+  });
   
   document.getElementById('image_file')?.addEventListener('change', function (e) {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = function (e) {
-      document.getElementById('item-image').src = e.target.result;
-      document.getElementById('remove-btn').style.display = 'block';
-    };
-    reader.readAsDataURL(file);
+    const files = Array.from(e.target.files || []);
+    const thumbsNew = document.getElementById('new-image-thumbs');
+    if (thumbsNew) thumbsNew.innerHTML = '';
+    if (!files.length) return;
+
+    document.getElementById('remove-btn').style.display = 'block';
+    const existingCount = document.querySelectorAll('#existing-image-thumbs input[name="main_image_index"]').length;
+    const selected = document.querySelector('input[name="main_image_index"]:checked');
+
+    files.forEach((file, idx) => {
+      const combinedIdx = existingCount + idx;
+      const reader = new FileReader();
+      reader.onload = function (ev) {
+        const src = ev.target.result;
+        const wrapper = document.createElement('label');
+        wrapper.className = 'd-inline-flex align-items-center gap-2 border rounded px-2 py-1 bg-white';
+        wrapper.style.cursor = 'pointer';
+
+        const radio = document.createElement('input');
+        radio.type = 'radio';
+        radio.name = 'main_image_index';
+        radio.value = String(combinedIdx);
+        radio.className = 'form-check-input m-0';
+        radio.setAttribute('data-image-src', src);
+        radio.addEventListener('change', () => {
+          document.getElementById('item-image').src = src;
+        });
+
+        const img = document.createElement('img');
+        img.src = src;
+        img.alt = 'Foto';
+        img.style.height = '44px';
+        img.style.width = '44px';
+        img.style.objectFit = 'cover';
+        img.className = 'rounded';
+
+        wrapper.appendChild(radio);
+        wrapper.appendChild(img);
+        if (thumbsNew) thumbsNew.appendChild(wrapper);
+      };
+      reader.readAsDataURL(file);
+    });
+  });
+
+  document.addEventListener('change', function (e) {
+    const target = e.target;
+    if (!target || target.name !== 'main_image_index') return;
+    const src = target.getAttribute('data-image-src');
+    if (src) document.getElementById('item-image').src = src;
   });
 
   // --- Funções Monetárias ---

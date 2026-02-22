@@ -368,18 +368,42 @@ def init_item_routes(
                 ).strftime("%Y-%m-%d %H:%M:%S"),
             }
 
-            image_file = request.files.get("image_file")
-            
-            # Captura bytes da imagem caso precise para IA (evita erro de arquivo fechado)
-            image_bytes_for_ai = None
-            if image_file:
-                image_bytes_for_ai = image_file.read()
-                image_file.seek(0)
-            
-            # Validação Obrigatória de Imagem
-            if not image_file or not image_file.filename:
+            image_files = request.files.getlist("image_file")
+            image_files = [f for f in (image_files or []) if f and getattr(f, "filename", "")]
+
+            raw_main_index = (request.form.get("main_image_index") or "").strip()
+            try:
+                main_index = int(raw_main_index) if raw_main_index != "" else 0
+            except Exception:
+                main_index = 0
+
+            if not image_files:
                 flash("É obrigatório enviar uma foto do item.", "danger")
                 return redirect(request.url)
+
+            if main_index < 0:
+                main_index = 0
+            if main_index >= len(image_files):
+                main_index = 0
+
+            image_bytes_for_ai = None
+            try:
+                selected_file = image_files[main_index]
+                image_bytes_for_ai = selected_file.read()
+                selected_file.seek(0)
+            except Exception:
+                image_bytes_for_ai = None
+
+            image_urls = [upload_image_to_s3(f) for f in image_files if allowed_file(f.filename)]
+            image_urls = [u for u in image_urls if u]
+            if not image_urls:
+                flash("Formato de arquivo não permitido. Use JPEG, PNG ou WEBP.", "danger")
+                return redirect(request.url)
+
+            if main_index >= len(image_urls):
+                main_index = 0
+
+            main_image_url = image_urls[main_index]
             
 
             for field in all_fields:
@@ -409,7 +433,7 @@ def init_item_routes(
                     value = raw_value
 
                 if field_id == "item_image_url":
-                    value = handle_image_upload(image_file, "N/A")
+                    value = main_image_url
                 elif is_color_field:
                     name, base = _parse_color_value(value)
                     value = name
@@ -434,6 +458,9 @@ def init_item_routes(
 
                 # Salva tudo na raiz
                 item_data[field_id] = value
+
+            item_data["item_image_urls"] = image_urls
+            item_data["item_main_image_index"] = main_index
 
             for slug in ["madrinha","formatura","gala","debutante","convidada","mae_dos_noivos","noiva","civil"]:
                 if request.form.get(f"occasion_{slug}") == "on":
@@ -826,19 +853,88 @@ def init_item_routes(
 
         # ---------------- POST ----------------
         if request.method == "POST":
-            image_file = request.files.get("image_file")
-            
-            # Captura bytes da imagem caso precise para IA
-            image_bytes_for_ai = None
-            if image_file:
-                image_bytes_for_ai = image_file.read()
-                image_file.seek(0)
+            image_files = request.files.getlist("image_file")
+            image_files = [f for f in (image_files or []) if f and getattr(f, "filename", "")]
 
-            image_url_field = request.form.get("item_image_url", "").strip()
-            old_image_url = item.get("item_image_url") or "N/A"
-            new_image_url = (
-                "N/A" if image_url_field == "DELETE_IMAGE" else handle_image_upload(image_file, old_image_url)
-            )
+            existing_urls = item.get("item_image_urls")
+            if not isinstance(existing_urls, list):
+                existing_urls = []
+            existing_urls = [str(u).strip() for u in existing_urls if isinstance(u, str) and u.strip()]
+            if not existing_urls:
+                legacy = (item.get("item_image_url") or "").strip()
+                if legacy and legacy != "N/A":
+                    existing_urls = [legacy]
+
+            delete_urls = request.form.getlist("delete_image_urls")
+            delete_urls = [str(u).strip() for u in (delete_urls or []) if str(u).strip()]
+            delete_set = set(delete_urls)
+
+            existing_urls_before_delete = list(existing_urls)
+            existing_urls = [u for u in existing_urls if u not in delete_set]
+
+            raw_main_index = (request.form.get("main_image_index") or "").strip()
+            try:
+                requested_main_index = int(raw_main_index) if raw_main_index != "" else None
+            except Exception:
+                requested_main_index = None
+
+            existing_count_before_delete = len(existing_urls_before_delete)
+
+            main_selected_url = None
+            main_selected_new_file_idx = None
+            if requested_main_index is not None:
+                if 0 <= requested_main_index < existing_count_before_delete:
+                    candidate = existing_urls_before_delete[requested_main_index]
+                    if candidate not in delete_set:
+                        main_selected_url = candidate
+                elif requested_main_index >= existing_count_before_delete:
+                    main_selected_new_file_idx = requested_main_index - existing_count_before_delete
+
+            image_bytes_for_ai = None
+            try:
+                if main_selected_new_file_idx is not None:
+                    if 0 <= main_selected_new_file_idx < len(image_files):
+                        image_bytes_for_ai = image_files[main_selected_new_file_idx].read()
+                        image_files[main_selected_new_file_idx].seek(0)
+                elif image_files:
+                    image_bytes_for_ai = image_files[0].read()
+                    image_files[0].seek(0)
+            except Exception:
+                image_bytes_for_ai = None
+
+            uploaded_by_file_idx = {}
+            new_urls = []
+            for idx, f in enumerate(image_files):
+                if not allowed_file(getattr(f, "filename", "")):
+                    continue
+                url = upload_image_to_s3(f)
+                if not url:
+                    continue
+                uploaded_by_file_idx[idx] = url
+                new_urls.append(url)
+
+            if main_selected_url is None and main_selected_new_file_idx is not None:
+                main_selected_url = uploaded_by_file_idx.get(main_selected_new_file_idx)
+
+            merged_urls = [*existing_urls, *new_urls]
+
+            remove_item_main_image_index = False
+            requested_main_index_final = None
+            if main_selected_url and main_selected_url in merged_urls:
+                requested_main_index_final = merged_urls.index(main_selected_url)
+            else:
+                remove_item_main_image_index = True
+
+            if merged_urls:
+                new_image_url = (
+                    merged_urls[requested_main_index_final]
+                    if requested_main_index_final is not None
+                    else merged_urls[0]
+                )
+            else:
+                new_image_url = "N/A"
+                requested_main_index_final = None
+                remove_item_main_image_index = True
 
             import re
             from decimal import Decimal, InvalidOperation
@@ -899,6 +995,10 @@ def init_item_routes(
 
                 # Salva tudo em updates
                 updates[field_id] = value
+
+            updates["item_image_urls"] = merged_urls
+            if requested_main_index_final is not None:
+                updates["item_main_image_index"] = requested_main_index_final
 
             # ---------------------------------------------------------
             # Regra de Negócio: Geração de Metadados IA (Obrigatória em Edição)
@@ -1039,7 +1139,9 @@ def init_item_routes(
                 return redirect(next_page)
             
             # Se houve alterações relevantes (Título, Descrição, Imagem ou Cor), marca para re-embedding
-            image_changed = "item_image_url" in changes
+            image_changed = any(
+                k in changes for k in ["item_image_url", "item_image_urls", "item_main_image_index"]
+            )
             title_changed = "title" in changes or "item_title" in changes
             desc_changed = "description" in changes or "item_description" in changes
             color_changed = any(
@@ -1080,6 +1182,10 @@ def init_item_routes(
                 remove_parts.append("embedding_force_vision")
                 if not image_changed and not title_changed and not desc_changed and not occasion_changes and not color_changed:
                     remove_parts.append("embedding_status")
+
+            if remove_item_main_image_index:
+                remove_parts.append("#item_main_image_index")
+                expression_names["#item_main_image_index"] = "item_main_image_index"
 
             update_expr = []
             if set_parts:
@@ -1140,6 +1246,8 @@ def init_item_routes(
 
         prepared["item_id"] = item["item_id"]
         prepared["embedding_force_vision"] = item.get("embedding_force_vision")
+        prepared["item_image_urls"] = item.get("item_image_urls") if isinstance(item.get("item_image_urls"), list) else []
+        prepared["item_main_image_index"] = item.get("item_main_image_index")
 
         def _first_color_value(value):
             if value is None:
