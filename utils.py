@@ -452,11 +452,29 @@ def get_account_plan(account_id):
 def entidade_atende_filtros_dinamico(item, filtros, fields_config, image_url_required=None):
     from decimal import Decimal, InvalidOperation
     import datetime
+    import re
 
     def get_valor(item, field):
         field_id = field["id"]
         # Tudo é raiz agora
         return item.get(field_id, "")
+
+    def _split_multi_tokens(value):
+        if value is None:
+            return []
+        if isinstance(value, (list, tuple, set)):
+            out = []
+            for v in value:
+                out.extend(_split_multi_tokens(v))
+            return out
+        text = str(value).strip()
+        if not text:
+            return []
+        parts = re.split(r"[/,]|\s+e\s+", text, flags=re.IGNORECASE)
+        return [p.strip() for p in parts if p and str(p).strip()]
+
+    def _norm_token(value):
+        return str(value or "").strip().casefold()
 
     # Lógica especial para imagem (usado apenas em itens, mas é seguro ignorar para outros)
     if image_url_required is not None:
@@ -526,7 +544,14 @@ def entidade_atende_filtros_dinamico(item, filtros, fields_config, image_url_req
                           "item_custom_id", "item_description", "item_obs"]:
             filtro = filtros.get(field_id)
 
-            if filtro and filtro.lower() not in str(valor).lower():
+            if field_id == "tamanho":
+                if filtro:
+                    selected = filtro if isinstance(filtro, (list, tuple, set)) else [filtro]
+                    selected_norm = {_norm_token(v) for v in selected if _norm_token(v)}
+                    item_norm = {_norm_token(v) for v in _split_multi_tokens(valor) if _norm_token(v)}
+                    if selected_norm and not (item_norm & selected_norm):
+                        return False
+            elif filtro and filtro.lower() not in str(valor).lower():
                 print("false")
                 return False
 

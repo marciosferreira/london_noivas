@@ -861,6 +861,7 @@
                         const size = item.size || '';
                         const colorBase = item.color_base || item.cor_base || item.colorBase || item.corBase || '';
                         const colorCommercial = item.color_comercial || item.cor_comercial || item.colorCommercial || item.corCommercial || '';
+                        const itemObs = item.item_obs || item.itemObs || '';
 
                         const badgeColor = index === 0 ? 'bg-london-gold' : 'bg-stone-600';
                         const badgeLabel = total === 1 ? '★' : String(index + 1);
@@ -934,7 +935,8 @@
                                 color,
                                 sizeText,
                                 colorBase,
-                                colorCommercial
+                                colorCommercial,
+                                itemObs
                             );
                         });
                         list.appendChild(card);
@@ -1105,7 +1107,8 @@
                             dress.color || dress.cor || dress.cores,
                             dress.size || dress.tamanho,
                             dress.color_base || dress.cor_base || dress.colorBase || dress.corBase,
-                            dress.color_comercial || dress.cor_comercial || dress.colorCommercial || dress.corCommercial
+                            dress.color_comercial || dress.cor_comercial || dress.colorCommercial || dress.corCommercial,
+                            dress.item_obs || dress.itemObs
                         )
                     };
 
@@ -1158,7 +1161,8 @@
                             item.color || item.cor || item.cores,
                             item.size || item.tamanho,
                             item.color_base || item.cor_base || item.colorBase || item.corBase,
-                            item.color_comercial || item.cor_comercial || item.colorCommercial || item.corCommercial
+                            item.color_comercial || item.cor_comercial || item.colorCommercial || item.corCommercial,
+                            item.item_obs || item.itemObs
                         );
                         
                         div.innerHTML = `
@@ -1484,6 +1488,7 @@
                         <p id="catalog-modal-color" class="text-stone-500 font-serif mb-2 hidden"><span id="catalog-modal-color-value"></span></p>
                         <p id="catalog-modal-size" class="text-stone-500 font-serif mb-2 hidden">Tamanho: <span id="catalog-modal-size-value"></span></p>
                         <p id="catalog-modal-price" class="text-stone-500 font-serif mb-2 hidden">Valor do aluguel: <span id="catalog-modal-price-value"></span></p>
+                        <p id="catalog-modal-obs" class="text-stone-500 font-serif mb-2 hidden">Observações: <span id="catalog-modal-obs-value"></span></p>
                                 <p class="text-xs text-stone-400 mb-6 font-mono">ID: <span id="catalog-modal-id-value"></span></p>
                                 
                                 <div class="w-12 h-1 bg-stone-200 mb-8"></div>
@@ -1538,20 +1543,68 @@
                     data.color,
                     data.size,
                     data.colorBase,
-                    data.colorCommercial
+                    data.colorCommercial,
+                    data.itemObs
                 );
             } else {
                 console.error('Dados do item não encontrados para ID:', itemId);
             }
         }
 
-        function openCatalogModal(imageUrl, title, description, itemId, price, source, customDisplayId, occasions, color, size, colorBase, colorCommercial) {
+        function openCatalogModal(imageUrl, title, description, itemId, price, source, customDisplayId, occasions, color, size, colorBase, colorCommercial, itemObs) {
             const idToShow = customDisplayId || itemId;
 
-            // Handle Price Display Logic
-            let displayPrice = price;
-            if (!price || price === '0' || price === 0 || price === '0.00' || price === '0,00') {
-                displayPrice = 'Valor do aluguel: Consulte';
+            function normalizarMonetarioParaNumero(raw) {
+                let s = (raw || '').toString().trim();
+                if (!s) return null;
+
+                s = s.replace(/\s+/g, '').replace(/^R\$\s*/i, '');
+                s = s.replace(/[^\d.,]/g, '');
+                if (!s) return null;
+
+                if (s.includes(',')) {
+                    const parts = s.split(',');
+                    const intPart = parts.slice(0, -1).join(',').replace(/[.,]/g, '');
+                    let decPart = (parts[parts.length - 1] || '').replace(/\D/g, '').slice(0, 2);
+                    if (decPart.length === 1) decPart = `${decPart}0`;
+                    if (decPart.length === 0) decPart = '00';
+                    const n = Number(`${intPart || '0'}.${decPart}`);
+                    return Number.isFinite(n) ? n : null;
+                }
+
+                if (s.includes('.')) {
+                    const dotParts = s.split('.');
+                    if (dotParts.length === 2 && dotParts[1] && dotParts[1].length <= 2) {
+                        const intPart = (dotParts[0] || '').replace(/\D/g, '');
+                        let decPart = (dotParts[1] || '').replace(/\D/g, '').slice(0, 2);
+                        if (decPart.length === 1) decPart = `${decPart}0`;
+                        if (decPart.length === 0) decPart = '00';
+                        const n = Number(`${intPart || '0'}.${decPart}`);
+                        return Number.isFinite(n) ? n : null;
+                    }
+
+                    const digits = s.replace(/\D/g, '');
+                    if (!digits) return null;
+                    const n = Number(`${digits}.00`);
+                    return Number.isFinite(n) ? n : null;
+                }
+
+                const digits = s.replace(/\D/g, '');
+                if (!digits) return null;
+                const n = Number(`${digits}.00`);
+                return Number.isFinite(n) ? n : null;
+            }
+
+            function formatarPrecoParaModal(rawPrice) {
+                const s = (rawPrice || '').toString().trim();
+                if (!s || s === '0' || s === '0.00' || s === '0,00') return 'Consulte';
+                if (/consulte/i.test(s)) return 'Consulte';
+
+                const cleaned = s.replace(/^Valor do aluguel:\s*/i, '').trim();
+                const n = normalizarMonetarioParaNumero(cleaned);
+                if (n === null) return cleaned;
+                if (n === 0) return 'Consulte';
+                return `R$ ${n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
             }
 
             document.getElementById('catalog-modal-img').src = imageUrl || 'https://via.placeholder.com/600x800?text=Sem+Imagem';
@@ -1559,8 +1612,8 @@
             document.getElementById('catalog-modal-desc').textContent = description;
             const priceRow = document.getElementById('catalog-modal-price');
             const priceValue = document.getElementById('catalog-modal-price-value');
-            const priceText = (displayPrice || '').toString().trim();
-            if (priceValue) priceValue.textContent = priceText.replace(/^Valor do aluguel:\s*/i, '').trim();
+            const priceText = formatarPrecoParaModal(price);
+            if (priceValue) priceValue.textContent = (priceText || '').toString().trim();
             if (priceRow) {
                 if (priceText) priceRow.classList.remove('hidden');
                 else priceRow.classList.add('hidden');
@@ -1588,6 +1641,15 @@
             if (sizeRow) {
                 if (sizeText) sizeRow.classList.remove('hidden');
                 else sizeRow.classList.add('hidden');
+            }
+
+            const obsRow = document.getElementById('catalog-modal-obs');
+            const obsValue = document.getElementById('catalog-modal-obs-value');
+            const obsText = (itemObs || '').toString().trim();
+            if (obsValue) obsValue.textContent = obsText;
+            if (obsRow) {
+                if (obsText) obsRow.classList.remove('hidden');
+                else obsRow.classList.add('hidden');
             }
             
             const phoneNumber = "5592993531943";
@@ -1708,6 +1770,8 @@
                                     title: d.title,
                                     image_url: d.imageUrl,
                                     description: d.description,
+                                    price: d.price,
+                                    itemObs: d.itemObs,
                                     color: d.color,
                                     colorBase: d.colorBase,
                                     colorCommercial: d.colorCommercial,
@@ -1745,19 +1809,23 @@
                                     : Array.isArray(item.occasions)
                                         ? item.occasions.join(', ')
                                         : '';
+                                const fallback = window.catalogData && window.catalogData[item.id];
+                                const suggestionPrice = item.price || (fallback && fallback.price) || 'Valor do aluguel: Consulte';
+                                const suggestionObs = item.item_obs || item.itemObs || (fallback && fallback.itemObs) || '';
                                 div.onclick = () => openCatalogModal(
                                     item.image_url,
                                     item.title,
                                     item.description,
                                     item.id,
-                                    'Valor do aluguel: Consulte',
+                                    suggestionPrice,
                                     'similar',
                                     item.customId,
                                     itemOccasions,
                                     item.color,
                                     item.size,
                                     item.color_base || item.cor_base || item.colorBase || item.corBase,
-                                    item.color_comercial || item.cor_comercial || item.colorCommercial || item.corCommercial
+                                    item.color_comercial || item.cor_comercial || item.colorCommercial || item.corCommercial,
+                                    suggestionObs
                                 );
                                 div.innerHTML = `
                                     <div class="aspect-[3/4] bg-stone-100 overflow-hidden mb-2 rounded-sm relative">
@@ -1803,7 +1871,8 @@
                     item.color,
                     item.size,
                     item.colorBase,
-                    item.colorCommercial
+                    item.colorCommercial,
+                    item.itemObs
                 );
             }
         });

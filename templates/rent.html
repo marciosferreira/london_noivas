@@ -830,32 +830,68 @@
 
 <script>
   function formatarCampoMonetario(input, forcarFormatacao = false) {
-    input.addEventListener('input', function (e) {
-      let value = e.target.value.replace(/\D/g, '');
-      if (!value) {
-        e.target.value = '';
+    function normalizarMonetarioParaNumero(raw) {
+      let s = (raw || '').toString().trim();
+      if (!s) return null;
+
+      s = s.replace(/\s+/g, '').replace(/^R\$\s*/i, '');
+      s = s.replace(/[^\d.,]/g, '');
+      if (!s) return null;
+
+      if (s.includes(',')) {
+        const parts = s.split(',');
+        const intPart = parts.slice(0, -1).join(',').replace(/[.,]/g, '');
+        let decPart = (parts[parts.length - 1] || '').replace(/\D/g, '').slice(0, 2);
+        if (decPart.length === 1) decPart = `${decPart}0`;
+        if (decPart.length === 0) decPart = '00';
+        const n = Number(`${intPart || '0'}.${decPart}`);
+        return Number.isFinite(n) ? n : null;
+      }
+
+      if (s.includes('.')) {
+        const dotParts = s.split('.');
+        if (dotParts.length === 2 && dotParts[1] && dotParts[1].length <= 2) {
+          const intPart = (dotParts[0] || '').replace(/\D/g, '');
+          let decPart = (dotParts[1] || '').replace(/\D/g, '').slice(0, 2);
+          if (decPart.length === 1) decPart = `${decPart}0`;
+          if (decPart.length === 0) decPart = '00';
+          const n = Number(`${intPart || '0'}.${decPart}`);
+          return Number.isFinite(n) ? n : null;
+        }
+
+        const digits = s.replace(/\D/g, '');
+        if (!digits) return null;
+        const n = Number(`${digits}.00`);
+        return Number.isFinite(n) ? n : null;
+      }
+
+      const digits = s.replace(/\D/g, '');
+      if (!digits) return null;
+      const n = Number(`${digits}.00`);
+      return Number.isFinite(n) ? n : null;
+    }
+
+    function aplicarFormatacao() {
+      let n = normalizarMonetarioParaNumero(input.value);
+      if (n === null) {
+        input.value = '';
         return;
       }
 
-      let floatValue = parseFloat(value) / 100;
-      if (floatValue > 1000000) floatValue = 1000000;
+      if (n > 1000000) n = 1000000;
 
-      e.target.value = floatValue.toLocaleString('pt-BR', {
+      input.value = n.toLocaleString('pt-BR', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       });
-    });
+    }
 
-    // ⚠️ Executa imediatamente se chamado manualmente
+    input.addEventListener('input', aplicarFormatacao);
+
     if (forcarFormatacao && input.value) {
-      const raw = input.value.replace(/\D/g, '');
-      if (raw) {
-        const floatValue = parseFloat(raw);
-        input.value = floatValue.toLocaleString('pt-BR', {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        });
-      }
+      aplicarFormatacao();
+    } else if (input.value) {
+      aplicarFormatacao();
     }
   }
 
@@ -863,16 +899,7 @@
     const campos = document.querySelectorAll('.campo-monetario');
     console.log('Campos monetários:', campos);
     campos.forEach((campo) => {
-      if (campo.value && !campo.value.includes(',')) {
-        const float = parseFloat(campo.value.replace(',', '.'));
-        if (!isNaN(float)) {
-          campo.value = float.toLocaleString('pt-BR', {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-          });
-        }
-      }
-      formatarCampoMonetario(campo);
+      formatarCampoMonetario(campo, true);
     });
   });
 </script>

@@ -386,10 +386,27 @@ def init_item_routes(
                 field_id = field["id"]
                 field_type = field.get("type")
                 # is_fixed ignorado pois tudo agora é raiz
-                raw_value = request.form.get(field_id, "").strip()
-                value = raw_value
                 label_text = (field.get("label") or "").strip().lower()
                 is_color_field = field_id in ["cor", "color", "item_cor", "item_color"] or label_text == "cor"
+                is_size_field = field_id in ["tamanho", "size", "item_tamanho", "item_size"] or label_text == "tamanho"
+
+                if is_size_field:
+                    raw_list = request.form.getlist(field_id)
+                    cleaned = []
+                    seen = set()
+                    for v in raw_list:
+                        s = str(v).strip()
+                        if not s:
+                            continue
+                        k = s.casefold()
+                        if k in seen:
+                            continue
+                        seen.add(k)
+                        cleaned.append(s)
+                    value = ", ".join(cleaned)
+                else:
+                    raw_value = request.form.get(field_id, "").strip()
+                    value = raw_value
 
                 if field_id == "item_image_url":
                     value = handle_image_upload(image_file, "N/A")
@@ -840,14 +857,29 @@ def init_item_routes(
 
                 if field_id not in form_keys:
                     continue
-
-                raw_value = request.form.get(field_id, "").strip()
-                if not raw_value and field_type != "item_image_url":
-                    continue
-
-                value = raw_value
                 label_text = (field.get("label") or "").strip().lower()
                 is_color_field = field_id in ["cor", "color", "item_cor", "item_color"] or label_text == "cor"
+                is_size_field = field_id in ["tamanho", "size", "item_tamanho", "item_size"] or label_text == "tamanho"
+
+                if is_size_field:
+                    raw_list = request.form.getlist(field_id)
+                    cleaned = []
+                    seen = set()
+                    for v in raw_list:
+                        s = str(v).strip()
+                        if not s:
+                            continue
+                        k = s.casefold()
+                        if k in seen:
+                            continue
+                        seen.add(k)
+                        cleaned.append(s)
+                    value = ", ".join(cleaned)
+                else:
+                    raw_value = request.form.get(field_id, "").strip()
+                    if not raw_value and field_type != "item_image_url":
+                        continue
+                    value = raw_value
 
                 if field_id == "item_image_url":
                     value = new_image_url
@@ -1140,21 +1172,37 @@ def init_item_routes(
             if match:
                 prepared["cor_base"] = match
 
-        def _first_size_value(value):
+        def _size_value_list(value):
             if value is None:
-                return ""
+                return []
             if isinstance(value, str):
-                return value.strip()
+                s = value.strip()
+                return [s] if s else []
             if isinstance(value, (list, tuple, set)):
+                out = []
                 for v in value:
-                    picked = _first_size_value(v)
-                    if picked:
-                        return picked
-                return ""
-            return str(value).strip()
+                    out.extend(_size_value_list(v))
+                return out
+            s = str(value).strip()
+            return [s] if s else []
 
-        if not _first_size_value(prepared.get("tamanho")):
-            prepared["tamanho"] = _first_size_value(
+        def _sizes_to_csv(value):
+            raw = _size_value_list(value)
+            seen = set()
+            cleaned = []
+            for v in raw:
+                s = str(v).strip()
+                if not s:
+                    continue
+                k = s.casefold()
+                if k in seen:
+                    continue
+                seen.add(k)
+                cleaned.append(s)
+            return ", ".join(cleaned)
+
+        if not _sizes_to_csv(prepared.get("tamanho")):
+            prepared["tamanho"] = _sizes_to_csv(
                 item.get("tamanho")
                 or item.get("size")
                 or item.get("item_tamanho")
@@ -1195,11 +1243,13 @@ def init_item_routes(
                 or prepared.get("item_size")
             )
             if current_size:
-                current_size_str = _first_size_value(current_size)
+                current_size_str = _sizes_to_csv(current_size)
                 if current_size_str:
-                    key = current_size_str.casefold()
-                    if all(str(s).strip().casefold() != key for s in size_options):
-                        size_options = sorted([*size_options, current_size_str], key=lambda x: x.casefold())
+                    for part in [p.strip() for p in current_size_str.split(",") if p.strip()]:
+                        key = part.casefold()
+                        if all(str(s).strip().casefold() != key for s in size_options):
+                            size_options = [*size_options, part]
+                    size_options = sorted(size_options, key=lambda x: x.casefold())
 
         return render_template(
             "edit_item.html",
@@ -2764,6 +2814,9 @@ def list_raw_itens(
     session["previous_path_itens"] = current_path
 
     filtros = request.args.to_dict()
+    tamanho_list = [v for v in request.args.getlist("tamanho") if str(v).strip()]
+    if len(tamanho_list) > 1:
+        filtros["tamanho"] = tamanho_list
     item_id = filtros.pop("item_id", None)
     page = int(filtros.pop("page", 1))
 

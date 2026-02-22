@@ -62,10 +62,10 @@
           </select>
 
         {% elif field.id == "tamanho" %}
-          <select name="{{ field.id }}" class="form-select">
-            <option value="">Todos</option>
+          {% set selected_sizes = request.args.getlist(field.id) %}
+          <select name="{{ field.id }}" class="form-select" multiple>
             {% for opt in (size_options or []) %}
-              <option value="{{ opt }}" {% if request.args.get(field.id) == opt %}selected{% endif %}>{{ opt }}</option>
+              <option value="{{ opt }}" {% if opt in selected_sizes %}selected{% endif %}>{{ opt }}</option>
             {% endfor %}
           </select>
 
@@ -165,6 +165,5 @@
     }
   });
 </script>
-
 
 

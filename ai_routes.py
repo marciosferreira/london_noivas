@@ -347,7 +347,8 @@ def _extract_size_list(obj):
     if isinstance(v, (list, tuple)):
         return [x for x in v if str(x).strip()]
     if isinstance(v, str):
-        return [v] if v.strip() else []
+        text = v.replace(" e ", ",")
+        return _split_multi_text(text)
     return []
 
 
@@ -2250,6 +2251,12 @@ def ai_similar(item_id):
                     "title": item.get("title", "Vestido"),
                     "image_url": item.get("imageUrl") or url_for("static", filename=f"dresses/{item['file_name']}"),
                     "description": item.get("description", ""),
+                    "price": (
+                        item.get("price")
+                        or (f"R$ {item.get('item_value')}" if item.get("item_value") else "")
+                        or (f"R$ {item.get('itemValue')}" if item.get("itemValue") else "")
+                    ),
+                    "item_obs": item.get("item_obs") or item.get("itemObs") or "",
                     "category": item.get("category", "Outros"),
                     "color": _extract_color_value(item),
                     "color_base": _extract_color_base_value(item),

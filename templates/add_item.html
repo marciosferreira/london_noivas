@@ -74,12 +74,21 @@
                 </select>
 
                 {% elif is_size_field and size_options %}
-                <select class="form-select" id="{{ field.id }}" name="{{ field.id }}" {% if field.required %}required{% endif %}>
-                  <option value="">Selecione</option>
+                {% set raw_sizes = (valor|string) %}
+                {% set sizes_text = raw_sizes|replace(' e ', ',')|replace('/', ',') %}
+                {% set size_parts = sizes_text.split(',') %}
+                {% set ns = namespace(selected=[]) %}
+                {% for part in size_parts %}
+                  {% set p = part|string|trim %}
+                  {% if p %}
+                    {% set ns.selected = ns.selected + [p|lower] %}
+                  {% endif %}
+                {% endfor %}
+                <input type="hidden" name="{{ field.id }}" value="">
+                <select class="form-select" id="{{ field.id }}" name="{{ field.id }}" multiple {% if field.required %}required{% endif %}>
                   {% for s in size_options %}
-                  {% set valor_norm = valor|string|trim|lower %}
                   {% set s_norm = s|string|trim|lower %}
-                  <option value="{{ s }}" {% if valor_norm == s_norm %}selected{% endif %}>{{ s }}</option>
+                  <option value="{{ s }}" {% if s_norm in ns.selected %}selected{% endif %}>{{ s }}</option>
                   {% endfor %}
                 </select>
 
@@ -228,22 +237,61 @@
 
   // --- Funções Monetárias ---
   function formatarCampoMonetario(input) {
-    input.addEventListener('input', function (e) {
-      let value = e.target.value.replace(/\D/g, '');
-      if (value.length > 12) value = value.slice(0, 12);
-      if (!value) {
+    function normalizarMonetarioParaNumero(raw) {
+      let s = (raw || '').toString().trim();
+      if (!s) return null;
+
+      s = s.replace(/\s+/g, '').replace(/^R\$\s*/i, '');
+      s = s.replace(/[^\d.,]/g, '');
+      if (!s) return null;
+
+      if (s.includes(',')) {
+        const parts = s.split(',');
+        const intPart = parts.slice(0, -1).join(',').replace(/[.,]/g, '');
+        let decPart = (parts[parts.length - 1] || '').replace(/\D/g, '').slice(0, 2);
+        if (decPart.length === 1) decPart = `${decPart}0`;
+        if (decPart.length === 0) decPart = '00';
+        const n = Number(`${intPart || '0'}.${decPart}`);
+        return Number.isFinite(n) ? n : null;
+      }
+
+      if (s.includes('.')) {
+        const dotParts = s.split('.');
+        if (dotParts.length === 2 && dotParts[1] && dotParts[1].length <= 2) {
+          const intPart = (dotParts[0] || '').replace(/\D/g, '');
+          let decPart = (dotParts[1] || '').replace(/\D/g, '').slice(0, 2);
+          if (decPart.length === 1) decPart = `${decPart}0`;
+          if (decPart.length === 0) decPart = '00';
+          const n = Number(`${intPart || '0'}.${decPart}`);
+          return Number.isFinite(n) ? n : null;
+        }
+
+        const digits = s.replace(/\D/g, '');
+        if (!digits) return null;
+        const n = Number(`${digits}.00`);
+        return Number.isFinite(n) ? n : null;
+      }
+
+      const digits = s.replace(/\D/g, '');
+      if (!digits) return null;
+      const n = Number(`${digits}.00`);
+      return Number.isFinite(n) ? n : null;
+    }
+
+    function aplicarFormatacao() {
+      const n = normalizarMonetarioParaNumero(input.value);
+      if (n === null) {
         input.value = '';
         return;
       }
-      const floatValue = parseFloat(value) / 100;
-      input.value = floatValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    });
-
-    const raw = input.value.replace(/\D/g, '');
-    if (raw) {
-      const floatValue = parseFloat(raw) / 100;
-      input.value = floatValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      input.value = n.toLocaleString('pt-BR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
     }
+
+    input.addEventListener('input', aplicarFormatacao);
+    if (input.value) aplicarFormatacao();
   }
 
   // --- Funções Auxiliares ---
