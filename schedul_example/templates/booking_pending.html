@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+
+{% block title %}Aguardando Confirmação{% endblock %}
+
+{% block head %}
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+  :root {
+    --bg: #faf9f7; --card: #fff; --accent: #f0ebe3;
+    --text: #2c2420; --text2: #7a6e65; --muted: #b0a69d;
+    --brand: #C5A059; --brand-dark: #a8863f; --brand-light: #f3ead8;
+    --success: #5a9e6f; --success-light: #e8f5ec;
+    --border: #e8e2da; --radius: 16px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family:'Montserrat',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+
+  html, body { padding-top: 0; }
+  html { background: var(--bg); }
+  .page-container {
+    max-width: none;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .container { max-width:480px; margin:0 auto; padding:40px 16px; text-align:center; }
+
+  .icon-circle {
+    width:80px; height:80px; border-radius:50%;
+    background: var(--brand-light);
+    display:flex; align-items:center; justify-content:center;
+    margin:0 auto 24px;
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%,100% { box-shadow: 0 0 0 0 rgba(200,149,108,0.3); }
+    50% { box-shadow: 0 0 0 16px rgba(200,149,108,0); }
+  }
+  .icon-circle i { font-size:2rem; color:var(--brand); }
+
+  h1 { font-size:1.5rem; font-weight:700; margin-bottom:8px; font-family:'Cormorant Garamond',serif; }
+  .subtitle { font-size:0.9rem; color:var(--text2); margin-bottom:28px; line-height:1.5; }
+
+  .info-card {
+    background:var(--card); border:1px solid var(--border);
+    border-radius:var(--radius); padding:24px; margin-bottom:20px;
+    text-align:left;
+  }
+  .info-row {
+    display:flex; justify-content:space-between; align-items:center;
+    padding:10px 0; border-bottom:1px solid var(--accent);
+    font-size:0.88rem;
+  }
+  .info-row:last-child { border-bottom:none; }
+  .info-row .lbl { color:var(--text2); }
+  .info-row .val { font-weight:600; }
+  .items-mini { display:flex; flex-wrap:wrap; gap:10px; margin-top:4px; }
+  .item-mini { display:flex; align-items:center; gap:10px; padding:8px 10px; border:1px solid var(--border); border-radius:12px; background:var(--card); }
+  .item-mini img { width:42px; height:42px; border-radius:10px; object-fit:cover; background:var(--accent); border:1px solid var(--border); }
+  .item-mini .t { font-weight:600; font-size:0.86rem; line-height:1.2; }
+  .item-mini .c { color:var(--text2); font-size:0.76rem; margin-top:2px; }
+
+  .action-card {
+    background:var(--success-light); border:1px solid rgba(90,158,111,0.2);
+    border-radius:var(--radius); padding:20px; margin-bottom:16px;
+  }
+  .action-card h3 { font-size:0.95rem; color:var(--success); margin-bottom:8px; }
+  .action-card p { font-size:0.83rem; color:var(--text2); line-height:1.5; }
+
+  .wa-btn {
+    display:inline-flex; align-items:center; gap:8px;
+    padding:12px 28px;
+    background:#25D366; color:#fff;
+    border:none; border-radius:12px;
+    font-family:inherit; font-size:0.92rem; font-weight:600;
+    cursor:pointer; text-decoration:none;
+    margin-top:12px; transition:all 0.2s;
+  }
+  .wa-btn:hover { background:#20bd5a; transform:translateY(-1px); box-shadow:0 4px 12px rgba(37,211,102,0.3); }
+
+  .link-box {
+    background:var(--accent); border-radius:8px; padding:12px;
+    font-size:0.78rem; word-break:break-all; color:var(--text2);
+    margin-top:12px;
+  }
+  .link-box a { color:var(--brand-dark); font-weight:500; }
+
+  .back-link {
+    display:inline-block; margin-top:24px;
+    font-size:0.85rem; color:var(--text2);
+    text-decoration:none;
+  }
+  .back-link:hover { color:var(--text); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="icon-circle">
+    <i class="fas fa-hourglass-half"></i>
+  </div>
+
+  <h1>Quase lá, {{ client_name.split()[0] }}!</h1>
+  <p class="subtitle">
+    Seu agendamento foi registrado mas precisa ser <strong>confirmado</strong>.
+    {% if has_email %}
+      Enviamos um e-mail para <strong>{{ client_email }}</strong> com o link de confirmação.
+    {% else %}
+      Não foi possível enviar o e-mail de confirmação para <strong>{{ client_email }}</strong>.
+      {% if email_error %}<span style="color:var(--text2);">({{ email_error }})</span>{% endif %}
+    {% endif %}
+  </p>
+
+  <!-- Dados do agendamento -->
+  <div class="info-card">
+    <div class="info-row">
+      <span class="lbl">📅 Data</span>
+      <span class="val">{{ date_br }}</span>
+    </div>
+    <div class="info-row">
+      <span class="lbl">🕐 Horário</span>
+      <span class="val">{{ time_local }}</span>
+    </div>
+    {% if items and (items|length) > 0 %}
+    <div class="info-row" style="align-items:flex-start;">
+      <span class="lbl">👗 Vestidos</span>
+      <span class="val" style="font-weight:400;">
+        <div class="items-mini">
+          {% for it in items %}
+            {% set t = it.item_title or it.item_custom_id or it.item_id %}
+            <div class="item-mini">
+              <img src="{{ it.item_image_url or '/static/item-placeholder.png' }}" alt="">
+              <div>
+                <div class="t">{{ t }}</div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </span>
+    </div>
+    {% elif item_custom_id %}
+    <div class="info-row">
+      <span class="lbl">👗 Vestido</span>
+      <span class="val">
+        {{ item_custom_id }}
+      </span>
+    </div>
+    {% endif %}
+    <div class="info-row">
+      <span class="lbl">👤 Nome</span>
+      <span class="val">{{ client_name }}</span>
+    </div>
+    <div class="info-row">
+      <span class="lbl">📱 Telefone</span>
+      <span class="val">{{ client_phone }}</span>
+    </div>
+    <div class="info-row">
+      <span class="lbl">📧 E-mail</span>
+      <span class="val">{{ client_email }}</span>
+    </div>
+  </div>
+
+  <!-- Ações de confirmação -->
+  {% if has_email %}
+    <div class="action-card">
+      <h3><i class="fas fa-envelope"></i> Confirmação necessária do e-mail</h3>
+      <p>Abra seu e-mail e clique no link de confirmação. Se não encontrar, verifique a caixa de spam.</p>
+    </div>
+  {% else %}
+    <div class="action-card">
+      <h3><i class="fas fa-triangle-exclamation"></i> Confirmação temporária</h3>
+      <p>Enquanto o e-mail não está configurado, use o link abaixo para confirmar este agendamento.</p>
+      {% if confirm_url %}
+        <div class="link-box">
+          <a href="{{ confirm_url }}" target="_blank" rel="noopener">Confirmar agendamento</a><br>
+          {{ confirm_url }}
+        </div>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  <a href="{{ url_for('public_booking', account_slug=account_slug) }}" class="back-link">
+    <i class="fas fa-arrow-left"></i> Voltar ao calendário
+  </a>
+</div>
+{% endblock %}
+
+{% block scripts %}{% endblock %}

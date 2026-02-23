@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Confirmado!' if success else 'Ops...' }}{% endblock %}
+
+{% block head %}
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+  :root {
+    --bg:#faf9f7; --card:#fff; --accent:#f0ebe3;
+    --text:#2c2420; --text2:#7a6e65; --muted:#b0a69d;
+    --brand:#C5A059; --brand-dark:#a8863f; --brand-light:#f3ead8;
+    --success:#5a9e6f; --success-light:#e8f5ec;
+    --danger:#c75c5c; --danger-light:#fce8e8;
+    --border:#e8e2da; --radius:16px;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:'Montserrat',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+
+  html, body { padding-top: 0; }
+  html { background: var(--bg); }
+  .page-container {
+    max-width: none;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .container { max-width:480px; margin:0 auto; padding:60px 16px; text-align:center; }
+
+  .result-icon {
+    width:90px; height:90px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    margin:0 auto 28px;
+  }
+  .result-icon.ok { background:var(--success-light); }
+  .result-icon.ok i { font-size:2.5rem; color:var(--success); }
+  .result-icon.err { background:var(--danger-light); }
+  .result-icon.err i { font-size:2.5rem; color:var(--danger); }
+
+  h1 { font-size:1.5rem; font-weight:700; margin-bottom:12px; font-family:'Cormorant Garamond',serif; }
+  .message { font-size:0.95rem; color:var(--text2); line-height:1.6; margin-bottom:28px; }
+
+  .details-card {
+    background:var(--card); border:1px solid var(--border);
+    border-radius:var(--radius); padding:20px; margin-bottom:24px;
+    text-align:left;
+  }
+  .detail-row {
+    display:flex; justify-content:space-between;
+    padding:8px 0; font-size:0.87rem;
+    border-bottom:1px solid var(--accent);
+  }
+  .detail-row:last-child { border-bottom:none; }
+  .detail-row .lbl { color:var(--text2); }
+  .detail-row .val { font-weight:600; }
+  .items-mini { display:flex; flex-wrap:wrap; gap:10px; margin-top:6px; }
+  .item-mini { display:flex; align-items:center; gap:10px; padding:8px 10px; border:1px solid var(--border); border-radius:12px; background:var(--card); }
+  .item-mini img { width:42px; height:42px; border-radius:10px; object-fit:cover; background:var(--accent); border:1px solid var(--border); }
+  .item-mini .t { font-weight:600; font-size:0.86rem; line-height:1.2; }
+  .item-mini .c { color:var(--text2); font-size:0.76rem; margin-top:2px; }
+
+  .btn-back {
+    display:inline-flex; align-items:center; gap:6px;
+    padding:12px 28px;
+    background:var(--brand); color:#fff;
+    border:none; border-radius:12px;
+    font-family:inherit; font-size:0.9rem; font-weight:600;
+    cursor:pointer; text-decoration:none;
+    transition:all 0.2s;
+  }
+  .btn-back:hover { background:var(--brand-dark); transform:translateY(-1px); }
+
+  @keyframes fadeInUp {
+    from { opacity:0; transform:translateY(20px); }
+    to { opacity:1; transform:translateY(0); }
+  }
+  .container > * { animation: fadeInUp 0.5s ease both; }
+  .container > *:nth-child(2) { animation-delay: 0.1s; }
+  .container > *:nth-child(3) { animation-delay: 0.2s; }
+  .container > *:nth-child(4) { animation-delay: 0.3s; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="result-icon {{ 'ok' if success else 'err' }}">
+    <i class="fas {{ 'fa-check-circle' if success else 'fa-times-circle' }}"></i>
+  </div>
+
+  <h1>{{ 'Tudo certo!' if success else 'Não foi possível' }}</h1>
+  <p class="message">{{ message }}</p>
+
+  {% if fitting %}
+  {% set d = fitting.date_local %}
+  <div class="details-card">
+    <div class="detail-row">
+      <span class="lbl">📅 Data</span>
+      <span class="val">{{ (d[8:10] ~ '/' ~ d[5:7] ~ '/' ~ d[0:4]) if d and (d|length) >= 10 else d }}</span>
+    </div>
+    <div class="detail-row">
+      <span class="lbl">🕐 Horário</span>
+      <span class="val">{{ fitting.time_local }}</span>
+    </div>
+    <div class="detail-row">
+      <span class="lbl">👤 Cliente</span>
+      <span class="val">{{ fitting.client_name }}</span>
+    </div>
+    <div class="detail-row">
+      <span class="lbl">📋 Status</span>
+      <span class="val" style="color:var(--success);">{{ fitting.status }}</span>
+    </div>
+    {% if ('items' in fitting) and fitting['items'] %}
+    <div class="detail-row" style="align-items:flex-start;">
+      <span class="lbl">👗 Vestidos</span>
+      <span class="val" style="font-weight:400;">
+        <div class="items-mini">
+          {% for it in fitting['items'] %}
+            {% set t = it.item_title or it.item_custom_id or it.item_id %}
+            <div class="item-mini">
+              <img src="{{ it.item_image_url or '/static/item-placeholder.png' }}" alt="">
+              <div>
+                <div class="t">{{ t }}</div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </span>
+    </div>
+    {% elif fitting.item_custom_id %}
+    <div class="detail-row">
+      <span class="lbl">👗 Vestido</span>
+      <span class="val">{{ fitting.item_custom_id }}</span>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <a href="{{ url_for('public_booking', account_slug=account_slug) }}" class="btn-back">
+    <i class="fas fa-calendar-alt"></i> Voltar ao Calendário
+  </a>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  (function () {
+    const eventName = {{ (ga_event_name|tojson) if ga_event_name is defined else 'null' }};
+    const eventParams = {{ (ga_event_params|tojson) if ga_event_params is defined else '{}' }};
+    if (!eventName) return;
+
+    if (typeof gtag !== 'undefined') {
+      gtag('config', 'G-23RSZ1SMRX');
+      gtag('event', eventName, eventParams);
+    }
+  })();
+</script>
+{% endblock %}

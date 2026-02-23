@@ -1,0 +1,369 @@
+{% extends "base.html" %}
+
+{% block title %}Configuração de Agendamento{% endblock %}
+
+{% block head %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+  .config-section {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+  .config-section h5 {
+    font-weight: 700;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .day-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid #f1f5f9;
+  }
+  .day-row:last-child { border-bottom: none; }
+  .day-label {
+    width: 90px;
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+  .day-slots {
+    flex: 1;
+  }
+  .day-slots input {
+    width: 100%;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 0.85rem;
+    font-family: 'Courier New', monospace;
+  }
+  .day-slots input:focus {
+    border-color: #c8956c;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(200,149,108,0.15);
+  }
+  .blocked-date-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #fce8e8;
+    color: #c75c5c;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.82rem;
+    font-weight: 500;
+    margin: 4px;
+  }
+  .blocked-date-item form { display: inline; }
+  .blocked-date-item button {
+    background: none;
+    border: none;
+    color: #c75c5c;
+    cursor: pointer;
+    font-size: 0.9rem;
+    padding: 0;
+    opacity: 0.6;
+  }
+  .blocked-date-item button:hover { opacity: 1; }
+  .public-url-box {
+    background: #f0ebe3;
+    border-radius: 10px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.88rem;
+    word-break: break-all;
+  }
+  .public-url-box code {
+    flex: 1;
+    color: #a87650;
+    font-weight: 600;
+  }
+  .copy-btn {
+    background: #c8956c;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 0.78rem;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .copy-btn:hover { background: #a87650; }
+
+  .hint-text {
+    font-size: 0.78rem;
+    color: #94a3b8;
+    margin-top: 4px;
+  }
+  .preset-btns { margin-top: 8px; }
+  .preset-btn {
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    color: #64748b;
+  }
+  .preset-btn:hover { background: #e2e8f0; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-3">
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="h3 mb-0">
+        <i class="fas fa-cog text-primary me-2"></i>Configuração de Agendamento
+      </h1>
+      <p class="text-muted mb-0">Gerencie horários, bloqueios e link público</p>
+    </div>
+    <a href="{{ url_for('agenda') }}" class="btn btn-outline-secondary">
+      <i class="fas fa-arrow-left me-2"></i>Voltar
+    </a>
+  </div>
+
+  <div class="row">
+    <div class="col-lg-8">
+      <!-- ═══ Link Público ═══ -->
+      <div class="config-section">
+        <h5><i class="fas fa-link" style="color:#c8956c;"></i> Link Público</h5>
+        <p class="text-muted" style="font-size:0.85rem;">
+          Configure o link que seus clientes usarão para agendar online.
+        </p>
+
+        <form method="POST">
+          <input type="hidden" name="action" value="save_slug">
+          <div class="row g-3 mb-3">
+            <div class="col-sm-5">
+              <label class="form-label fw-semibold" style="font-size:0.82rem;">Identificador (slug)</label>
+              <div class="input-group">
+                <span class="input-group-text" style="font-size:0.82rem;">/agendar/</span>
+                <input type="text" class="form-control" name="slug" value="{{ current_slug }}"
+                       placeholder="minha-loja" pattern="[a-z0-9\-]+" required
+                       style="font-size:0.88rem;">
+              </div>
+              <div class="hint-text">Apenas letras minúsculas, números e hífens</div>
+            </div>
+            <div class="col-sm-5">
+              <label class="form-label fw-semibold" style="font-size:0.82rem;">Nome do negócio</label>
+              <input type="text" class="form-control" name="business_name" value="{{ business_name }}"
+                     placeholder="London Noivas" style="font-size:0.88rem;">
+            </div>
+            <div class="col-sm-2 d-flex align-items-end">
+              <button type="submit" class="btn btn-sm w-100" style="background:#c8956c;color:#fff;">
+                <i class="fas fa-save"></i> Salvar
+              </button>
+            </div>
+          </div>
+        </form>
+
+        {% if current_slug %}
+        <div class="public-url-box">
+          <i class="fas fa-external-link-alt" style="color:#a87650;"></i>
+          <code id="public-url">{{ request.host_url }}agendar/{{ current_slug }}</code>
+          <button class="copy-btn" onclick="copyUrl()">
+            <i class="fas fa-copy"></i> Copiar
+          </button>
+        </div>
+        {% endif %}
+      </div>
+
+      <div class="config-section">
+        <h5><i class="fas fa-envelope" style="color:#c8956c;"></i> Notificações</h5>
+        <p class="text-muted" style="font-size:0.85rem;">
+          Configure os e-mails dos administradores que receberão uma cópia quando houver um novo agendamento.
+        </p>
+        <form method="POST" class="row g-3">
+          <input type="hidden" name="action" value="save_admin_emails">
+          <div class="col-12">
+            <label class="form-label fw-semibold" style="font-size:0.82rem;">E-mails (separe por vírgula)</label>
+            <textarea class="form-control" name="admin_emails" rows="3" style="font-size:0.88rem;" placeholder="admin@exemplo.com, outro@exemplo.com">{{ admin_emails }}</textarea>
+            <div class="hint-text">Esses e-mails recebem notificação do agendamento assim que o cliente envia o pedido.</div>
+          </div>
+          <div class="col-12">
+            <button type="submit" class="btn" style="background:#c8956c;color:#fff;">
+              <i class="fas fa-save me-1"></i> Salvar E-mails
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- ═══ Horários Semanais ═══ -->
+      <div class="config-section">
+        <h5><i class="fas fa-clock" style="color:#c8956c;"></i> Horários Semanais</h5>
+        <p class="text-muted" style="font-size:0.85rem;">
+          Defina os horários disponíveis para cada dia da semana. Separe por vírgula.
+        </p>
+
+        <form method="POST">
+          <input type="hidden" name="action" value="save_schedule">
+
+          {% for i in range(7) %}
+          <div class="day-row">
+            <div class="day-label">
+              {% if i < 5 %}
+                <span style="color:#2c2420;">{{ day_names[i] }}</span>
+              {% elif i == 5 %}
+                <span style="color:#c8956c;">{{ day_names[i] }}</span>
+              {% else %}
+                <span style="color:#c75c5c;">{{ day_names[i] }}</span>
+              {% endif %}
+            </div>
+            <div class="day-slots">
+              <input type="text" name="slots_{{ i }}"
+                     value="{{ schedule.get(i|string, [])|join(', ') }}"
+                     placeholder="{% if i == 6 %}Fechado (deixe vazio){% else %}09:00, 09:30, 10:00, ...{% endif %}">
+            </div>
+          </div>
+          {% endfor %}
+
+          <div class="preset-btns">
+            <span style="font-size:0.78rem;color:#94a3b8;margin-right:8px;">Atalhos:</span>
+            <button type="button" class="preset-btn" onclick="applyPreset('comercial')">Horário Comercial</button>
+            <button type="button" class="preset-btn" onclick="applyPreset('manha')">Só Manhã</button>
+            <button type="button" class="preset-btn" onclick="applyPreset('tarde')">Só Tarde</button>
+            <button type="button" class="preset-btn" onclick="applyPreset('30min')">Intervalos 30min</button>
+            <button type="button" class="preset-btn" onclick="applyPreset('1hora')">Intervalos 1h</button>
+          </div>
+
+          <div class="mt-3">
+            <button type="submit" class="btn" style="background:#c8956c;color:#fff;">
+              <i class="fas fa-save me-1"></i> Salvar Horários
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- ═══ Datas Bloqueadas ═══ -->
+      <div class="config-section">
+        <h5><i class="fas fa-ban" style="color:#c75c5c;"></i> Datas Bloqueadas</h5>
+        <p class="text-muted" style="font-size:0.85rem;">
+          Bloqueie datas específicas (feriados, folgas, etc). Nenhum agendamento será permitido.
+        </p>
+
+        <form method="POST" class="row g-2 mb-3">
+          <input type="hidden" name="action" value="block_date">
+          <div class="col-sm-4">
+            <input type="date" class="form-control form-control-sm" name="block_date" required>
+          </div>
+          <div class="col-sm-5">
+            <input type="text" class="form-control form-control-sm" name="block_reason" placeholder="Motivo (opcional)">
+          </div>
+          <div class="col-sm-3">
+            <button type="submit" class="btn btn-sm btn-danger w-100">
+              <i class="fas fa-plus me-1"></i>Bloquear
+            </button>
+          </div>
+        </form>
+
+        <div>
+          {% if blocked_dates %}
+            {% for d in blocked_dates %}
+            <span class="blocked-date-item">
+              <i class="fas fa-calendar-xmark"></i>
+              {{ d }}
+              <form method="POST" style="display:inline;">
+                <input type="hidden" name="action" value="unblock_date">
+                <input type="hidden" name="unblock_date" value="{{ d }}">
+                <button type="submit" title="Desbloquear"><i class="fas fa-times"></i></button>
+              </form>
+            </span>
+            {% endfor %}
+          {% else %}
+            <p class="text-muted" style="font-size:0.82rem;">Nenhuma data bloqueada.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ Sidebar ═══ -->
+    <div class="col-lg-4">
+      <div class="config-section" style="background:#f0ebe3;border-color:#e8e2da;">
+        <h5><i class="fas fa-info-circle" style="color:#c8956c;"></i> Como funciona</h5>
+        <div style="font-size:0.82rem;color:#7a6e65;line-height:1.7;">
+          <p><strong>1.</strong> Configure os horários disponíveis por dia da semana.</p>
+          <p><strong>2.</strong> Bloqueie datas específicas quando necessário.</p>
+          <p><strong>3.</strong> Compartilhe o link público com seus clientes.</p>
+          <p><strong>4.</strong> O cliente escolhe data/horário e recebe confirmação.</p>
+          <p><strong>5.</strong> Só após confirmar (por email/link), o agendamento é válido.</p>
+          <p><strong>6.</strong> Horários agendados ficam indisponíveis automaticamente.</p>
+          <p><strong>7.</strong> Clientes podem agendar com até <strong>1 semana</strong> de antecedência.</p>
+        </div>
+      </div>
+
+      <div class="config-section">
+        <h5><i class="fas fa-clock-rotate-left" style="color:#c8956c;"></i> Fuso horário</h5>
+        <p style="font-size:0.85rem;color:#7a6e65;">
+          O calendário usa o fuso horário de <strong>Manaus, AM (UTC-4)</strong>.
+          Todos os horários exibidos ao cliente estão neste fuso.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function copyUrl() {
+  const url = document.getElementById('public-url').textContent;
+  navigator.clipboard.writeText(url).then(() => {
+    const btn = event.target.closest('.copy-btn');
+    const orig = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-check"></i> Copiado!';
+    btn.style.background = '#5a9e6f';
+    setTimeout(() => { btn.innerHTML = orig; btn.style.background = '#c8956c'; }, 1500);
+  });
+}
+
+function applyPreset(type) {
+  const presets = {
+    comercial: {
+      weekday: '09:00, 09:30, 10:00, 10:30, 11:00, 11:30, 14:00, 14:30, 15:00, 15:30, 16:00, 16:30, 17:00, 17:30',
+      saturday: '09:00, 09:30, 10:00, 10:30, 11:00, 11:30',
+      sunday: ''
+    },
+    manha: {
+      weekday: '08:00, 08:30, 09:00, 09:30, 10:00, 10:30, 11:00, 11:30',
+      saturday: '08:00, 08:30, 09:00, 09:30, 10:00, 10:30, 11:00, 11:30',
+      sunday: ''
+    },
+    tarde: {
+      weekday: '13:00, 13:30, 14:00, 14:30, 15:00, 15:30, 16:00, 16:30, 17:00, 17:30',
+      saturday: '13:00, 13:30, 14:00, 14:30, 15:00',
+      sunday: ''
+    },
+    '30min': {
+      weekday: '09:00, 09:30, 10:00, 10:30, 11:00, 11:30, 14:00, 14:30, 15:00, 15:30, 16:00, 16:30, 17:00, 17:30',
+      saturday: '09:00, 09:30, 10:00, 10:30, 11:00, 11:30',
+      sunday: ''
+    },
+    '1hora': {
+      weekday: '09:00, 10:00, 11:00, 14:00, 15:00, 16:00, 17:00',
+      saturday: '09:00, 10:00, 11:00',
+      sunday: ''
+    }
+  };
+
+  const p = presets[type];
+  if (!p) return;
+
+  for (let i = 0; i < 7; i++) {
+    const input = document.querySelector(`input[name="slots_${i}"]`);
+    if (i < 5) input.value = p.weekday;
+    else if (i === 5) input.value = p.saturday;
+    else input.value = p.sunday;
+  }
+}
+</script>
+{% endblock %}

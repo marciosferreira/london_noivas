@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+
+{% block title %}Reagendar - {{ business_name }}{% endblock %}
+
+{% block head %}
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+  :root {
+    --bg:#faf9f7; --card:#fff; --accent:#f0ebe3;
+    --text:#2c2420; --text2:#7a6e65; --muted:#b0a69d;
+    --brand:#C5A059; --brand-dark:#a8863f; --brand-light:#f3ead8;
+    --success:#5a9e6f; --danger:#c75c5c;
+    --border:#e8e2da; --radius:16px;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:'Montserrat',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+
+  html, body { padding-top: 0; }
+  html { background: var(--bg); }
+  .page-container {
+    max-width: none;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .container { max-width:480px; margin:0 auto; padding:24px 16px 40px; }
+
+  .header { text-align:center; padding:20px 0 24px; }
+  .header h1 { font-size:1.4rem; font-weight:700; font-family:'Cormorant Garamond',serif; }
+  .header p { font-size:0.88rem; color:var(--text2); margin-top:4px; }
+
+  .current-booking {
+    background:var(--accent); border-radius:12px;
+    padding:16px; margin-bottom:20px; font-size:0.85rem;
+  }
+  .current-booking strong { display:block; margin-bottom:6px; color:var(--text2); font-size:0.78rem; text-transform:uppercase; letter-spacing:0.05em; }
+  .current-booking .details { display:flex; gap:16px; }
+  .current-booking .detail { display:flex; align-items:center; gap:4px; }
+
+  .card {
+    background:var(--card); border:1px solid var(--border);
+    border-radius:var(--radius); padding:20px; margin-bottom:16px;
+  }
+
+  .form-group { margin-bottom:16px; }
+  .form-group label { display:block; font-size:0.8rem; font-weight:600; color:var(--text2); margin-bottom:6px; }
+  .form-group input, .form-group select {
+    width:100%; padding:11px 14px; border:1.5px solid var(--border);
+    border-radius:8px; font-family:inherit; font-size:0.9rem;
+    color:var(--text); outline:none; transition:border-color 0.2s;
+  }
+  .form-group input:focus { border-color:var(--brand); }
+
+  .slots-grid {
+    display:grid; grid-template-columns:repeat(3,1fr); gap:8px;
+    margin-top:12px;
+  }
+  .slot-btn {
+    padding:10px 4px; border:1.5px solid var(--border);
+    border-radius:8px; background:var(--card);
+    font-family:inherit; font-size:0.85rem; font-weight:500;
+    color:var(--text); cursor:pointer; text-align:center; transition:all 0.2s;
+  }
+  .slot-btn:hover { border-color:var(--brand); background:var(--brand-light); }
+  .slot-btn.selected { border-color:var(--brand); background:var(--brand); color:#fff; }
+  .slot-btn.disabled {
+    background: var(--accent);
+    color: var(--muted);
+    border-color: var(--border);
+    cursor: not-allowed;
+    opacity: 0.9;
+  }
+  .slot-btn.disabled:hover { border-color: var(--border); background: var(--accent); }
+  .slot-btn.disabled.booked { background: #f1f5f9; color: #94a3b8; }
+  .slot-btn.disabled.past { background: #f8fafc; color: #cbd5e1; }
+
+  .btn {
+    display:block; width:100%; padding:14px;
+    border:none; border-radius:12px;
+    font-family:inherit; font-size:0.95rem; font-weight:600;
+    cursor:pointer; transition:all 0.2s; text-align:center;
+  }
+  .btn-primary { background:var(--brand); color:#fff; }
+  .btn-primary:hover { background:var(--brand-dark); }
+  .btn-primary:disabled { opacity:0.5; cursor:not-allowed; }
+  .btn-outline {
+    background:transparent; color:var(--text2);
+    border:1.5px solid var(--border); margin-top:8px;
+    text-decoration:none;
+  }
+  .btn-outline:hover { border-color:var(--text2); color:var(--text); }
+
+  .alert { padding:12px; border-radius:8px; font-size:0.85rem; margin-bottom:12px; }
+  .alert-danger { background:#fce8e8; color:var(--danger); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="header">
+    <h1><i class="fas fa-calendar-pen" style="color:var(--brand);"></i> Reagendar</h1>
+    <p>Escolha uma nova data e horário</p>
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <div class="current-booking">
+    <strong>Agendamento atual</strong>
+    <div class="details">
+      {% set d = fitting.date_local %}
+      <div class="detail"><i class="fas fa-calendar"></i> {{ (d[8:10] ~ '/' ~ d[5:7] ~ '/' ~ d[0:4]) if d and (d|length) >= 10 else d }}</div>
+      <div class="detail"><i class="fas fa-clock"></i> {{ fitting.time_local }}</div>
+      <div class="detail"><i class="fas fa-user"></i> {{ fitting.client_name }}</div>
+    </div>
+  </div>
+
+  <form method="POST" class="card" id="reschedule-form">
+    <div class="form-group">
+      <label><i class="fas fa-calendar"></i> Nova data</label>
+      <input type="date" name="date_iso" id="new-date" min="{{ today_iso }}" max="{{ max_date_iso }}" required>
+    </div>
+
+    <div id="slots-section" style="display:none;">
+      <label style="display:block; font-size:0.8rem; font-weight:600; color:#7a6e65; margin-bottom:8px;">
+        <i class="fas fa-clock"></i> Novo horário
+      </label>
+      <input type="hidden" name="time_local" id="new-time">
+      <div class="slots-grid" id="slots-grid"></div>
+      <div id="no-slots" style="display:none; text-align:center; padding:16px; color:#b0a69d; font-size:0.85rem;">
+        Nenhum horário disponível nesta data.
+      </div>
+    </div>
+
+    <div style="margin-top:20px;">
+      <button type="submit" class="btn btn-primary" id="submit-btn" disabled>
+        <i class="fas fa-check"></i> Confirmar Reagendamento
+      </button>
+      <a href="{{ url_for('public_booking', account_slug=account_slug) }}" class="btn btn-outline">
+        Cancelar
+      </a>
+    </div>
+  </form>
+</div>
+
+<script>
+  const ACCOUNT_SLUG = '{{ account_slug }}';
+  let selectedTime = null;
+
+  document.getElementById('new-date').addEventListener('change', async function() {
+    const date = this.value;
+    if (!date) return;
+
+    selectedTime = null;
+    document.getElementById('new-time').value = '';
+    document.getElementById('submit-btn').disabled = true;
+
+    try {
+      const resp = await fetch(`/api/day_slots/${ACCOUNT_SLUG}?date=${date}`);
+      const data = await resp.json();
+      const grid = document.getElementById('slots-grid');
+      const noSlots = document.getElementById('no-slots');
+      const section = document.getElementById('slots-section');
+
+      section.style.display = 'block';
+      grid.innerHTML = '';
+
+      if (!data.slots || data.slots.length === 0) {
+        grid.style.display = 'none';
+        noSlots.style.display = 'block';
+        return;
+      }
+
+      grid.style.display = 'grid';
+      noSlots.style.display = 'none';
+
+      data.slots.forEach(s => {
+        const time = typeof s === 'string' ? s : (s.time || '');
+        const status = typeof s === 'string' ? 'available' : (s.status || 'available');
+        if (!time) return;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'slot-btn';
+        btn.textContent = time;
+        if (status !== 'available') {
+          btn.disabled = true;
+          btn.classList.add('disabled', status);
+          if (status === 'booked') btn.title = 'Já agendado';
+          else if (status === 'blocked') btn.title = 'Horário bloqueado';
+          else if (status === 'past') btn.title = 'Horário já passou';
+        } else {
+          btn.addEventListener('click', () => {
+            selectedTime = time;
+            document.getElementById('new-time').value = time;
+            document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            document.getElementById('submit-btn').disabled = false;
+          });
+        }
+        grid.appendChild(btn);
+      });
+    } catch (err) {
+      console.error('Erro:', err);
+    }
+  });
+
+  document.getElementById('reschedule-form').addEventListener('submit', function(e) {
+    if (!selectedTime) {
+      e.preventDefault();
+      alert('Selecione um horário.');
+    }
+  });
+</script>
+{% endblock %}
+
+{% block scripts %}{% endblock %}

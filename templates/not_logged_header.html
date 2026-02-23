@@ -3,22 +3,41 @@
 
 <header class="header">
   <nav class="navbar navbar-expand-lg" style="background-color: #003366">
-    <div class="container d-flex align-items-center justify-content-center py-2">
-      <!-- Logo -->
+    <div class="container d-flex align-items-center justify-content-between py-2">
       <a class="navbar-brand d-flex align-items-center" href="{{ url_for('index') }}">
         <img src="{{ url_for('static', filename='icons/logo.png') }}" alt="Logo" class="logo me-2" />
         <span style="color: white">London</span>
         <span style="color: #ffc107" class="no-space">Noivas</span>
       </a>
 
-      <!-- Botões removidos da página inicial -->
-      {% if request.endpoint != 'index' %}
-          {% if request.endpoint != 'login'%}
-          <div class="position-absolute end-0 me-3">
-             <a class="btn-header-login-outline" href="{{ url_for('login') }}">Login</a>
-          </div>
-          {% endif %}
-      {% endif %}
+      <button
+        class="navbar-toggler"
+        type="button"
+        data-bs-toggle="collapse"
+        data-bs-target="#publicNavbar"
+        aria-controls="publicNavbar"
+        aria-expanded="false"
+        aria-label="Abrir menu"
+      >
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <div class="collapse navbar-collapse justify-content-end" id="publicNavbar">
+        <ul class="navbar-nav align-items-lg-center gap-lg-2">
+          <li class="nav-item">
+            <a class="nav-link fw-bold {% if request.endpoint == 'index' %}active{% endif %}" href="{{ url_for('index') }}">Início</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link fw-bold {% if request.endpoint == 'catalogo' %}active{% endif %}" href="{{ url_for('catalogo') }}">Catálogo</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link fw-bold" href="{{ url_for('public_booking_root') }}">Agendar prova</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link fw-bold {% if request.endpoint == 'login' %}active{% endif %}" href="{{ url_for('login') }}">Login</a>
+          </li>
+        </ul>
+      </div>
     </div>
   </nav>
 </header>

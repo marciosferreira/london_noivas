@@ -51,8 +51,8 @@
                 <a href="/" class="nav-link text-white hover:text-london-gold transition-colors">HOME</a>
                 <a href="{{ url_for('index') }}#sobre" class="nav-link text-white hover:text-london-gold transition-colors">SOBRE</a>
                 <a href="{{ url_for('index') }}#contato" class="nav-link text-white hover:text-london-gold transition-colors">CONTATO</a>
-                <a href="https://wa.me/5592993531943" onclick="trackWhatsAppClick('header')" class="bg-london-gold text-white px-6 py-2 rounded-full hover:bg-opacity-90 transition-all shadow-lg">
-                    AGENDAR VISITA/PROVA
+                <a href="{{ url_for('public_booking_root') }}" class="bg-london-gold text-white px-6 py-2 rounded-full hover:bg-opacity-90 transition-all shadow-lg">
+                    AGENDAR PROVA 
                 </a>
                 
                 {% if session.get('logged_in') %}
@@ -84,8 +84,8 @@
             <a href="/" class="text-2xl font-serif text-white hover:text-london-gold transition-colors" onclick="closeMobileMenu()">INÍCIO</a>
             <a href="{{ url_for('index') }}#sobre" class="text-2xl font-serif text-white hover:text-london-gold transition-colors" onclick="closeMobileMenu()">SOBRE</a>
             <a href="{{ url_for('index') }}#contato" class="text-2xl font-serif text-white hover:text-london-gold transition-colors" onclick="closeMobileMenu()">CONTATO</a>
-            <a href="https://wa.me/5592993531943" onclick="trackWhatsAppClick('mobile_menu'); closeMobileMenu()" class="text-xl bg-london-gold text-white px-8 py-3 rounded-full hover:bg-white hover:text-london-gold transition-all shadow-lg mt-4">
-                AGENDAR VISITA/PROVA
+            <a href="{{ url_for('public_booking_root') }}" onclick="closeMobileMenu()" class="text-xl bg-london-gold text-white px-8 py-3 rounded-full hover:bg-white hover:text-london-gold transition-all shadow-lg mt-4">
+                AGENDAR PROVA
             </a>
             {% if session.get('logged_in') %}
             <a href="{{ url_for('logout') }}" class="text-xl border border-white/30 text-white px-8 py-3 rounded-full hover:bg-white hover:text-stone-900 transition-all shadow-lg" onclick="closeMobileMenu()">
@@ -338,7 +338,14 @@
                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
                                 <path d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592zm3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.729.729 0 0 0-.529.247c-.182.198-.691.677-.691 1.654 0 .977.71 1.916.81 2.049.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232z"/>
                             </svg>
-                            <span class="font-bold tracking-widest text-sm">SOLICITAR INFORMAÇÕES/PROVA</span>
+                            <span class="font-bold tracking-widest text-sm">SOLICITAR INFORMAÇÕES</span>
+                        </a>
+                        <a id="modal-booking-link" href="#" class="mt-3 block w-full bg-stone-900 hover:bg-stone-800 text-white py-4 px-6 rounded-sm transition-colors text-center shadow-lg hover:shadow-xl transform hover:-translate-y-1 duration-200 flex items-center justify-center gap-3 hidden">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M11 6.5a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v8a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5z"/>
+                                <path d="M4.5 1a.5.5 0 0 1 .5.5V3h6V1.5a.5.5 0 0 1 1 0V3h.5A1.5 1.5 0 0 1 14 4.5v10A1.5 1.5 0 0 1 12.5 16h-9A1.5 1.5 0 0 1 2 14.5v-10A1.5 1.5 0 0 1 3.5 3H4V1.5a.5.5 0 0 1 .5-.5M3.5 4a.5.5 0 0 0-.5.5V6h10V4.5a.5.5 0 0 0-.5-.5z"/>
+                            </svg>
+                            <span class="font-bold tracking-widest text-sm">AGENDAR PROVA DESTE VESTIDO</span>
                         </a>
                     </div>
                 </div>
@@ -352,6 +359,7 @@
         window.catalogModalImages = [];
         window.catalogModalIndex = 0;
         window.catalogCardIndices = window.catalogCardIndices || {};
+        const BOOKING_BASE_URL = "{{ url_for('public_booking_root') }}";
 
         function getCatalogCardImages(itemId) {
             const data = window.catalogData && window.catalogData[itemId];
@@ -689,6 +697,22 @@
                 whatsappLink.onclick = function() { trackWhatsAppClick('ai_modal_whatsapp'); };
             } else {
                 whatsappLink.onclick = function() { trackWhatsAppClick('catalog_modal_whatsapp'); };
+            }
+
+            const bookingLink = document.getElementById('modal-booking-link');
+            if (bookingLink) {
+                if (itemId && !isAiItem) {
+                    const bookingTitle = (title || '').toString();
+                    const bookingCustomId = (idToShow || '').toString();
+                    const bookingImage = (window.catalogModalImages && window.catalogModalImages[window.catalogModalIndex])
+                        ? window.catalogModalImages[window.catalogModalIndex]
+                        : ((imageUrl || '').toString());
+                    bookingLink.href = `${BOOKING_BASE_URL}?item_id=${encodeURIComponent(itemId)}&item_title=${encodeURIComponent(bookingTitle)}&item_image_url=${encodeURIComponent(bookingImage)}&item_custom_id=${encodeURIComponent(bookingCustomId)}`;
+                    bookingLink.classList.remove('hidden');
+                } else {
+                    bookingLink.classList.add('hidden');
+                    bookingLink.href = '#';
+                }
             }
             
             document.getElementById('catalog-modal').classList.remove('hidden');

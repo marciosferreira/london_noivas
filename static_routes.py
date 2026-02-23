@@ -178,7 +178,7 @@ def init_static_routes(
                 return redirect(url_for("contato"))
 
             # Enviar e-mail via AWS SES
-            destinatario = "contato@locashop.com.br"
+            destinatario = "contato@londonnoivas.com.br"
             assunto = f"Novo contato de {nome}"
             corpo_email = f"Nome: {nome}\nE-mail: {email}\n\nMensagem:\n{mensagem}"
 
@@ -216,7 +216,7 @@ def init_static_routes(
                 return redirect(url_for("reportar_bug"))
 
             # Enviar e-mail via AWS SES
-            destinatario = "contato@locashop.com.br"
+            destinatario = "contato@londonnoivas.com.br"
             assunto = f"Bug reportado: {url}"
             corpo_email = (
                 f"URL: {url}\nE-mail: {email}\n\nDescrição do Bug:\n{descricao}"
@@ -563,9 +563,12 @@ def init_static_routes(
         return jsonify(
             {
                 "item_custom_id": item.get("item_custom_id", ""),
-                "description": item.get("description", ""),
+                "item_title": item.get("item_title", ""),
+                "item_description": item.get("item_description", ""),
+                "item_image_url": item.get("item_image_url", ""),
+                "description": item.get("description", "") or item.get("item_description", ""),
                 "item_obs": item.get("item_obs", ""),
-                "image_url": item.get("image_url", ""),
+                "image_url": item.get("image_url", "") or item.get("item_image_url", ""),
             }
         )
 

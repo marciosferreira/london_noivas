@@ -1,0 +1,1295 @@
+{% extends "base.html" %}
+
+{% block title %}Agendar - {{ business_name }}{% endblock %}
+
+{% block head %}
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+  :root {
+    --bg-primary: #faf9f7;
+    --bg-card: #ffffff;
+    --bg-accent: #f0ebe3;
+    --text-primary: #2c2420;
+    --text-secondary: #7a6e65;
+    --text-muted: #b0a69d;
+    --brand: #C5A059;
+    --brand-dark: #a8863f;
+    --brand-light: #f3ead8;
+    --success: #5a9e6f;
+    --success-light: #e8f5ec;
+    --danger: #c75c5c;
+    --danger-light: #fce8e8;
+    --border: #e8e2da;
+    --shadow-sm: 0 1px 3px rgba(44,36,32,0.06);
+    --shadow-md: 0 4px 12px rgba(44,36,32,0.08);
+    --shadow-lg: 0 8px 32px rgba(44,36,32,0.12);
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 24px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Montserrat', -apple-system, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  html, body {
+    padding-top: 0;
+  }
+
+  html {
+    background: var(--bg-primary);
+  }
+
+  .page-container {
+    max-width: none;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .booking-wrapper {
+    max-width: 520px;
+    margin: 0 auto;
+    padding: 20px 16px 40px;
+  }
+
+  /* ── Header ── */
+  .booking-header {
+    text-align: center;
+    padding: 32px 0 24px;
+    position: relative;
+  }
+  .back-home {
+    position: absolute;
+    left: 0;
+    top: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 0.82rem;
+    font-weight: 600;
+  }
+  .back-home:hover { color: var(--text-primary); }
+  .booking-header h1 {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.02em;
+    font-family: 'Cormorant Garamond', serif;
+  }
+  .booking-header p {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin-top: 6px;
+  }
+
+  /* ── Steps indicator ── */
+  .steps {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 28px;
+  }
+  .step {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    transition: color 0.3s;
+  }
+  .step.active { color: var(--brand); }
+  .step.done { color: var(--success); }
+  .step-dot {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.72rem; font-weight: 600;
+    background: var(--bg-accent);
+    color: var(--text-muted);
+    transition: all 0.3s;
+  }
+  .step.active .step-dot {
+    background: var(--brand);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(200,149,108,0.35);
+  }
+  .step.done .step-dot {
+    background: var(--success);
+    color: #fff;
+  }
+  .step-divider {
+    width: 20px; height: 1px;
+    background: var(--border);
+    align-self: center;
+  }
+
+  /* ── Card ── */
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+  .card-body { padding: 20px; }
+  .section-title {
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+  }
+
+  /* ── Calendar ── */
+  .calendar-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .calendar-nav button {
+    background: none; border: none;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    transition: all 0.2s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .calendar-nav button:hover { background: var(--bg-accent); color: var(--text-primary); }
+  .calendar-nav button:disabled { opacity: 0.3; cursor: not-allowed; }
+  .calendar-month {
+    font-size: 1rem;
+    font-weight: 600;
+    text-transform: capitalize;
+  }
+
+  .calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+  }
+  .calendar-weekday {
+    text-align: center;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 4px 0 8px;
+  }
+  .calendar-day {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    font-weight: 500;
+    border-radius: var(--radius-sm);
+    cursor: default;
+    position: relative;
+    transition: all 0.2s;
+  }
+  .calendar-day.empty { visibility: hidden; }
+  .calendar-day.disabled { color: var(--text-muted); opacity: 0.4; }
+  .calendar-day.closed { color: var(--text-muted); opacity: 0.4; }
+  .calendar-day.blocked {
+    color: var(--danger);
+    opacity: 0.5;
+    text-decoration: line-through;
+  }
+  .calendar-day.full {
+    color: var(--text-muted);
+    background: var(--bg-accent);
+  }
+  .calendar-day.available {
+    cursor: pointer;
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+  .calendar-day.available:hover {
+    background: var(--brand-light);
+    color: var(--brand-dark);
+  }
+  .calendar-day.available::after {
+    content: '';
+    position: absolute;
+    bottom: 4px;
+    width: 4px; height: 4px;
+    border-radius: 50%;
+    background: var(--brand);
+  }
+  .calendar-day.selected {
+    background: var(--brand) !important;
+    color: #fff !important;
+    box-shadow: 0 2px 8px rgba(200,149,108,0.4);
+  }
+  .calendar-day.selected::after { background: #fff; }
+  .calendar-day.today {
+    border: 2px solid var(--brand);
+  }
+
+  /* ── Time slots ── */
+  .slots-container {
+    display: none;
+    animation: slideDown 0.3s ease;
+  }
+  .slots-container.visible { display: block; }
+
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .selected-date-label {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .selected-date-label strong {
+    color: var(--text-primary);
+  }
+
+  .slots-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .slot-btn {
+    padding: 10px 4px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg-card);
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s;
+  }
+  .slot-btn:hover {
+    border-color: var(--brand);
+    background: var(--brand-light);
+    color: var(--brand-dark);
+  }
+  .slot-btn.selected {
+    border-color: var(--brand);
+    background: var(--brand);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(200,149,108,0.3);
+  }
+  .slot-btn.disabled {
+    background: var(--bg-accent);
+    color: var(--text-muted);
+    border-color: var(--border);
+    cursor: not-allowed;
+    opacity: 0.9;
+  }
+  .slot-btn.disabled:hover {
+    background: var(--bg-accent);
+    color: var(--text-muted);
+    border-color: var(--border);
+  }
+  .slot-btn.disabled.booked {
+    background: #f1f5f9;
+    color: #94a3b8;
+  }
+  .slot-btn.disabled.past {
+    background: #f8fafc;
+    color: #cbd5e1;
+  }
+
+  .no-slots {
+    text-align: center;
+    padding: 24px;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+  }
+  .no-slots i { font-size: 1.5rem; margin-bottom: 8px; display: block; }
+
+  /* ── Form ── */
+  .form-section { display: none; animation: slideDown 0.3s ease; }
+  .form-section.visible { display: block; }
+
+  .form-group {
+    margin-bottom: 16px;
+  }
+  .form-group label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+  }
+  .form-group label .required { color: var(--danger); }
+  .form-group input,
+  .form-group textarea,
+  .form-group select {
+    width: 100%;
+    padding: 11px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-family: inherit;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    background: var(--bg-card);
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+  }
+  .form-group input:focus,
+  .form-group textarea:focus {
+    border-color: var(--brand);
+    box-shadow: 0 0 0 3px rgba(200,149,108,0.15);
+  }
+  .form-group input::placeholder,
+  .form-group textarea::placeholder {
+    color: var(--text-muted);
+  }
+  .form-group .hint {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+
+  /* ── Item search ── */
+  .item-search-container { position: relative; }
+  .selected-items {
+    display: none;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .item-search-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  .item-lookup-btn {
+    flex: 0 0 auto;
+    padding: 11px 14px;
+    border-radius: var(--radius-sm);
+    border: 1.5px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+    white-space: nowrap;
+  }
+  .item-lookup-btn:hover {
+    border-color: var(--brand);
+    box-shadow: 0 0 0 3px rgba(200,149,108,0.12);
+  }
+  .item-lookup-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  .item-lookup-message {
+    margin-top: 8px;
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    font-size: 0.82rem;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    display: none;
+  }
+  .item-lookup-message.success {
+    border-color: rgba(90,158,111,0.35);
+    background: rgba(90,158,111,0.08);
+    color: #2f6d43;
+  }
+  .item-lookup-message.error {
+    border-color: rgba(220,53,69,0.35);
+    background: rgba(220,53,69,0.08);
+    color: #a61d2d;
+  }
+  .item-suggestions {
+    position: absolute;
+    top: 100%; left: 0; right: 0;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+    max-height: 180px;
+    overflow-y: auto;
+    z-index: 100;
+    box-shadow: var(--shadow-md);
+    display: none;
+  }
+  .item-suggestions.visible { display: block; }
+  .item-suggestion {
+    padding: 10px 14px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    border-bottom: 1px solid var(--bg-accent);
+    transition: background 0.15s;
+  }
+  .item-suggestion:last-child { border-bottom: none; }
+  .item-suggestion:hover { background: var(--brand-light); }
+  .item-suggestion .code { font-weight: 600; color: var(--brand-dark); }
+  .item-suggestion .desc { color: var(--text-secondary); }
+
+  .selected-item {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--bg-card);
+    margin-bottom: 12px;
+  }
+  .selected-item img {
+    width: 54px;
+    height: 54px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--bg-accent);
+    object-fit: cover;
+    flex: 0 0 auto;
+  }
+  .selected-item .meta { flex: 1; min-width: 0; }
+  .selected-item .remove-btn {
+    flex: 0 0 auto;
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+  }
+  .selected-item .remove-btn:hover {
+    border-color: rgba(220,53,69,0.35);
+    background: rgba(220,53,69,0.08);
+    color: #a61d2d;
+  }
+  .selected-item .title {
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .selected-item .sub {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    margin-top: 2px;
+  }
+
+  /* ── Summary ── */
+  .summary-box {
+    background: var(--bg-accent);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .summary-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    font-size: 0.85rem;
+  }
+  .summary-row .label { color: var(--text-secondary); }
+  .summary-row .value { font-weight: 600; color: var(--text-primary); }
+
+  /* ── Buttons ── */
+  .btn-primary {
+    display: block;
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: var(--radius-md);
+    background: var(--brand);
+    color: #fff;
+    font-family: inherit;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.01em;
+  }
+  .btn-primary:hover {
+    background: var(--brand-dark);
+    box-shadow: 0 4px 16px rgba(200,149,108,0.35);
+    transform: translateY(-1px);
+  }
+  .btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+
+  .btn-outline {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--text-secondary);
+    font-family: inherit;
+    font-size: 0.88rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+    text-decoration: none;
+    margin-top: 8px;
+  }
+  .btn-outline:hover {
+    border-color: var(--text-secondary);
+    color: var(--text-primary);
+  }
+
+  /* ── Loading ── */
+  .spinner {
+    display: inline-block;
+    width: 16px; height: 16px;
+    border: 2px solid var(--border);
+    border-top-color: var(--brand);
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(255,255,255,0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-lg);
+    z-index: 10;
+  }
+
+  /* ── Flash messages ── */
+  .alert {
+    padding: 12px 16px;
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    margin-bottom: 12px;
+  }
+  .alert-danger {
+    background: var(--danger-light);
+    color: var(--danger);
+    border: 1px solid rgba(199,92,92,0.2);
+  }
+  .alert-success {
+    background: var(--success-light);
+    color: var(--success);
+    border: 1px solid rgba(90,158,111,0.2);
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 400px) {
+    .slots-grid { grid-template-columns: repeat(2, 1fr); }
+    .booking-wrapper { padding: 12px 12px 32px; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="booking-wrapper">
+  <!-- Header -->
+  <div class="booking-header">
+    {% if account_slug == 'default' %}
+      <a href="{{ url_for('index') }}" class="back-home">
+        <i class="fas fa-arrow-left"></i> Voltar ao início
+      </a>
+    {% endif %}
+    <h1>{{ business_name or 'Agendamento' }}</h1>
+    <p>Escolha a melhor data e horário para você</p>
+  </div>
+
+  <!-- Flash messages -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <!-- Steps -->
+  <div class="steps">
+    <div class="step active" id="step-indicator-1">
+      <span class="step-dot">1</span>
+      <span>Data</span>
+    </div>
+    <div class="step-divider"></div>
+    <div class="step" id="step-indicator-2">
+      <span class="step-dot">2</span>
+      <span>Horário</span>
+    </div>
+    <div class="step-divider"></div>
+    <div class="step" id="step-indicator-3">
+      <span class="step-dot">3</span>
+      <span>Dados</span>
+    </div>
+  </div>
+
+  <!-- ═══ STEP 1: Calendar ═══ -->
+  <div class="card" id="calendar-card">
+    <div class="card-body" style="position:relative;">
+      <div class="section-title">
+        <i class="fas fa-calendar-alt" style="color:var(--brand);margin-right:4px;"></i>
+        Selecione a data
+      </div>
+
+      <div class="calendar-nav">
+        <button type="button" id="prev-month" aria-label="Mês anterior">
+          <i class="fas fa-chevron-left"></i>
+        </button>
+        <span class="calendar-month" id="calendar-month-label"></span>
+        <button type="button" id="next-month" aria-label="Próximo mês">
+          <i class="fas fa-chevron-right"></i>
+        </button>
+      </div>
+
+      <div class="calendar-grid" id="calendar-grid">
+        <!-- Cabeçalho dias da semana (formato brasileiro: Seg–Dom) -->
+        <div class="calendar-weekday">Seg</div>
+        <div class="calendar-weekday">Ter</div>
+        <div class="calendar-weekday">Qua</div>
+        <div class="calendar-weekday">Qui</div>
+        <div class="calendar-weekday">Sex</div>
+        <div class="calendar-weekday">Sáb</div>
+        <div class="calendar-weekday">Dom</div>
+      </div>
+
+      <div id="calendar-loading" class="loading-overlay" style="display:none;">
+        <div class="spinner"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ STEP 2: Time slots ═══ -->
+  <div class="card slots-container" id="slots-card">
+    <div class="card-body">
+      <div class="section-title">
+        <i class="fas fa-clock" style="color:var(--brand);margin-right:4px;"></i>
+        Horários disponíveis
+      </div>
+      <div class="selected-date-label" id="selected-date-label"></div>
+      <div id="slots-grid" class="slots-grid"></div>
+      <div id="no-slots" class="no-slots" style="display:none;">
+        <i class="fas fa-calendar-times"></i>
+        Nenhum horário disponível nesta data.
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ STEP 3: Form ═══ -->
+  <div class="card form-section" id="form-card">
+    <div class="card-body">
+      <div class="section-title">
+        <i class="fas fa-user" style="color:var(--brand);margin-right:4px;"></i>
+        Seus dados
+      </div>
+
+      <form method="POST" action="{{ url_for('submit_booking', account_slug=account_slug) }}" id="booking-form">
+        <input type="hidden" name="date_iso" id="form-date">
+        <input type="hidden" name="time_local" id="form-time">
+        <input type="hidden" name="item_id" id="form-item-id">
+        <input type="hidden" name="item_custom_id" id="form-item-custom-id">
+        <input type="hidden" name="item_image_url" id="form-item-image-url">
+        <input type="hidden" name="items_json" id="form-items-json">
+
+        <div class="form-group">
+          <label>Nome completo <span class="required">*</span></label>
+          <input type="text" name="client_name" required placeholder="Seu nome completo" autocomplete="name">
+        </div>
+
+        <div class="form-group">
+          <label>WhatsApp / Telefone <span class="required">*</span></label>
+          <input type="tel" name="client_phone" required placeholder="(92) 99999-9999" id="phone-input" autocomplete="tel">
+          <div class="hint">Usaremos este número caso precisemos falar com você</div>
+        </div>
+
+        <div class="form-group">
+          <label>E-mail <span class="required">*</span></label>
+          <input type="email" name="client_email" required placeholder="seu@email.com" autocomplete="email">
+          <div class="hint">Você receberá o link de confirmação no seu e-mail</div>
+        </div>
+
+        <div class="form-group">
+          <label>Peça / Item <span style="font-weight:400;color:var(--text-muted);">(opcional)</span></label>
+          <div class="selected-items" id="selected-items"></div>
+          <div class="item-search-container">
+            <div class="item-search-row">
+              <input type="text" name="item_code" id="item-search" placeholder="Digite o código do vestido (opcional)" autocomplete="off">
+              <button type="button" class="item-lookup-btn" id="item-lookup-btn">Buscar</button>
+            </div>
+            <div class="item-lookup-message" id="item-lookup-message"></div>
+          </div>
+          <div class="hint">Se já sabe qual peça deseja experimentar</div>
+        </div>
+
+        <div class="form-group">
+          <label>Observações <span style="font-weight:400;color:var(--text-muted);">(opcional)</span></label>
+          <textarea name="notes" rows="3" placeholder="Algo que devemos saber? (ex: preferências, acompanhantes...)"></textarea>
+        </div>
+
+        <!-- Summary -->
+        <div class="summary-box" id="booking-summary">
+          <div class="summary-row">
+            <span class="label">📅 Data</span>
+            <span class="value" id="summary-date">—</span>
+          </div>
+          <div class="summary-row">
+            <span class="label">🕐 Horário</span>
+            <span class="value" id="summary-time">—</span>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-primary" id="submit-btn">
+          <i class="fas fa-check-circle" style="margin-right:6px;"></i>
+          Confirmar Agendamento
+        </button>
+        
+        <button type="button" class="btn-outline" onclick="resetForm()">
+          <i class="fas fa-arrow-left" style="margin-right:4px;"></i>
+          Alterar data/horário
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── State ──
+  const ACCOUNT_SLUG = '{{ account_slug }}';
+  const TODAY = '{{ today_iso }}';
+  const MAX_DATE = '{{ max_date_iso }}';
+
+  let currentMonth = TODAY.substring(0, 7); // "YYYY-MM"
+  let selectedDate = null;
+  let selectedTime = null;
+  let calendarCache = {};
+
+  // ── Meses em português ──
+  const MONTHS_PT = [
+    'Janeiro','Fevereiro','Março','Abril','Maio','Junho',
+    'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'
+  ];
+
+  // ── Init ──
+  document.addEventListener('DOMContentLoaded', () => {
+    loadCalendar(currentMonth);
+    initPhoneMask();
+    initPrefilledItemFromQuery();
+  });
+
+  // ── Calendar loading ──
+  async function loadCalendar(month) {
+    if (calendarCache[month]) {
+      renderCalendar(calendarCache[month]);
+      return;
+    }
+
+    const loading = document.getElementById('calendar-loading');
+    loading.style.display = 'flex';
+
+    try {
+      const resp = await fetch(`/api/calendar_data/${ACCOUNT_SLUG}?month=${month}`);
+      const data = await resp.json();
+      calendarCache[month] = data;
+      renderCalendar(data);
+    } catch (err) {
+      console.error('Erro ao carregar calendário:', err);
+    } finally {
+      loading.style.display = 'none';
+    }
+  }
+
+  function renderCalendar(data) {
+    const grid = document.getElementById('calendar-grid');
+    const label = document.getElementById('calendar-month-label');
+
+    const [year, mon] = data.month.split('-').map(Number);
+    label.textContent = `${MONTHS_PT[mon - 1]} ${year}`;
+
+    // Limpar dias (manter cabeçalho)
+    const weekdays = grid.querySelectorAll('.calendar-weekday');
+    grid.innerHTML = '';
+    weekdays.forEach(w => grid.appendChild(w));
+
+    if (!data.days || data.days.length === 0) return;
+
+    // Primeiro dia do mês - dia da semana (0=seg no formato ISO)
+    const firstDate = new Date(year, mon - 1, 1);
+    let firstWeekday = firstDate.getDay(); // 0=dom
+    // Converter para formato seg=0
+    firstWeekday = firstWeekday === 0 ? 6 : firstWeekday - 1;
+
+    // Células vazias antes do primeiro dia
+    for (let i = 0; i < firstWeekday; i++) {
+      const empty = document.createElement('div');
+      empty.className = 'calendar-day empty';
+      grid.appendChild(empty);
+    }
+
+    // Dias do mês
+    data.days.forEach(day => {
+      const el = document.createElement('div');
+      el.className = `calendar-day ${day.status}`;
+      el.textContent = day.day;
+
+      if (day.date === TODAY) {
+        el.classList.add('today');
+      }
+
+      if (selectedDate === day.date) {
+        el.classList.add('selected');
+      }
+
+      if (day.status === 'available') {
+        el.addEventListener('click', () => selectDate(day.date));
+        el.title = `${day.slots_count || ''} horário(s) disponível(is)`;
+      } else if (day.status === 'blocked') {
+        el.title = 'Data bloqueada';
+      } else if (day.status === 'full') {
+        el.title = 'Todos os horários ocupados';
+      } else if (day.status === 'closed') {
+        el.title = 'Fechado';
+      }
+
+      grid.appendChild(el);
+    });
+
+    // Navigation
+    updateNavButtons(data.month);
+  }
+
+  function updateNavButtons(month) {
+    const todayMonth = TODAY.substring(0, 7);
+    const maxMonth = MAX_DATE.substring(0, 7);
+    document.getElementById('prev-month').disabled = month <= todayMonth;
+    document.getElementById('next-month').disabled = month >= maxMonth;
+  }
+
+  // ── Month navigation ──
+  document.getElementById('prev-month').addEventListener('click', () => {
+    currentMonth = shiftMonth(currentMonth, -1);
+    loadCalendar(currentMonth);
+  });
+  document.getElementById('next-month').addEventListener('click', () => {
+    currentMonth = shiftMonth(currentMonth, 1);
+    loadCalendar(currentMonth);
+  });
+
+  function shiftMonth(month, delta) {
+    const [y, m] = month.split('-').map(Number);
+    const d = new Date(y, m - 1 + delta, 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  }
+
+  // ── Date selection ──
+  async function selectDate(dateIso) {
+    selectedDate = dateIso;
+    selectedTime = null;
+
+    // Update calendar visual
+    document.querySelectorAll('.calendar-day').forEach(el => el.classList.remove('selected'));
+    document.querySelectorAll('.calendar-day.available').forEach(el => {
+      // Encontrar o dia correspondente
+      const dayNum = parseInt(el.textContent);
+      const [y, m] = currentMonth.split('-').map(Number);
+      const checkDate = `${y}-${String(m).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
+      if (checkDate === dateIso) {
+        el.classList.add('selected');
+      }
+    });
+
+    // Update step indicators
+    updateSteps(2);
+
+    // Load slots
+    const slotsCard = document.getElementById('slots-card');
+    slotsCard.classList.add('visible');
+
+    const dateLabel = document.getElementById('selected-date-label');
+    const dateObj = new Date(dateIso + 'T12:00:00');
+    const options = { weekday: 'long', day: 'numeric', month: 'long' };
+    dateLabel.innerHTML = `<i class="fas fa-calendar-check" style="color:var(--brand)"></i> <strong>${dateObj.toLocaleDateString('pt-BR', options)}</strong>`;
+
+    // Fetch slots
+    try {
+      const resp = await fetch(`/api/day_slots/${ACCOUNT_SLUG}?date=${dateIso}`);
+      const data = await resp.json();
+      renderSlots(data.slots || []);
+    } catch (err) {
+      console.error('Erro ao buscar horários:', err);
+      renderSlots([]);
+    }
+
+    // Hide form
+    document.getElementById('form-card').classList.remove('visible');
+
+    // Scroll to slots
+    slotsCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function renderSlots(slots) {
+    const grid = document.getElementById('slots-grid');
+    const noSlots = document.getElementById('no-slots');
+
+    grid.innerHTML = '';
+
+    if (slots.length === 0) {
+      grid.style.display = 'none';
+      noSlots.style.display = 'block';
+      return;
+    }
+
+    grid.style.display = 'grid';
+    noSlots.style.display = 'none';
+
+    slots.forEach(s => {
+      const time = typeof s === 'string' ? s : (s.time || '');
+      const status = typeof s === 'string' ? 'available' : (s.status || 'available');
+      if (!time) return;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'slot-btn';
+      btn.textContent = time;
+      if (selectedTime === time) btn.classList.add('selected');
+      if (status !== 'available') {
+        btn.disabled = true;
+        btn.classList.add('disabled', status);
+        if (status === 'booked') btn.title = 'Já agendado';
+        else if (status === 'blocked') btn.title = 'Horário bloqueado';
+        else if (status === 'past') btn.title = 'Horário já passou';
+      } else {
+        btn.addEventListener('click', () => selectTime(time));
+      }
+      grid.appendChild(btn);
+    });
+  }
+
+  // ── Time selection ──
+  function selectTime(time) {
+    selectedTime = time;
+
+    document.querySelectorAll('.slot-btn').forEach(btn => {
+      btn.classList.toggle('selected', btn.textContent === time);
+    });
+
+    // Show form
+    const formCard = document.getElementById('form-card');
+    formCard.classList.add('visible');
+
+    // Update hidden fields
+    document.getElementById('form-date').value = selectedDate;
+    document.getElementById('form-time').value = selectedTime;
+
+    // Update summary
+    const dateObj = new Date(selectedDate + 'T12:00:00');
+    document.getElementById('summary-date').textContent = dateObj.toLocaleDateString('pt-BR', {
+      weekday: 'short', day: 'numeric', month: 'short', year: 'numeric'
+    });
+    document.getElementById('summary-time').textContent = selectedTime;
+
+    // Update steps
+    updateSteps(3);
+
+    // Scroll to form
+    formCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  // ── Steps indicator ──
+  function updateSteps(current) {
+    for (let i = 1; i <= 3; i++) {
+      const el = document.getElementById(`step-indicator-${i}`);
+      el.classList.remove('active', 'done');
+      if (i < current) el.classList.add('done');
+      else if (i === current) el.classList.add('active');
+    }
+  }
+
+  // ── Reset ──
+  function resetForm() {
+    selectedDate = null;
+    selectedTime = null;
+    document.getElementById('slots-card').classList.remove('visible');
+    document.getElementById('form-card').classList.remove('visible');
+    document.querySelectorAll('.calendar-day').forEach(el => el.classList.remove('selected'));
+    updateSteps(1);
+    document.getElementById('calendar-card').scrollIntoView({ behavior: 'smooth' });
+  }
+
+  // ── Phone mask (BR) ──
+  function initPhoneMask() {
+    const input = document.getElementById('phone-input');
+    if (!input) return;
+    input.addEventListener('input', function() {
+      let v = this.value.replace(/\D/g, '');
+      if (v.length > 11) v = v.substring(0, 11);
+      if (v.length > 6) {
+        this.value = `(${v.substring(0,2)}) ${v.substring(2,7)}-${v.substring(7)}`;
+      } else if (v.length > 2) {
+        this.value = `(${v.substring(0,2)}) ${v.substring(2)}`;
+      } else if (v.length > 0) {
+        this.value = `(${v}`;
+      }
+    });
+  }
+
+  // ── Item autocomplete / multi-select ──
+  (function() {
+    const input = document.getElementById('item-search');
+    const selectedContainer = document.getElementById('selected-items');
+    const messageEl = document.getElementById('item-lookup-message');
+    const lookupBtn = document.getElementById('item-lookup-btn');
+    const hiddenItemsJson = document.getElementById('form-items-json');
+    if (!input || !selectedContainer) return;
+
+    let debounceTimer;
+    let selectedItems = [];
+
+    function setLookupMessage(type, text) {
+      if (!messageEl) return;
+      messageEl.classList.remove('success', 'error');
+      if (!text) {
+        messageEl.style.display = 'none';
+        messageEl.textContent = '';
+        return;
+      }
+      messageEl.classList.add(type);
+      messageEl.textContent = text;
+      messageEl.style.display = 'block';
+    }
+
+    function normalizeItem(raw) {
+      if (!raw) return null;
+      const itemId = raw.item_id ? String(raw.item_id) : '';
+      const customId = raw.item_custom_id ? String(raw.item_custom_id) : '';
+      const title = raw.item_title ? String(raw.item_title) : (raw.title ? String(raw.title) : '');
+      const description = raw.item_description ? String(raw.item_description) : (raw.description ? String(raw.description) : '');
+      const imageUrl = raw.item_image_url ? String(raw.item_image_url) : (raw.image_url ? String(raw.image_url) : '');
+      if (!itemId && !customId && !title && !description) return null;
+      return {
+        item_id: itemId,
+        item_custom_id: customId,
+        item_title: title,
+        item_description: description,
+        item_image_url: imageUrl,
+      };
+    }
+
+    function itemTitleForUi(item) {
+      return item.item_title || item.item_custom_id || item.item_id || '';
+    }
+
+    function updateHiddenFields() {
+      const first = selectedItems[0] || null;
+      document.getElementById('form-item-id').value = first ? (first.item_id || '') : '';
+      document.getElementById('form-item-custom-id').value = first ? (first.item_custom_id || '') : '';
+      document.getElementById('form-item-image-url').value = first ? (first.item_image_url || '') : '';
+      if (hiddenItemsJson) hiddenItemsJson.value = JSON.stringify(selectedItems);
+    }
+
+    function renderSelectedItems() {
+      selectedContainer.innerHTML = '';
+      if (selectedItems.length === 0) {
+        selectedContainer.style.display = 'none';
+        return;
+      }
+      selectedContainer.style.display = 'flex';
+
+      selectedItems.forEach((item) => {
+        const card = document.createElement('div');
+        card.className = 'selected-item';
+
+        const img = document.createElement('img');
+        img.alt = '';
+        img.src = item.item_image_url || '/static/item-placeholder.png';
+
+        const meta = document.createElement('div');
+        meta.className = 'meta';
+        const titleEl = document.createElement('div');
+        titleEl.className = 'title';
+        titleEl.textContent = itemTitleForUi(item);
+        meta.appendChild(titleEl);
+
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.className = 'remove-btn';
+        removeBtn.setAttribute('aria-label', 'Remover vestido');
+        removeBtn.innerHTML = '<i class="fas fa-times"></i>';
+        removeBtn.addEventListener('click', () => {
+          selectedItems = selectedItems.filter((it) => it.item_id !== item.item_id);
+          updateHiddenFields();
+          renderSelectedItems();
+        });
+
+        card.appendChild(img);
+        card.appendChild(meta);
+        card.appendChild(removeBtn);
+        selectedContainer.appendChild(card);
+      });
+    }
+
+    function addItem(raw) {
+      const item = normalizeItem(raw);
+      if (!item) return;
+      if (item.item_id && selectedItems.some((it) => it.item_id === item.item_id)) {
+        setLookupMessage('error', 'Esse vestido já foi adicionado.');
+        setTimeout(() => setLookupMessage('', ''), 1800);
+        return;
+      }
+      selectedItems = [...selectedItems, item];
+      updateHiddenFields();
+      renderSelectedItems();
+      setLookupMessage('', '');
+    }
+
+    async function hydrateItemFromId(itemId, fallback) {
+      if (!itemId) return;
+      try {
+        const resp = await fetch(`/qr_data/${encodeURIComponent(itemId)}`);
+        if (!resp.ok) {
+          addItem(fallback);
+          return;
+        }
+        const data = await resp.json();
+        addItem({
+          ...(fallback || {}),
+          item_id: itemId,
+          item_custom_id: (data && data.item_custom_id) ? data.item_custom_id : ((fallback && fallback.item_custom_id) || ''),
+          item_title: (data && data.item_title) ? data.item_title : ((fallback && fallback.item_title) || ''),
+          item_description: (data && (data.item_description || data.description)) ? (data.item_description || data.description) : ((fallback && (fallback.item_description || fallback.description)) || ''),
+          item_image_url: (data && (data.item_image_url || data.image_url)) ? (data.item_image_url || data.image_url) : ((fallback && (fallback.item_image_url || fallback.image_url)) || ''),
+        });
+      } catch (err) {
+        console.error('Erro ao carregar detalhes do item:', err);
+        addItem(fallback);
+      }
+    }
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (lookupBtn) lookupBtn.click();
+      }
+    });
+
+    if (lookupBtn) {
+      lookupBtn.addEventListener('click', async () => {
+        const code = (input.value || '').trim();
+        if (!code) {
+          setLookupMessage('', '');
+          return;
+        }
+        lookupBtn.disabled = true;
+        setLookupMessage('', '');
+        try {
+          const resp = await fetch(`/api/public/item_lookup/${encodeURIComponent(ACCOUNT_SLUG)}?code=${encodeURIComponent(code)}`);
+          if (!resp.ok) {
+            setLookupMessage('error', 'Vestido não localizado.');
+            return;
+          }
+          const data = await resp.json();
+          addItem(data);
+          input.value = '';
+          setLookupMessage('success', 'Vestido adicionado.');
+          setTimeout(() => setLookupMessage('', ''), 1800);
+        } catch (err) {
+          console.error('Erro ao buscar vestido:', err);
+          setLookupMessage('error', 'Erro ao buscar vestido. Tente novamente.');
+        } finally {
+          lookupBtn.disabled = false;
+        }
+      });
+    }
+
+    window.clearSelectedItemPublic = () => {
+      selectedItems = [];
+      updateHiddenFields();
+      renderSelectedItems();
+      setLookupMessage('', '');
+    };
+    window.publicBookingAddItem = addItem;
+    window.publicBookingHydrateItemById = hydrateItemFromId;
+
+    updateHiddenFields();
+    renderSelectedItems();
+  })();
+
+  async function initPrefilledItemFromQuery() {
+    const params = new URLSearchParams(window.location.search);
+    const itemId = (params.get('item_id') || '').trim();
+    if (!itemId) return;
+
+    const qpTitleRaw = (params.get('item_title') || params.get('title') || '').trim();
+    const qpCustomIdRaw = (params.get('item_custom_id') || '').trim();
+    const qpImageRaw = (params.get('item_image_url') || params.get('image_url') || '').trim();
+
+    const safeDecode = (value) => {
+      try { return decodeURIComponent(value); } catch (_) { return value; }
+    };
+
+    const fallback = {
+      item_id: itemId,
+      item_custom_id: qpCustomIdRaw ? safeDecode(qpCustomIdRaw) : '',
+      item_title: qpTitleRaw ? safeDecode(qpTitleRaw) : '',
+      item_description: '',
+      item_image_url: qpImageRaw ? safeDecode(qpImageRaw) : '',
+    };
+
+    if (window.publicBookingHydrateItemById) {
+      await window.publicBookingHydrateItemById(itemId, fallback);
+    } else if (window.publicBookingAddItem) {
+      window.publicBookingAddItem(fallback);
+    }
+  }
+
+  // ── Form validation ──
+  document.getElementById('booking-form').addEventListener('submit', function(e) {
+    if (!selectedDate || !selectedTime) {
+      e.preventDefault();
+      alert('Selecione uma data e horário antes de confirmar.');
+      return;
+    }
+    const btn = document.getElementById('submit-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner" style="margin-right:8px;border-top-color:#fff;"></span> Agendando...';
+  });
+</script>
+{% endblock %}
+
+{% block scripts %}{% endblock %}

@@ -88,16 +88,18 @@
                 <label class="form-label">
                   <i class="fas fa-calendar me-1"></i>Data <span class="text-danger">*</span>
                 </label>
-                <input type="date" class="form-control" name="date_iso" value="{{ fitting.date_local }}" required>
+                <input type="date" class="form-control" name="date_iso" id="date_iso" value="{{ fitting.date_local }}" required>
               </div>
 
               <!-- Hora -->
               <div class="col-sm-6">
                 <label class="form-label">
-                  <i class="fas fa-clock me-1"></i>Hora (opcional)
+                  <i class="fas fa-clock me-1"></i>Hora <span class="text-danger">*</span>
                 </label>
-                <input type="time" class="form-control" name="time_local" value="{{ fitting.time_local or '' }}">
-                <div class="form-text">Deixe em branco se não houver horário específico</div>
+                <select class="form-select" name="time_local" id="time_local" data-current-time="{{ fitting.time_local or '' }}" required>
+                  <option value="">Carregando horários...</option>
+                </select>
+                <div class="form-text">Os horários seguem a configuração do agendamento</div>
               </div>
 
               <!-- Cliente ID -->
@@ -203,6 +205,69 @@
 ></script>
 
 <script>
+  (function() {
+    const dateInput = document.getElementById('date_iso');
+    const timeSelect = document.getElementById('time_local');
+    if (!dateInput || !timeSelect) return;
+
+    const currentTime = (timeSelect.getAttribute('data-current-time') || '').trim();
+
+    function setTimeOptions(options, placeholder) {
+      timeSelect.innerHTML = '';
+      const first = document.createElement('option');
+      first.value = '';
+      first.textContent = placeholder || 'Selecione';
+      timeSelect.appendChild(first);
+
+      for (const t of options) {
+        const opt = document.createElement('option');
+        opt.value = t;
+        opt.textContent = t;
+        timeSelect.appendChild(opt);
+      }
+    }
+
+    function normalizeSlots(slots) {
+      const set = new Set();
+      for (const s of slots) {
+        const t = (s || '').toString().trim();
+        if (t) set.add(t);
+      }
+      return Array.from(set).sort();
+    }
+
+    async function refreshTimes() {
+      const date = (dateInput.value || '').trim();
+      if (!date) {
+        setTimeOptions([], 'Selecione uma data');
+        return;
+      }
+
+      setTimeOptions([], 'Carregando horários...');
+      try {
+        const resp = await fetch(`/api/admin/available_slots?date=${encodeURIComponent(date)}`, {
+          headers: { 'Accept': 'application/json' },
+        });
+        if (!resp.ok) {
+          setTimeOptions(currentTime ? [currentTime] : [], 'Sem horários disponíveis');
+          if (currentTime) timeSelect.value = currentTime;
+          return;
+        }
+        const data = await resp.json();
+        const slots = normalizeSlots(Array.isArray(data.slots) ? data.slots : []);
+        if (currentTime && !slots.includes(currentTime)) slots.unshift(currentTime);
+        setTimeOptions(slots, slots.length ? 'Selecione um horário' : 'Sem horários disponíveis');
+        if (currentTime) timeSelect.value = currentTime;
+      } catch (e) {
+        setTimeOptions(currentTime ? [currentTime] : [], 'Sem horários disponíveis');
+        if (currentTime) timeSelect.value = currentTime;
+      }
+    }
+
+    dateInput.addEventListener('change', refreshTimes);
+    refreshTimes();
+  })();
+
   // Utilitário de debounce para limitar chamadas de busca
   function debounce(fn, wait) {
     let t;

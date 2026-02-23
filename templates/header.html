@@ -22,6 +22,14 @@
       <!-- Menu principal -->
       <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
         <ul class="navbar-nav">
+          {% if request.endpoint in ['index', 'catalogo'] %}
+          <li class="nav-item">
+            <a class="nav-link fw-bold" href="{{ url_for('public_booking_root') }}">
+              <i class="fas fa-calendar-check me-1"></i>
+              Agendamento público
+            </a>
+          </li>
+          {% endif %}
           <li class="nav-item">
             <a class="nav-link fw-bold {% if request.endpoint == 'agenda' %}active{% endif %}" href="{{ url_for('agenda') }}">
               <i class="fas fa-calendar-day me-1"></i>

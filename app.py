@@ -6,23 +6,33 @@ from boto3.dynamodb.conditions import Key
 
 from flask import Flask
 from flask import Flask, request, session
+from jinja2 import ChoiceLoader, FileSystemLoader
 
 # Define o fuso horário de Manaus
-load_dotenv()  # only for setting up the env as debug
+load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))  # only for setting up the env as debug
 
 # Configurações AWS
-aws_region = "us-east-1"
-aws_access_key_id = os.getenv("AWS_ACCESS_KEY_ID")
-aws_secret_access_key = os.getenv("AWS_SECRET_ACCESS_KEY")
+aws_region = os.getenv("AWS_REGION") or os.getenv("AWS_DEFAULT_REGION") or "us-east-1"
+aws_access_key_id = os.getenv("AWS_ACCESS_KEY_ID") or os.getenv("AWS_ACCESS_KEY") or os.getenv("AWS_ACCESS_KEYID")
+aws_secret_access_key = (
+    os.getenv("AWS_SECRET_ACCESS_KEY")
+    or os.getenv("AWS_SECRET_ACCESS")
+    or os.getenv("AWS_SECRET_KEY")
+    or os.getenv("AWS_SECRET")
+)
 s3_bucket_name = "alugueqqc-images"
 
 # Initialize AWS resources
-dynamodb = boto3.resource(
-    "dynamodb",
-    region_name=aws_region,
-    aws_access_key_id=aws_access_key_id,
-    aws_secret_access_key=aws_secret_access_key,
-)
+_aws_kwargs = {"region_name": aws_region}
+if aws_access_key_id and aws_secret_access_key:
+    _aws_kwargs.update(
+        {
+            "aws_access_key_id": aws_access_key_id,
+            "aws_secret_access_key": aws_secret_access_key,
+        }
+    )
+
+dynamodb = boto3.resource("dynamodb", **_aws_kwargs)
 
 
 itens_table = dynamodb.Table("alugueqqc_itens")
@@ -33,21 +43,45 @@ reset_tokens_table = dynamodb.Table("RentqqcResetTokens")
 text_models_table = dynamodb.Table("alugue_qqc_text_models")
 payment_transactions = dynamodb.Table("alugueqqc_payment_transactions")
 fittings_table = dynamodb.Table("alugueqqc_fittings_table")
+_dynamodb_client = dynamodb.meta.client
+
+
+def _resolve_dynamodb_table_name(candidates: list[str], fallback: str) -> str:
+    cleaned = [str(c).strip() for c in candidates if c and str(c).strip()]
+    if not cleaned:
+        return fallback
+
+    for name in cleaned:
+        try:
+            _dynamodb_client.describe_table(TableName=name)
+            return name
+        except Exception:
+            continue
+
+    return fallback or cleaned[0]
+
+
+_env_sched_table = os.getenv("SCHEDULING_CONFIG_TABLE", "").strip()
+_sched_table_name = _resolve_dynamodb_table_name(
+    [
+        _env_sched_table,
+        "alugueqqc_scheduling_config_table",
+        "alugueqqc_scheduling_config",
+    ],
+    fallback="alugueqqc_scheduling_config_table",
+)
+scheduling_config_table = dynamodb.Table(_sched_table_name)
 
 
 s3 = boto3.client(
     "s3",
-    region_name=aws_region,
-    aws_access_key_id=aws_access_key_id,
-    aws_secret_access_key=aws_secret_access_key,
+    **_aws_kwargs,
 )
 
 # Configuração AWS SES para envio de emails
 ses_client = boto3.client(
     "ses",
-    region_name=aws_region,
-    aws_access_key_id=aws_access_key_id,
-    aws_secret_access_key=aws_secret_access_key,
+    **_aws_kwargs,
 )
 
 
@@ -55,6 +89,13 @@ ses_client = boto3.client(
 app = Flask(__name__)
 # Defina uma chave secreta forte e fixa
 app.secret_key = os.environ.get("SECRET_KEY", "chave-secreta-estatica-e-forte-london")
+
+app.jinja_loader = ChoiceLoader(
+    [
+        app.jinja_loader,
+        FileSystemLoader(os.path.join(os.path.dirname(__file__), "schedul_example", "templates")),
+    ]
+)
 
 
 from datetime import timedelta
@@ -73,6 +114,7 @@ from client_routes import init_client_routes
 from static_routes import init_static_routes
 from datetime import datetime, timezone
 from fittings_routes import init_fittings_routes
+from schedul_example.public_scheduling_routes import init_public_scheduling_routes
 from ai_routes import ai_bp
 
 
@@ -126,6 +168,15 @@ init_fittings_routes(
     itens_table,
     clients_table,
     users_table,
+)
+
+init_public_scheduling_routes(
+    app,
+    fittings_table,
+    scheduling_config_table,
+    itens_table,
+    clients_table,
+    ses_client=ses_client,
 )
 
 

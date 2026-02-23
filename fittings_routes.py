@@ -46,6 +46,46 @@ def init_fittings_routes(
             unique_id = str(uuid.uuid4())[:8]
             return f"{date_iso}#{time_part}#{unique_id}"
 
+    def _enrich_fittings_with_item_fields(fittings_items):
+        cache = {}
+        for f in fittings_items or []:
+            item_id = f.get("item_id")
+            if not item_id:
+                continue
+
+            if f.get("item_description") and f.get("item_custom_id") and f.get("item_image_url"):
+                continue
+
+            if item_id not in cache:
+                try:
+                    resp_item = itens_table.get_item(Key={"item_id": item_id})
+                    cache[item_id] = resp_item.get("Item") or {}
+                except Exception:
+                    cache[item_id] = {}
+
+            it = cache.get(item_id) or {}
+            if not it:
+                continue
+
+            if not f.get("item_description"):
+                item_desc = (
+                    it.get("item_description")
+                    or it.get("description")
+                    or it.get("descricao")
+                    or it.get("nome")
+                    or ""
+                )
+                if item_desc:
+                    f["item_description"] = item_desc
+
+            if not f.get("item_custom_id") and it.get("item_custom_id"):
+                f["item_custom_id"] = it.get("item_custom_id")
+
+            if not f.get("item_image_url") and it.get("image_url"):
+                f["item_image_url"] = it.get("image_url")
+
+        return fittings_items
+
     def _list_fittings_for_date(account_id: str, date_iso: str):
         # Query por data usando begins_with em sort key
         try:
@@ -53,7 +93,9 @@ def init_fittings_routes(
                 KeyConditionExpression=Key("account_id").eq(account_id)
                 & Key("date_time_local").begins_with(date_iso),
             )
-            return resp.get("Items", [])
+            items = resp.get("Items", [])
+            _enrich_fittings_with_item_fields(items)
+            return items
         except Exception as e:
             print("Erro ao buscar provas do dia:", e)
             return []
@@ -97,6 +139,7 @@ def init_fittings_routes(
             
             # Converte para o formato esperado e ordena por data
             for date_iso in sorted(dates_dict.keys()):
+                _enrich_fittings_with_item_fields(dates_dict[date_iso])
                 results.append({
                     "date_iso": date_iso,
                     "fitting_items": dates_dict[date_iso]  # Mudei de "items" para "fitting_items"
@@ -160,6 +203,7 @@ def init_fittings_routes(
             
             # Converte para o formato esperado e ordena por data
             for date_iso in sorted(dates_dict.keys()):
+                _enrich_fittings_with_item_fields(dates_dict[date_iso]["fitting_items"])
                 results.append({
                     "date_iso": date_iso,
                     "fitting_items": dates_dict[date_iso]["fitting_items"],
@@ -364,6 +408,8 @@ def init_fittings_routes(
         item_id = (request.form.get("item_id") or "").strip()
         client_name_form = (request.form.get("client_name") or "").strip()
         item_description_form = (request.form.get("item_description") or "").strip()
+        item_custom_id_value = None
+        item_image_url_value = None
 
         # Preparar valores: permitir limpeza explícita
         client_name_form = request.form.get("client_name", "").strip()
@@ -377,6 +423,9 @@ def init_fittings_routes(
         if not date_iso:
             flash("Data é obrigatória para a prova.", "danger")
             return redirect(url_for("add_fitting"))
+        if not time_local or not time_local.strip():
+            flash("Horário é obrigatório para a prova.", "danger")
+            return redirect(url_for("add_fitting", date=date_iso))
 
         # Checa conflitos usando GSIs nomeados pelo usuário
         conflicts = _validate_conflicts(client_id, item_id, date_iso, time_local)
@@ -422,6 +471,8 @@ def init_fittings_routes(
                     it = resp_item.get("Item")
                     if it:
                         item_description_value = it.get("item_description") or it.get("descricao") or it.get("nome")
+                        item_custom_id_value = it.get("item_custom_id") or item_custom_id_value
+                        item_image_url_value = it.get("image_url") or item_image_url_value
             except Exception:
                 pass
 
@@ -430,6 +481,10 @@ def init_fittings_routes(
                 item_data["client_name"] = client_name_value
             if item_description_value:
                 item_data["item_description"] = item_description_value
+            if item_custom_id_value:
+                item_data["item_custom_id"] = item_custom_id_value
+            if item_image_url_value:
+                item_data["item_image_url"] = item_image_url_value
 
             fittings_table.put_item(Item=item_data)
             flash("Prova agendada com sucesso.", "success")
@@ -551,6 +606,9 @@ def init_fittings_routes(
 
         if not date_iso:
             flash("Data é obrigatória para a prova.", "danger")
+            return redirect(url_for("edit_fitting", fitting_id=fitting_id))
+        if not time_local or not time_local.strip():
+            flash("Horário é obrigatório para a prova.", "danger")
             return redirect(url_for("edit_fitting", fitting_id=fitting_id))
 
         try:

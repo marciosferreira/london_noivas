@@ -13,6 +13,9 @@
   <div class="d-flex justify-content-between align-items-center mb-4">
     <h2 class="mb-0">Agenda</h2>
     <div class="d-flex gap-2">
+      <a class="btn btn-outline-primary" href="{{ url_for('scheduling_config') }}">
+        <i class="fas fa-sliders-h me-2"></i>Configurar horários
+      </a>
       <a class="btn btn-outline-secondary" href="{{ url_for('past_appointments') }}">
         <i class="fas fa-history me-2"></i>Provas Passadas
       </a>
@@ -241,10 +244,26 @@
                   {% set item_ref = f.item_id or f.item_custom_id %}
                   {% if item_ref %}
                     <a href="{{ url_for('all_transactions') }}?item_id={{ item_ref }}" class="text-decoration-none">
-                      {{ f.item_description or f.item_id or f.item_custom_id }}
+                      <span class="d-inline-flex align-items-center gap-2">
+                        {% if f.item_image_url %}
+                          <img src="{{ f.item_image_url }}" alt="" style="width:36px;height:36px;object-fit:cover;border-radius:8px;border:1px solid rgba(0,0,0,0.08);background:#f8f9fa;">
+                        {% endif %}
+                        <span class="d-inline-flex flex-column align-items-end" style="max-width: 220px;">
+                          <span class="fw-semibold text-truncate" style="max-width:220px;">{{ f.item_description or f.item_id or f.item_custom_id }}</span>
+                          <span class="text-muted" style="font-size:0.75rem;">{{ f.item_custom_id or f.item_id }}</span>
+                        </span>
+                      </span>
                     </a>
                   {% else %}
-                    {{ f.item_description }}
+                    <span class="d-inline-flex align-items-center gap-2">
+                      {% if f.item_image_url %}
+                        <img src="{{ f.item_image_url }}" alt="" style="width:36px;height:36px;object-fit:cover;border-radius:8px;border:1px solid rgba(0,0,0,0.08);background:#f8f9fa;">
+                      {% endif %}
+                      <span class="d-inline-flex flex-column align-items-end" style="max-width: 220px;">
+                        <span class="fw-semibold text-truncate" style="max-width:220px;">{{ f.item_description }}</span>
+                        <span class="text-muted" style="font-size:0.75rem;">{{ f.item_custom_id or f.item_id }}</span>
+                      </span>
+                    </span>
                   {% endif %}
                 </span>
               </div>
@@ -302,6 +321,12 @@
                   <strong>Descrição do Item:</strong><br>
                   <span>{{ f.item_description or 'Vestido não definido' }}</span>
                 </div>
+                {% if f.item_image_url %}
+                <div class="col-12">
+                  <strong>Foto do Item:</strong><br>
+                  <img src="{{ f.item_image_url }}" alt="" style="width:96px;height:96px;object-fit:cover;border-radius:12px;border:1px solid rgba(0,0,0,0.08);background:#f8f9fa;">
+                </div>
+                {% endif %}
                 <div class="col-12">
                   <strong>Observações:</strong><br>
                   <span>{{ f.notes or 'Nenhuma observação' }}</span>
@@ -469,10 +494,26 @@
                   {% set item_ref = f.item_id or f.item_custom_id %}
                   {% if item_ref %}
                     <a href="{{ url_for('all_transactions') }}?item_id={{ item_ref }}" class="text-decoration-none">
-                      {{ f.item_description or f.item_id or f.item_custom_id }}
+                      <span class="d-inline-flex align-items-center gap-2">
+                        {% if f.item_image_url %}
+                          <img src="{{ f.item_image_url }}" alt="" style="width:36px;height:36px;object-fit:cover;border-radius:8px;border:1px solid rgba(0,0,0,0.08);background:#f8f9fa;">
+                        {% endif %}
+                        <span class="d-inline-flex flex-column align-items-end" style="max-width: 220px;">
+                          <span class="fw-semibold text-truncate" style="max-width:220px;">{{ f.item_description or f.item_id or f.item_custom_id }}</span>
+                          <span class="text-muted" style="font-size:0.75rem;">{{ f.item_custom_id or f.item_id }}</span>
+                        </span>
+                      </span>
                     </a>
                   {% else %}
-                    {{ f.item_description }}
+                    <span class="d-inline-flex align-items-center gap-2">
+                      {% if f.item_image_url %}
+                        <img src="{{ f.item_image_url }}" alt="" style="width:36px;height:36px;object-fit:cover;border-radius:8px;border:1px solid rgba(0,0,0,0.08);background:#f8f9fa;">
+                      {% endif %}
+                      <span class="d-inline-flex flex-column align-items-end" style="max-width: 220px;">
+                        <span class="fw-semibold text-truncate" style="max-width:220px;">{{ f.item_description }}</span>
+                        <span class="text-muted" style="font-size:0.75rem;">{{ f.item_custom_id or f.item_id }}</span>
+                      </span>
+                    </span>
                   {% endif %}
                 </span>
               </div>
@@ -530,6 +571,12 @@
                   <strong>Descrição do Item:</strong><br>
                   <span>{{ f.item_description or 'Vestido não definido' }}</span>
                 </div>
+                {% if f.item_image_url %}
+                <div class="col-12">
+                  <strong>Foto do Item:</strong><br>
+                  <img src="{{ f.item_image_url }}" alt="" style="width:96px;height:96px;object-fit:cover;border-radius:12px;border:1px solid rgba(0,0,0,0.08);background:#f8f9fa;">
+                </div>
+                {% endif %}
                 <div class="col-12">
                   <strong>Observações:</strong><br>
                   <span>{{ f.notes or 'Nenhuma observação' }}</span>

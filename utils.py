@@ -25,29 +25,29 @@ s3 = boto3.client(
 # Email functions
 def send_password_reset_email(email, username, reset_link):
     """Sends a password reset email to the user."""
-    SENDER = "nao_responda@locashop.com.br"  # Deve ser um email verificado no SES
+    SENDER = "nao_responda@londonnoivas.com.br"  # Deve ser um email verificado no SES
     RECIPIENT = email
-    SUBJECT = "LocaShop - Recuperação de Senha"
+    SUBJECT = "londonnoivas - Recuperação de Senha"
 
     # O corpo do email em HTML
     BODY_HTML = f"""
     <html>
     <head></head>
     <body>
-    <h1>LocaShop - Recuperação de Senha</h1>
+    <h1>londonnoivas - Recuperação de Senha</h1>
     <p>Olá {username},</p>
     <p>Recebemos uma solicitação para redefinir sua senha. Se você não solicitou isso, por favor ignore este email.</p>
     <p>Para redefinir sua senha, clique no link abaixo:</p>
     <p><a href="{reset_link}">Redefinir minha senha</a></p>
     <p>Este link é válido por 24 horas.</p>
-    <p>Atenciosamente,<br>Equipe LocaShop</p>
+    <p>Atenciosamente,<br>Equipe londonnoivas</p>
     </body>
     </html>
     """
 
     # O corpo do email em texto simples para clientes que não suportam HTML
     BODY_TEXT = f"""
-    LocaShop - Recuperação de Senha
+    londonnoivas - Recuperação de Senha
 
     Olá {username},
 
@@ -59,7 +59,7 @@ def send_password_reset_email(email, username, reset_link):
     Este link é válido por 24 horas.
 
     Atenciosamente,
-    Equipe LocaShop
+    Equipe londonnoivas
     """
 
     try:
@@ -89,9 +89,9 @@ def send_password_reset_email(email, username, reset_link):
 
 def send_confirmation_email(email, username, email_token):
     """Sends an email confirmation link to the user."""
-    SENDER = "nao_responda@locashop.com.br"  # Deve ser um email verificado no SES
+    SENDER = "nao_responda@londonnoivas.com.br"  # Deve ser um email verificado no SES
     RECIPIENT = email
-    SUBJECT = "LocaShop - Confirmação de E-mail"
+    SUBJECT = "londonnoivas - Confirmação de E-mail"
 
     # Corpo do e-mail em HTML
     BODY_HTML = f"""
@@ -100,12 +100,12 @@ def send_confirmation_email(email, username, email_token):
     <body>
     <h1>Confirmação de E-mail</h1>
     <p>Olá <strong>{username}</strong>,</p>
-    <p>Obrigado por se cadastrar no LocaShop!</p>
+    <p>Obrigado por se cadastrar no londonnoivas!</p>
     <p>Para ativar sua conta, clique no link abaixo:</p>
     <p><a href="{email_token}" style="font-size:16px; font-weight:bold; color:#ffffff; background-color:#007bff; padding:10px 20px; text-decoration:none; border-radius:5px;">Confirmar Meu E-mail</a></p>
     <p>Se o botão acima não funcionar, copie e cole o seguinte link no seu navegador:</p>
     <p><a href="{email_token}">{email_token}</a></p>
-    <p>Atenciosamente,<br>Equipe LocaShop</p>
+    <p>Atenciosamente,<br>Equipe londonnoivas</p>
     </body>
     </html>
     """
@@ -116,15 +116,15 @@ def send_confirmation_email(email, username, email_token):
 
     Olá {username},
 
-    Obrigado por se cadastrar no LocaShop!
+    Obrigado por se cadastrar no londonnoivas!
 
     Para ativar sua conta, clique no link abaixo:
     {email_token}
 
-    Se você não se cadastrou no LocaShop, ignore este e-mail.
+    Se você não se cadastrou no londonnoivas, ignore este e-mail.
 
     Atenciosamente,
-    Equipe LocaShop
+    Equipe londonnoivas
     """
 
     try:
@@ -164,7 +164,7 @@ def send_admin_notification_email(admin_email, new_user_email, new_user_username
     """
 
     ses_client.send_email(
-        Source="nao_responda@locashop.com.br",
+        Source="nao_responda@londonnoivas.com.br",
         Destination={"ToAddresses": [admin_email]},
         Message={
             "Subject": {"Data": subject},

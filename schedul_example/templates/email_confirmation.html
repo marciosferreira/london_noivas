@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin:0;padding:0;background:#faf9f7;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#faf9f7;padding:40px 16px;">
+    <tr>
+      <td align="center">
+        <table width="480" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.06);">
+          
+          <!-- Header -->
+          <tr>
+            <td style="background:#c8956c;padding:32px;text-align:center;">
+              <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;">
+                {{ business_name or 'Agendamento' }}
+              </h1>
+              <p style="margin:8px 0 0;color:rgba(255,255,255,0.85);font-size:14px;">
+                Confirme seu agendamento
+              </p>
+            </td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="padding:32px;">
+              <p style="margin:0 0 20px;font-size:16px;color:#2c2420;">
+                Olá <strong>{{ client_name }}</strong>! 👋
+              </p>
+              <p style="margin:0 0 24px;font-size:14px;color:#7a6e65;line-height:1.6;">
+                Recebemos seu pedido de agendamento. Para confirmar, clique no botão abaixo:
+              </p>
+
+              <!-- Dados -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0ebe3;border-radius:12px;margin-bottom:24px;">
+                <tr>
+                  <td style="padding:20px;">
+                    <table width="100%" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td style="padding:8px 0;font-size:14px;color:#7a6e65;">📅 Data</td>
+                        <td style="padding:8px 0;font-size:14px;color:#2c2420;font-weight:600;text-align:right;">{{ date_iso }}</td>
+                      </tr>
+                      <tr>
+                        <td colspan="2" style="border-bottom:1px solid #e8e2da;"></td>
+                      </tr>
+                      <tr>
+                        <td style="padding:8px 0;font-size:14px;color:#7a6e65;">🕐 Horário</td>
+                        <td style="padding:8px 0;font-size:14px;color:#2c2420;font-weight:600;text-align:right;">{{ time_local }}</td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- CTA Button -->
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td align="center">
+                    <a href="{{ confirm_url }}"
+                       style="display:inline-block;padding:14px 40px;background:#c8956c;color:#ffffff;
+                              font-size:16px;font-weight:600;text-decoration:none;border-radius:12px;
+                              box-shadow:0 4px 12px rgba(200,149,108,0.3);">
+                      ✓ Confirmar Agendamento
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin:24px 0 0;font-size:12px;color:#b0a69d;text-align:center;line-height:1.5;">
+                Se você não fez esse agendamento, ignore este e-mail.<br>
+                Este link expira automaticamente.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background:#f0ebe3;padding:20px;text-align:center;">
+              <p style="margin:0;font-size:12px;color:#7a6e65;">
+                {{ business_name }} · Manaus, AM
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
