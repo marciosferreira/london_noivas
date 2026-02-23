@@ -23,6 +23,7 @@ from boto3.dynamodb.conditions import Key, Attr
 import schemas
 
 ALLOWED_EXTENSIONS = {"jpeg", "jpg", "png", "gif", "webp"}
+MAX_ITEM_IMAGES = 4
 
 
 def handle_image_upload(image_file):
@@ -370,6 +371,10 @@ def init_item_routes(
 
             image_files = request.files.getlist("image_file")
             image_files = [f for f in (image_files or []) if f and getattr(f, "filename", "")]
+            allowed_count = sum(1 for f in image_files if allowed_file(getattr(f, "filename", "")))
+            if allowed_count > MAX_ITEM_IMAGES:
+                flash(f"Limite de fotos por item: no máximo {MAX_ITEM_IMAGES}.", "danger")
+                return redirect(request.url)
 
             raw_main_index = (request.form.get("main_image_index") or "").strip()
             try:
@@ -398,6 +403,9 @@ def init_item_routes(
             image_urls = [u for u in image_urls if u]
             if not image_urls:
                 flash("Formato de arquivo não permitido. Use JPEG, PNG ou WEBP.", "danger")
+                return redirect(request.url)
+            if len(image_urls) > MAX_ITEM_IMAGES:
+                flash(f"Limite de fotos por item: no máximo {MAX_ITEM_IMAGES}.", "danger")
                 return redirect(request.url)
 
             if main_index >= len(image_urls):
@@ -871,6 +879,16 @@ def init_item_routes(
 
             existing_urls_before_delete = list(existing_urls)
             existing_urls = [u for u in existing_urls if u not in delete_set]
+            allowed_count = sum(1 for f in image_files if allowed_file(getattr(f, "filename", "")))
+            if (len(existing_urls) + allowed_count) > MAX_ITEM_IMAGES:
+                restante = MAX_ITEM_IMAGES - len(existing_urls)
+                if restante < 0:
+                    restante = 0
+                if len(existing_urls) >= MAX_ITEM_IMAGES:
+                    flash(f"Este item já tem {MAX_ITEM_IMAGES} fotos. Remova uma antes de adicionar outra.", "danger")
+                else:
+                    flash(f"Limite de fotos por item: no máximo {MAX_ITEM_IMAGES}. Você pode adicionar no máximo {restante} agora.", "danger")
+                return redirect(request.url)
 
             raw_main_index = (request.form.get("main_image_index") or "").strip()
             try:
@@ -917,6 +935,9 @@ def init_item_routes(
                 main_selected_url = uploaded_by_file_idx.get(main_selected_new_file_idx)
 
             merged_urls = [*existing_urls, *new_urls]
+            if len(merged_urls) > MAX_ITEM_IMAGES:
+                flash(f"Limite de fotos por item: no máximo {MAX_ITEM_IMAGES}.", "danger")
+                return redirect(request.url)
 
             remove_item_main_image_index = False
             requested_main_index_final = None

@@ -53,13 +53,45 @@
         {% for field in fields_config if field.type == 'item_image_url' and field.preview and field.visible %} {% set image_value =
         item[field.id] if field.id in item else '' %}
         <div class="text-center mt-2">
-          <img
-            src="{{ image_value if image_value and image_value != 'N/A' else url_for('static', filename='item-placeholder.png') }}"
-            alt="Imagem"
-            class="card-img-top mx-auto d-block"
-            style="height: 240px; width: 100%; object-fit: contain; background-color: #f8f9fa; cursor: pointer"
-            onclick="mostrarImagemModal(this.src)"
-          />
+          <div class="position-relative" data-inv-carousel="1" data-item-id="{{ item.item_id }}">
+            <img
+              id="inv-img-{{ item.item_id }}"
+              src="{{ image_value if image_value and image_value != 'N/A' else url_for('static', filename='item-placeholder.png') }}"
+              alt="Imagem"
+              class="card-img-top mx-auto d-block"
+              style="height: 240px; width: 100%; object-fit: contain; background-color: #f8f9fa; cursor: pointer"
+              onclick="mostrarImagemModal(this.src)"
+            />
+            {% set image_urls = item.get('item_image_urls') or [] %}
+            {% if image_urls and (image_urls | length) > 1 %}
+            <button type="button" class="position-absolute top-50 start-0 translate-middle-y ms-2 btn p-0 border-0 bg-transparent" onclick="invPrevImage(event, '{{ item.item_id }}')">
+              <span class="bg-white border rounded-circle d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 30px; height: 30px; opacity: 0.9;">
+                <i class="fas fa-chevron-left" style="font-size: 13px;"></i>
+              </span>
+            </button>
+            <button type="button" class="position-absolute top-50 end-0 translate-middle-y me-2 btn p-0 border-0 bg-transparent" onclick="invNextImage(event, '{{ item.item_id }}')">
+              <span class="bg-white border rounded-circle d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 30px; height: 30px; opacity: 0.9;">
+                <i class="fas fa-chevron-right" style="font-size: 13px;"></i>
+              </span>
+            </button>
+            <div id="inv-counter-{{ item.item_id }}" class="position-absolute top-0 end-0 mt-2 me-2 bg-white border rounded-pill px-2 py-1 shadow-sm" style="opacity: 0.9; font-size: 11px; font-weight: 600;">
+              1/{{ image_urls | length }}
+            </div>
+            {% endif %}
+          </div>
+          {% if image_urls and (image_urls | length) > 1 %}
+          <div class="px-3 pt-2 pb-3" style="background: linear-gradient(to bottom, rgba(255,255,255,1), rgba(248,249,250,1)); border-top: 1px solid rgba(0,0,0,0.06);">
+            <div id="inv-thumbs-{{ item.item_id }}" class="mx-auto d-flex align-items-center justify-content-center" style="gap: 8px; background: rgba(255,255,255,0.9); padding: 8px 14px; border-radius: 16px; border: 1px solid rgba(0,0,0,0.08); box-shadow: 0 .125rem .25rem rgba(0,0,0,.075); max-width: 92%; overflow-x: auto; overflow-y: hidden; flex-wrap: nowrap; white-space: nowrap;"></div>
+          </div>
+          <script>
+            window.inventoryData = window.inventoryData || {};
+            window.inventoryData['{{ item.item_id }}'] = {
+              imageUrl: '{{ image_value if image_value and image_value != "N/A" else "" }}',
+              imageUrls: {{ (item.get('item_image_urls') or []) | tojson }},
+              mainImageIndex: {{ (item.get('item_main_image_index') or 0) | int }}
+            };
+          </script>
+          {% endif %}
         </div>
         {% endfor %}
 
@@ -409,7 +441,151 @@
     poll();
   }
 
-  // Executar na carga
+  window.inventoryData = window.inventoryData || {};
+  window.inventoryCardIndices = window.inventoryCardIndices || {};
+
+  function invGetImages(itemId) {
+    const data = window.inventoryData && window.inventoryData[itemId];
+    const urls = data && Array.isArray(data.imageUrls) ? data.imageUrls.filter(u => typeof u === 'string' && u.trim()) : [];
+    const fallback = (data && data.imageUrl ? data.imageUrl : '').toString().trim();
+    if (urls.length) return urls;
+    const img = document.getElementById(`inv-img-${itemId}`);
+    const domFallback = img && img.src ? img.src.toString().trim() : '';
+    if (fallback) return [fallback];
+    return domFallback ? [domFallback] : [];
+  }
+
+  function invGetIndex(itemId) {
+    if (window.inventoryCardIndices && Number.isFinite(Number(window.inventoryCardIndices[itemId]))) {
+      return Number(window.inventoryCardIndices[itemId]);
+    }
+    const urls = invGetImages(itemId);
+    if (!urls.length) return 0;
+    const data = window.inventoryData && window.inventoryData[itemId];
+    const mainIdx = data ? Number(data.mainImageIndex) : NaN;
+    if (Number.isFinite(mainIdx) && mainIdx >= 0 && mainIdx < urls.length) return mainIdx;
+    if (data && data.imageUrl) {
+      const found = urls.findIndex(u => u === data.imageUrl);
+      if (found >= 0) return found;
+    }
+    return 0;
+  }
+
+  function invThumbWindow(total, index, maxThumbs) {
+    const n = Number.isFinite(Number(maxThumbs)) && Number(maxThumbs) > 0 ? Number(maxThumbs) : 4;
+    if (total <= n) return { start: 0, end: total };
+    const half = Math.floor(n / 2);
+    let start = index - half;
+    let end = start + n;
+    if (start < 0) {
+      start = 0;
+      end = n;
+    }
+    if (end > total) {
+      end = total;
+      start = total - n;
+    }
+    return { start, end };
+  }
+
+  function invSetImageFromThumb(e, itemId, index) {
+    if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+    if (e && typeof e.preventDefault === 'function') e.preventDefault();
+    invSetImage(itemId, index);
+  }
+
+  function invRenderThumbs(itemId) {
+    const urls = invGetImages(itemId);
+    const container = document.getElementById(`inv-thumbs-${itemId}`);
+    if (!container) return;
+    if (!urls || urls.length <= 1) {
+      container.innerHTML = '';
+      return;
+    }
+    const idx = invGetIndex(itemId);
+    const w = invThumbWindow(urls.length, idx, 4);
+    let html = '';
+    for (let i = w.start; i < w.end; i += 1) {
+      const url = urls[i];
+      const active = i === idx;
+      const border = active ? 'border: 2px solid #212529;' : 'border: 1px solid rgba(255,255,255,0.7);';
+      const opacity = active ? 'opacity: 1;' : 'opacity: 0.8;';
+      html += `
+        <button type="button" class="btn p-0 border-0 bg-transparent" onclick="invSetImageFromThumb(event, '${itemId}', ${i})" style="${opacity}">
+          <span style="display:block;width:48px;height:48px;border-radius:6px;overflow:hidden;background:#f8f9fa;${border}box-shadow: 0 .125rem .25rem rgba(0,0,0,.075);">
+            <img src="${url}" alt="" style="width:100%;height:100%;object-fit:contain;display:block;" />
+          </span>
+        </button>
+      `;
+    }
+    container.innerHTML = html;
+  }
+
+  function invSetImage(itemId, index) {
+    const urls = invGetImages(itemId);
+    if (!urls.length) return;
+    let idx = Number(index);
+    if (!Number.isFinite(idx)) idx = 0;
+    if (idx < 0) idx = urls.length - 1;
+    if (idx >= urls.length) idx = 0;
+    window.inventoryCardIndices[itemId] = idx;
+
+    const img = document.getElementById(`inv-img-${itemId}`);
+    if (img) img.src = urls[idx];
+
+    const counter = document.getElementById(`inv-counter-${itemId}`);
+    if (counter) counter.textContent = `${idx + 1}/${urls.length}`;
+
+    invRenderThumbs(itemId);
+  }
+
+  function invPrevImage(e, itemId) {
+    if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+    if (e && typeof e.preventDefault === 'function') e.preventDefault();
+    const idx = invGetIndex(itemId);
+    invSetImage(itemId, idx - 1);
+  }
+
+  function invNextImage(e, itemId) {
+    if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+    if (e && typeof e.preventDefault === 'function') e.preventDefault();
+    const idx = invGetIndex(itemId);
+    invSetImage(itemId, idx + 1);
+  }
+
+  function initInventoryCarousels() {
+    const nodes = document.querySelectorAll('[data-inv-carousel="1"][data-item-id]');
+    nodes.forEach((node) => {
+      const itemId = node.getAttribute('data-item-id');
+      if (!itemId) return;
+      const urls = invGetImages(itemId);
+      if (!urls || urls.length <= 1) return;
+      invSetImage(itemId, invGetIndex(itemId));
+      let startX = null;
+      let startY = null;
+      node.addEventListener('touchstart', (ev) => {
+        const t = ev.touches && ev.touches[0];
+        if (!t) return;
+        startX = t.clientX;
+        startY = t.clientY;
+      }, { passive: true });
+      node.addEventListener('touchend', (ev) => {
+        if (startX === null || startY === null) return;
+        const t = ev.changedTouches && ev.changedTouches[0];
+        if (!t) return;
+        const dx = t.clientX - startX;
+        const dy = t.clientY - startY;
+        startX = null;
+        startY = null;
+        if (Math.abs(dx) < 35) return;
+        if (Math.abs(dx) < Math.abs(dy)) return;
+        if (dx > 0) invPrevImage(ev, itemId);
+        else invNextImage(ev, itemId);
+      }, { passive: true });
+    });
+  }
+
   checkAIStatus();
+  initInventoryCarousels();
 </script>
 {% endblock %}

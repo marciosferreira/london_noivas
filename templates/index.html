@@ -113,7 +113,7 @@
                 <a href="#sobre" class="nav-link text-white hover:text-london-gold transition-colors">SOBRE</a>
                 <a href="#contato" class="nav-link text-white hover:text-london-gold transition-colors">CONTATO</a>
                 <a href="https://wa.me/5592993531943" onclick="trackWhatsAppClick('header')" class="bg-london-gold text-white px-6 py-2 rounded-full hover:bg-opacity-90 transition-all shadow-lg">
-                    AGENDAR VISITA
+                    AGENDAR VISITA/PROVA
                 </a>
                 
                 {% if session.get('logged_in') %}
@@ -148,7 +148,7 @@
             <a href="#sobre" class="text-2xl font-serif text-white hover:text-london-gold transition-colors" onclick="closeMobileMenu()">SOBRE</a>
             <a href="#contato" class="text-2xl font-serif text-white hover:text-london-gold transition-colors" onclick="closeMobileMenu()">CONTATO</a>
             <a href="https://wa.me/5592993531943" onclick="trackWhatsAppClick('mobile_menu'); closeMobileMenu()" class="text-xl bg-london-gold text-white px-8 py-3 rounded-full hover:bg-white hover:text-london-gold transition-all shadow-lg mt-4">
-                AGENDAR VISITA
+                AGENDAR VISITA/PROVA
             </a>
             {% if session.get('logged_in') %}
             <a href="{{ url_for('logout') }}" class="text-xl border border-white/30 text-white px-8 py-3 rounded-full hover:bg-white hover:text-stone-900 transition-all shadow-lg" onclick="closeMobileMenu()">
@@ -1494,18 +1494,10 @@
                                 <div class="w-12 h-1 bg-stone-200 mb-8"></div>
                                 
                                 <div class="prose prose-stone max-w-none">
-                                    <h4 class="font-serif text-lg text-stone-800 mb-2">Descrição da Peça</h4>
+                                    <h4 class="font-serif text-lg text-stone-800 mb-2">Descrição do Vestido</h4>
                                     <p id="catalog-modal-desc" class="text-stone-600 font-light leading-relaxed text-lg mb-8"></p>
                                 </div>
 
-                                <!-- Similar Items Section -->
-                                <div id="catalog-modal-similar-section" class="hidden mb-8">
-                                    <div class="w-12 h-1 bg-stone-200 mb-6"></div>
-                                    <h4 class="font-serif text-lg text-stone-800 mb-4">Você também pode gostar</h4>
-                                    <div id="catalog-modal-similar-grid" class="grid grid-cols-2 gap-4">
-                                        <!-- Similar items injected here -->
-                                    </div>
-                                </div>
                             </div>
                             
                             <div class="mt-8 pt-8 border-t border-stone-100">
@@ -1514,7 +1506,7 @@
                                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
                                         <path d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592zm3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.729.729 0 0 0-.529.247c-.182.198-.691.677-.691 1.654 0 .977.71 1.916.81 2.049.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232z"/>
                                     </svg>
-                                    <span class="font-bold tracking-widest text-sm">SOLICITAR MAIS INFORMAÇÕES</span>
+                                    <span class="font-bold tracking-widest text-sm">SOLICITAR INFORMAÇÕES/PROVA</span>
                                 </a>
                             </div>
                         </div>
@@ -1684,162 +1676,10 @@
             document.getElementById('catalog-modal').classList.remove('hidden');
             document.body.style.overflow = 'hidden'; // Prevent scrolling
 
-            // Reset and fetch similar items
-            const similarSection = document.getElementById('catalog-modal-similar-section');
-            const similarGrid = document.getElementById('catalog-modal-similar-grid');
-            similarSection.classList.add('hidden');
-            similarGrid.innerHTML = '';
-
             if (itemId && !isAiItem) {
                 // Increment visit count for all sources
                 fetch(`/api/item/${itemId}/visit`, { method: 'POST' })
                     .catch(err => console.error('Error incrementing visit count:', err));
-
-                const isBellaAiModal = source === 'ai_result' || source === 'ai_suggestion';
-
-                let apiUrl = '';
-                if (isBellaAiModal) {
-                    const similarParams = new URLSearchParams();
-                    similarParams.set('limit', '4');
-                    similarParams.set('no_faiss', '1');
-                    if (Array.isArray(bellaOccasionFilter) && bellaOccasionFilter.length) similarParams.set('occasions', bellaOccasionFilter.join(','));
-                    else if (occasions) similarParams.set('occasions', occasions);
-                    if (colorBase) similarParams.set('cor_base', colorBase);
-                    if (colorCommercial) similarParams.set('cor_comercial', colorCommercial);
-                    apiUrl = `/api/ai-similar/${itemId}?${similarParams.toString()}`;
-                } else {
-                    const bellaOccParam = Array.isArray(bellaOccasionFilter) && bellaOccasionFilter.length
-                        ? bellaOccasionFilter.join(',')
-                        : '';
-                    const bellaOccQuery = bellaOccParam ? `&occasion=${encodeURIComponent(bellaOccParam)}` : '';
-                    const bellaQueryParam = bellaQueryFilter ? `&q=${encodeURIComponent(bellaQueryFilter)}` : '';
-                    apiUrl = `/api/ai-similar/${itemId}?limit=4${bellaOccQuery}${bellaQueryParam}`;
-                }
-
-                fetch(apiUrl)
-                    .then(response => response.json())
-                    .then(data => {
-                        const normalizeSlug = (s) => (s || '')
-                            .toString()
-                            .normalize('NFD')
-                            .replace(/[\u0300-\u036f]/g, '')
-                            .toLowerCase()
-                            .replace(/[^a-z0-9]+/g, '_')
-                            .replace(/^_+|_+$/g, '')
-                            .replace(/_+/g, '_');
-
-                        const normalizeText = (s) => (s || '')
-                            .toString()
-                            .normalize('NFD')
-                            .replace(/[\u0300-\u036f]/g, '')
-                            .toLowerCase()
-                            .replace(/[^a-z0-9]+/g, ' ')
-                            .trim()
-                            .replace(/\s+/g, ' ');
-
-                        const parseOccasionsToSlugs = (occasionsStr) => {
-                            if (!occasionsStr) return [];
-                            return occasionsStr
-                                .toString()
-                                .split(',')
-                                .map(s => normalizeSlug(s.trim()))
-                                .filter(Boolean);
-                        };
-
-                        const targetOccasionInput = (Array.isArray(bellaOccasionFilter) && bellaOccasionFilter.length)
-                            ? bellaOccasionFilter.join(', ')
-                            : occasions;
-                        const targetOccasions = new Set(parseOccasionsToSlugs(targetOccasionInput));
-                        const apiSuggestions = Array.isArray(data.suggestions) ? data.suggestions : [];
-                        let suggestions = targetOccasions.size > 0
-                            ? apiSuggestions.filter(s => parseOccasionsToSlugs(s.occasions).some(o => targetOccasions.has(o)))
-                            : apiSuggestions;
-
-                        const targetBase = normalizeText(colorBase || '');
-                        const targetCommercial = normalizeText(colorCommercial || '');
-                        const existingIds = new Set(suggestions.map(s => String(s.id)));
-
-                        if (isBellaAiModal && suggestions.length < 4 && window.catalogData && typeof window.catalogData === 'object') {
-                            let localCandidates = Object.entries(window.catalogData)
-                                .filter(([id, d]) => id && d && String(id) !== String(itemId))
-                                .filter(([id, d]) => !existingIds.has(String(id)))
-                                .filter(([id, d]) => targetOccasions.size === 0 || parseOccasionsToSlugs(d.occasions).some(o => targetOccasions.has(o)))
-                                .map(([id, d]) => ({
-                                    id,
-                                    customId: d.customId,
-                                    title: d.title,
-                                    image_url: d.imageUrl,
-                                    description: d.description,
-                                    price: d.price,
-                                    itemObs: d.itemObs,
-                                    color: d.color,
-                                    colorBase: d.colorBase,
-                                    colorCommercial: d.colorCommercial,
-                                    size: d.size,
-                                    occasions: d.occasions
-                                }));
-
-                            localCandidates = localCandidates.sort((a, b) => {
-                                const aCommercial = normalizeText(a.colorCommercial || '');
-                                const bCommercial = normalizeText(b.colorCommercial || '');
-                                const aBase = normalizeText(a.colorBase || '');
-                                const bBase = normalizeText(b.colorBase || '');
-                                const aCommercialOk = Boolean(targetCommercial && aCommercial && aCommercial === targetCommercial);
-                                const bCommercialOk = Boolean(targetCommercial && bCommercial && bCommercial === targetCommercial);
-                                if (aCommercialOk !== bCommercialOk) return aCommercialOk ? -1 : 1;
-                                const aBaseOk = Boolean(targetBase && aBase && aBase === targetBase);
-                                const bBaseOk = Boolean(targetBase && bBase && bBase === targetBase);
-                                if (aBaseOk !== bBaseOk) return aBaseOk ? -1 : 1;
-                                return 0;
-                            });
-
-                            for (const c of localCandidates) {
-                                if (suggestions.length >= 4) break;
-                                suggestions.push(c);
-                                existingIds.add(String(c.id));
-                            }
-                        }
-
-                        if (suggestions.length > 0) {
-                            suggestions.forEach(item => {
-                                const div = document.createElement('div');
-                                div.className = 'cursor-pointer group';
-                                const itemOccasions = typeof item.occasions === 'string'
-                                    ? item.occasions
-                                    : Array.isArray(item.occasions)
-                                        ? item.occasions.join(', ')
-                                        : '';
-                                const fallback = window.catalogData && window.catalogData[item.id];
-                                const suggestionPrice = item.price || (fallback && fallback.price) || 'Valor do aluguel: Consulte';
-                                const suggestionObs = item.item_obs || item.itemObs || (fallback && fallback.itemObs) || '';
-                                div.onclick = () => openCatalogModal(
-                                    item.image_url,
-                                    item.title,
-                                    item.description,
-                                    item.id,
-                                    suggestionPrice,
-                                    'similar',
-                                    item.customId,
-                                    itemOccasions,
-                                    item.color,
-                                    item.size,
-                                    item.color_base || item.cor_base || item.colorBase || item.corBase,
-                                    item.color_comercial || item.cor_comercial || item.colorCommercial || item.corCommercial,
-                                    suggestionObs
-                                );
-                                div.innerHTML = `
-                                    <div class="aspect-[3/4] bg-stone-100 overflow-hidden mb-2 rounded-sm relative">
-                                        <img src="${item.image_url}" class="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110" alt="${item.title}">
-                                        <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300"></div>
-                                    </div>
-                                    <p class="text-xs font-bold text-stone-800 uppercase tracking-wide truncate">${item.title}</p>
-                                `;
-                                similarGrid.appendChild(div);
-                            });
-                            similarSection.classList.remove('hidden');
-                        }
-                    })
-                    .catch(err => console.error('Erro ao buscar similares:', err));
             }
         }
 
@@ -1955,7 +1795,7 @@
             const floatingCta = document.getElementById('floating-whatsapp-cta');
             if (!floatingCta) return;
             const phoneNumber = '5592993531943';
-            const text = 'Olá, visitei o site da London Noivas e tenho uma dúvida:\n\n';
+            const text = 'Olá, visitei o site da London Noivas e tenho a seguinte demanda:\n\n';
             floatingCta.href = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(text)}`;
         });
 

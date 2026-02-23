@@ -293,6 +293,13 @@
     document.getElementById('remove-btn').style.display = 'block';
     const existingCount = document.querySelectorAll('#existing-image-thumbs input[name="main_image_index"]').length;
     const selected = document.querySelector('input[name="main_image_index"]:checked');
+    if ((existingCount + files.length) > 4) {
+      const restante = Math.max(0, 4 - existingCount);
+      alert(`Limite de fotos por item: no máximo 4. Você pode adicionar no máximo ${restante} agora.`);
+      e.target.value = '';
+      if (thumbsNew) thumbsNew.innerHTML = '';
+      return;
+    }
 
     files.forEach((file, idx) => {
       const combinedIdx = existingCount + idx;

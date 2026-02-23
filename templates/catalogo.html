@@ -52,7 +52,7 @@
                 <a href="{{ url_for('index') }}#sobre" class="nav-link text-white hover:text-london-gold transition-colors">SOBRE</a>
                 <a href="{{ url_for('index') }}#contato" class="nav-link text-white hover:text-london-gold transition-colors">CONTATO</a>
                 <a href="https://wa.me/5592993531943" onclick="trackWhatsAppClick('header')" class="bg-london-gold text-white px-6 py-2 rounded-full hover:bg-opacity-90 transition-all shadow-lg">
-                    AGENDAR VISITA
+                    AGENDAR VISITA/PROVA
                 </a>
                 
                 {% if session.get('logged_in') %}
@@ -85,7 +85,7 @@
             <a href="{{ url_for('index') }}#sobre" class="text-2xl font-serif text-white hover:text-london-gold transition-colors" onclick="closeMobileMenu()">SOBRE</a>
             <a href="{{ url_for('index') }}#contato" class="text-2xl font-serif text-white hover:text-london-gold transition-colors" onclick="closeMobileMenu()">CONTATO</a>
             <a href="https://wa.me/5592993531943" onclick="trackWhatsAppClick('mobile_menu'); closeMobileMenu()" class="text-xl bg-london-gold text-white px-8 py-3 rounded-full hover:bg-white hover:text-london-gold transition-all shadow-lg mt-4">
-                AGENDAR VISITA
+                AGENDAR VISITA/PROVA
             </a>
             {% if session.get('logged_in') %}
             <a href="{{ url_for('logout') }}" class="text-xl border border-white/30 text-white px-8 py-3 rounded-full hover:bg-white hover:text-stone-900 transition-all shadow-lg" onclick="closeMobileMenu()">
@@ -170,9 +170,29 @@
                 <div class="group bg-white rounded-sm shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden animate-fadeIn"
                      onclick="openCatalogModalById('{{ item.item_id }}', 'catalog')">
                     
-                    <div class="aspect-[3/4] overflow-hidden bg-stone-200 relative">
-                        <img src="{{ item.item_image_url }}" alt="{{ item.title }}" class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-700">
+                    <div class="aspect-[3/4] overflow-hidden bg-stone-200 relative" data-card-carousel="1" data-item-id="{{ item.item_id }}">
+                        <img id="catalog-card-img-{{ item.item_id }}" src="{{ item.item_image_url }}" alt="{{ item.title }}" class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-700">
                         <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors"></div>
+                        {% set image_urls = item.get('item_image_urls') or [] %}
+                        {% if image_urls and (image_urls | length) > 1 %}
+                        <button type="button" class="absolute inset-y-0 left-2 flex items-center pointer-events-auto" onclick="prevCatalogCardImage(event, '{{ item.item_id }}')">
+                            <div class="bg-white/80 text-stone-800 rounded-full p-1 shadow-sm border border-white/70 opacity-90 hover:opacity-100 transition-opacity">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-4 h-4">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+                                </svg>
+                            </div>
+                        </button>
+                        <button type="button" class="absolute inset-y-0 right-2 flex items-center pointer-events-auto" onclick="nextCatalogCardImage(event, '{{ item.item_id }}')">
+                            <div class="bg-white/80 text-stone-800 rounded-full p-1 shadow-sm border border-white/70 opacity-90 hover:opacity-100 transition-opacity">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-4 h-4">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5 15.75 12l-7.5 7.5" />
+                                </svg>
+                            </div>
+                        </button>
+                        <div id="catalog-card-counter-{{ item.item_id }}" class="absolute top-3 right-3 bg-white/85 text-stone-800 px-2 py-1 rounded-full text-[11px] font-semibold tracking-wide shadow-sm border border-white/70">
+                            1/{{ image_urls | length }}
+                        </div>
+                        {% endif %}
                         {% if session.get('logged_in') %}
                         <a href="{{ url_for('edit_item', item_id=item.item_id, next=request.full_path) }}"
                            onclick="event.stopPropagation();"
@@ -186,6 +206,12 @@
                             </svg>
                         </div>
                     </div>
+
+                    {% if image_urls and (image_urls | length) > 1 %}
+                    <div class="px-4 py-3 bg-gradient-to-b from-white to-stone-50 border-t border-stone-100">
+                        <div id="catalog-card-thumbs-{{ item.item_id }}" class="mx-auto flex flex-nowrap items-center justify-center gap-2.5 bg-white/90 backdrop-blur-sm px-3.5 py-2 rounded-2xl shadow-sm border border-stone-200/70 max-w-[92%] overflow-x-auto overflow-y-hidden whitespace-nowrap"></div>
+                    </div>
+                    {% endif %}
                     
                     <div class="p-6">
                         <h3 class="font-serif text-lg text-stone-800 mb-2 truncate">{{ item.title }}</h3>
@@ -300,18 +326,10 @@
                         <div class="w-12 h-1 bg-stone-200 mb-8"></div>
                         
                         <div class="prose prose-stone max-w-none">
-                            <h4 class="font-serif text-lg text-stone-800 mb-2">Descrição da Peça</h4>
+                            <h4 class="font-serif text-lg text-stone-800 mb-2">Descrição do Vestido</h4>
                             <p id="modal-desc" class="text-stone-600 font-light leading-relaxed text-lg mb-8"></p>
                         </div>
 
-                        <!-- Similar Items Section -->
-                        <div id="modal-similar-section" class="hidden mb-8">
-                            <div class="w-12 h-1 bg-stone-200 mb-6"></div>
-                            <h4 class="font-serif text-lg text-stone-800 mb-4">Você também pode gostar</h4>
-                            <div id="modal-similar-grid" class="grid grid-cols-2 gap-4">
-                                <!-- Similar items injected here -->
-                            </div>
-                        </div>
                     </div>
                     
                     <div class="mt-8 pt-8 border-t border-stone-100">
@@ -320,7 +338,7 @@
                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
                                 <path d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592zm3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.729.729 0 0 0-.529.247c-.182.198-.691.677-.691 1.654 0 .977.71 1.916.81 2.049.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232z"/>
                             </svg>
-                            <span class="font-bold tracking-widest text-sm">SOLICITAR MAIS INFORMAÇÕES</span>
+                            <span class="font-bold tracking-widest text-sm">SOLICITAR INFORMAÇÕES/PROVA</span>
                         </a>
                     </div>
                 </div>
@@ -333,6 +351,147 @@
         window.catalogData = window.catalogData || {};
         window.catalogModalImages = [];
         window.catalogModalIndex = 0;
+        window.catalogCardIndices = window.catalogCardIndices || {};
+
+        function getCatalogCardImages(itemId) {
+            const data = window.catalogData && window.catalogData[itemId];
+            if (!data) return [];
+            const urls = Array.isArray(data.imageUrls) ? data.imageUrls.filter(u => typeof u === 'string' && u.trim()) : [];
+            const fallback = (data.imageUrl || '').toString().trim();
+            if (!urls.length && fallback) return [fallback];
+            return urls.length ? urls : (fallback ? [fallback] : []);
+        }
+
+        function getCatalogCardIndex(itemId) {
+            if (window.catalogCardIndices && Number.isFinite(Number(window.catalogCardIndices[itemId]))) {
+                return Number(window.catalogCardIndices[itemId]);
+            }
+            const data = window.catalogData && window.catalogData[itemId];
+            const urls = getCatalogCardImages(itemId);
+            if (!urls.length) return 0;
+            const mainIdxNum = data ? Number(data.mainImageIndex) : NaN;
+            if (Number.isFinite(mainIdxNum) && mainIdxNum >= 0 && mainIdxNum < urls.length) return mainIdxNum;
+            if (data && data.imageUrl) {
+                const found = urls.findIndex(u => u === data.imageUrl);
+                if (found >= 0) return found;
+            }
+            return 0;
+        }
+
+        function getCatalogCardThumbWindow(total, index, maxThumbs) {
+            const maxN = Number(maxThumbs);
+            const n = Number.isFinite(maxN) && maxN > 0 ? maxN : 5;
+            if (total <= n) return { start: 0, end: total };
+            const half = Math.floor(n / 2);
+            let start = index - half;
+            let end = start + n;
+            if (start < 0) {
+                start = 0;
+                end = n;
+            }
+            if (end > total) {
+                end = total;
+                start = total - n;
+            }
+            return { start, end };
+        }
+
+        function setCatalogCardImageFromThumb(e, itemId, index) {
+            if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+            if (e && typeof e.preventDefault === 'function') e.preventDefault();
+            setCatalogCardImage(itemId, index);
+        }
+
+        function renderCatalogCardThumbs(itemId) {
+            const urls = getCatalogCardImages(itemId);
+            const container = document.getElementById(`catalog-card-thumbs-${itemId}`);
+            if (!container) return;
+            if (!urls || urls.length <= 1) {
+                container.innerHTML = '';
+                return;
+            }
+            const idx = getCatalogCardIndex(itemId);
+            const { start, end } = getCatalogCardThumbWindow(urls.length, idx, 4);
+            let html = '';
+            for (let i = start; i < end; i += 1) {
+                const url = urls[i];
+                const active = i === idx;
+                const ring = active ? 'ring-2 ring-stone-800 ring-offset-2 ring-offset-white/60' : 'ring-1 ring-white/70';
+                const opacity = active ? 'opacity-100' : 'opacity-75 hover:opacity-100';
+                html += `
+                    <button type="button" class="pointer-events-auto ${opacity} transition-opacity" onclick="setCatalogCardImageFromThumb(event, '${itemId}', ${i})">
+                        <span class="block w-12 h-12 rounded-md overflow-hidden bg-stone-100 ${ring}">
+                            <img src="${url}" alt="" class="w-full h-full object-contain" />
+                        </span>
+                    </button>
+                `;
+            }
+            container.innerHTML = html;
+        }
+
+        function setCatalogCardImage(itemId, index) {
+            const urls = getCatalogCardImages(itemId);
+            if (!urls.length) return;
+            let idx = Number(index);
+            if (!Number.isFinite(idx)) idx = 0;
+            if (idx < 0) idx = urls.length - 1;
+            if (idx >= urls.length) idx = 0;
+            window.catalogCardIndices[itemId] = idx;
+
+            const img = document.getElementById(`catalog-card-img-${itemId}`);
+            if (img) img.src = urls[idx];
+
+            const counter = document.getElementById(`catalog-card-counter-${itemId}`);
+            if (counter && urls.length > 1) counter.textContent = `${idx + 1}/${urls.length}`;
+            renderCatalogCardThumbs(itemId);
+        }
+
+        function prevCatalogCardImage(e, itemId) {
+            if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+            if (e && typeof e.preventDefault === 'function') e.preventDefault();
+            const idx = getCatalogCardIndex(itemId);
+            setCatalogCardImage(itemId, idx - 1);
+        }
+
+        function nextCatalogCardImage(e, itemId) {
+            if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+            if (e && typeof e.preventDefault === 'function') e.preventDefault();
+            const idx = getCatalogCardIndex(itemId);
+            setCatalogCardImage(itemId, idx + 1);
+        }
+
+        function initCatalogCardCarousels() {
+            const nodes = document.querySelectorAll('[data-card-carousel="1"][data-item-id]');
+            nodes.forEach((node) => {
+                const itemId = node.getAttribute('data-item-id');
+                if (!itemId) return;
+                const urls = getCatalogCardImages(itemId);
+                if (urls.length > 1) setCatalogCardImage(itemId, getCatalogCardIndex(itemId));
+                let startX = null;
+                let startY = null;
+                node.addEventListener('touchstart', (ev) => {
+                    const t = ev.touches && ev.touches[0];
+                    if (!t) return;
+                    startX = t.clientX;
+                    startY = t.clientY;
+                }, { passive: true });
+                node.addEventListener('touchend', (ev) => {
+                    if (startX === null || startY === null) return;
+                    const t = ev.changedTouches && ev.changedTouches[0];
+                    if (!t) return;
+                    const dx = t.clientX - startX;
+                    const dy = t.clientY - startY;
+                    startX = null;
+                    startY = null;
+                    if (Math.abs(dx) < 35) return;
+                    if (Math.abs(dx) < Math.abs(dy)) return;
+                    if (dx > 0) prevCatalogCardImage(ev, itemId);
+                    else nextCatalogCardImage(ev, itemId);
+                }, { passive: true });
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', initCatalogCardCarousels);
 
         function setCatalogModalImage(index) {
             const images = Array.isArray(window.catalogModalImages) ? window.catalogModalImages : [];
@@ -535,133 +694,10 @@
             document.getElementById('catalog-modal').classList.remove('hidden');
             document.body.style.overflow = 'hidden';
 
-            const similarSection = document.getElementById('modal-similar-section');
-            const similarGrid = document.getElementById('modal-similar-grid');
-            similarSection.classList.add('hidden');
-            similarGrid.innerHTML = '';
-
             if (itemId && !isAiItem) {
                 // Increment visit count for all sources
                 fetch(`/api/item/${itemId}/visit`, { method: 'POST' })
                     .catch(err => console.error('Error incrementing visit count:', err));
-
-                const similarParams = new URLSearchParams();
-                similarParams.set('limit', '4');
-                similarParams.set('no_faiss', '1');
-                if (activeOccasion) similarParams.set('occasions', activeOccasion);
-                else if (occasions) similarParams.set('occasions', occasions);
-                if (colorBase) similarParams.set('cor_base', colorBase);
-                if (colorCommercial) similarParams.set('cor_comercial', colorCommercial);
-
-                fetch(`/api/ai-similar/${itemId}?${similarParams.toString()}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        const normalizeSlug = (s) => (s || '')
-                            .toString()
-                            .normalize('NFD')
-                            .replace(/[\u0300-\u036f]/g, '')
-                            .toLowerCase()
-                            .replace(/[^a-z0-9]+/g, '_')
-                            .replace(/^_+|_+$/g, '')
-                            .replace(/_+/g, '_');
-
-                        const normalizeText = (s) => (s || '')
-                            .toString()
-                            .normalize('NFD')
-                            .replace(/[\u0300-\u036f]/g, '')
-                            .toLowerCase()
-                            .replace(/[^a-z0-9]+/g, ' ')
-                            .trim()
-                            .replace(/\s+/g, ' ');
-
-                        const targetOccasion = normalizeSlug((activeOccasion || '').replace(/-/g, '_'));
-                        const targetBase = normalizeText(colorBase || '');
-                        const targetCommercial = normalizeText(colorCommercial || '');
-
-                        const parseOccasionsToSlugs = (occasionsStr) => {
-                            if (!occasionsStr) return [];
-                            return occasionsStr
-                                .toString()
-                                .split(',')
-                                .map(s => normalizeSlug(s.trim()))
-                                .filter(Boolean);
-                        };
-
-                        const apiSuggestions = Array.isArray(data.suggestions) ? data.suggestions : [];
-                        let suggestions = targetOccasion
-                            ? apiSuggestions.filter(s => parseOccasionsToSlugs(s.occasions).includes(targetOccasion))
-                            : apiSuggestions.slice();
-
-                        const existingIds = new Set(suggestions.map(s => String(s.id)));
-                        if (suggestions.length < 4 && window.catalogData && typeof window.catalogData === 'object') {
-                            let localCandidates = Object.entries(window.catalogData)
-                                .filter(([id, d]) => id && d && String(id) !== String(itemId))
-                                .filter(([id, d]) => !existingIds.has(String(id)))
-                                .filter(([id, d]) => !targetOccasion || parseOccasionsToSlugs(d.occasions).includes(targetOccasion))
-                                .map(([id, d]) => ({
-                                    id,
-                                    customId: d.customId,
-                                    title: d.title,
-                                    image_url: d.imageUrl,
-                                    description: d.description,
-                                    price: d.price,
-                                    itemObs: d.itemObs,
-                                    color: d.color,
-                                    colorBase: d.colorBase,
-                                    colorCommercial: d.colorCommercial,
-                                    size: d.size,
-                                    occasions: d.occasions
-                                }));
-
-                            localCandidates = localCandidates.sort((a, b) => {
-                                const aCommercial = normalizeText(a.colorCommercial || '');
-                                const bCommercial = normalizeText(b.colorCommercial || '');
-                                const aBase = normalizeText(a.colorBase || '');
-                                const bBase = normalizeText(b.colorBase || '');
-                                const aCommercialOk = Boolean(targetCommercial && aCommercial && aCommercial === targetCommercial);
-                                const bCommercialOk = Boolean(targetCommercial && bCommercial && bCommercial === targetCommercial);
-                                if (aCommercialOk !== bCommercialOk) return aCommercialOk ? -1 : 1;
-                                const aBaseOk = Boolean(targetBase && aBase && aBase === targetBase);
-                                const bBaseOk = Boolean(targetBase && bBase && bBase === targetBase);
-                                if (aBaseOk !== bBaseOk) return aBaseOk ? -1 : 1;
-                                return 0;
-                            });
-
-                            for (const c of localCandidates) {
-                                if (suggestions.length >= 4) break;
-                                suggestions.push(c);
-                                existingIds.add(String(c.id));
-                            }
-                        }
-
-                        if (suggestions.length > 0) {
-                            suggestions.forEach(item => {
-                                const div = document.createElement('div');
-                                div.className = 'cursor-pointer group';
-                                const itemOccasions = typeof item.occasions === 'string'
-                                    ? item.occasions
-                                    : Array.isArray(item.occasions)
-                                        ? item.occasions.join(', ')
-                                        : '';
-                                const suggestionBase = item.colorBase || item.color_base || item.cor_base || '';
-                                const suggestionCommercial = item.colorCommercial || item.color_comercial || item.cor_comercial || '';
-                                const fallback = window.catalogData && window.catalogData[item.id];
-                                const suggestionPrice = item.price || (fallback && fallback.price) || 'Valor do aluguel: Consulte';
-                                const suggestionObs = item.item_obs || item.itemObs || (fallback && fallback.itemObs) || '';
-                                div.onclick = () => openCatalogModal(item.image_url, item.image_urls, item.main_image_index, item.title, item.description, item.id, suggestionPrice, 'similar', item.customId, itemOccasions, item.color, item.size, suggestionBase, suggestionCommercial, suggestionObs);
-                                div.innerHTML = `
-                                    <div class="aspect-[3/4] bg-stone-100 overflow-hidden mb-2 rounded-sm relative">
-                                        <img src="${item.image_url}" class="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110" alt="${item.title}">
-                                        <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300"></div>
-                                    </div>
-                                    <p class="text-xs font-bold text-stone-800 uppercase tracking-wide truncate">${item.title}</p>
-                                `;
-                                similarGrid.appendChild(div);
-                            });
-                            similarSection.classList.remove('hidden');
-                        }
-                    })
-                    .catch(err => console.error('Erro ao buscar similares:', err));
             }
         }
 

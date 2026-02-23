@@ -232,6 +232,12 @@
     const thumbs = document.getElementById('image-thumbs');
     if (thumbs) thumbs.innerHTML = '';
     if (!files.length) return;
+    if (files.length > 4) {
+      alert('Limite de fotos por item: no máximo 4.');
+      e.target.value = '';
+      document.getElementById('remove-btn').style.display = 'none';
+      return;
+    }
 
     document.getElementById('remove-btn').style.display = 'block';
 
