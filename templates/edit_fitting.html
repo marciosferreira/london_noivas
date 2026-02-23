@@ -41,9 +41,58 @@
   .autocomplete-item {
     cursor: pointer;
     transition: background-color 0.2s;
+    padding: 8px 10px;
   }
   .autocomplete-item:hover {
     background-color: #f8f9fa;
+  }
+  .item-suggestion {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: nowrap;
+  }
+  .item-suggestion-thumb {
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid rgba(0,0,0,0.08);
+    background: #f8f9fa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .item-suggestion-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .item-suggestion-text {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .item-suggestion-id {
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.1;
+  }
+  .item-suggestion-title {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.1;
+  }
+  .item-suggestion-sub {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.1;
   }
   .card {
     box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
@@ -52,6 +101,14 @@
   .card-header {
     background-color: #f8f9fa;
     border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+  }
+  .fitting-items-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .fitting-item-card {
+    width: 140px;
   }
 </style>
 {% endblock %}
@@ -82,6 +139,7 @@
         </div>
         <div class="card-body">
           <form method="POST">
+            <input type="hidden" name="items_json" id="items_json" value="{{ (initial_items_json or '[]')|e }}">
             <div class="row g-3">
               <!-- Data -->
               <div class="col-sm-6">
@@ -151,28 +209,37 @@
                 <input type="text" class="form-control" name="client_phone" value="{{ fitting.client_phone or '' }}" placeholder="WhatsApp/Telefone">
               </div>
 
-              <!-- Item ID -->
-              <div class="col-sm-6">
+              <div class="col-12">
                 <label class="form-label">
-                  <i class="fas fa-barcode me-1"></i>ID do Item
+                  <i class="fas fa-person-dress me-1"></i>Vestidos
                 </label>
-                <div class="autocomplete-container">
-                  <input type="text" class="form-control" name="item_id" id="item_id" value="{{ fitting.item_id }}" placeholder="Digite o ID do item">
-                  <div id="item_id_suggestions" class="autocomplete-suggestions"></div>
-                </div>
-                <div class="form-text">Campo auxiliar para busca</div>
+                <div id="fitting_items_list" class="fitting-items-grid"></div>
+                <div class="form-text">Adicione ou remova vestidos deste agendamento</div>
               </div>
 
-              <!-- Descrição do Item -->
               <div class="col-sm-6">
                 <label class="form-label">
-                  <i class="fas fa-tag me-1"></i>Descrição do Item
+                  <i class="fas fa-barcode me-1"></i>Buscar por ID/código
                 </label>
                 <div class="autocomplete-container">
-                  <input type="text" class="form-control" name="item_description" id="item_description" value="{{ fitting.item_description }}" placeholder="Digite para buscar item">
+                  <input type="text" class="form-control" name="item_id_lookup" id="item_id" value="" placeholder="Digite o ID/código do item">
+                  <div id="item_id_suggestions" class="autocomplete-suggestions"></div>
+                </div>
+              </div>
+
+              <div class="col-sm-6">
+                <label class="form-label">
+                  <i class="fas fa-tag me-1"></i>Buscar por título
+                </label>
+                <div class="autocomplete-container">
+                  <input type="text" class="form-control" name="item_description_lookup" id="item_description" value="" placeholder="Digite para buscar título">
                   <div id="item_description_suggestions" class="autocomplete-suggestions"></div>
                 </div>
-                <div class="form-text">Campo auxiliar para busca</div>
+                <div class="d-flex justify-content-end mt-2">
+                  <button type="button" class="btn btn-outline-primary btn-sm" id="btn_add_item">
+                    <i class="fas fa-plus me-1"></i>Adicionar vestido
+                  </button>
+                </div>
               </div>
 
               <!-- Status -->
@@ -465,22 +532,35 @@
         const res = await fetch(`/autocomplete_items?term=${encodeURIComponent(term)}`);
         const items = await res.json();
         box.innerHTML = '';
-        // Filtra somente por descrição no frontend
         items
-          .filter(it => (it.item_description || '').toLowerCase().includes(termLower))
+          .filter(it => {
+            const title = (it.item_title || it.title || '').toLowerCase();
+            const custom = (it.item_custom_id || '').toLowerCase();
+            return title.includes(termLower) || custom.includes(termLower);
+          })
           .forEach((it, idx) => {
           const div = document.createElement('div');
           div.className = 'autocomplete-item px-2 py-1';
           if (idx > 0) div.style.borderTop = '1px solid #e9ecef';
+          const title = it.item_title || it.title || 'Sem título';
+          const idText = it.item_custom_id || it.item_id || '(sem ID)';
+          const img = it.item_image_url || it.image_url || '';
           div.innerHTML = `
-            <div class="d-flex flex-column">
-              <div><strong>${it.item_custom_id || '(sem código)'}</strong></div>
-              <small class="text-muted">${it.item_description || 'Sem descrição'}</small>
+            <div class="item-suggestion">
+              <div class="item-suggestion-thumb">
+                ${img ? `<img src="${img}" alt="">` : `<i class="fas fa-image text-muted"></i>`}
+              </div>
+              <div class="item-suggestion-text">
+                <div class="item-suggestion-id">${idText}</div>
+                <small class="text-muted item-suggestion-title">${title}</small>
+              </div>
             </div>`;
           div.addEventListener('click', () => {
-            input.value = it.item_description || '';
+            input.value = it.item_title || it.title || '';
             const idInput = document.getElementById('item_id');
             if (idInput) idInput.value = it.item_id || '';
+            if (idInput) idInput.dataset.itemCustomId = it.item_custom_id || '';
+            if (idInput) idInput.dataset.itemImageUrl = it.item_image_url || it.image_url || '';
             box.innerHTML = '';
           });
           box.appendChild(div);
@@ -516,16 +596,26 @@
             const div = document.createElement('div');
             div.className = 'autocomplete-item px-2 py-1';
             if (idx > 0) div.style.borderTop = '1px solid #e9ecef';
+            const title = it.item_title || it.title || 'Sem título';
+            const idText = it.item_custom_id || it.item_id || '(sem ID)';
+            const img = it.item_image_url || it.image_url || '';
             div.innerHTML = `
-              <div class="d-flex flex-column">
-                <div><strong>${it.item_custom_id || '(sem código)'}</strong></div>
-                <small class="text-muted">${it.item_description || 'Sem descrição'}</small>
-                <small class="text-muted">ID interno: ${it.item_id || '-'}</small>
+              <div class="item-suggestion">
+                <div class="item-suggestion-thumb">
+                  ${img ? `<img src="${img}" alt="">` : `<i class="fas fa-image text-muted"></i>`}
+                </div>
+                <div class="item-suggestion-text">
+                  <div class="item-suggestion-id">${idText}</div>
+                  <small class="text-muted item-suggestion-title">${title}</small>
+                  ${it.item_id ? `<small class="text-muted item-suggestion-sub">ID interno: ${it.item_id}</small>` : ``}
+                </div>
               </div>`;
             div.addEventListener('click', () => {
               input.value = it.item_id || '';
+              input.dataset.itemCustomId = it.item_custom_id || '';
+              input.dataset.itemImageUrl = it.item_image_url || it.image_url || '';
               const descInput = document.getElementById('item_description');
-              if (descInput) descInput.value = it.item_description || '';
+              if (descInput) descInput.value = it.item_title || it.title || '';
               box.innerHTML = '';
             });
             box.appendChild(div);
@@ -536,6 +626,134 @@
     };
     input.addEventListener('input', debounce(handleInput, 300));
     input.addEventListener('blur', () => setTimeout(() => (box.innerHTML = ''), 200));
+  })();
+
+  (function() {
+    const listEl = document.getElementById('fitting_items_list');
+    const hiddenEl = document.getElementById('items_json');
+    const addBtn = document.getElementById('btn_add_item');
+    const itemIdEl = document.getElementById('item_id');
+    const itemDescEl = document.getElementById('item_description');
+    if (!listEl || !hiddenEl || !addBtn || !itemIdEl || !itemDescEl) return;
+
+    let items = [];
+    try {
+      const parsed = JSON.parse(hiddenEl.value || '[]');
+      items = Array.isArray(parsed) ? parsed.slice() : [];
+    } catch (e) {
+      items = [];
+    }
+
+    function normalizeItem(raw) {
+      if (!raw || typeof raw !== 'object') return null;
+      const itemId = String(raw.item_id || '').trim();
+      const itemCustomId = String(raw.item_custom_id || '').trim();
+      const title = String(raw.item_title || raw.title || raw.item_description || '').trim();
+      const desc = String(raw.item_description || title || '').trim();
+      const img = String(raw.item_image_url || raw.image_url || '').trim();
+      if (!itemId && !itemCustomId && !title) return null;
+      return {
+        item_id: itemId,
+        item_custom_id: itemCustomId,
+        item_title: title || desc || itemCustomId || itemId || 'Item',
+        item_description: desc,
+        item_image_url: img,
+      };
+    }
+
+    function dedupeById(list) {
+      const out = [];
+      const seen = new Set();
+      for (const it of list) {
+        const n = normalizeItem(it);
+        if (!n) continue;
+        let key = n.item_id;
+        if (!key && n.item_custom_id) key = `custom:${n.item_custom_id}`;
+        if (!key) key = `title:${n.item_title}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        out.push(n);
+      }
+      return out;
+    }
+
+    function syncHidden() {
+      hiddenEl.value = JSON.stringify(items);
+    }
+
+    function removeAt(idx) {
+      items.splice(idx, 1);
+      render();
+    }
+
+    function render() {
+      items = dedupeById(items);
+      listEl.innerHTML = '';
+      if (!items.length) {
+        listEl.innerHTML = `<div class="text-muted">Nenhum vestido adicionado</div>`;
+        syncHidden();
+        return;
+      }
+
+      items.forEach((it, idx) => {
+        const imgHtml = it.item_image_url
+          ? `<img src="${it.item_image_url}" alt="" style="width:96px;height:96px;object-fit:cover;border-radius:12px;border:1px solid rgba(0,0,0,0.08);background:#f8f9fa;">`
+          : `<div style="width:96px;height:96px;border-radius:12px;border:1px solid rgba(0,0,0,0.08);background:#f8f9fa;display:flex;align-items:center;justify-content:center;color:#6c757d;">
+               <i class="fas fa-person-dress" style="font-size:28px;"></i>
+             </div>`;
+
+        const sub = it.item_custom_id || it.item_id || '';
+        const title = it.item_title || it.item_description || sub || 'Item';
+
+        const card = document.createElement('div');
+        card.className = 'fitting-item-card';
+        card.innerHTML = `
+          <div class="border rounded-3 p-2 h-100" style="background:#fff;">
+            <div class="d-flex justify-content-end">
+              <button type="button" class="btn btn-sm btn-outline-danger" data-remove="${idx}" title="Remover">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+            <div class="d-flex flex-column align-items-center" style="gap:8px;">
+              ${imgHtml}
+              <div class="text-center fw-semibold text-truncate" style="max-width:120px;line-height:1.15;color:#212529;">${title}</div>
+              ${sub ? `<div class="text-muted text-truncate" style="max-width:120px;line-height:1.1;font-size:0.8rem;">${sub}</div>` : ``}
+            </div>
+          </div>
+        `;
+        listEl.appendChild(card);
+      });
+
+      listEl.querySelectorAll('button[data-remove]').forEach(btn => {
+        btn.addEventListener('click', () => removeAt(parseInt(btn.getAttribute('data-remove') || '0', 10)));
+      });
+
+      syncHidden();
+    }
+
+    addBtn.addEventListener('click', () => {
+      const itemId = String(itemIdEl.value || '').trim();
+      const title = String(itemDescEl.value || '').trim();
+      const itemCustomId = String(itemIdEl.dataset.itemCustomId || '').trim();
+      const itemImageUrl = String(itemIdEl.dataset.itemImageUrl || '').trim();
+      if (!itemId && !title && !itemCustomId) return;
+
+      items.push({
+        item_id: itemId,
+        item_custom_id: itemCustomId,
+        item_title: title,
+        item_description: title,
+        item_image_url: itemImageUrl,
+      });
+
+      itemIdEl.value = '';
+      itemDescEl.value = '';
+      itemIdEl.dataset.itemCustomId = '';
+      itemIdEl.dataset.itemImageUrl = '';
+      render();
+    });
+
+    render();
   })();
 </script>
 {% endblock %}

@@ -452,8 +452,59 @@
   }
   .item-suggestion:last-child { border-bottom: none; }
   .item-suggestion:hover { background: var(--brand-light); }
-  .item-suggestion .code { font-weight: 600; color: var(--brand-dark); }
-  .item-suggestion .desc { color: var(--text-secondary); }
+  .item-suggestion-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: nowrap;
+  }
+  .item-suggestion-thumb {
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    background: var(--bg-accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .item-suggestion-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .item-suggestion-text {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .item-suggestion-id {
+    font-weight: 700;
+    color: var(--brand-dark);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.1;
+  }
+  .item-suggestion-title {
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.1;
+    font-size: 0.8rem;
+  }
+  .item-suggestion-sub {
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.1;
+    font-size: 0.75rem;
+  }
 
   .selected-item {
     display: flex;
@@ -749,10 +800,11 @@
           <div class="selected-items" id="selected-items"></div>
           <div class="item-search-container">
             <div class="item-search-row">
-              <input type="text" name="item_code" id="item-search" placeholder="Digite o código do vestido (opcional)" autocomplete="off">
+              <input type="text" name="item_code" id="item-search" placeholder="Digite código ou título do vestido (opcional)" autocomplete="off">
               <button type="button" class="item-lookup-btn" id="item-lookup-btn">Buscar</button>
             </div>
             <div class="item-lookup-message" id="item-lookup-message"></div>
+            <div class="item-suggestions" id="item-suggestions"></div>
           </div>
           <div class="hint">Se já sabe qual peça deseja experimentar</div>
         </div>
@@ -1073,6 +1125,7 @@
     const selectedContainer = document.getElementById('selected-items');
     const messageEl = document.getElementById('item-lookup-message');
     const lookupBtn = document.getElementById('item-lookup-btn');
+    const suggestionsEl = document.getElementById('item-suggestions');
     const hiddenItemsJson = document.getElementById('form-items-json');
     if (!input || !selectedContainer) return;
 
@@ -1113,6 +1166,12 @@
       return item.item_title || item.item_custom_id || item.item_id || '';
     }
 
+    function hideSuggestions() {
+      if (!suggestionsEl) return;
+      suggestionsEl.classList.remove('visible');
+      suggestionsEl.innerHTML = '';
+    }
+
     function updateHiddenFields() {
       const first = selectedItems[0] || null;
       document.getElementById('form-item-id').value = first ? (first.item_id || '') : '';
@@ -1129,7 +1188,7 @@
       }
       selectedContainer.style.display = 'flex';
 
-      selectedItems.forEach((item) => {
+      selectedItems.forEach((item, idx) => {
         const card = document.createElement('div');
         card.className = 'selected-item';
 
@@ -1150,7 +1209,7 @@
         removeBtn.setAttribute('aria-label', 'Remover vestido');
         removeBtn.innerHTML = '<i class="fas fa-times"></i>';
         removeBtn.addEventListener('click', () => {
-          selectedItems = selectedItems.filter((it) => it.item_id !== item.item_id);
+          selectedItems = selectedItems.filter((_, i) => i !== idx);
           updateHiddenFields();
           renderSelectedItems();
         });
@@ -1174,6 +1233,7 @@
       updateHiddenFields();
       renderSelectedItems();
       setLookupMessage('', '');
+      hideSuggestions();
     }
 
     async function hydrateItemFromId(itemId, fallback) {
@@ -1206,6 +1266,62 @@
       }
     });
 
+    input.addEventListener('input', () => {
+      const term = (input.value || '').trim();
+      if (!suggestionsEl) return;
+      if (debounceTimer) clearTimeout(debounceTimer);
+      if (!term) {
+        hideSuggestions();
+        return;
+      }
+      debounceTimer = setTimeout(async () => {
+        try {
+          const resp = await fetch(`/api/public/autocomplete_items/${encodeURIComponent(ACCOUNT_SLUG)}?term=${encodeURIComponent(term)}`);
+          if (!resp.ok) {
+            hideSuggestions();
+            return;
+          }
+          const data = await resp.json();
+          const items = Array.isArray(data) ? data : [];
+          suggestionsEl.innerHTML = '';
+          items.slice(0, 8).forEach((it) => {
+            const item = normalizeItem(it);
+            if (!item) return;
+            const row = document.createElement('div');
+            row.className = 'item-suggestion';
+            const idText = item.item_custom_id || item.item_id || '(sem código)';
+            const title = item.item_title || item.item_description || 'Sem título';
+            const img = item.item_image_url || '';
+            row.innerHTML = `
+              <div class="item-suggestion-row">
+                <div class="item-suggestion-thumb">
+                  ${img ? `<img src="${img}" alt="">` : `<i class="fas fa-image" style="color:var(--text-muted);"></i>`}
+                </div>
+                <div class="item-suggestion-text">
+                  <div class="item-suggestion-id">${idText}</div>
+                  <div class="item-suggestion-title">${title}</div>
+                  ${item.item_id ? `<div class="item-suggestion-sub">ID interno: ${item.item_id}</div>` : ``}
+                </div>
+              </div>`;
+            row.addEventListener('click', () => {
+              addItem(item);
+              input.value = '';
+            });
+            suggestionsEl.appendChild(row);
+          });
+          if (suggestionsEl.childElementCount) {
+            suggestionsEl.classList.add('visible');
+          } else {
+            hideSuggestions();
+          }
+        } catch (e) {
+          hideSuggestions();
+        }
+      }, 250);
+    });
+
+    input.addEventListener('blur', () => setTimeout(() => hideSuggestions(), 200));
+
     if (lookupBtn) {
       lookupBtn.addEventListener('click', async () => {
         const code = (input.value || '').trim();
@@ -1215,6 +1331,7 @@
         }
         lookupBtn.disabled = true;
         setLookupMessage('', '');
+        hideSuggestions();
         try {
           const resp = await fetch(`/api/public/item_lookup/${encodeURIComponent(ACCOUNT_SLUG)}?code=${encodeURIComponent(code)}`);
           if (!resp.ok) {

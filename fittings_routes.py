@@ -762,6 +762,7 @@ def init_fittings_routes(
                 "fitting_form.html",
                 pre_date=pre_date,
                 default_duration_minutes=default_duration,
+                initial_items_json="[]",
             )
 
         # POST
@@ -771,7 +772,7 @@ def init_fittings_routes(
         status = (request.form.get("status") or "Pendente").strip()
         notes = (request.form.get("notes") or "").strip()
         client_id = (request.form.get("client_id") or "").strip()
-        item_id = (request.form.get("item_id") or "").strip()
+        item_id_form = (request.form.get("item_id") or "").strip()
         client_name_form = (request.form.get("client_name") or "").strip()
         item_description_form = (request.form.get("item_description") or "").strip()
         client_email_form = (request.form.get("client_email") or "").strip()
@@ -791,6 +792,117 @@ def init_fittings_routes(
         item_description_value = item_description_form if "item_description" in request.form else None
         client_email_value = client_email_form if "client_email" in request.form else None
         client_phone_value = client_phone_form if "client_phone" in request.form else None
+
+        items_payload_present = "items_json" in request.form
+        items_list = None
+        primary_item = None
+
+        if items_payload_present:
+            raw_items_json = (request.form.get("items_json") or "").strip()
+            try:
+                parsed_items = json.loads(raw_items_json) if raw_items_json else []
+            except Exception:
+                flash("Lista de vestidos inválida.", "danger")
+                return redirect(url_for("add_fitting", date=date_iso or ""))
+
+            if not isinstance(parsed_items, list):
+                parsed_items = []
+
+            normalized_items = []
+            for raw in parsed_items[:20]:
+                if not isinstance(raw, dict):
+                    continue
+
+                item_id_val = str(raw.get("item_id") or "").strip()
+                item_custom_id_val = str(raw.get("item_custom_id") or "").strip()
+                item_title_val = str(
+                    raw.get("item_title")
+                    or raw.get("title")
+                    or raw.get("item_description")
+                    or ""
+                ).strip()
+                item_desc_val = str(raw.get("item_description") or item_title_val or "").strip()
+                item_img_val = str(raw.get("item_image_url") or raw.get("image_url") or "").strip()
+
+                db_item = {}
+                if item_id_val:
+                    try:
+                        resp_item = itens_table.get_item(Key={"item_id": item_id_val})
+                        db_item = resp_item.get("Item") or {}
+                    except Exception:
+                        db_item = {}
+                elif item_custom_id_val:
+                    try:
+                        resp_gsi = itens_table.query(
+                            IndexName="account_id-item_custom_id-index",
+                            KeyConditionExpression=Key("account_id").eq(account_id)
+                            & Key("item_custom_id").eq(item_custom_id_val),
+                            Limit=1,
+                        )
+                        found = resp_gsi.get("Items", []) or []
+                        if found:
+                            db_item = found[0] or {}
+                            item_id_val = str(db_item.get("item_id") or "").strip()
+                    except Exception:
+                        db_item = {}
+
+                if db_item:
+                    if not item_custom_id_val:
+                        item_custom_id_val = str(db_item.get("item_custom_id") or "").strip()
+                    if not item_title_val:
+                        item_title_val = str(
+                            db_item.get("item_title")
+                            or db_item.get("title")
+                            or db_item.get("item_description")
+                            or db_item.get("description")
+                            or db_item.get("descricao")
+                            or db_item.get("nome")
+                            or ""
+                        ).strip()
+                    if not item_desc_val:
+                        item_desc_val = item_title_val
+                    if not item_img_val:
+                        item_img_val = str(
+                            db_item.get("item_image_url") or db_item.get("image_url") or ""
+                        ).strip()
+
+                if not item_id_val and not item_custom_id_val and not item_title_val and not item_desc_val:
+                    continue
+
+                normalized_items.append(
+                    {
+                        "item_id": item_id_val,
+                        "item_custom_id": item_custom_id_val,
+                        "item_title": item_title_val or item_desc_val or item_custom_id_val or item_id_val,
+                        "item_description": item_desc_val or item_title_val,
+                        "item_image_url": item_img_val,
+                    }
+                )
+
+            deduped = []
+            seen = set()
+            for it in normalized_items:
+                key = (it.get("item_id") or "").strip()
+                if not key and (it.get("item_custom_id") or "").strip():
+                    key = f"custom:{(it.get('item_custom_id') or '').strip()}"
+                if not key:
+                    key = f"title:{(it.get('item_title') or '').strip()}"
+                if key in seen:
+                    continue
+                seen.add(key)
+                deduped.append(it)
+
+            items_list = deduped
+            if items_list:
+                primary_item = items_list[0]
+
+        item_id = (primary_item.get("item_id") or "").strip() if primary_item else item_id_form
+        item_custom_id_value = (primary_item.get("item_custom_id") or "").strip() if primary_item else None
+        item_image_url_value = (primary_item.get("item_image_url") or "").strip() if primary_item else None
+        if primary_item:
+            item_description_value = (
+                (primary_item.get("item_title") or primary_item.get("item_description") or "").strip()
+            )
 
         if not date_iso:
             flash("Data é obrigatória para a prova.", "danger")
@@ -814,8 +926,19 @@ def init_fittings_routes(
             conflicts = _validate_conflicts(client_id, item_id, date_iso, time_local)
             if conflicts.get("client"):
                 flash("Já existe uma prova para este cliente neste horário.", "warning")
-            if conflicts.get("item"):
-                flash("Este vestido já possui prova neste horário.", "warning")
+
+            item_conflict = bool(conflicts.get("item"))
+            if items_payload_present and items_list:
+                for it in items_list:
+                    iid = str(it.get("item_id") or "").strip()
+                    if not iid:
+                        continue
+                    c = _validate_conflicts(client_id, iid, date_iso, time_local)
+                    if c.get("item"):
+                        item_conflict = True
+                        break
+            if item_conflict:
+                flash("Um dos vestidos selecionados já possui prova neste horário.", "warning")
 
         now_utc = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
         fitting_id = str(uuid.uuid4())
@@ -841,6 +964,7 @@ def init_fittings_routes(
                     "item_custom_id": item_custom_id_value or "",
                     "item_description": (item_description_value or "").strip(),
                     "item_image_url": item_image_url_value or "",
+                    "items": items_list or [],
                     "source": "admin_manual",
                     "created_at": now_utc,
                 }
@@ -886,6 +1010,8 @@ def init_fittings_routes(
                 item_data["client_id"] = client_id
             if item_id:
                 item_data["item_id"] = item_id
+            if items_payload_present and items_list is not None:
+                item_data["items"] = items_list
 
             # Resolver e incluir campos
             # Se deixados em branco intencionalmente, manter vazio
@@ -1052,10 +1178,54 @@ def init_fittings_routes(
                 
                 fitting = items[0]
                 default_duration = _get_default_duration_minutes(account_id)
+                raw_items = fitting.get("items") or []
+                if not isinstance(raw_items, list):
+                    raw_items = []
+                if (not raw_items) and (
+                    fitting.get("item_id") or fitting.get("item_custom_id") or fitting.get("item_description")
+                ):
+                    raw_items = [
+                        {
+                            "item_id": fitting.get("item_id") or "",
+                            "item_custom_id": fitting.get("item_custom_id") or "",
+                            "item_title": fitting.get("item_description") or "",
+                            "item_description": fitting.get("item_description") or "",
+                            "item_image_url": fitting.get("item_image_url") or "",
+                        }
+                    ]
+
+                normalized_items = []
+                for it in raw_items:
+                    if not isinstance(it, dict):
+                        continue
+                    item_id_val = str(it.get("item_id") or "").strip()
+                    item_custom_id_val = str(it.get("item_custom_id") or "").strip()
+                    item_title_val = str(
+                        it.get("item_title") or it.get("title") or it.get("item_description") or ""
+                    ).strip()
+                    item_desc_val = str(it.get("item_description") or item_title_val or "").strip()
+                    item_img_val = str(it.get("item_image_url") or it.get("image_url") or "").strip()
+                    if not item_id_val and not item_custom_id_val and not item_title_val and not item_desc_val:
+                        continue
+                    normalized_items.append(
+                        {
+                            "item_id": item_id_val,
+                            "item_custom_id": item_custom_id_val,
+                            "item_title": item_title_val or item_desc_val or item_custom_id_val or item_id_val,
+                            "item_description": item_desc_val or item_title_val,
+                            "item_image_url": item_img_val,
+                        }
+                    )
+
+                try:
+                    initial_items_json = json.dumps(normalized_items, ensure_ascii=False, default=str)
+                except Exception:
+                    initial_items_json = "[]"
                 return render_template(
                     "edit_fitting.html",
                     fitting=fitting,
                     default_duration_minutes=_get_duration_minutes(fitting, default_duration),
+                    initial_items_json=initial_items_json,
                 )
             except Exception as e:
                 print("Erro ao buscar prova:", e)
@@ -1069,10 +1239,122 @@ def init_fittings_routes(
         status = (request.form.get("status") or "Pendente").strip()
         notes = (request.form.get("notes") or "").strip()
         client_id = (request.form.get("client_id") or "").strip()
-        item_id = (request.form.get("item_id") or "").strip()
+        item_id_form = (request.form.get("item_id") or "").strip()
         client_email_form = (request.form.get("client_email") or "").strip()
         client_phone_form = (request.form.get("client_phone") or "").strip()
         send_email_on_save = bool(request.form.get("send_email_on_save"))
+        items_payload_present = "items_json" in request.form
+        items_list = None
+        primary_item = None
+
+        if items_payload_present:
+            raw_items_json = (request.form.get("items_json") or "").strip()
+            try:
+                parsed_items = json.loads(raw_items_json) if raw_items_json else []
+            except Exception:
+                flash("Lista de vestidos inválida.", "danger")
+                return redirect(url_for("edit_fitting", fitting_id=fitting_id))
+
+            if not isinstance(parsed_items, list):
+                parsed_items = []
+
+            normalized_items = []
+            for raw in parsed_items:
+                if not isinstance(raw, dict):
+                    continue
+
+                item_id_val = str(raw.get("item_id") or "").strip()
+                item_custom_id_val = str(raw.get("item_custom_id") or "").strip()
+                item_title_val = str(
+                    raw.get("item_title")
+                    or raw.get("title")
+                    or raw.get("item_description")
+                    or ""
+                ).strip()
+                item_desc_val = str(raw.get("item_description") or item_title_val or "").strip()
+                item_img_val = str(raw.get("item_image_url") or raw.get("image_url") or "").strip()
+
+                db_item = {}
+                if item_id_val:
+                    try:
+                        resp_item = itens_table.get_item(Key={"item_id": item_id_val})
+                        db_item = resp_item.get("Item") or {}
+                    except Exception:
+                        db_item = {}
+                elif item_custom_id_val:
+                    try:
+                        resp_gsi = itens_table.query(
+                            IndexName="account_id-item_custom_id-index",
+                            KeyConditionExpression=Key("account_id").eq(account_id)
+                            & Key("item_custom_id").eq(item_custom_id_val),
+                            Limit=1,
+                        )
+                        found = resp_gsi.get("Items", []) or []
+                        if found:
+                            db_item = found[0] or {}
+                            item_id_val = str(db_item.get("item_id") or "").strip()
+                    except Exception:
+                        db_item = {}
+
+                if db_item:
+                    if not item_custom_id_val:
+                        item_custom_id_val = str(db_item.get("item_custom_id") or "").strip()
+                    if not item_title_val:
+                        item_title_val = str(
+                            db_item.get("item_title")
+                            or db_item.get("title")
+                            or db_item.get("item_description")
+                            or db_item.get("description")
+                            or db_item.get("descricao")
+                            or db_item.get("nome")
+                            or ""
+                        ).strip()
+                    if not item_desc_val:
+                        item_desc_val = item_title_val
+                    if not item_img_val:
+                        item_img_val = str(
+                            db_item.get("item_image_url") or db_item.get("image_url") or ""
+                        ).strip()
+
+                if not item_id_val and not item_custom_id_val and not item_title_val and not item_desc_val:
+                    continue
+
+                normalized_items.append(
+                    {
+                        "item_id": item_id_val,
+                        "item_custom_id": item_custom_id_val,
+                        "item_title": item_title_val or item_desc_val or item_custom_id_val or item_id_val,
+                        "item_description": item_desc_val or item_title_val,
+                        "item_image_url": item_img_val,
+                    }
+                )
+
+            deduped = []
+            seen = set()
+            for it in normalized_items:
+                key = (it.get("item_id") or "").strip()
+                if not key and (it.get("item_custom_id") or "").strip():
+                    key = f"custom:{(it.get('item_custom_id') or '').strip()}"
+                if not key:
+                    key = f"title:{(it.get('item_title') or '').strip()}"
+                if key in seen:
+                    continue
+                seen.add(key)
+                deduped.append(it)
+
+            items_list = deduped
+            if items_list:
+                primary_item = items_list[0]
+
+        item_id = (
+            (primary_item.get("item_id") or "").strip() if items_payload_present else item_id_form
+        )
+        item_custom_id_value = (
+            (primary_item.get("item_custom_id") or "").strip() if primary_item else ""
+        )
+        item_image_url_value = (
+            (primary_item.get("item_image_url") or "").strip() if primary_item else ""
+        )
 
         if not date_iso:
             flash("Data é obrigatória para a prova.", "danger")
@@ -1122,6 +1404,13 @@ def init_fittings_routes(
             else:
                 item_description_value = current_fitting.get("item_description")
 
+            if items_payload_present:
+                item_description_value = (
+                    (primary_item.get("item_title") or primary_item.get("item_description") or "").strip()
+                    if primary_item
+                    else ""
+                )
+
             if "client_email" in request.form:
                 client_email_value = client_email_form if client_email_form else ""
             else:
@@ -1165,6 +1454,13 @@ def init_fittings_routes(
                     item_data["client_id"] = client_id
                 if item_id:
                     item_data["item_id"] = item_id
+                if items_payload_present and items_list is not None and items_list:
+                    item_data["items"] = items_list
+                if items_payload_present:
+                    if item_custom_id_value:
+                        item_data["item_custom_id"] = item_custom_id_value
+                    if item_image_url_value:
+                        item_data["item_image_url"] = item_image_url_value
 
                 # Resolver valores, copiando dos originais apenas se não foram preenchidos
                 try:
@@ -1231,6 +1527,31 @@ def init_fittings_routes(
                     remove_parts.append("#item_id")
                     expr_attr_names["#item_id"] = "item_id"
 
+                if items_payload_present and items_list is not None:
+                    if items_list:
+                        set_parts.append("#items = :items")
+                        expr_attr_names["#items"] = "items"
+                        expr_attr_values[":items"] = items_list
+                    else:
+                        remove_parts.append("#items")
+                        expr_attr_names["#items"] = "items"
+
+                    if item_custom_id_value:
+                        set_parts.append("#item_custom_id = :item_custom_id")
+                        expr_attr_names["#item_custom_id"] = "item_custom_id"
+                        expr_attr_values[":item_custom_id"] = item_custom_id_value
+                    else:
+                        remove_parts.append("#item_custom_id")
+                        expr_attr_names["#item_custom_id"] = "item_custom_id"
+
+                    if item_image_url_value:
+                        set_parts.append("#item_image_url = :item_image_url")
+                        expr_attr_names["#item_image_url"] = "item_image_url"
+                        expr_attr_values[":item_image_url"] = item_image_url_value
+                    else:
+                        remove_parts.append("#item_image_url")
+                        expr_attr_names["#item_image_url"] = "item_image_url"
+
                 # Resolver valores para atualização
                 try:
                     if not client_name_value and client_id:
@@ -1261,6 +1582,14 @@ def init_fittings_routes(
                         expr_attr_names["#client_name"] = "client_name"
                         
                 if "item_description" in request.form:
+                    if item_description_value:
+                        set_parts.append("#item_description = :item_description")
+                        expr_attr_names["#item_description"] = "item_description"
+                        expr_attr_values[":item_description"] = item_description_value
+                    else:
+                        remove_parts.append("#item_description")
+                        expr_attr_names["#item_description"] = "item_description"
+                elif items_payload_present:
                     if item_description_value:
                         set_parts.append("#item_description = :item_description")
                         expr_attr_names["#item_description"] = "item_description"

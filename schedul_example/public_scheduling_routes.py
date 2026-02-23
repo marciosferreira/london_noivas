@@ -182,14 +182,32 @@ def init_public_scheduling_routes(
                 days_val = 7
             if days_val > 365:
                 days_val = 365
+            raw_lead = item.get("min_lead_time_minutes")
+            if raw_lead is None:
+                raw_lead = item.get("min_lead_time_hours")
+                try:
+                    lead_minutes = int(raw_lead) * 60 if raw_lead is not None else 0
+                except Exception:
+                    lead_minutes = 0
+            else:
+                try:
+                    lead_minutes = int(raw_lead)
+                except Exception:
+                    lead_minutes = 0
+            if lead_minutes < 0:
+                lead_minutes = 0
+            if lead_minutes > 10080:
+                lead_minutes = 10080
             return {
                 "default_fitting_duration_minutes": val,
                 "max_booking_days_ahead": days_val,
+                "min_lead_time_minutes": lead_minutes,
             }
         except Exception:
             return {
                 "default_fitting_duration_minutes": DEFAULT_FITTING_DURATION_MINUTES,
                 "max_booking_days_ahead": 7,
+                "min_lead_time_minutes": 0,
             }
 
     def _save_scheduling_settings(account_id: str, settings: dict) -> tuple[bool, str]:
@@ -211,12 +229,24 @@ def init_public_scheduling_routes(
         if days_int > 365:
             days_int = 365
 
+        raw_lead = settings.get("min_lead_time_hours")
+        try:
+            lead_hours = int(raw_lead) if raw_lead != "" and raw_lead is not None else 0
+        except Exception:
+            lead_hours = 0
+        if lead_hours < 0:
+            lead_hours = 0
+        if lead_hours > 168:
+            lead_hours = 168
+        lead_minutes = lead_hours * 60
+
         return _safe_put_scheduling_config(
             {
                 "account_id": account_id,
                 "config_key": "scheduling_settings",
                 "default_fitting_duration_minutes": value_int,
                 "max_booking_days_ahead": days_int,
+                "min_lead_time_minutes": lead_minutes,
                 "updated_at": _now_manaus().isoformat(),
             }
         )
@@ -328,6 +358,57 @@ def init_public_scheduling_routes(
             print(f"Erro ao buscar slots bloqueados: {e}")
             return []
 
+    def _get_blocked_slot_items(account_id: str, date_iso: str) -> list[dict]:
+        try:
+            resp = scheduling_config_table.query(
+                KeyConditionExpression=(
+                    Key("account_id").eq(account_id)
+                    & Key("config_key").begins_with(f"blocked_slot#{date_iso}#")
+                )
+            )
+            items = resp.get("Items", [])
+            out = []
+            for it in items:
+                cfg = str(it.get("config_key") or "")
+                parts = cfg.split("#")
+                if len(parts) < 3:
+                    continue
+                out.append(
+                    {
+                        "time_local": parts[2],
+                        "reason": str(it.get("reason") or ""),
+                    }
+                )
+            out.sort(key=lambda x: x.get("time_local") or "")
+            return out
+        except Exception as e:
+            print(f"Erro ao buscar slots bloqueados (items): {e}")
+            return []
+
+    def _block_slot(account_id: str, date_iso: str, time_local: str, reason: str = ""):
+        return _safe_put_scheduling_config(
+            {
+                "account_id": account_id,
+                "config_key": f"blocked_slot#{date_iso}#{time_local}",
+                "reason": reason,
+                "created_at": _now_manaus().isoformat(),
+            }
+        )
+
+    def _unblock_slot(account_id: str, date_iso: str, time_local: str):
+        try:
+            scheduling_config_table.delete_item(
+                Key={
+                    "account_id": account_id,
+                    "config_key": f"blocked_slot#{date_iso}#{time_local}",
+                }
+            )
+            return True, ""
+        except Exception as e:
+            msg = str(e) or e.__class__.__name__
+            print(f"Erro ao remover bloqueio de slot: {msg}")
+            return False, msg
+
     def _get_booked_slots(account_id: str, date_iso: str, schedule_slots: list[str] | None = None) -> list:
         """Retorna slots que devem ser bloqueados por sobreposição com provas confirmadas."""
         try:
@@ -412,11 +493,27 @@ def init_public_scheduling_routes(
             return []
         available = [t for t in available if t not in booked]
 
-        # Se for hoje, remover horários que já passaram (somente no fluxo público)
-        today_iso = _today_manaus_iso()
-        if not allow_past and date_iso == today_iso:
-            now_time = _now_manaus().strftime("%H:%M")
-            available = [t for t in available if t > now_time]
+        if not allow_past:
+            settings = _get_scheduling_settings(account_id)
+            lead_minutes = int(settings.get("min_lead_time_minutes") or 0)
+            if lead_minutes < 0:
+                lead_minutes = 0
+            cutoff_dt = _now_manaus() + datetime.timedelta(minutes=lead_minutes)
+
+            filtered = []
+            for t in available:
+                m = _time_to_minutes(t)
+                if m is None:
+                    continue
+                hh = m // 60
+                mm = m % 60
+                slot_naive = datetime.datetime.combine(
+                    date_obj, datetime.time(hour=hh, minute=mm)
+                )
+                slot_dt = MANAUS_TZ.localize(slot_naive)
+                if slot_dt > cutoff_dt:
+                    filtered.append(t)
+            available = filtered
 
         return sorted(available)
 
@@ -439,19 +536,35 @@ def init_public_scheduling_routes(
         )
         booked_all = "*" in booked_slots
 
-        today_iso = _today_manaus_iso()
-        now_time = _now_manaus().strftime("%H:%M")
+        now_dt = _now_manaus()
+        today_iso = now_dt.date().isoformat()
+        settings = _get_scheduling_settings(account_id)
+        lead_minutes = int(settings.get("min_lead_time_minutes") or 0)
+        if lead_minutes < 0:
+            lead_minutes = 0
+        cutoff_dt = now_dt + datetime.timedelta(minutes=lead_minutes)
 
         out = []
         for t in all_slots:
+            m = _time_to_minutes(t)
+            if m is None:
+                continue
+            hh = m // 60
+            mm = m % 60
+            slot_naive = datetime.datetime.combine(
+                date_obj, datetime.time(hour=hh, minute=mm)
+            )
+            slot_dt = MANAUS_TZ.localize(slot_naive)
             if date_iso in blocked_dates:
                 status = "blocked"
             elif t in blocked_slots:
                 status = "blocked"
             elif booked_all or t in booked_slots:
                 status = "booked"
-            elif date_iso == today_iso and t <= now_time:
+            elif slot_dt <= now_dt:
                 status = "past"
+            elif slot_dt <= cutoff_dt:
+                status = "blocked"
             else:
                 status = "available"
             out.append({"time": t, "status": status})
@@ -1762,6 +1875,7 @@ def init_public_scheduling_routes(
 
         if request.method == "POST":
             action = request.form.get("action")
+            redirect_blocked_slots_date = ""
 
             if action == "save_schedule":
                 # Salvar horários semanais
@@ -1797,6 +1911,120 @@ def init_public_scheduling_routes(
                     else:
                         flash(f"Não foi possível desbloquear a data: {err}", "danger")
 
+            elif action == "block_slots":
+                date_iso = request.form.get("block_slots_date", "").strip()
+                raw_times = request.form.get("block_slots_times", "").strip()
+                reason = request.form.get("block_slots_reason", "").strip()
+                if date_iso:
+                    try:
+                        datetime.date.fromisoformat(date_iso)
+                    except Exception:
+                        flash("Data inválida.", "danger")
+                        date_iso = ""
+
+                if not date_iso:
+                    flash("Data é obrigatória para bloquear horários.", "danger")
+                else:
+                    times = []
+                    for part in (raw_times.split(",") if raw_times else []):
+                        t = part.strip()
+                        if not t:
+                            continue
+                        m = _time_to_minutes(t)
+                        if m is None:
+                            continue
+                        hh = m // 60
+                        mm = m % 60
+                        times.append(f"{hh:02d}:{mm:02d}")
+                    times = sorted(set(times))
+                    if not times:
+                        flash("Informe ao menos um horário válido (ex.: 09:00, 09:30).", "danger")
+                    else:
+                        failed = 0
+                        for t in times:
+                            ok, _ = _block_slot(account_id, date_iso, t, reason)
+                            if not ok:
+                                failed += 1
+                        if failed == 0:
+                            flash(f"{len(times)} horário(s) bloqueado(s) em {date_iso}.", "success")
+                        else:
+                            flash(
+                                f"{len(times) - failed} horário(s) bloqueado(s). {failed} falharam.",
+                                "danger",
+                            )
+                        redirect_blocked_slots_date = date_iso
+
+            elif action == "block_slots_range":
+                date_iso = request.form.get("block_range_date", "").strip()
+                start_time = request.form.get("block_range_start", "").strip()
+                end_time = request.form.get("block_range_end", "").strip()
+                reason = request.form.get("block_range_reason", "").strip()
+
+                if date_iso:
+                    try:
+                        date_obj = datetime.date.fromisoformat(date_iso)
+                    except Exception:
+                        flash("Data inválida.", "danger")
+                        date_iso = ""
+                        date_obj = None
+                else:
+                    date_obj = None
+
+                start_min = _time_to_minutes(start_time)
+                end_min = _time_to_minutes(end_time)
+
+                if not date_iso or date_obj is None:
+                    flash("Data é obrigatória para bloquear por intervalo.", "danger")
+                elif start_min is None or end_min is None:
+                    flash("Horário inicial e final devem estar no formato HH:MM.", "danger")
+                    redirect_blocked_slots_date = date_iso
+                elif end_min <= start_min:
+                    flash("Horário final deve ser maior que o horário inicial.", "danger")
+                    redirect_blocked_slots_date = date_iso
+                else:
+                    weekday = str(date_obj.weekday())
+                    schedule = _get_weekly_schedule(account_id)
+                    day_slots = [str(s).strip() for s in schedule.get(weekday, []) if str(s).strip()]
+
+                    in_range = []
+                    for t in day_slots:
+                        m = _time_to_minutes(t)
+                        if m is None:
+                            continue
+                        if start_min <= m < end_min:
+                            hh = m // 60
+                            mm = m % 60
+                            in_range.append(f"{hh:02d}:{mm:02d}")
+
+                    in_range = sorted(set(in_range))
+                    if not in_range:
+                        flash("Nenhum slot do dia caiu dentro do intervalo informado.", "danger")
+                    else:
+                        failed = 0
+                        for t in in_range:
+                            ok, _ = _block_slot(account_id, date_iso, t, reason)
+                            if not ok:
+                                failed += 1
+                        if failed == 0:
+                            flash(f"{len(in_range)} horário(s) bloqueado(s) em {date_iso}.", "success")
+                        else:
+                            flash(
+                                f"{len(in_range) - failed} horário(s) bloqueado(s). {failed} falharam.",
+                                "danger",
+                            )
+                        redirect_blocked_slots_date = date_iso
+
+            elif action == "unblock_slot":
+                date_iso = request.form.get("unblock_slot_date", "").strip()
+                time_local = request.form.get("unblock_slot_time", "").strip()
+                if date_iso and time_local:
+                    ok, err = _unblock_slot(account_id, date_iso, time_local)
+                    if ok:
+                        flash(f"Horário {time_local} desbloqueado em {date_iso}.", "success")
+                    else:
+                        flash(f"Não foi possível desbloquear o horário: {err}", "danger")
+                    redirect_blocked_slots_date = date_iso
+
             elif action == "save_slug":
                 slug = request.form.get("slug", "").strip().lower()
                 business_name = request.form.get("business_name", "").strip()
@@ -1827,11 +2055,13 @@ def init_public_scheduling_routes(
             elif action == "save_settings":
                 raw_duration = request.form.get("default_fitting_duration_minutes", "").strip()
                 raw_days_ahead = request.form.get("max_booking_days_ahead", "").strip()
+                raw_lead_hours = request.form.get("min_lead_time_hours", "").strip()
                 ok, err = _save_scheduling_settings(
                     account_id,
                     {
                         "default_fitting_duration_minutes": raw_duration,
                         "max_booking_days_ahead": raw_days_ahead,
+                        "min_lead_time_hours": raw_lead_hours,
                     },
                 )
                 if ok:
@@ -1839,12 +2069,25 @@ def init_public_scheduling_routes(
                 else:
                     flash(f"Não foi possível salvar as configurações: {err}", "danger")
 
+            if redirect_blocked_slots_date:
+                return redirect(
+                    url_for("scheduling_config", blocked_slots_date=redirect_blocked_slots_date)
+                )
             return redirect(url_for("scheduling_config"))
 
         # GET
         schedule = _get_weekly_schedule(account_id)
         blocked_dates = _get_blocked_dates(account_id)
         settings = _get_scheduling_settings(account_id)
+        blocked_slots_date = (request.args.get("blocked_slots_date") or "").strip()
+        if blocked_slots_date:
+            try:
+                datetime.date.fromisoformat(blocked_slots_date)
+            except Exception:
+                blocked_slots_date = ""
+        blocked_slot_items = (
+            _get_blocked_slot_items(account_id, blocked_slots_date) if blocked_slots_date else []
+        )
 
         # Buscar slug atual
         try:
@@ -1873,4 +2116,7 @@ def init_public_scheduling_routes(
             admin_emails=", ".join(admin_emails),
             default_fitting_duration_minutes=settings.get("default_fitting_duration_minutes", DEFAULT_FITTING_DURATION_MINUTES),
             max_booking_days_ahead=settings.get("max_booking_days_ahead", 7),
+            min_lead_time_hours=int((settings.get("min_lead_time_minutes") or 0) // 60),
+            blocked_slots_date=blocked_slots_date,
+            blocked_slot_items=blocked_slot_items,
         )

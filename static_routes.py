@@ -930,9 +930,10 @@ def init_static_routes(
         for item in all_items:
             custom_id = (item.get("item_custom_id") or "").lower()
             description = (item.get("item_description") or "").lower()
+            title = (item.get("item_title") or item.get("title") or item.get("nome") or "").lower()
             item_id_value = (item.get("item_id") or "").lower()
             # aceita busca por código (custom_id), descrição ou pelo próprio item_id
-            if term in custom_id or term in description or term in item_id_value:
+            if term in custom_id or term in description or term in title or term in item_id_value:
                 suggestions.append(item)
 
         return jsonify([
@@ -940,9 +941,10 @@ def init_static_routes(
                 "item_id": item["item_id"],
                 "item_custom_id": item.get("item_custom_id", ""),
                 "item_description": item.get("item_description", ""),
+                "item_title": item.get("item_title") or item.get("title") or item.get("nome") or "",
                 "item_value": item.get("item_value", ""),
                 "item_obs": item.get("item_obs", ""),
-                "item_image_url": item.get("item_image_url", ""),
+                "item_image_url": item.get("item_image_url") or item.get("image_url") or "",
             }
             for item in suggestions[:10]
         ])

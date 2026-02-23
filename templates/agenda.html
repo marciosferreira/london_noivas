@@ -237,32 +237,73 @@
               </div>
               {% endif %}
 
-              {% if f.item_description or f.item_id or f.item_custom_id %}
-              <div class="d-flex justify-content-between small border-bottom pb-1">
-                <span class="text-muted">Item</span>
-                <span class="text-end">
-                  {% set item_ref = f.item_id or f.item_custom_id %}
-                  {% if item_ref %}
-                    <a href="{{ url_for('all_transactions') }}?item_id={{ item_ref }}" class="text-decoration-none">
-                      <span class="d-inline-flex align-items-center gap-2">
-                        {% if f.item_image_url %}
-                          <img src="{{ f.item_image_url }}" alt="" style="width:36px;height:36px;object-fit:cover;border-radius:8px;border:1px solid rgba(0,0,0,0.08);background:#f8f9fa;">
-                        {% endif %}
-                        <span class="d-inline-flex flex-column align-items-end" style="max-width: 220px;">
-                          <span class="fw-semibold text-truncate" style="max-width:220px;">{{ f.item_description or f.item_id or f.item_custom_id }}</span>
-                          <span class="text-muted" style="font-size:0.75rem;">{{ f.item_custom_id or f.item_id }}</span>
+              {% set fitting_items = f.get('items') if f.get('items') else [] %}
+              {% if fitting_items %}
+              <div class="d-flex justify-content-between small border-bottom pb-1" style="align-items:flex-start;">
+                <span class="text-muted">Vestidos</span>
+                <span class="text-end" style="max-width: 240px;">
+                  <span class="d-inline-flex flex-wrap justify-content-end gap-2">
+                    {% for it in fitting_items %}
+                      {% set it_ref = it.item_id or it.item_custom_id or '' %}
+                      {% set it_title = it.item_title or it.title or it.item_custom_id or it.item_id or it.item_description or 'Item' %}
+                      {% set it_sub = it.item_custom_id or it.item_id or '' %}
+                      {% set it_img = it.item_image_url or it.image_url or '' %}
+                      {% if it_ref %}
+                        <a href="{{ url_for('open_item', item_ref=it_ref, next=request.full_path) }}" class="text-decoration-none">
+                          <span class="d-inline-flex flex-column align-items-center" style="width: 78px; gap: 6px;">
+                            {% if it_img %}
+                              <img src="{{ it_img }}" alt="" style="width:64px;height:64px;object-fit:cover;border-radius:10px;border:1px solid rgba(0,0,0,0.08);background:#f8f9fa;">
+                            {% endif %}
+                            <span class="text-center fw-semibold text-truncate" style="max-width:78px;line-height:1.1;font-size:0.75rem;color:#212529;">{{ it_title }}</span>
+                            {% if it_sub %}
+                              <span class="text-muted text-truncate" style="max-width:78px;line-height:1.1;font-size:0.7rem;">{{ it_sub }}</span>
+                            {% endif %}
+                          </span>
+                        </a>
+                      {% else %}
+                        <span class="d-inline-flex flex-column align-items-center" style="width: 78px; gap: 6px;">
+                          {% if it_img %}
+                            <img src="{{ it_img }}" alt="" style="width:64px;height:64px;object-fit:cover;border-radius:10px;border:1px solid rgba(0,0,0,0.08);background:#f8f9fa;">
+                          {% endif %}
+                          <span class="text-center fw-semibold text-truncate" style="max-width:78px;line-height:1.1;font-size:0.75rem;color:#212529;">{{ it_title }}</span>
+                          {% if it_sub %}
+                            <span class="text-muted text-truncate" style="max-width:78px;line-height:1.1;font-size:0.7rem;">{{ it_sub }}</span>
+                          {% endif %}
                         </span>
+                      {% endif %}
+                    {% endfor %}
+                  </span>
+                </span>
+              </div>
+              {% elif f.item_description or f.item_id or f.item_custom_id %}
+              <div class="d-flex justify-content-between small border-bottom pb-1" style="align-items:flex-start;">
+                <span class="text-muted">Vestido</span>
+                <span class="text-end" style="max-width: 240px;">
+                  {% set item_ref = f.item_id or f.item_custom_id or '' %}
+                  {% set it_title = f.item_description or f.item_custom_id or f.item_id %}
+                  {% set it_sub = f.item_custom_id or f.item_id or '' %}
+                  {% set it_img = f.item_image_url or '' %}
+                  {% if item_ref %}
+                    <a href="{{ url_for('open_item', item_ref=item_ref, next=request.full_path) }}" class="text-decoration-none">
+                      <span class="d-inline-flex flex-column align-items-center" style="width: 120px; gap: 6px;">
+                        {% if it_img %}
+                          <img src="{{ it_img }}" alt="" style="width:72px;height:72px;object-fit:cover;border-radius:12px;border:1px solid rgba(0,0,0,0.08);background:#f8f9fa;">
+                        {% endif %}
+                        <span class="text-center fw-semibold text-truncate" style="max-width:120px;line-height:1.15;color:#212529;">{{ it_title }}</span>
+                        {% if it_sub %}
+                          <span class="text-muted text-truncate" style="max-width:120px;line-height:1.1;font-size:0.75rem;">{{ it_sub }}</span>
+                        {% endif %}
                       </span>
                     </a>
                   {% else %}
-                    <span class="d-inline-flex align-items-center gap-2">
-                      {% if f.item_image_url %}
-                        <img src="{{ f.item_image_url }}" alt="" style="width:36px;height:36px;object-fit:cover;border-radius:8px;border:1px solid rgba(0,0,0,0.08);background:#f8f9fa;">
+                    <span class="d-inline-flex flex-column align-items-center" style="width: 120px; gap: 6px;">
+                      {% if it_img %}
+                        <img src="{{ it_img }}" alt="" style="width:72px;height:72px;object-fit:cover;border-radius:12px;border:1px solid rgba(0,0,0,0.08);background:#f8f9fa;">
                       {% endif %}
-                      <span class="d-inline-flex flex-column align-items-end" style="max-width: 220px;">
-                        <span class="fw-semibold text-truncate" style="max-width:220px;">{{ f.item_description }}</span>
-                        <span class="text-muted" style="font-size:0.75rem;">{{ f.item_custom_id or f.item_id }}</span>
-                      </span>
+                      <span class="text-center fw-semibold text-truncate" style="max-width:120px;line-height:1.15;color:#212529;">{{ it_title }}</span>
+                      {% if it_sub %}
+                        <span class="text-muted text-truncate" style="max-width:120px;line-height:1.1;font-size:0.75rem;">{{ it_sub }}</span>
+                      {% endif %}
                     </span>
                   {% endif %}
                 </span>
@@ -313,6 +354,43 @@
                   <strong>Nome do Cliente:</strong><br>
                   <span>{{ f.client_name or 'Cliente não definido' }}</span>
                 </div>
+                {% set fitting_items = f.get('items') if f.get('items') else [] %}
+                {% if fitting_items %}
+                <div class="col-12">
+                  <strong>Vestidos:</strong><br>
+                  <div class="d-flex flex-wrap gap-2 mt-2">
+                    {% for it in fitting_items %}
+                      {% set it_ref = it.item_id or it.item_custom_id or '' %}
+                      {% set it_title = it.item_title or it.title or it.item_custom_id or it.item_id or it.item_description or 'Item' %}
+                      {% set it_sub = it.item_custom_id or it.item_id or '' %}
+                      {% set it_img = it.item_image_url or it.image_url or '' %}
+                      {% if it_ref %}
+                        <a href="{{ url_for('open_item', item_ref=it_ref, next=request.full_path) }}" class="text-decoration-none">
+                          <div class="d-flex flex-column align-items-center" style="width: 120px; gap: 8px;">
+                            {% if it_img %}
+                              <img src="{{ it_img }}" alt="" style="width:96px;height:96px;object-fit:cover;border-radius:12px;border:1px solid rgba(0,0,0,0.08);background:#f8f9fa;">
+                            {% endif %}
+                            <div class="text-center fw-semibold text-truncate" style="max-width:120px;line-height:1.1;color:#212529;">{{ it_title }}</div>
+                            {% if it_sub %}
+                              <div class="text-muted text-truncate" style="max-width:120px;line-height:1.1;font-size:0.8rem;">{{ it_sub }}</div>
+                            {% endif %}
+                          </div>
+                        </a>
+                      {% else %}
+                        <div class="d-flex flex-column align-items-center" style="width: 120px; gap: 8px;">
+                          {% if it_img %}
+                            <img src="{{ it_img }}" alt="" style="width:96px;height:96px;object-fit:cover;border-radius:12px;border:1px solid rgba(0,0,0,0.08);background:#f8f9fa;">
+                          {% endif %}
+                          <div class="text-center fw-semibold text-truncate" style="max-width:120px;line-height:1.1;color:#212529;">{{ it_title }}</div>
+                          {% if it_sub %}
+                            <div class="text-muted text-truncate" style="max-width:120px;line-height:1.1;font-size:0.8rem;">{{ it_sub }}</div>
+                          {% endif %}
+                        </div>
+                      {% endif %}
+                    {% endfor %}
+                  </div>
+                </div>
+                {% else %}
                 <div class="col-6">
                   <strong>ID do Item:</strong><br>
                   <span>{{ f.item_id or f.item_custom_id or 'N/A' }}</span>
@@ -326,6 +404,7 @@
                   <strong>Foto do Item:</strong><br>
                   <img src="{{ f.item_image_url }}" alt="" style="width:96px;height:96px;object-fit:cover;border-radius:12px;border:1px solid rgba(0,0,0,0.08);background:#f8f9fa;">
                 </div>
+                {% endif %}
                 {% endif %}
                 <div class="col-12">
                   <strong>Observações:</strong><br>
@@ -487,32 +566,73 @@
               </div>
               {% endif %}
 
-              {% if f.item_description or f.item_id or f.item_custom_id %}
-              <div class="d-flex justify-content-between small border-bottom pb-1">
-                <span class="text-muted">Item</span>
-                <span class="text-end">
-                  {% set item_ref = f.item_id or f.item_custom_id %}
-                  {% if item_ref %}
-                    <a href="{{ url_for('all_transactions') }}?item_id={{ item_ref }}" class="text-decoration-none">
-                      <span class="d-inline-flex align-items-center gap-2">
-                        {% if f.item_image_url %}
-                          <img src="{{ f.item_image_url }}" alt="" style="width:36px;height:36px;object-fit:cover;border-radius:8px;border:1px solid rgba(0,0,0,0.08);background:#f8f9fa;">
-                        {% endif %}
-                        <span class="d-inline-flex flex-column align-items-end" style="max-width: 220px;">
-                          <span class="fw-semibold text-truncate" style="max-width:220px;">{{ f.item_description or f.item_id or f.item_custom_id }}</span>
-                          <span class="text-muted" style="font-size:0.75rem;">{{ f.item_custom_id or f.item_id }}</span>
+              {% set fitting_items = f.get('items') if f.get('items') else [] %}
+              {% if fitting_items %}
+              <div class="d-flex justify-content-between small border-bottom pb-1" style="align-items:flex-start;">
+                <span class="text-muted">Vestidos</span>
+                <span class="text-end" style="max-width: 240px;">
+                  <span class="d-inline-flex flex-wrap justify-content-end gap-2">
+                    {% for it in fitting_items %}
+                      {% set it_ref = it.item_id or it.item_custom_id or '' %}
+                      {% set it_title = it.item_title or it.title or it.item_custom_id or it.item_id or it.item_description or 'Item' %}
+                      {% set it_sub = it.item_custom_id or it.item_id or '' %}
+                      {% set it_img = it.item_image_url or it.image_url or '' %}
+                      {% if it_ref %}
+                        <a href="{{ url_for('open_item', item_ref=it_ref, next=request.full_path) }}" class="text-decoration-none">
+                          <span class="d-inline-flex flex-column align-items-center" style="width: 78px; gap: 6px;">
+                            {% if it_img %}
+                              <img src="{{ it_img }}" alt="" style="width:64px;height:64px;object-fit:cover;border-radius:10px;border:1px solid rgba(0,0,0,0.08);background:#f8f9fa;">
+                            {% endif %}
+                            <span class="text-center fw-semibold text-truncate" style="max-width:78px;line-height:1.1;font-size:0.75rem;color:#212529;">{{ it_title }}</span>
+                            {% if it_sub %}
+                              <span class="text-muted text-truncate" style="max-width:78px;line-height:1.1;font-size:0.7rem;">{{ it_sub }}</span>
+                            {% endif %}
+                          </span>
+                        </a>
+                      {% else %}
+                        <span class="d-inline-flex flex-column align-items-center" style="width: 78px; gap: 6px;">
+                          {% if it_img %}
+                            <img src="{{ it_img }}" alt="" style="width:64px;height:64px;object-fit:cover;border-radius:10px;border:1px solid rgba(0,0,0,0.08);background:#f8f9fa;">
+                          {% endif %}
+                          <span class="text-center fw-semibold text-truncate" style="max-width:78px;line-height:1.1;font-size:0.75rem;color:#212529;">{{ it_title }}</span>
+                          {% if it_sub %}
+                            <span class="text-muted text-truncate" style="max-width:78px;line-height:1.1;font-size:0.7rem;">{{ it_sub }}</span>
+                          {% endif %}
                         </span>
+                      {% endif %}
+                    {% endfor %}
+                  </span>
+                </span>
+              </div>
+              {% elif f.item_description or f.item_id or f.item_custom_id %}
+              <div class="d-flex justify-content-between small border-bottom pb-1" style="align-items:flex-start;">
+                <span class="text-muted">Vestido</span>
+                <span class="text-end" style="max-width: 240px;">
+                  {% set item_ref = f.item_id or f.item_custom_id or '' %}
+                  {% set it_title = f.item_description or f.item_custom_id or f.item_id %}
+                  {% set it_sub = f.item_custom_id or f.item_id or '' %}
+                  {% set it_img = f.item_image_url or '' %}
+                  {% if item_ref %}
+                    <a href="{{ url_for('open_item', item_ref=item_ref, next=request.full_path) }}" class="text-decoration-none">
+                      <span class="d-inline-flex flex-column align-items-center" style="width: 120px; gap: 6px;">
+                        {% if it_img %}
+                          <img src="{{ it_img }}" alt="" style="width:72px;height:72px;object-fit:cover;border-radius:12px;border:1px solid rgba(0,0,0,0.08);background:#f8f9fa;">
+                        {% endif %}
+                        <span class="text-center fw-semibold text-truncate" style="max-width:120px;line-height:1.15;color:#212529;">{{ it_title }}</span>
+                        {% if it_sub %}
+                          <span class="text-muted text-truncate" style="max-width:120px;line-height:1.1;font-size:0.75rem;">{{ it_sub }}</span>
+                        {% endif %}
                       </span>
                     </a>
                   {% else %}
-                    <span class="d-inline-flex align-items-center gap-2">
-                      {% if f.item_image_url %}
-                        <img src="{{ f.item_image_url }}" alt="" style="width:36px;height:36px;object-fit:cover;border-radius:8px;border:1px solid rgba(0,0,0,0.08);background:#f8f9fa;">
+                    <span class="d-inline-flex flex-column align-items-center" style="width: 120px; gap: 6px;">
+                      {% if it_img %}
+                        <img src="{{ it_img }}" alt="" style="width:72px;height:72px;object-fit:cover;border-radius:12px;border:1px solid rgba(0,0,0,0.08);background:#f8f9fa;">
                       {% endif %}
-                      <span class="d-inline-flex flex-column align-items-end" style="max-width: 220px;">
-                        <span class="fw-semibold text-truncate" style="max-width:220px;">{{ f.item_description }}</span>
-                        <span class="text-muted" style="font-size:0.75rem;">{{ f.item_custom_id or f.item_id }}</span>
-                      </span>
+                      <span class="text-center fw-semibold text-truncate" style="max-width:120px;line-height:1.15;color:#212529;">{{ it_title }}</span>
+                      {% if it_sub %}
+                        <span class="text-muted text-truncate" style="max-width:120px;line-height:1.1;font-size:0.75rem;">{{ it_sub }}</span>
+                      {% endif %}
                     </span>
                   {% endif %}
                 </span>
@@ -563,6 +683,43 @@
                   <strong>Nome do Cliente:</strong><br>
                   <span>{{ f.client_name or 'Cliente não definido' }}</span>
                 </div>
+                {% set fitting_items = f.get('items') if f.get('items') else [] %}
+                {% if fitting_items %}
+                <div class="col-12">
+                  <strong>Vestidos:</strong><br>
+                  <div class="d-flex flex-wrap gap-2 mt-2">
+                    {% for it in fitting_items %}
+                      {% set it_ref = it.item_id or it.item_custom_id or '' %}
+                      {% set it_title = it.item_title or it.title or it.item_custom_id or it.item_id or it.item_description or 'Item' %}
+                      {% set it_sub = it.item_custom_id or it.item_id or '' %}
+                      {% set it_img = it.item_image_url or it.image_url or '' %}
+                      {% if it_ref %}
+                        <a href="{{ url_for('open_item', item_ref=it_ref, next=request.full_path) }}" class="text-decoration-none">
+                          <div class="d-flex flex-column align-items-center" style="width: 120px; gap: 8px;">
+                            {% if it_img %}
+                              <img src="{{ it_img }}" alt="" style="width:96px;height:96px;object-fit:cover;border-radius:12px;border:1px solid rgba(0,0,0,0.08);background:#f8f9fa;">
+                            {% endif %}
+                            <div class="text-center fw-semibold text-truncate" style="max-width:120px;line-height:1.1;color:#212529;">{{ it_title }}</div>
+                            {% if it_sub %}
+                              <div class="text-muted text-truncate" style="max-width:120px;line-height:1.1;font-size:0.8rem;">{{ it_sub }}</div>
+                            {% endif %}
+                          </div>
+                        </a>
+                      {% else %}
+                        <div class="d-flex flex-column align-items-center" style="width: 120px; gap: 8px;">
+                          {% if it_img %}
+                            <img src="{{ it_img }}" alt="" style="width:96px;height:96px;object-fit:cover;border-radius:12px;border:1px solid rgba(0,0,0,0.08);background:#f8f9fa;">
+                          {% endif %}
+                          <div class="text-center fw-semibold text-truncate" style="max-width:120px;line-height:1.1;color:#212529;">{{ it_title }}</div>
+                          {% if it_sub %}
+                            <div class="text-muted text-truncate" style="max-width:120px;line-height:1.1;font-size:0.8rem;">{{ it_sub }}</div>
+                          {% endif %}
+                        </div>
+                      {% endif %}
+                    {% endfor %}
+                  </div>
+                </div>
+                {% else %}
                 <div class="col-6">
                   <strong>ID do Item:</strong><br>
                   <span>{{ f.item_id or f.item_custom_id or 'N/A' }}</span>
@@ -576,6 +733,7 @@
                   <strong>Foto do Item:</strong><br>
                   <img src="{{ f.item_image_url }}" alt="" style="width:96px;height:96px;object-fit:cover;border-radius:12px;border:1px solid rgba(0,0,0,0.08);background:#f8f9fa;">
                 </div>
+                {% endif %}
                 {% endif %}
                 <div class="col-12">
                   <strong>Observações:</strong><br>

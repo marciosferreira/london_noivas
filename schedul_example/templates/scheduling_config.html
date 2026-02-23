@@ -207,17 +207,23 @@
         </p>
         <form method="POST" class="row g-3 align-items-end">
           <input type="hidden" name="action" value="save_settings">
-          <div class="col-sm-4">
+          <div class="col-sm-3">
             <label class="form-label fw-semibold" style="font-size:0.82rem;">Duração (minutos)</label>
             <input type="number" min="1" step="1" class="form-control" name="default_fitting_duration_minutes"
                    value="{{ default_fitting_duration_minutes or 60 }}" style="font-size:0.88rem;">
             <div class="hint-text">Ex.: 60</div>
           </div>
-          <div class="col-sm-5">
+          <div class="col-sm-3">
             <label class="form-label fw-semibold" style="font-size:0.82rem;">Antecedência máxima (dias)</label>
             <input type="number" min="1" step="1" class="form-control" name="max_booking_days_ahead"
                    value="{{ max_booking_days_ahead or 7 }}" style="font-size:0.88rem;">
             <div class="hint-text">Ex.: 7 (máximo 365)</div>
+          </div>
+          <div class="col-sm-3">
+            <label class="form-label fw-semibold" style="font-size:0.82rem;">Antecedência mínima (horas)</label>
+            <input type="number" min="0" step="1" class="form-control" name="min_lead_time_hours"
+                   value="{{ min_lead_time_hours or 0 }}" style="font-size:0.88rem;">
+            <div class="hint-text">Ex.: 2 (bloqueia as próximas 2 horas no público)</div>
           </div>
           <div class="col-sm-3">
             <button type="submit" class="btn w-100" style="background:#c8956c;color:#fff;">
@@ -271,6 +277,95 @@
             </button>
           </div>
         </form>
+      </div>
+
+      <div class="config-section">
+        <h5><i class="fas fa-clock-rotate-left" style="color:#c8956c;"></i> Bloqueio por Horário</h5>
+        <p class="text-muted" style="font-size:0.85rem;">
+          Bloqueie horários específicos em uma data (ex.: almoço, reunião, manutenção).
+        </p>
+
+        <form method="GET" class="row g-2 align-items-end mb-3">
+          <div class="col-sm-5">
+            <label class="form-label fw-semibold" style="font-size:0.82rem;">Data</label>
+            <input type="date" class="form-control form-control-sm" name="blocked_slots_date" value="{{ blocked_slots_date or '' }}">
+          </div>
+          <div class="col-sm-3">
+            <button type="submit" class="btn btn-sm" style="background:#c8956c;color:#fff;">
+              <i class="fas fa-eye me-1"></i>Ver bloqueios
+            </button>
+          </div>
+        </form>
+
+        <form method="POST" class="row g-2 mb-3">
+          <input type="hidden" name="action" value="block_slots">
+          <div class="col-sm-4">
+            <input type="date" class="form-control form-control-sm" name="block_slots_date" value="{{ blocked_slots_date or '' }}" required>
+          </div>
+          <div class="col-sm-5">
+            <input type="text" class="form-control form-control-sm" name="block_slots_times" placeholder="09:00, 09:30, 10:00" required>
+          </div>
+          <div class="col-sm-3">
+            <button type="submit" class="btn btn-sm btn-danger w-100">
+              <i class="fas fa-ban me-1"></i>Bloquear
+            </button>
+          </div>
+          <div class="col-12">
+            <input type="text" class="form-control form-control-sm" name="block_slots_reason" placeholder="Motivo (opcional)">
+            <div class="hint-text">Os horários devem estar no formato HH:MM e separados por vírgula.</div>
+          </div>
+        </form>
+
+        <form method="POST" class="row g-2 mb-3">
+          <input type="hidden" name="action" value="block_slots_range">
+          <div class="col-sm-4">
+            <input type="date" class="form-control form-control-sm" name="block_range_date" value="{{ blocked_slots_date or '' }}" required>
+          </div>
+          <div class="col-sm-3">
+            <input type="time" class="form-control form-control-sm" name="block_range_start" required>
+          </div>
+          <div class="col-sm-3">
+            <input type="time" class="form-control form-control-sm" name="block_range_end" required>
+          </div>
+          <div class="col-sm-2">
+            <button type="submit" class="btn btn-sm btn-danger w-100">
+              <i class="fas fa-arrows-left-right-to-line me-1"></i>Intervalo
+            </button>
+          </div>
+          <div class="col-12">
+            <input type="text" class="form-control form-control-sm" name="block_range_reason" placeholder="Motivo (opcional)">
+            <div class="hint-text">Bloqueia todos os slots do dia entre o horário inicial (inclui) e final (exclui).</div>
+          </div>
+        </form>
+
+        {% if blocked_slots_date %}
+          <div class="mb-2" style="font-size:0.82rem;color:#64748b;">
+            Bloqueios em <strong>{{ blocked_slots_date }}</strong>:
+          </div>
+          {% if blocked_slot_items %}
+            <div class="d-flex flex-wrap gap-2">
+              {% for it in blocked_slot_items %}
+                <span class="blocked-date-item" style="background:#f1f5f9;color:#475569;">
+                  <i class="fas fa-clock"></i>
+                  <strong>{{ it.time_local }}</strong>
+                  {% if it.reason %}
+                    <span class="text-muted">{{ it.reason }}</span>
+                  {% endif %}
+                  <form method="POST" style="display:inline;">
+                    <input type="hidden" name="action" value="unblock_slot">
+                    <input type="hidden" name="unblock_slot_date" value="{{ blocked_slots_date }}">
+                    <input type="hidden" name="unblock_slot_time" value="{{ it.time_local }}">
+                    <button type="submit" title="Desbloquear"><i class="fas fa-times"></i></button>
+                  </form>
+                </span>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="text-muted" style="font-size:0.82rem;">Nenhum horário bloqueado nesta data.</p>
+          {% endif %}
+        {% else %}
+          <p class="text-muted" style="font-size:0.82rem;">Escolha uma data acima para ver os horários bloqueados.</p>
+        {% endif %}
       </div>
 
       <!-- ═══ Datas Bloqueadas ═══ -->
