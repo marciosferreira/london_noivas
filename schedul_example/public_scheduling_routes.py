@@ -53,9 +53,28 @@ def _today_manaus_iso():
     return _now_manaus().date().isoformat()
 
 
-def _max_booking_date_iso():
-    """Data máxima para agendamento: hoje + 7 dias."""
-    return (_now_manaus().date() + datetime.timedelta(days=7)).isoformat()
+def _max_booking_date_iso(account_id: str, scheduling_config_table) -> str:
+    """Data máxima para agendamento (público): hoje + N dias (configurável)."""
+    days_ahead = 7
+    try:
+        resp = scheduling_config_table.get_item(
+            Key={"account_id": account_id, "config_key": "scheduling_settings"}
+        )
+        item = resp.get("Item") or {}
+        raw = item.get("max_booking_days_ahead")
+        try:
+            days_ahead = int(raw)
+        except Exception:
+            days_ahead = 7
+    except Exception:
+        days_ahead = 7
+
+    if days_ahead <= 0:
+        days_ahead = 7
+    if days_ahead > 365:
+        days_ahead = 365
+
+    return (_now_manaus().date() + datetime.timedelta(days=days_ahead)).isoformat()
 
 
 # ── Helpers de token para confirmação por email ─────────────────────
@@ -90,6 +109,8 @@ DEFAULT_WEEKLY_SCHEDULE = {
     "5": ["09:00", "09:30", "10:00", "10:30", "11:00"],  # Sábado: só manhã
     "6": [],  # Domingo: fechado
 }
+
+DEFAULT_FITTING_DURATION_MINUTES = 60
 
 
 def init_public_scheduling_routes(
@@ -138,6 +159,99 @@ def init_public_scheduling_routes(
             msg = str(e) or e.__class__.__name__
             print(f"Erro ao salvar scheduling_config: {msg}")
             return False, msg
+
+    def _get_scheduling_settings(account_id: str) -> dict:
+        try:
+            resp = scheduling_config_table.get_item(
+                Key={"account_id": account_id, "config_key": "scheduling_settings"}
+            )
+            item = resp.get("Item") or {}
+            raw = item.get("default_fitting_duration_minutes")
+            try:
+                val = int(raw)
+            except Exception:
+                val = DEFAULT_FITTING_DURATION_MINUTES
+            if val <= 0:
+                val = DEFAULT_FITTING_DURATION_MINUTES
+            raw_days = item.get("max_booking_days_ahead")
+            try:
+                days_val = int(raw_days)
+            except Exception:
+                days_val = 7
+            if days_val <= 0:
+                days_val = 7
+            if days_val > 365:
+                days_val = 365
+            return {
+                "default_fitting_duration_minutes": val,
+                "max_booking_days_ahead": days_val,
+            }
+        except Exception:
+            return {
+                "default_fitting_duration_minutes": DEFAULT_FITTING_DURATION_MINUTES,
+                "max_booking_days_ahead": 7,
+            }
+
+    def _save_scheduling_settings(account_id: str, settings: dict) -> tuple[bool, str]:
+        raw = settings.get("default_fitting_duration_minutes")
+        try:
+            value_int = int(raw)
+        except Exception:
+            value_int = DEFAULT_FITTING_DURATION_MINUTES
+        if value_int <= 0:
+            value_int = DEFAULT_FITTING_DURATION_MINUTES
+
+        raw_days = settings.get("max_booking_days_ahead")
+        try:
+            days_int = int(raw_days)
+        except Exception:
+            days_int = 7
+        if days_int <= 0:
+            days_int = 7
+        if days_int > 365:
+            days_int = 365
+
+        return _safe_put_scheduling_config(
+            {
+                "account_id": account_id,
+                "config_key": "scheduling_settings",
+                "default_fitting_duration_minutes": value_int,
+                "max_booking_days_ahead": days_int,
+                "updated_at": _now_manaus().isoformat(),
+            }
+        )
+
+    def _time_to_minutes(time_local: str) -> int | None:
+        if not time_local:
+            return None
+        t = str(time_local).strip()
+        if not t:
+            return None
+        try:
+            hh, mm = t.split(":")
+            h = int(hh)
+            m = int(mm)
+            if h < 0 or h > 23 or m < 0 or m > 59:
+                return None
+            return h * 60 + m
+        except Exception:
+            return None
+
+    def _infer_slot_minutes(slots: list[str]) -> int:
+        mins = []
+        normalized = []
+        for s in slots or []:
+            m = _time_to_minutes(s)
+            if m is not None:
+                normalized.append(m)
+        normalized = sorted(set(normalized))
+        for i in range(1, len(normalized)):
+            delta = normalized[i] - normalized[i - 1]
+            if delta > 0:
+                mins.append(delta)
+        if not mins:
+            return 30
+        return max(5, min(mins))
 
     def _get_weekly_schedule(account_id: str) -> dict:
         """Retorna horários semanais configurados ou padrão."""
@@ -214,9 +328,13 @@ def init_public_scheduling_routes(
             print(f"Erro ao buscar slots bloqueados: {e}")
             return []
 
-    def _get_booked_slots(account_id: str, date_iso: str) -> list:
-        """Retorna horários já confirmados para uma data."""
+    def _get_booked_slots(account_id: str, date_iso: str, schedule_slots: list[str] | None = None) -> list:
+        """Retorna slots que devem ser bloqueados por sobreposição com provas confirmadas."""
         try:
+            settings = _get_scheduling_settings(account_id)
+            default_duration = int(
+                settings.get("default_fitting_duration_minutes") or DEFAULT_FITTING_DURATION_MINUTES
+            )
             resp = fittings_table.query(
                 KeyConditionExpression=(
                     Key("account_id").eq(account_id)
@@ -224,21 +342,48 @@ def init_public_scheduling_routes(
                 )
             )
             items = resp.get("Items", [])
-            booked = []
+            if schedule_slots is None:
+                date_obj = datetime.date.fromisoformat(date_iso)
+                weekday = str(date_obj.weekday())
+                schedule = _get_weekly_schedule(account_id)
+                schedule_slots = list(schedule.get(weekday, []))
+
+            schedule_slots = [str(s).strip() for s in (schedule_slots or []) if str(s).strip()]
+            slot_minutes = _infer_slot_minutes(schedule_slots)
+
+            booked = set()
             for item in items:
                 status = item.get("status", "").lower()
                 if status in ("confirmado", "confirmed"):
                     time_local = item.get("time_local", "")
-                    if time_local and str(time_local).strip():
-                        booked.append(str(time_local).strip())
-                    else:
-                        booked.append("*")
-            return booked
+                    start_min = _time_to_minutes(time_local)
+                    if start_min is None:
+                        booked.add("*")
+                        continue
+
+                    raw_duration = item.get("duration_minutes")
+                    try:
+                        duration = int(raw_duration)
+                    except Exception:
+                        duration = default_duration
+                    if duration <= 0:
+                        duration = default_duration
+
+                    end_min = start_min + duration
+                    for slot in schedule_slots:
+                        slot_start = _time_to_minutes(slot)
+                        if slot_start is None:
+                            continue
+                        slot_end = slot_start + slot_minutes
+                        if slot_start < end_min and start_min < slot_end:
+                            booked.add(str(slot).strip())
+
+            return list(booked)
         except Exception as e:
             print(f"Erro ao buscar slots agendados: {e}")
             return []
 
-    def _get_available_slots(account_id: str, date_iso: str) -> list:
+    def _get_available_slots(account_id: str, date_iso: str, allow_past: bool = False) -> list:
         """Calcula horários disponíveis para uma data específica."""
         # Verificar se a data está bloqueada
         blocked_dates = _get_blocked_dates(account_id)
@@ -251,7 +396,8 @@ def init_public_scheduling_routes(
 
         # Horários configurados para este dia da semana
         schedule = _get_weekly_schedule(account_id)
-        available = list(schedule.get(weekday, []))
+        all_day_slots = list(schedule.get(weekday, []))
+        available = list(all_day_slots)
 
         if not available:
             return []
@@ -260,15 +406,15 @@ def init_public_scheduling_routes(
         blocked_slots = _get_blocked_slots(account_id, date_iso)
         available = [t for t in available if t not in blocked_slots]
 
-        # Remover horários já agendados
-        booked = _get_booked_slots(account_id, date_iso)
+        # Remover horários já agendados (por sobreposição)
+        booked = _get_booked_slots(account_id, date_iso, schedule_slots=all_day_slots)
         if "*" in booked:
             return []
         available = [t for t in available if t not in booked]
 
-        # Se for hoje, remover horários que já passaram
+        # Se for hoje, remover horários que já passaram (somente no fluxo público)
         today_iso = _today_manaus_iso()
-        if date_iso == today_iso:
+        if not allow_past and date_iso == today_iso:
             now_time = _now_manaus().strftime("%H:%M")
             available = [t for t in available if t > now_time]
 
@@ -288,7 +434,9 @@ def init_public_scheduling_routes(
         all_slots = sorted([str(s).strip() for s in all_slots if str(s).strip()])
 
         blocked_slots = set([str(s).strip() for s in _get_blocked_slots(account_id, date_iso)])
-        booked_slots = set([str(s).strip() for s in _get_booked_slots(account_id, date_iso)])
+        booked_slots = set(
+            [str(s).strip() for s in _get_booked_slots(account_id, date_iso, schedule_slots=all_slots)]
+        )
         booked_all = "*" in booked_slots
 
         today_iso = _today_manaus_iso()
@@ -784,7 +932,7 @@ def init_public_scheduling_routes(
 
         account_id = account["account_id"]
         today = _today_manaus_iso()
-        max_date = _max_booking_date_iso()
+        max_date = _max_booking_date_iso(account_id, scheduling_config_table)
 
         return render_template(
             "public_booking.html",
@@ -805,9 +953,9 @@ def init_public_scheduling_routes(
         if not date_iso:
             return jsonify({"error": "Data não informada"}), 400
 
-        # Validar intervalo de datas (hoje até +7 dias)
+        # Validar intervalo de datas (hoje até +N dias)
         today = _today_manaus_iso()
-        max_date = _max_booking_date_iso()
+        max_date = _max_booking_date_iso(account["account_id"], scheduling_config_table)
         if date_iso < today or date_iso > max_date:
             return jsonify({"slots": [], "message": "Data fora do período permitido"})
 
@@ -826,7 +974,7 @@ def init_public_scheduling_routes(
             return jsonify({"error": "Data não informada"}), 400
 
         today = _today_manaus_iso()
-        max_date = _max_booking_date_iso()
+        max_date = _max_booking_date_iso(account["account_id"], scheduling_config_table)
         if date_iso < today or date_iso > max_date:
             return jsonify({"slots": [], "message": "Data fora do período permitido"}), 200
 
@@ -856,7 +1004,7 @@ def init_public_scheduling_routes(
         except Exception:
             return jsonify({"error": "Data inválida"}), 400
 
-        slots = _get_available_slots(account_id, date_iso)
+        slots = _get_available_slots(account_id, date_iso, allow_past=True)
         return jsonify({"slots": slots, "date": date_iso})
 
     @app.route("/api/calendar_data/<account_slug>")
@@ -872,7 +1020,7 @@ def init_public_scheduling_routes(
 
         account_id = account["account_id"]
         today = _today_manaus_iso()
-        max_date = _max_booking_date_iso()
+        max_date = _max_booking_date_iso(account_id, scheduling_config_table)
         schedule = _get_weekly_schedule(account_id)
         blocked_dates = _get_blocked_dates(account_id)
 
@@ -1102,9 +1250,11 @@ def init_public_scheduling_routes(
 
         # Validar intervalo de datas
         today = _today_manaus_iso()
-        max_date = _max_booking_date_iso()
+        max_date = _max_booking_date_iso(account_id, scheduling_config_table)
         if date_iso and (date_iso < today or date_iso > max_date):
-            errors.append("Data fora do período permitido (máximo 1 semana de antecedência).")
+            settings = _get_scheduling_settings(account_id)
+            days_ahead = settings.get("max_booking_days_ahead", 7)
+            errors.append(f"Data fora do período permitido (máximo {days_ahead} dias de antecedência).")
 
         # Verificar se o horário está disponível
         if date_iso and time_local:
@@ -1242,6 +1392,10 @@ def init_public_scheduling_routes(
 
                 now_utc = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
                 dt_key = f"{date_iso}#{time_local}#{fitting_id}"
+                settings = _get_scheduling_settings(account_id)
+                default_duration = int(
+                    settings.get("default_fitting_duration_minutes") or DEFAULT_FITTING_DURATION_MINUTES
+                )
                 fitting = {
                     "account_id": account_id,
                     "date_time_local": dt_key,
@@ -1249,6 +1403,7 @@ def init_public_scheduling_routes(
                     "date_local": date_iso,
                     "time_local": time_local,
                     "status": "Confirmado",
+                    "duration_minutes": default_duration,
                     "notes": (pending.get("notes") or "").strip(),
                     "client_name": (pending.get("client_name") or "").strip(),
                     "client_phone": (pending.get("client_phone") or "").strip(),
@@ -1411,9 +1566,9 @@ def init_public_scheduling_routes(
                                    account_slug=account_slug,
                                    business_name=account.get("business_name", ""))
 
-    @app.route("/agendar/<account_slug>/cancelar/<fitting_id>/<token>")
+    @app.route("/agendar/<account_slug>/cancelar/<fitting_id>/<token>", methods=["GET", "POST"])
     def cancel_booking_public(account_slug, fitting_id, token):
-        """Cancela agendamento via link público."""
+        """Cancela agendamento via link público (com confirmação)."""
         account = _get_account_by_slug(account_slug)
         if not account:
             abort(404)
@@ -1439,6 +1594,18 @@ def init_public_scheduling_routes(
                                        business_name=account.get("business_name", ""))
 
             fitting = items[0]
+            if request.method == "GET":
+                return render_template(
+                    "booking_result.html",
+                    confirm_cancel=True,
+                    message="Tem certeza que deseja cancelar este agendamento?",
+                    fitting=fitting,
+                    account_slug=account_slug,
+                    business_name=account.get("business_name", ""),
+                    fitting_id=fitting_id,
+                    token=token,
+                )
+
             fittings_table.update_item(
                 Key={
                     "account_id": account_id,
@@ -1455,6 +1622,7 @@ def init_public_scheduling_routes(
             return render_template("booking_result.html",
                                    success=True,
                                    message="Agendamento cancelado com sucesso.",
+                                   fitting={**fitting, "status": "Cancelado"},
                                    account_slug=account_slug,
                                    business_name=account.get("business_name", ""))
 
@@ -1500,7 +1668,7 @@ def init_public_scheduling_routes(
 
         if request.method == "GET":
             today = _today_manaus_iso()
-            max_date = _max_booking_date_iso()
+            max_date = _max_booking_date_iso(account_id, scheduling_config_table)
             return render_template(
                 "public_reschedule.html",
                 account_slug=account_slug,
@@ -1518,6 +1686,16 @@ def init_public_scheduling_routes(
 
         if not new_date or not new_time:
             flash("Data e horário são obrigatórios.", "danger")
+            return redirect(url_for("reschedule_booking",
+                                    account_slug=account_slug,
+                                    fitting_id=fitting_id, token=token))
+
+        today = _today_manaus_iso()
+        max_date = _max_booking_date_iso(account_id, scheduling_config_table)
+        if new_date < today or new_date > max_date:
+            settings = _get_scheduling_settings(account_id)
+            days_ahead = settings.get("max_booking_days_ahead", 7)
+            flash(f"Data fora do período permitido (máximo {days_ahead} dias de antecedência).", "danger")
             return redirect(url_for("reschedule_booking",
                                     account_slug=account_slug,
                                     fitting_id=fitting_id, token=token))
@@ -1546,6 +1724,11 @@ def init_public_scheduling_routes(
             fitting["time_local"] = new_time
             fitting["updated_at"] = now_utc
             fitting["status"] = "Confirmado"
+            if not fitting.get("duration_minutes"):
+                settings = _get_scheduling_settings(account_id)
+                fitting["duration_minutes"] = int(
+                    settings.get("default_fitting_duration_minutes") or DEFAULT_FITTING_DURATION_MINUTES
+                )
             fittings_table.put_item(Item=fitting)
 
             date_obj = datetime.date.fromisoformat(new_date)
@@ -1641,11 +1824,27 @@ def init_public_scheduling_routes(
                 else:
                     flash(f"Não foi possível salvar os e-mails: {err}", "danger")
 
+            elif action == "save_settings":
+                raw_duration = request.form.get("default_fitting_duration_minutes", "").strip()
+                raw_days_ahead = request.form.get("max_booking_days_ahead", "").strip()
+                ok, err = _save_scheduling_settings(
+                    account_id,
+                    {
+                        "default_fitting_duration_minutes": raw_duration,
+                        "max_booking_days_ahead": raw_days_ahead,
+                    },
+                )
+                if ok:
+                    flash("Configurações atualizadas.", "success")
+                else:
+                    flash(f"Não foi possível salvar as configurações: {err}", "danger")
+
             return redirect(url_for("scheduling_config"))
 
         # GET
         schedule = _get_weekly_schedule(account_id)
         blocked_dates = _get_blocked_dates(account_id)
+        settings = _get_scheduling_settings(account_id)
 
         # Buscar slug atual
         try:
@@ -1672,4 +1871,6 @@ def init_public_scheduling_routes(
             current_slug=current_slug,
             business_name=business_name,
             admin_emails=", ".join(admin_emails),
+            default_fitting_duration_minutes=settings.get("default_fitting_duration_minutes", DEFAULT_FITTING_DURATION_MINUTES),
+            max_booking_days_ahead=settings.get("max_booking_days_ahead", 7),
         )

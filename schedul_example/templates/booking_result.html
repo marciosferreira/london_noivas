@@ -75,6 +75,28 @@
   }
   .btn-back:hover { background:var(--brand-dark); transform:translateY(-1px); }
 
+  .btn-cancel {
+    display:inline-flex; align-items:center; gap:6px;
+    padding:12px 28px;
+    background:var(--danger); color:#fff;
+    border:none; border-radius:12px;
+    font-family:inherit; font-size:0.9rem; font-weight:600;
+    cursor:pointer; text-decoration:none;
+    transition:all 0.2s;
+  }
+  .btn-cancel:hover { filter:brightness(0.95); transform:translateY(-1px); }
+
+  .btn-outline {
+    display:inline-flex; align-items:center; gap:6px;
+    padding:12px 28px;
+    background:transparent; color:var(--text);
+    border:1px solid var(--border); border-radius:12px;
+    font-family:inherit; font-size:0.9rem; font-weight:600;
+    cursor:pointer; text-decoration:none;
+    transition:all 0.2s;
+  }
+  .btn-outline:hover { background:var(--accent); transform:translateY(-1px); }
+
   @keyframes fadeInUp {
     from { opacity:0; transform:translateY(20px); }
     to { opacity:1; transform:translateY(0); }
@@ -88,11 +110,11 @@
 
 {% block content %}
 <div class="container">
-  <div class="result-icon {{ 'ok' if success else 'err' }}">
-    <i class="fas {{ 'fa-check-circle' if success else 'fa-times-circle' }}"></i>
+  <div class="result-icon {{ 'err' if confirm_cancel else ('ok' if success else 'err') }}">
+    <i class="fas {{ 'fa-triangle-exclamation' if confirm_cancel else ('fa-check-circle' if success else 'fa-times-circle') }}"></i>
   </div>
 
-  <h1>{{ 'Tudo certo!' if success else 'Não foi possível' }}</h1>
+  <h1>{{ 'Confirmar cancelamento' if confirm_cancel else ('Tudo certo!' if success else 'Não foi possível') }}</h1>
   <p class="message">{{ message }}</p>
 
   {% if fitting %}
@@ -140,9 +162,22 @@
   </div>
   {% endif %}
 
-  <a href="{{ url_for('public_booking', account_slug=account_slug) }}" class="btn-back">
-    <i class="fas fa-calendar-alt"></i> Voltar ao Calendário
-  </a>
+  {% if confirm_cancel %}
+    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+      <form method="post" action="{{ url_for('cancel_booking_public', account_slug=account_slug, fitting_id=fitting_id, token=token) }}" style="margin:0;">
+        <button type="submit" class="btn-cancel">
+          <i class="fas fa-ban"></i> Confirmar cancelamento
+        </button>
+      </form>
+      <a href="{{ url_for('index') }}" class="btn-outline">
+        <i class="fas fa-arrow-left"></i> Manter agendamento
+      </a>
+    </div>
+  {% else %}
+    <a href="{{ url_for('index') }}" class="btn-back">
+      <i class="fas fa-home"></i> Voltar ao site
+    </a>
+  {% endif %}
 </div>
 {% endblock %}
 

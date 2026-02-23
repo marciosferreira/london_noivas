@@ -94,12 +94,21 @@
               <!-- Hora -->
               <div class="col-sm-6">
                 <label class="form-label">
-                  <i class="fas fa-clock me-1"></i>Hora <span class="text-danger">*</span>
+                  <i class="fas fa-clock me-1"></i>Hora
                 </label>
-                <select class="form-select" name="time_local" id="time_local" required>
+                <select class="form-select" name="time_local" id="time_local">
                   <option value="">Selecione uma data</option>
                 </select>
                 <div class="form-text">Os horários seguem a configuração do agendamento</div>
+              </div>
+
+              <!-- Duração -->
+              <div class="col-sm-6">
+                <label class="form-label">
+                  <i class="fas fa-stopwatch me-1"></i>Duração (min)
+                </label>
+                <input type="number" min="1" step="1" class="form-control" name="duration_minutes" value="{{ default_duration_minutes or 60 }}">
+                <div class="form-text">Usado para bloquear slots por sobreposição</div>
               </div>
 
               <!-- Cliente ID -->
@@ -124,6 +133,22 @@
                   <div id="client_suggestions" class="autocomplete-suggestions"></div>
                 </div>
                 <div class="form-text">Campo auxiliar para busca</div>
+              </div>
+
+              <!-- Email do Cliente -->
+              <div class="col-sm-6">
+                <label class="form-label">
+                  <i class="fas fa-envelope me-1"></i>Email do Cliente
+                </label>
+                <input type="email" class="form-control" name="client_email" placeholder="ex: cliente@email.com">
+              </div>
+
+              <!-- Telefone do Cliente -->
+              <div class="col-sm-6">
+                <label class="form-label">
+                  <i class="fas fa-phone me-1"></i>Telefone do Cliente
+                </label>
+                <input type="text" class="form-control" name="client_phone" placeholder="WhatsApp/Telefone">
               </div>
 
               <!-- Item ID -->

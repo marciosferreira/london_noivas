@@ -200,6 +200,33 @@
         </form>
       </div>
 
+      <div class="config-section">
+        <h5><i class="fas fa-stopwatch" style="color:#c8956c;"></i> Duração Padrão</h5>
+        <p class="text-muted" style="font-size:0.85rem;">
+          Define a duração padrão de uma prova. Essa duração é usada para bloquear os slots por sobreposição.
+        </p>
+        <form method="POST" class="row g-3 align-items-end">
+          <input type="hidden" name="action" value="save_settings">
+          <div class="col-sm-4">
+            <label class="form-label fw-semibold" style="font-size:0.82rem;">Duração (minutos)</label>
+            <input type="number" min="1" step="1" class="form-control" name="default_fitting_duration_minutes"
+                   value="{{ default_fitting_duration_minutes or 60 }}" style="font-size:0.88rem;">
+            <div class="hint-text">Ex.: 60</div>
+          </div>
+          <div class="col-sm-5">
+            <label class="form-label fw-semibold" style="font-size:0.82rem;">Antecedência máxima (dias)</label>
+            <input type="number" min="1" step="1" class="form-control" name="max_booking_days_ahead"
+                   value="{{ max_booking_days_ahead or 7 }}" style="font-size:0.88rem;">
+            <div class="hint-text">Ex.: 7 (máximo 365)</div>
+          </div>
+          <div class="col-sm-3">
+            <button type="submit" class="btn w-100" style="background:#c8956c;color:#fff;">
+              <i class="fas fa-save me-1"></i> Salvar
+            </button>
+          </div>
+        </form>
+      </div>
+
       <!-- ═══ Horários Semanais ═══ -->
       <div class="config-section">
         <h5><i class="fas fa-clock" style="color:#c8956c;"></i> Horários Semanais</h5>
@@ -299,7 +326,7 @@
           <p><strong>4.</strong> O cliente escolhe data/horário e recebe confirmação.</p>
           <p><strong>5.</strong> Só após confirmar (por email/link), o agendamento é válido.</p>
           <p><strong>6.</strong> Horários agendados ficam indisponíveis automaticamente.</p>
-          <p><strong>7.</strong> Clientes podem agendar com até <strong>1 semana</strong> de antecedência.</p>
+          <p><strong>7.</strong> Clientes podem agendar com até <strong>{{ max_booking_days_ahead or 7 }} dias</strong> de antecedência.</p>
         </div>
       </div>
 

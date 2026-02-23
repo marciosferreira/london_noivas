@@ -626,11 +626,9 @@
 <div class="booking-wrapper">
   <!-- Header -->
   <div class="booking-header">
-    {% if account_slug == 'default' %}
-      <a href="{{ url_for('index') }}" class="back-home">
-        <i class="fas fa-arrow-left"></i> Voltar ao início
-      </a>
-    {% endif %}
+    <a href="{{ url_for('index') }}" class="back-home">
+      <i class="fas fa-arrow-left"></i> Voltar ao site
+    </a>
     <h1>{{ business_name or 'Agendamento' }}</h1>
     <p>Escolha a melhor data e horário para você</p>
   </div>

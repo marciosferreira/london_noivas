@@ -168,6 +168,8 @@ init_fittings_routes(
     itens_table,
     clients_table,
     users_table,
+    scheduling_config_table,
+    ses_client=ses_client,
 )
 
 init_public_scheduling_routes(

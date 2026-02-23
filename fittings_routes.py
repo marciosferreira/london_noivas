@@ -1,4 +1,8 @@
 import datetime
+import hashlib
+import hmac
+import json
+import os
 import uuid
 from boto3.dynamodb.conditions import Key, Attr
 from flask import (
@@ -21,8 +25,16 @@ def init_fittings_routes(
     itens_table,
     clients_table,
     users_table,
+    scheduling_config_table,
+    ses_client=None,
 ):
     """Rotas para Agenda e Provas (fittings)."""
+
+    secret_key_for_tokens = (
+        os.environ.get("BOOKING_TOKEN_SECRET")
+        or os.environ.get("SECRET_KEY")
+        or (app.secret_key if app and app.secret_key else "CHANGE_ME_TO_A_REAL_SECRET_KEY")
+    )
 
     def _today_iso(user_tz):
         return datetime.datetime.now(user_tz).date().strftime("%Y-%m-%d")
@@ -45,6 +57,354 @@ def init_fittings_routes(
             # Fallback para compatibilidade (gerar um ID único)
             unique_id = str(uuid.uuid4())[:8]
             return f"{date_iso}#{time_part}#{unique_id}"
+
+    def _generate_confirmation_token(fitting_id: str) -> str:
+        return hmac.new(
+            str(secret_key_for_tokens).encode(),
+            str(fitting_id).encode(),
+            hashlib.sha256,
+        ).hexdigest()[:32]
+
+    def _pending_booking_key(fitting_id: str) -> str:
+        return f"pending_booking#{fitting_id}"
+
+    def _save_pending_booking(account_id: str, fitting_id: str, payload: dict) -> tuple[bool, str]:
+        try:
+            scheduling_config_table.put_item(
+                Item={
+                    "account_id": account_id,
+                    "config_key": _pending_booking_key(fitting_id),
+                    "payload": json.dumps(payload),
+                    "created_at": datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),
+                }
+            )
+            return True, ""
+        except Exception as e:
+            msg = str(e) or e.__class__.__name__
+            print(f"Erro ao salvar pending_booking: {msg}")
+            return False, msg
+
+    def _get_public_account_info(account_id: str) -> dict:
+        try:
+            resp = scheduling_config_table.get_item(
+                Key={"account_id": account_id, "config_key": "account_slug"}
+            )
+            item = resp.get("Item") or {}
+            slug = str(item.get("slug") or "").strip()
+            business_name = str(item.get("business_name") or "").strip()
+            return {"slug": slug, "business_name": business_name}
+        except Exception:
+            return {"slug": "", "business_name": ""}
+
+    def _send_confirmation_email(
+        to_email: str,
+        client_name: str,
+        fitting_id: str,
+        date_iso: str,
+        time_local: str,
+        account_slug: str,
+        business_name: str = "",
+    ) -> tuple[bool, str]:
+        if not ses_client:
+            return False, "Nenhum provedor de email configurado."
+        sender = os.environ.get("SES_SENDER") or os.environ.get("EMAIL_SENDER")
+        if not sender or not str(sender).strip():
+            msg = "SES_SENDER/EMAIL_SENDER não configurado."
+            print(f"Erro ao enviar email (SES): {msg}")
+            return False, msg
+
+        token = _generate_confirmation_token(fitting_id)
+        confirm_url = url_for(
+            "confirm_booking",
+            account_slug=account_slug,
+            fitting_id=fitting_id,
+            token=token,
+            _external=True,
+        )
+
+        subject_business = business_name or "Agendamento"
+        subject = f"Confirme seu agendamento - {subject_business}"
+        date_br = date_iso
+        try:
+            date_br = datetime.date.fromisoformat(date_iso).strftime("%d/%m/%Y")
+        except Exception:
+            pass
+        name = (client_name or "").strip() or "Não informado"
+        time_str = (time_local or "").strip() or "Não informado"
+        body_text = (
+            f"Olá {name}!\n\n"
+            f"Recebemos seu pedido de agendamento.\n\n"
+            f"Data: {date_br}\n"
+            f"Horário: {time_str}\n\n"
+            f"Para confirmar, acesse:\n{confirm_url}\n\n"
+            f"Se você não fez esse agendamento, ignore este e-mail."
+        )
+        body_html = render_template(
+            "email_confirmation.html",
+            client_name=name,
+            date_iso=date_br,
+            time_local=time_str,
+            confirm_url=confirm_url,
+            business_name=subject_business,
+        )
+        try:
+            ses_client.send_email(
+                Source=sender,
+                Destination={"ToAddresses": [to_email]},
+                Message={
+                    "Subject": {"Data": subject, "Charset": "UTF-8"},
+                    "Body": {
+                        "Text": {"Data": body_text, "Charset": "UTF-8"},
+                        "Html": {"Data": body_html, "Charset": "UTF-8"},
+                    },
+                },
+            )
+            return True, ""
+        except Exception as e:
+            msg = str(e) or e.__class__.__name__
+            print(f"Erro ao enviar email (SES): {msg}")
+            return False, msg
+
+    def _send_booking_confirmed_email(
+        to_email: str,
+        client_name: str,
+        fitting_id: str,
+        date_iso: str,
+        time_local: str,
+        account_slug: str,
+        business_name: str = "",
+        client_phone: str = "",
+        item_description: str = "",
+        notes: str = "",
+    ) -> bool:
+        if not ses_client:
+            return False
+        sender = (
+            os.environ.get("SES_SENDER")
+            or os.environ.get("EMAIL_SENDER")
+            or "nao_responda@londonnoivas.com.br"
+        )
+        subject_business = business_name or "Agendamento"
+        subject = f"Agendamento confirmado - {subject_business}"
+        date_br = date_iso
+        try:
+            date_br = datetime.date.fromisoformat(date_iso).strftime("%d/%m/%Y")
+        except Exception:
+            pass
+
+        name = (client_name or "").strip() or "Não informado"
+        phone = (client_phone or "").strip() or "Não informado"
+        time_str = (time_local or "").strip() or "Não informado"
+        item_str = (item_description or "").strip() or "Não informado"
+        notes_str = (notes or "").strip() or "-"
+
+        token = _generate_confirmation_token(fitting_id)
+        reschedule_url = ""
+        cancel_url = ""
+        if account_slug:
+            reschedule_url = url_for(
+                "reschedule_booking",
+                account_slug=account_slug,
+                fitting_id=fitting_id,
+                token=token,
+                _external=True,
+            )
+            cancel_url = url_for(
+                "cancel_booking_public",
+                account_slug=account_slug,
+                fitting_id=fitting_id,
+                token=token,
+                _external=True,
+            )
+
+        body_text = (
+            f"Olá {name}!\n\n"
+            f"Seu agendamento foi confirmado.\n\n"
+            f"Negócio: {subject_business}\n"
+            f"Data: {date_br}\n"
+            f"Horário: {time_str}\n"
+            f"Telefone: {phone}\n"
+            f"Item: {item_str}\n"
+            f"Observações: {notes_str}\n"
+        )
+        if reschedule_url:
+            body_text += f"\nEditar/Reagendar:\n{reschedule_url}\n"
+        if cancel_url:
+            body_text += f"\nCancelar:\n{cancel_url}\n"
+
+        body_html = (
+            "<html><body style=\"font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;\">"
+            f"<h2 style=\"margin:0 0 12px;\">Agendamento confirmado</h2>"
+            f"<p style=\"margin:0 0 16px;color:#555;\">{subject_business}</p>"
+            "<table cellpadding=\"0\" cellspacing=\"0\" style=\"border-collapse:collapse;min-width:360px;\">"
+            f"<tr><td style=\"padding:6px 10px;border:1px solid #eee;color:#777;\">Data</td><td style=\"padding:6px 10px;border:1px solid #eee;font-weight:600;\">{date_br}</td></tr>"
+            f"<tr><td style=\"padding:6px 10px;border:1px solid #eee;color:#777;\">Horário</td><td style=\"padding:6px 10px;border:1px solid #eee;font-weight:600;\">{time_str}</td></tr>"
+            f"<tr><td style=\"padding:6px 10px;border:1px solid #eee;color:#777;\">Nome</td><td style=\"padding:6px 10px;border:1px solid #eee;\">{name}</td></tr>"
+            f"<tr><td style=\"padding:6px 10px;border:1px solid #eee;color:#777;\">Telefone</td><td style=\"padding:6px 10px;border:1px solid #eee;\">{phone}</td></tr>"
+            f"<tr><td style=\"padding:6px 10px;border:1px solid #eee;color:#777;\">Item</td><td style=\"padding:6px 10px;border:1px solid #eee;\">{item_str}</td></tr>"
+            f"<tr><td style=\"padding:6px 10px;border:1px solid #eee;color:#777;\">Observações</td><td style=\"padding:6px 10px;border:1px solid #eee;\">{notes_str}</td></tr>"
+            "</table>"
+        )
+        if reschedule_url or cancel_url:
+            body_html += "<div style=\"margin:18px 0 0;display:flex;gap:10px;flex-wrap:wrap;\">"
+            if reschedule_url:
+                body_html += f"<a href=\"{reschedule_url}\" style=\"display:inline-block;background:#c8956c;color:#fff;text-decoration:none;padding:10px 14px;border-radius:8px;font-weight:600;\">Editar/Reagendar</a>"
+            if cancel_url:
+                body_html += f"<a href=\"{cancel_url}\" style=\"display:inline-block;background:#c75c5c;color:#fff;text-decoration:none;padding:10px 14px;border-radius:8px;font-weight:600;\">Cancelar</a>"
+            body_html += "</div>"
+        body_html += "</body></html>"
+
+        try:
+            ses_client.send_email(
+                Source=sender,
+                Destination={"ToAddresses": [to_email]},
+                Message={
+                    "Subject": {"Data": subject, "Charset": "UTF-8"},
+                    "Body": {
+                        "Text": {"Data": body_text, "Charset": "UTF-8"},
+                        "Html": {"Data": body_html, "Charset": "UTF-8"},
+                    },
+                },
+            )
+            return True
+        except Exception as e:
+            print(f"Erro ao enviar email (SES): {e}")
+            return False
+
+    def _send_booking_cancelled_email(
+        to_email: str,
+        client_name: str,
+        date_iso: str,
+        time_local: str,
+        business_name: str = "",
+    ) -> bool:
+        if not ses_client:
+            return False
+        sender = (
+            os.environ.get("SES_SENDER")
+            or os.environ.get("EMAIL_SENDER")
+            or "nao_responda@londonnoivas.com.br"
+        )
+        subject_business = business_name or "Agendamento"
+        subject = f"Agendamento cancelado - {subject_business}"
+        date_br = date_iso
+        try:
+            date_br = datetime.date.fromisoformat(date_iso).strftime("%d/%m/%Y")
+        except Exception:
+            pass
+        name = (client_name or "").strip() or "Não informado"
+        time_str = (time_local or "").strip() or "Não informado"
+        body_text = (
+            f"Olá {name}!\n\n"
+            f"Seu agendamento foi cancelado.\n\n"
+            f"Negócio: {subject_business}\n"
+            f"Data: {date_br}\n"
+            f"Horário: {time_str}\n"
+        )
+        body_html = (
+            "<html><body style=\"font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;\">"
+            f"<h2 style=\"margin:0 0 12px;\">Agendamento cancelado</h2>"
+            f"<p style=\"margin:0 0 16px;color:#555;\">{subject_business}</p>"
+            "<table cellpadding=\"0\" cellspacing=\"0\" style=\"border-collapse:collapse;min-width:360px;\">"
+            f"<tr><td style=\"padding:6px 10px;border:1px solid #eee;color:#777;\">Data</td><td style=\"padding:6px 10px;border:1px solid #eee;font-weight:600;\">{date_br}</td></tr>"
+            f"<tr><td style=\"padding:6px 10px;border:1px solid #eee;color:#777;\">Horário</td><td style=\"padding:6px 10px;border:1px solid #eee;font-weight:600;\">{time_str}</td></tr>"
+            f"<tr><td style=\"padding:6px 10px;border:1px solid #eee;color:#777;\">Nome</td><td style=\"padding:6px 10px;border:1px solid #eee;\">{name}</td></tr>"
+            "</table>"
+            "</body></html>"
+        )
+        try:
+            ses_client.send_email(
+                Source=sender,
+                Destination={"ToAddresses": [to_email]},
+                Message={
+                    "Subject": {"Data": subject, "Charset": "UTF-8"},
+                    "Body": {
+                        "Text": {"Data": body_text, "Charset": "UTF-8"},
+                        "Html": {"Data": body_html, "Charset": "UTF-8"},
+                    },
+                },
+            )
+            return True
+        except Exception as e:
+            print(f"Erro ao enviar email (SES): {e}")
+            return False
+
+    def _get_default_duration_minutes(account_id: str) -> int:
+        try:
+            resp = scheduling_config_table.get_item(
+                Key={"account_id": account_id, "config_key": "scheduling_settings"}
+            )
+            item = resp.get("Item") or {}
+            raw = item.get("default_fitting_duration_minutes")
+            val = int(raw)
+            return val if val > 0 else 60
+        except Exception:
+            return 60
+
+    def _time_to_minutes(time_local: str) -> int | None:
+        if not time_local:
+            return None
+        t = str(time_local).strip()
+        if not t:
+            return None
+        try:
+            hh, mm = t.split(":")
+            h = int(hh)
+            m = int(mm)
+            if h < 0 or h > 23 or m < 0 or m > 59:
+                return None
+            return h * 60 + m
+        except Exception:
+            return None
+
+    def _intervals_overlap(start_a: int, end_a: int, start_b: int, end_b: int) -> bool:
+        return start_a < end_b and start_b < end_a
+
+    def _get_duration_minutes(item: dict, default_duration: int) -> int:
+        raw = item.get("duration_minutes")
+        try:
+            val = int(raw)
+        except Exception:
+            val = default_duration
+        return val if val > 0 else default_duration
+
+    def _has_overlap(
+        account_id: str,
+        date_iso: str,
+        start_time_local: str,
+        duration_minutes: int,
+        exclude_fitting_id: str | None = None,
+    ) -> bool:
+        start_min = _time_to_minutes(start_time_local)
+        if start_min is None:
+            return False
+        end_min = start_min + max(1, int(duration_minutes or 60))
+        default_duration = _get_default_duration_minutes(account_id)
+        try:
+            resp = fittings_table.query(
+                KeyConditionExpression=Key("account_id").eq(account_id)
+                & Key("date_time_local").begins_with(date_iso)
+            )
+            items = resp.get("Items", [])
+        except Exception as e:
+            print("Erro ao checar sobreposição:", e)
+            return False
+
+        for it in items:
+            if exclude_fitting_id and str(it.get("fitting_id") or "") == exclude_fitting_id:
+                continue
+            status = str(it.get("status") or "").lower()
+            if status in ("cancelado", "cancelled", "rejected"):
+                continue
+            other_start_str = it.get("time_local") or ""
+            other_start = _time_to_minutes(other_start_str)
+            if other_start is None:
+                continue
+            other_dur = _get_duration_minutes(it, default_duration)
+            other_end = other_start + other_dur
+            if _intervals_overlap(start_min, end_min, other_start, other_end):
+                return True
+        return False
 
     def _enrich_fittings_with_item_fields(fittings_items):
         cache = {}
@@ -397,48 +757,117 @@ def init_fittings_routes(
         if request.method == "GET":
             # Botão geral não define data; se houver ?date=... usar, senão deixar em branco
             pre_date = request.args.get("date") or ""
-            return render_template("fitting_form.html", pre_date=pre_date)
+            default_duration = _get_default_duration_minutes(account_id)
+            return render_template(
+                "fitting_form.html",
+                pre_date=pre_date,
+                default_duration_minutes=default_duration,
+            )
 
         # POST
         date_iso = request.form.get("date_iso")
-        time_local = request.form.get("time_local")
+        time_local = (request.form.get("time_local") or "").strip()
+        duration_raw = (request.form.get("duration_minutes") or "").strip()
         status = (request.form.get("status") or "Pendente").strip()
         notes = (request.form.get("notes") or "").strip()
         client_id = (request.form.get("client_id") or "").strip()
         item_id = (request.form.get("item_id") or "").strip()
         client_name_form = (request.form.get("client_name") or "").strip()
         item_description_form = (request.form.get("item_description") or "").strip()
+        client_email_form = (request.form.get("client_email") or "").strip()
+        client_phone_form = (request.form.get("client_phone") or "").strip()
         item_custom_id_value = None
         item_image_url_value = None
 
         # Preparar valores: permitir limpeza explícita
         client_name_form = request.form.get("client_name", "").strip()
         item_description_form = request.form.get("item_description", "").strip()
+        client_email_form = request.form.get("client_email", "").strip()
+        client_phone_form = request.form.get("client_phone", "").strip()
         
         # Se o campo foi enviado (mesmo que vazio), usar o valor enviado
         # Se não foi enviado, tentar copiar dos originais
         client_name_value = client_name_form if "client_name" in request.form else None
         item_description_value = item_description_form if "item_description" in request.form else None
+        client_email_value = client_email_form if "client_email" in request.form else None
+        client_phone_value = client_phone_form if "client_phone" in request.form else None
 
         if not date_iso:
             flash("Data é obrigatória para a prova.", "danger")
             return redirect(url_for("add_fitting"))
-        if not time_local or not time_local.strip():
-            flash("Horário é obrigatório para a prova.", "danger")
-            return redirect(url_for("add_fitting", date=date_iso))
 
-        # Checa conflitos usando GSIs nomeados pelo usuário
-        conflicts = _validate_conflicts(client_id, item_id, date_iso, time_local)
-        if conflicts.get("client"):
-            flash("Já existe uma prova para este cliente neste horário.", "warning")
-        if conflicts.get("item"):
-            flash("Este vestido já possui prova neste horário.", "warning")
+        default_duration = _get_default_duration_minutes(account_id)
+        try:
+            duration_minutes = int(duration_raw) if duration_raw else default_duration
+        except Exception:
+            duration_minutes = default_duration
+        if duration_minutes <= 0:
+            duration_minutes = default_duration
+
+        status_norm = status.strip().lower()
+        if time_local and status_norm not in ("cancelado", "cancelled", "rejected", "pendente", "pending", "pending_confirmation"):
+            if _has_overlap(account_id, date_iso, time_local, duration_minutes):
+                flash("Este horário se sobrepõe a outra prova. Escolha outro.", "danger")
+                return redirect(url_for("add_fitting", date=date_iso))
+
+        if time_local:
+            conflicts = _validate_conflicts(client_id, item_id, date_iso, time_local)
+            if conflicts.get("client"):
+                flash("Já existe uma prova para este cliente neste horário.", "warning")
+            if conflicts.get("item"):
+                flash("Este vestido já possui prova neste horário.", "warning")
 
         now_utc = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
         fitting_id = str(uuid.uuid4())
         dt_key = _date_time_key(date_iso, time_local, fitting_id)
 
         try:
+            public_info = _get_public_account_info(account_id)
+            account_slug = public_info.get("slug") or ""
+            business_name = public_info.get("business_name") or ""
+            if status_norm in ("pendente", "pending") and client_email_form and time_local and account_slug:
+                pending_payload = {
+                    "account_id": account_id,
+                    "fitting_id": fitting_id,
+                    "date_local": date_iso,
+                    "time_local": time_local,
+                    "status": "pending_confirmation",
+                    "duration_minutes": duration_minutes,
+                    "notes": notes,
+                    "client_name": (client_name_value or "").strip(),
+                    "client_phone": (client_phone_value or "").strip(),
+                    "client_email": client_email_form,
+                    "item_id": item_id,
+                    "item_custom_id": item_custom_id_value or "",
+                    "item_description": (item_description_value or "").strip(),
+                    "item_image_url": item_image_url_value or "",
+                    "source": "admin_manual",
+                    "created_at": now_utc,
+                }
+                ok, err = _save_pending_booking(account_id, fitting_id, pending_payload)
+                if not ok:
+                    flash(f"Não foi possível iniciar a confirmação por e-mail: {err}", "danger")
+                    return redirect(url_for("add_fitting", date=date_iso))
+                sent, send_err = _send_confirmation_email(
+                    to_email=client_email_form,
+                    client_name=(client_name_value or "").strip(),
+                    fitting_id=fitting_id,
+                    date_iso=date_iso,
+                    time_local=time_local,
+                    account_slug=account_slug,
+                    business_name=business_name,
+                )
+                if sent:
+                    flash("Prova pendente criada e e-mail de confirmação enviado.", "success")
+                else:
+                    flash(f"Prova pendente criada, mas não foi possível enviar o e-mail: {send_err}", "warning")
+                return redirect(url_for("agenda"))
+
+            if status_norm in ("pendente", "pending") and client_email_form and time_local and not account_slug:
+                flash("Slug público não configurado no dashboard; confirmação por e-mail não enviada.", "warning")
+            if status_norm in ("pendente", "pending") and client_email_form and not time_local:
+                flash("Sem horário: confirmação por e-mail não enviada (o link exige horário).", "warning")
+
             item_data = {
                 "account_id": account_id,
                 "date_time_local": dt_key,
@@ -446,6 +875,7 @@ def init_fittings_routes(
                 "date_local": date_iso,
                 "time_local": time_local,
                 "status": status,
+                "duration_minutes": duration_minutes,
                 "notes": notes,
                 "created_at": now_utc,
                 "updated_at": now_utc,
@@ -466,6 +896,10 @@ def init_fittings_routes(
                     c = resp_client.get("Item")
                     if c:
                         client_name_value = c.get("client_name")
+                        if client_email_value is None:
+                            client_email_value = c.get("client_email")
+                        if client_phone_value is None:
+                            client_phone_value = c.get("client_phone")
                 if item_description_value is None and item_id:
                     resp_item = itens_table.get_item(Key={"item_id": item_id})
                     it = resp_item.get("Item")
@@ -479,6 +913,10 @@ def init_fittings_routes(
             # Incluir campos independentes apenas se tiverem valor
             if client_name_value:
                 item_data["client_name"] = client_name_value
+            if client_email_value:
+                item_data["client_email"] = client_email_value
+            if client_phone_value:
+                item_data["client_phone"] = client_phone_value
             if item_description_value:
                 item_data["item_description"] = item_description_value
             if item_custom_id_value:
@@ -487,6 +925,29 @@ def init_fittings_routes(
                 item_data["item_image_url"] = item_image_url_value
 
             fittings_table.put_item(Item=item_data)
+
+            if client_email_form:
+                if status_norm in ("confirmado", "confirmed"):
+                    _send_booking_confirmed_email(
+                        to_email=client_email_form,
+                        client_name=item_data.get("client_name", ""),
+                        fitting_id=fitting_id,
+                        date_iso=date_iso,
+                        time_local=time_local,
+                        account_slug=account_slug,
+                        business_name=business_name,
+                        client_phone=item_data.get("client_phone", ""),
+                        item_description=item_data.get("item_description", ""),
+                        notes=notes,
+                    )
+                elif status_norm in ("cancelado", "cancelled"):
+                    _send_booking_cancelled_email(
+                        to_email=client_email_form,
+                        client_name=item_data.get("client_name", ""),
+                        date_iso=date_iso,
+                        time_local=time_local,
+                        business_name=business_name,
+                    )
             flash("Prova agendada com sucesso.", "success")
             return redirect(url_for("agenda"))
         except Exception as e:
@@ -590,7 +1051,12 @@ def init_fittings_routes(
                     return redirect(url_for("agenda"))
                 
                 fitting = items[0]
-                return render_template("edit_fitting.html", fitting=fitting)
+                default_duration = _get_default_duration_minutes(account_id)
+                return render_template(
+                    "edit_fitting.html",
+                    fitting=fitting,
+                    default_duration_minutes=_get_duration_minutes(fitting, default_duration),
+                )
             except Exception as e:
                 print("Erro ao buscar prova:", e)
                 flash("Erro ao carregar prova.", "danger")
@@ -598,17 +1064,18 @@ def init_fittings_routes(
 
         # POST - Atualizar prova
         date_iso = request.form.get("date_iso")
-        time_local = request.form.get("time_local")
+        time_local = (request.form.get("time_local") or "").strip()
+        duration_raw = (request.form.get("duration_minutes") or "").strip()
         status = (request.form.get("status") or "Pendente").strip()
         notes = (request.form.get("notes") or "").strip()
         client_id = (request.form.get("client_id") or "").strip()
         item_id = (request.form.get("item_id") or "").strip()
+        client_email_form = (request.form.get("client_email") or "").strip()
+        client_phone_form = (request.form.get("client_phone") or "").strip()
+        send_email_on_save = bool(request.form.get("send_email_on_save"))
 
         if not date_iso:
             flash("Data é obrigatória para a prova.", "danger")
-            return redirect(url_for("edit_fitting", fitting_id=fitting_id))
-        if not time_local or not time_local.strip():
-            flash("Horário é obrigatório para a prova.", "danger")
             return redirect(url_for("edit_fitting", fitting_id=fitting_id))
 
         try:
@@ -623,6 +1090,21 @@ def init_fittings_routes(
             
             current_fitting = items[0]
             old_dt_key = current_fitting["date_time_local"]
+            old_status_norm = str(current_fitting.get("status") or "").strip().lower()
+
+            default_duration = _get_default_duration_minutes(account_id)
+            try:
+                duration_minutes = int(duration_raw) if duration_raw else _get_duration_minutes(current_fitting, default_duration)
+            except Exception:
+                duration_minutes = _get_duration_minutes(current_fitting, default_duration)
+            if duration_minutes <= 0:
+                duration_minutes = default_duration
+
+            status_norm = status.strip().lower()
+            if time_local and status_norm not in ("cancelado", "cancelled", "pendente", "pending", "pending_confirmation"):
+                if _has_overlap(account_id, date_iso, time_local, duration_minutes, exclude_fitting_id=fitting_id):
+                    flash("Este horário se sobrepõe a outra prova. Ajuste o horário/duração.", "danger")
+                    return redirect(url_for("edit_fitting", fitting_id=fitting_id))
             
             # Processar valores: permitir limpeza explícita
             client_name_form = request.form.get("client_name", "").strip()
@@ -639,6 +1121,16 @@ def init_fittings_routes(
                 item_description_value = item_description_form if item_description_form else ""
             else:
                 item_description_value = current_fitting.get("item_description")
+
+            if "client_email" in request.form:
+                client_email_value = client_email_form if client_email_form else ""
+            else:
+                client_email_value = current_fitting.get("client_email")
+
+            if "client_phone" in request.form:
+                client_phone_value = client_phone_form if client_phone_form else ""
+            else:
+                client_phone_value = current_fitting.get("client_phone")
             
             # Nova chave de data/hora
             new_dt_key = _date_time_key(date_iso, time_local, fitting_id)
@@ -662,6 +1154,7 @@ def init_fittings_routes(
                     "date_local": date_iso,
                     "time_local": time_local,
                     "status": status,
+                    "duration_minutes": duration_minutes,
                     "notes": notes,
                     "created_at": current_fitting.get("created_at", now_utc),
                     "updated_at": now_utc,
@@ -680,6 +1173,10 @@ def init_fittings_routes(
                         c = resp_client.get("Item")
                         if c:
                             client_name_value = c.get("client_name")
+                            if not client_email_value:
+                                client_email_value = c.get("client_email") or ""
+                            if not client_phone_value:
+                                client_phone_value = c.get("client_phone") or ""
                     if not item_description_value and item_id:
                         resp_item = itens_table.get_item(Key={"item_id": item_id})
                         it = resp_item.get("Item")
@@ -691,6 +1188,10 @@ def init_fittings_routes(
                 # Incluir campos apenas se tiverem valor
                 if client_name_value:
                     item_data["client_name"] = client_name_value
+                if client_email_value:
+                    item_data["client_email"] = client_email_value
+                if client_phone_value:
+                    item_data["client_phone"] = client_phone_value
                 if item_description_value:
                     item_data["item_description"] = item_description_value
 
@@ -701,10 +1202,16 @@ def init_fittings_routes(
                 expr_attr_values = {
                     ":status": status,
                     ":notes": notes,
+                    ":duration_minutes": duration_minutes,
                     ":updated_at": now_utc
                 }
 
-                set_parts = ["#status = :status", "notes = :notes", "updated_at = :updated_at"]
+                set_parts = [
+                    "#status = :status",
+                    "notes = :notes",
+                    "duration_minutes = :duration_minutes",
+                    "updated_at = :updated_at",
+                ]
                 remove_parts = []
 
                 # Atualizar campos opcionais
@@ -731,6 +1238,10 @@ def init_fittings_routes(
                         c = resp_client.get("Item")
                         if c:
                             client_name_value = c.get("client_name")
+                            if not client_email_value:
+                                client_email_value = c.get("client_email") or ""
+                            if not client_phone_value:
+                                client_phone_value = c.get("client_phone") or ""
                     if not item_description_value and item_id:
                         resp_item = itens_table.get_item(Key={"item_id": item_id})
                         it = resp_item.get("Item")
@@ -758,6 +1269,24 @@ def init_fittings_routes(
                         remove_parts.append("#item_description")
                         expr_attr_names["#item_description"] = "item_description"
 
+                if "client_email" in request.form:
+                    if client_email_value:
+                        set_parts.append("#client_email = :client_email")
+                        expr_attr_names["#client_email"] = "client_email"
+                        expr_attr_values[":client_email"] = client_email_value
+                    else:
+                        remove_parts.append("#client_email")
+                        expr_attr_names["#client_email"] = "client_email"
+
+                if "client_phone" in request.form:
+                    if client_phone_value:
+                        set_parts.append("#client_phone = :client_phone")
+                        expr_attr_names["#client_phone"] = "client_phone"
+                        expr_attr_values[":client_phone"] = client_phone_value
+                    else:
+                        remove_parts.append("#client_phone")
+                        expr_attr_names["#client_phone"] = "client_phone"
+
                 update_expr = "SET " + ", ".join(set_parts)
                 if remove_parts:
                     update_expr += " REMOVE " + ", ".join(remove_parts)
@@ -771,6 +1300,62 @@ def init_fittings_routes(
                     ExpressionAttributeNames=expr_attr_names,
                     ExpressionAttributeValues=expr_attr_values
                 )
+
+            if send_email_on_save:
+                email_to = (client_email_form or client_email_value or "").strip()
+                if email_to:
+                    public_info = _get_public_account_info(account_id)
+                    account_slug = public_info.get("slug") or ""
+                    business_name = public_info.get("business_name") or ""
+                    new_status_norm = status.strip().lower()
+                    if new_status_norm in ("pendente", "pending", "pending_confirmation"):
+                        if not account_slug:
+                            flash("Slug público não configurado no dashboard; e-mail de confirmação não enviado.", "warning")
+                        elif not time_local:
+                            flash("Sem horário: e-mail de confirmação não enviado (o link exige horário).", "warning")
+                        else:
+                            sent, send_err = _send_confirmation_email(
+                                to_email=email_to,
+                                client_name=client_name_value or current_fitting.get("client_name", ""),
+                                fitting_id=fitting_id,
+                                date_iso=date_iso,
+                                time_local=time_local,
+                                account_slug=account_slug,
+                                business_name=business_name,
+                            )
+                            if sent:
+                                flash("E-mail de confirmação enviado.", "success")
+                            else:
+                                flash(f"Não foi possível enviar o e-mail de confirmação: {send_err}", "warning")
+                    elif new_status_norm in ("confirmado", "confirmed"):
+                        ok = _send_booking_confirmed_email(
+                            to_email=email_to,
+                            client_name=client_name_value or current_fitting.get("client_name", ""),
+                            fitting_id=fitting_id,
+                            date_iso=date_iso,
+                            time_local=time_local,
+                            account_slug=account_slug,
+                            business_name=business_name,
+                            client_phone=client_phone_value or "",
+                            item_description=item_description_value or current_fitting.get("item_description", ""),
+                            notes=notes,
+                        )
+                        if ok:
+                            flash("E-mail de confirmação (agendamento confirmado) enviado.", "success")
+                        else:
+                            flash("Não foi possível enviar o e-mail de confirmação (agendamento confirmado).", "warning")
+                    elif new_status_norm in ("cancelado", "cancelled"):
+                        ok = _send_booking_cancelled_email(
+                            to_email=email_to,
+                            client_name=client_name_value or current_fitting.get("client_name", ""),
+                            date_iso=date_iso,
+                            time_local=time_local,
+                            business_name=business_name,
+                        )
+                        if ok:
+                            flash("E-mail de cancelamento enviado.", "success")
+                        else:
+                            flash("Não foi possível enviar o e-mail de cancelamento.", "warning")
 
             flash("Prova atualizada com sucesso.", "success")
             return redirect(url_for("agenda"))

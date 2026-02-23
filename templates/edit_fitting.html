@@ -94,12 +94,21 @@
               <!-- Hora -->
               <div class="col-sm-6">
                 <label class="form-label">
-                  <i class="fas fa-clock me-1"></i>Hora <span class="text-danger">*</span>
+                  <i class="fas fa-clock me-1"></i>Hora
                 </label>
-                <select class="form-select" name="time_local" id="time_local" data-current-time="{{ fitting.time_local or '' }}" required>
+                <select class="form-select" name="time_local" id="time_local" data-current-time="{{ fitting.time_local or '' }}">
                   <option value="">Carregando horários...</option>
                 </select>
                 <div class="form-text">Os horários seguem a configuração do agendamento</div>
+              </div>
+
+              <!-- Duração -->
+              <div class="col-sm-6">
+                <label class="form-label">
+                  <i class="fas fa-stopwatch me-1"></i>Duração (min)
+                </label>
+                <input type="number" min="1" step="1" class="form-control" name="duration_minutes" value="{{ default_duration_minutes or fitting.duration_minutes or 60 }}">
+                <div class="form-text">A duração influencia o bloqueio de slots</div>
               </div>
 
               <!-- Cliente ID -->
@@ -124,6 +133,22 @@
                   <div id="client_suggestions" class="autocomplete-suggestions"></div>
                 </div>
                 <div class="form-text">Campo auxiliar para busca</div>
+              </div>
+
+              <!-- Email do Cliente -->
+              <div class="col-sm-6">
+                <label class="form-label">
+                  <i class="fas fa-envelope me-1"></i>Email do Cliente
+                </label>
+                <input type="email" class="form-control" name="client_email" value="{{ fitting.client_email or '' }}" placeholder="ex: cliente@email.com">
+              </div>
+
+              <!-- Telefone do Cliente -->
+              <div class="col-sm-6">
+                <label class="form-label">
+                  <i class="fas fa-phone me-1"></i>Telefone do Cliente
+                </label>
+                <input type="text" class="form-control" name="client_phone" value="{{ fitting.client_phone or '' }}" placeholder="WhatsApp/Telefone">
               </div>
 
               <!-- Item ID -->
@@ -168,6 +193,17 @@
                   <i class="fas fa-sticky-note me-1"></i>Observações (opcional)
                 </label>
                 <textarea class="form-control" name="notes" rows="3" placeholder="Detalhes importantes sobre a prova">{{ fitting.notes or '' }}</textarea>
+              </div>
+
+              <!-- Reenviar e-mail -->
+              <div class="col-12">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" value="1" id="send_email_on_save" name="send_email_on_save">
+                  <label class="form-check-label" for="send_email_on_save">
+                    Enviar e-mail ao salvar (conforme o status)
+                  </label>
+                </div>
+                <div class="form-text">Somente envia se houver e-mail preenchido.</div>
               </div>
             </div>
 
