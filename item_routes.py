@@ -356,6 +356,42 @@ def init_item_routes(
             from decimal import Decimal, InvalidOperation
             import re
 
+            def _parse_money_to_decimal(raw):
+                s = (raw or "").strip()
+                if not s:
+                    raise InvalidOperation
+
+                s = re.sub(r"\s+", "", s)
+                s = re.sub(r"^R\$\s*", "", s, flags=re.IGNORECASE)
+                s = re.sub(r"[^\d,.\-]", "", s)
+                if not s:
+                    raise InvalidOperation
+
+                if "," in s:
+                    parts = s.split(",")
+                    int_part = "".join(parts[:-1]).replace(".", "")
+                    dec_part = re.sub(r"\D", "", (parts[-1] or ""))[:2]
+                    dec_part = (dec_part + "00")[:2]
+                    return Decimal(f"{int_part or '0'}.{dec_part}")
+
+                if "." in s:
+                    dot_parts = s.split(".")
+                    if len(dot_parts) == 2 and dot_parts[1] and len(dot_parts[1]) <= 2:
+                        int_part = re.sub(r"\D", "", dot_parts[0] or "")
+                        dec_part = re.sub(r"\D", "", dot_parts[1] or "")[:2]
+                        dec_part = (dec_part + "00")[:2]
+                        return Decimal(f"{int_part or '0'}.{dec_part}")
+
+                    digits = re.sub(r"\D", "", s)
+                    if not digits:
+                        raise InvalidOperation
+                    return Decimal(f"{digits}.00")
+
+                digits = re.sub(r"\D", "", s)
+                if not digits:
+                    raise InvalidOperation
+                return Decimal(f"{digits}.00")
+
             all_fields = schemas.get_schema_fields("item")
 
             item_data = {
@@ -452,7 +488,7 @@ def init_item_routes(
                     # 🔸 Limpa número/monetário
                     if field_type in ["value", "item_value"]:
                         try:
-                            value = Decimal(value.replace(".", "").replace(",", "."))
+                            value = _parse_money_to_decimal(value)
                         except InvalidOperation:
                             flash(
                                 f"O campo {field.get('label') or field.get('title')} possui um número inválido.",
@@ -960,6 +996,42 @@ def init_item_routes(
             import re
             from decimal import Decimal, InvalidOperation
 
+            def _parse_money_to_decimal(raw):
+                s = (raw or "").strip()
+                if not s:
+                    raise InvalidOperation
+
+                s = re.sub(r"\s+", "", s)
+                s = re.sub(r"^R\$\s*", "", s, flags=re.IGNORECASE)
+                s = re.sub(r"[^\d,.\-]", "", s)
+                if not s:
+                    raise InvalidOperation
+
+                if "," in s:
+                    parts = s.split(",")
+                    int_part = "".join(parts[:-1]).replace(".", "")
+                    dec_part = re.sub(r"\D", "", (parts[-1] or ""))[:2]
+                    dec_part = (dec_part + "00")[:2]
+                    return Decimal(f"{int_part or '0'}.{dec_part}")
+
+                if "." in s:
+                    dot_parts = s.split(".")
+                    if len(dot_parts) == 2 and dot_parts[1] and len(dot_parts[1]) <= 2:
+                        int_part = re.sub(r"\D", "", dot_parts[0] or "")
+                        dec_part = re.sub(r"\D", "", dot_parts[1] or "")[:2]
+                        dec_part = (dec_part + "00")[:2]
+                        return Decimal(f"{int_part or '0'}.{dec_part}")
+
+                    digits = re.sub(r"\D", "", s)
+                    if not digits:
+                        raise InvalidOperation
+                    return Decimal(f"{digits}.00")
+
+                digits = re.sub(r"\D", "", s)
+                if not digits:
+                    raise InvalidOperation
+                return Decimal(f"{digits}.00")
+
             # new_values = {} # Removido
             updates = {}
             form_keys = set(request.form.keys())
@@ -1008,7 +1080,7 @@ def init_item_routes(
                     updates["cor_comercial"] = name
                 elif field_type in ["value", "item_value"]:
                     try:
-                        value = Decimal(value.replace(".", "").replace(",", "."))
+                        value = _parse_money_to_decimal(value)
                     except InvalidOperation:
                         flash(f"O campo {field['label']} possui valor inválido.", "danger")
                         return redirect(request.url)

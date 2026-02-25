@@ -325,7 +325,6 @@
     function aplicarFormatacao() {
       const n = normalizarMonetarioParaNumero(input.value);
       if (n === null) {
-        input.value = '';
         return;
       }
       input.value = n.toLocaleString('pt-BR', {
@@ -334,8 +333,68 @@
       });
     }
 
-    input.addEventListener('input', aplicarFormatacao);
+    function formatarEmTempoReal() {
+      let s = (input.value || '').toString();
+      s = s.replace(/\s+/g, '').replace(/^R\$\s*/i, '');
+      const digits = s.replace(/\D/g, '');
+      if (!digits) {
+        input.value = '';
+        return;
+      }
+      let intPart = digits.slice(0, -2);
+      let decPart = digits.slice(-2);
+      if (decPart.length === 1) decPart = `0${decPart}`;
+      intPart = intPart.replace(/^0+(?=\d)/, '');
+      if (intPart === '') intPart = '0';
+      const intComMilhar = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+      input.value = `${intComMilhar},${decPart}`;
+      if (document.activeElement === input && typeof input.setSelectionRange === 'function') {
+        const end = input.value.length;
+        input.setSelectionRange(end, end);
+      }
+    }
+
+    function validarFormatoBR() {
+      const v = (input.value || '').trim();
+      if (!v) {
+        input.setCustomValidity('');
+        input.classList.remove('is-invalid');
+        return true;
+      }
+      const regexBR = /^(?:\d{1,3}(?:\.\d{3})+|\d+),\d{2}$/;
+      if (regexBR.test(v)) {
+        input.setCustomValidity('');
+        input.classList.remove('is-invalid');
+        return true;
+      }
+      const n = normalizarMonetarioParaNumero(v);
+      if (n !== null) {
+        input.value = n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        input.setCustomValidity('');
+        input.classList.remove('is-invalid');
+        return true;
+      }
+      input.setCustomValidity('Use vírgula para centavos. Ex: 1.000,00 ou 1000,00');
+      input.classList.add('is-invalid');
+      return false;
+    }
+
+    input.addEventListener('input', formatarEmTempoReal);
+    input.addEventListener('blur', () => {
+      formatarEmTempoReal();
+      validarFormatoBR();
+    });
     if (input.value) aplicarFormatacao();
+
+    const form = input.closest('form');
+    if (form) {
+      form.addEventListener('submit', (e) => {
+        if (!validarFormatoBR()) {
+          e.preventDefault();
+          input.focus();
+        }
+      });
+    }
   }
 
   // --- Funções Auxiliares ---
