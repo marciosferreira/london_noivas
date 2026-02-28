@@ -325,30 +325,30 @@
             <!-- Background -->
             <div class="absolute inset-0 z-0">
                 <img 
-                    src="https://images.unsplash.com/photo-1583939003579-730e3918a45a?auto=format&fit=crop&q=90&w=2800&dpr=2" 
+                    src="{{ url_for('static', filename='background.jpg') }}" 
                     alt="Luxury wedding dress" 
                     class="hero-image w-full h-full object-cover object-[50%_25%]"
                 />
                 <!-- Refined gradient overlay: darker at bottom for text readability -->
-                <div class="absolute inset-0 bg-gradient-to-b from-charcoal-950/30 via-charcoal-950/20 to-charcoal-950/70"></div>
+                <div class="absolute inset-0 bg-gradient-to-b from-charcoal-950/40 via-charcoal-950/30 to-charcoal-950/70"></div>
                 <!-- Subtle vignette -->
                 <div class="absolute inset-0" style="background: radial-gradient(ellipse at center, transparent 40%, rgba(13,13,13,0.3) 100%);"></div>
             </div>
 
-            <div class="relative z-10 text-center px-6 max-w-4xl">
+            <div class="relative z-10 text-center px-6 max-w-4xl" style="text-shadow: 0 3px 16px rgba(0,0,0,0.65);">
                 <!-- Decorative line -->
                 <div class="w-px h-12 bg-london-gold/60 mx-auto mb-6 animate-fadeIn opacity-0 delay-100" style="animation-fill-mode:forwards"></div>
                 
-                <span class="animate-fadeIn opacity-0 delay-200 text-london-gold-light font-sans font-light tracking-[0.4em] text-xs md:text-sm mb-5 block uppercase" style="animation-fill-mode:forwards">
+                <span class="animate-fadeIn opacity-0 delay-200 text-london-gold font-sans font-semibold tracking-[0.35em] text-xs md:text-sm mb-5 block uppercase" style="animation-fill-mode:forwards">
                     Elegância Britânica em Cada Detalhe
                 </span>
                 
-                <h2 class="animate-fadeUp opacity-0 delay-300 text-5xl md:text-7xl text-white font-serif font-light mb-5 leading-[1.1]" style="animation-fill-mode:forwards">
+                <h2 class="animate-fadeUp opacity-0 delay-300 text-5xl md:text-7xl text-white font-serif font-light mb-5 leading-[1.1]" style="animation-fill-mode:forwards; text-shadow: 0 4px 20px rgba(0,0,0,0.75);">
                     O Vestido dos Seus<br/>
                     <span class="italic font-light">Sonhos</span> Está Aqui
                 </h2>
                 
-                <p class="animate-fadeIn opacity-0 delay-400 text-ivory-200/80 text-base md:text-lg mb-8 max-w-2xl mx-auto font-light leading-relaxed tracking-wide" style="animation-fill-mode:forwards">
+                <p class="animate-fadeIn opacity-0 delay-400 text-ivory-200/90 text-base md:text-lg mb-8 max-w-2xl mx-auto font-light leading-relaxed tracking-wide" style="animation-fill-mode:forwards; text-shadow: 0 3px 14px rgba(0,0,0,0.7);">
                     Aluguel de vestidos exclusivos para noivas, madrinhas e ocasiões especiais.<br class="hidden md:block">
                     Viva uma experiência inesquecível com a curadoria London Noivas em Manaus.
                 </p>
@@ -358,12 +358,12 @@
                     {% if occasion_tabs %}
                         {% for tab in occasion_tabs %}
                         <a href="{{ url_for('catalogo', occasion=tab.slug) }}" 
-                           class="group bg-white/5 backdrop-blur-md border border-white/20 text-white px-7 py-3 rounded-sm font-sans font-medium tracking-[0.15em] hover:bg-white hover:text-charcoal-900 hover:border-white transition-all duration-300 text-xs uppercase">
+                           class="group bg-charcoal-950/35 backdrop-blur-lg border border-white/25 text-white px-7 py-3 rounded-sm font-sans font-medium tracking-[0.15em] hover:bg-white hover:text-charcoal-900 hover:border-white transition-all duration-300 text-xs uppercase shadow-[0_10px_30px_rgba(0,0,0,0.35)]">
                             {{ tab.label }}
                         </a>
                         {% endfor %}
                     {% else %}
-                        <a href="{{ url_for('catalogo') }}" class="group bg-white/5 backdrop-blur-md border border-white/20 text-white px-8 py-3.5 rounded-sm font-sans font-medium tracking-[0.15em] hover:bg-white hover:text-charcoal-900 hover:border-white transition-all duration-300 text-xs uppercase">
+                        <a href="{{ url_for('catalogo') }}" class="group bg-charcoal-950/35 backdrop-blur-lg border border-white/25 text-white px-8 py-3.5 rounded-sm font-sans font-medium tracking-[0.15em] hover:bg-white hover:text-charcoal-900 hover:border-white transition-all duration-300 text-xs uppercase shadow-[0_10px_30px_rgba(0,0,0,0.35)]">
                             Ver Catálogo
                         </a>
                     {% endif %}
