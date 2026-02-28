@@ -549,15 +549,17 @@ def init_item_routes(
             # ---------------------------------------------------------
             # Regra de Negócio: Sincronização de Campos Legados (GSI)
             # ---------------------------------------------------------
-            if "description" in item_data:
+            if str(item_data.get("description") or "").strip():
                 item_data["item_description"] = item_data["description"]
-            elif "item_description" in item_data:
+            elif str(item_data.get("item_description") or "").strip():
                 item_data["description"] = item_data["item_description"]
 
-            if "title" in item_data:
+            if str(item_data.get("title") or "").strip():
                 item_data["item_title"] = item_data["title"]
-            elif "item_title" in item_data:
+            elif str(item_data.get("item_title") or "").strip():
                 item_data["title"] = item_data["item_title"]
+
+            item_data = {k: v for k, v in item_data.items() if v is not None and v != ""}
 
             itens_table.put_item(Item=item_data)
 
