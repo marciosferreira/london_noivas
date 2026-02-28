@@ -128,8 +128,20 @@
         .elegant-divider.revealed { width: 80px; transition: width 1s ease-out; }
 
         /* ===== HERO PARALLAX-LIKE DEPTH ===== */
+        .hero-section {
+            min-height: 100vh;
+        }
         .hero-image {
             transition: transform 12s ease-out;
+            object-position: 50% 25%;
+        }
+        @media (max-width: 767px) {
+            .hero-section {
+                min-height: 50vh;
+            }
+            .hero-image {
+                object-position: 50% 90%;
+            }
         }
         .hero-image:hover {
             transform: scale(1.03);
@@ -321,13 +333,13 @@
 
     <main>
         <!-- ======================== HERO SECTION ======================== -->
-        <section class="relative min-h-screen w-full flex items-start md:items-center justify-center overflow-hidden pt-16 pb-10 md:pt-0 md:pb-0">
+        <section class="hero-section relative w-full flex items-start md:items-center justify-center overflow-hidden pt-16 pb-10 md:pt-0 md:pb-0">
             <!-- Background -->
             <div class="absolute inset-0 z-0">
                 <img 
                     src="{{ url_for('static', filename='background.jpg') }}" 
                     alt="Luxury wedding dress" 
-                    class="hero-image w-full h-full object-cover object-[50%_25%]"
+                    class="hero-image w-full h-full object-cover"
                 />
                 <!-- Refined gradient overlay: darker at bottom for text readability -->
                 <div class="absolute inset-0 bg-gradient-to-b from-charcoal-950/40 via-charcoal-950/30 to-charcoal-950/70"></div>
