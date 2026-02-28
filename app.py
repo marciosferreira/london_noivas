@@ -115,12 +115,9 @@ from static_routes import init_static_routes
 from datetime import datetime, timezone
 from fittings_routes import init_fittings_routes
 from schedul_example.public_scheduling_routes import init_public_scheduling_routes
-from ai_routes import ai_bp
 
 
 # Initialize routes from modules
-app.register_blueprint(ai_bp)
-
 init_auth_routes(
     app, users_table, reset_tokens_table, payment_transactions
 )
