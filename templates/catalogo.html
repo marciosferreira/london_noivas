@@ -11,7 +11,28 @@
             theme: {
                 extend: {
                     colors: {
-                        'london-gold': '#C5A059',
+                        'london-gold': '#B8956A',
+                        'london-gold-light': '#D4B896',
+                        'london-gold-dark': '#96704A',
+                        'ivory': {
+                            50: '#FDFCFA',
+                            100: '#FAF8F5',
+                            200: '#F3EFE8',
+                            300: '#E8E2D8',
+                        },
+                        'charcoal': {
+                            50: '#F7F7F7',
+                            100: '#E3E3E3',
+                            200: '#C8C8C8',
+                            300: '#A4A4A4',
+                            400: '#818181',
+                            500: '#666666',
+                            600: '#515151',
+                            700: '#434343',
+                            800: '#2D2D2D',
+                            900: '#1A1A1A',
+                            950: '#0D0D0D',
+                        },
                         'stone': {
                             50: '#fafaf9',
                             100: '#f5f5f4',
@@ -36,58 +57,64 @@
 </head>
 <body class="bg-stone-50 text-stone-800 font-sans antialiased">
 
-    <header id="main-header" class="sticky top-0 left-0 right-0 z-50 bg-stone-900 py-4 shadow-lg">
+    <header id="main-header" class="sticky top-0 left-0 right-0 z-50 bg-charcoal-950/95 backdrop-blur-md py-4 shadow-[0_1px_0_rgba(184,149,106,0.15)]">
         <div class="container mx-auto px-6 flex justify-between items-center">
-            <div class="flex items-center gap-2">
-                <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-sm overflow-hidden bg-white">
+            <a href="{{ url_for('index') }}" class="flex items-center gap-3">
+                <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-sm overflow-hidden bg-white/90 shadow-sm">
                     <img src="{{ url_for('static', filename='logo.jpeg') }}" alt="London Noivas Logo" class="w-full h-full object-contain">
                 </div>
-                <h1 id="header-title" class="text-lg sm:text-2xl font-serif tracking-[0.2em] sm:tracking-widest text-white whitespace-nowrap">
-                    LONDON NOIVAS
-                </h1>
-            </div>
+                <div>
+                    <h1 id="header-title" class="text-base sm:text-xl font-serif font-light tracking-[0.25em] text-white whitespace-nowrap">
+                        LONDON NOIVAS
+                    </h1>
+                    <div class="hidden sm:block h-px w-full bg-gradient-to-r from-london-gold/60 to-transparent mt-0.5"></div>
+                </div>
+            </a>
 
-            <nav class="hidden md:flex gap-8 items-center font-medium tracking-wide text-sm">
-                <a href="/" class="nav-link text-white hover:text-london-gold transition-colors">HOME</a>
-                <a href="{{ url_for('index') }}#sobre" class="nav-link text-white hover:text-london-gold transition-colors">SOBRE</a>
-                <a href="{{ url_for('index') }}#contato" class="nav-link text-white hover:text-london-gold transition-colors">CONTATO</a>
-                <a href="{{ url_for('public_booking_root') }}" class="bg-london-gold text-white px-6 py-2 rounded-full hover:bg-opacity-90 transition-all shadow-lg">
-                    AGENDAR PROVA 
+            <nav class="hidden md:flex gap-8 items-center text-[13px] font-sans font-medium tracking-[0.15em] uppercase">
+                <a href="{{ url_for('index') }}" class="nav-link-refined text-ivory-200 hover:text-london-gold-light transition-colors">Home</a>
+                <a href="{{ url_for('index') }}#sobre" class="nav-link-refined text-ivory-200 hover:text-london-gold-light transition-colors">Sobre</a>
+                <a href="{{ url_for('index') }}#contato" class="nav-link-refined text-ivory-200 hover:text-london-gold-light transition-colors">Contato</a>
+                <a href="{{ url_for('public_booking_root') }}" class="btn-shimmer bg-london-gold text-white px-7 py-2.5 rounded-sm hover:bg-london-gold-dark transition-all shadow-lg shadow-london-gold/20 tracking-[0.15em]">
+                    Agendar Prova
                 </a>
                 
                 {% if session.get('logged_in') %}
-                <a href="{{ url_for('agenda') }}" class="bg-white/10 text-white px-3 py-1 rounded hover:bg-white/20 transition-all text-[11px] leading-none ml-3">
+                <a href="{{ url_for('agenda') }}" class="bg-white/8 text-ivory-300 px-3 py-1.5 rounded-sm hover:bg-white/15 transition-all text-[10px] tracking-wider ml-2 border border-white/10">
                     PAINEL
                 </a>
-                <a href="{{ url_for('logout') }}" class="bg-white/10 text-white px-3 py-1 rounded hover:bg-white/20 transition-all text-[11px] leading-none">
-                    DESLOGAR
+                <a href="{{ url_for('logout') }}" class="bg-white/8 text-ivory-300 px-3 py-1.5 rounded-sm hover:bg-white/15 transition-all text-[10px] tracking-wider border border-white/10">
+                    SAIR
                 </a>
                 {% endif %}
             </nav>
             
             <button id="mobile-menu-btn" class="md:hidden text-london-gold focus:outline-none">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-7 h-7">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                </svg>
+            </button>
         </div>
     </header>
 
-    <div id="mobile-menu" class="fixed inset-0 z-[60] bg-stone-900/95 backdrop-blur-sm transform translate-x-full transition-transform duration-300 md:hidden flex flex-col justify-center items-center">
-        <button id="close-menu-btn" class="absolute top-6 right-6 text-white hover:text-london-gold transition-colors focus:outline-none">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-10 h-10">
+    <div id="mobile-menu" class="fixed inset-0 z-[60] bg-charcoal-950/98 backdrop-blur-lg transform translate-x-full transition-transform duration-300 md:hidden flex flex-col justify-center items-center">
+        <button id="close-menu-btn" class="absolute top-6 right-6 text-ivory-300 hover:text-london-gold transition-colors focus:outline-none">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor" class="w-10 h-10">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
         </button>
         
-        <nav class="flex flex-col gap-8 text-center">
-            <a href="/" class="text-2xl font-serif text-white hover:text-london-gold transition-colors" onclick="closeMobileMenu()">INÍCIO</a>
-            <a href="{{ url_for('index') }}#sobre" class="text-2xl font-serif text-white hover:text-london-gold transition-colors" onclick="closeMobileMenu()">SOBRE</a>
-            <a href="{{ url_for('index') }}#contato" class="text-2xl font-serif text-white hover:text-london-gold transition-colors" onclick="closeMobileMenu()">CONTATO</a>
-            <a href="{{ url_for('public_booking_root') }}" onclick="closeMobileMenu()" class="text-xl bg-london-gold text-white px-8 py-3 rounded-full hover:bg-white hover:text-london-gold transition-all shadow-lg mt-4">
-                AGENDAR PROVA
+        <nav class="flex flex-col gap-6 text-center">
+            <a href="{{ url_for('index') }}" class="text-2xl font-serif font-light text-ivory-100 hover:text-london-gold transition-colors tracking-widest" onclick="closeMobileMenu()">Início</a>
+            <a href="{{ url_for('index') }}#sobre" class="text-2xl font-serif font-light text-ivory-100 hover:text-london-gold transition-colors tracking-widest" onclick="closeMobileMenu()">Sobre</a>
+            <a href="{{ url_for('index') }}#contato" class="text-2xl font-serif font-light text-ivory-100 hover:text-london-gold transition-colors tracking-widest" onclick="closeMobileMenu()">Contato</a>
+            <div class="w-12 h-px bg-london-gold/40 mx-auto my-2"></div>
+            <a href="{{ url_for('public_booking_root') }}" onclick="closeMobileMenu()" class="btn-shimmer text-lg bg-london-gold text-white px-10 py-3.5 rounded-sm hover:bg-london-gold-dark transition-all shadow-lg tracking-[0.2em] font-sans font-medium uppercase">
+                Agendar Prova
             </a>
             {% if session.get('logged_in') %}
-            <a href="{{ url_for('logout') }}" class="text-xl border border-white/30 text-white px-8 py-3 rounded-full hover:bg-white hover:text-stone-900 transition-all shadow-lg" onclick="closeMobileMenu()">
-                DESLOGAR
+            <a href="{{ url_for('logout') }}" class="text-sm border border-ivory-300/20 text-ivory-300 px-8 py-2.5 rounded-sm hover:bg-white/10 transition-all tracking-wider uppercase font-sans" onclick="closeMobileMenu()">
+                Sair
             </a>
             {% endif %}
         </nav>
@@ -275,72 +302,8 @@
 
     </main>
 
-    <footer id="contato" class="bg-stone-50 pt-20 pb-10 border-t border-stone-200">
-        <div class="container mx-auto px-6">
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
-                <div class="col-span-1 md:col-span-2">
-                    <h2 class="text-3xl font-serif mb-6 tracking-widest text-stone-800">LONDON NOIVAS</h2>
-                    <p class="text-stone-500 mb-8 max-w-sm">
-                        Tornando momentos especiais em memórias eternas através da elegância e sofisticação que você merece.
-                    </p>
-                    <div class="flex gap-4">
-                        <a href="https://instagram.com/londonnoivas" target="_blank" class="flex items-center gap-3 group">
-                            <div class="w-10 h-10 border border-stone-300 rounded-full flex items-center justify-center group-hover:bg-london-gold group-hover:text-white group-hover:border-london-gold transition-all">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                                    <path d="M8 0C5.829 0 5.556.01 4.703.048 3.85.088 3.269.222 2.76.42a3.917 3.917 0 0 0-1.417.923A3.927 3.927 0 0 0 .42 2.76C.222 3.268.087 3.85.048 4.7.01 5.555 0 5.827 0 8.001c0 2.172.01 2.444.048 3.297.04.852.174 1.433.372 1.942.205.526.478.972.923 1.417.444.445.89.719 1.416.923.51.198 1.09.333 1.942.372C5.555 15.99 5.827 16 8 16s2.444-.01 3.298-.048c.851-.04 1.434-.174 1.943-.372a3.916 3.916 0 0 0 1.416-.923c.445-.445.718-.891.923-1.417.197-.509.332-1.09.372-1.942C15.99 10.445 16 10.173 16 8s-.01-2.445-.048-3.299c-.04-.851-.175-1.433-.372-1.941a3.926 3.926 0 0 0-.923-1.417A3.911 3.911 0 0 0 13.24.42c-.51-.198-1.092-.333-1.943-.372C10.443.01 10.172 0 7.998 0h.003zm-.717 1.442h.718c2.136 0 2.389.007 3.232.046.78.035 1.204.166 1.486.275.373.145.64.319.92.599.28.28.453.546.598.92.11.281.24.705.275 1.485.039.843.047 1.096.047 3.231s-.008 2.389-.047 3.232c-.035.78-.166 1.203-.275 1.485a2.47 2.47 0 0 1-.599.919c-.28.28-.546.453-.92.598-.281.11-.705.24-1.485.276-.843.038-1.096.047-3.232.047s-2.39-.009-3.233-.047c-.78-.036-1.203-.166-1.486-.276a2.478 2.478 0 0 1-.919-.598 2.48 2.48 0 0 1-.599-.92c-.11-.281-.24-.705-.275-1.485-.038-.843-.047-1.096-.047-3.232 0-2.136.009-2.388.047-3.231.036-.78.166-1.204.276-1.486.145-.373.319-.64.599-.92.28-.28.546-.453.92-.598.282-.11.705-.24 1.485-.276.738-.034 1.024-.044 2.515-.045v.002zm4.988 1.328a.96.96 0 1 0 0 1.92.96.96 0 0 0 0-1.92zm-4.27 1.122a4.109 4.109 0 1 0 0 8.217 4.109 4.109 0 0 0 0-8.217zm0 1.441a2.667 2.667 0 1 1 0 5.334 2.667 2.667 0 0 1 0-5.334z"/>
-                                </svg>
-                            </div>
-                            <span class="text-stone-500 font-bold text-sm tracking-widest group-hover:text-london-gold transition-colors">@londonnoivas</span>
-                        </a>
-                    </div>
-                </div>
-                
-                <div>
-                    <h4 class="font-bold text-stone-800 mb-6 tracking-widest uppercase text-sm">Onde Estamos</h4>
-                    <ul class="space-y-4 text-stone-500 text-sm mb-6">
-                        <li>Rua Voltaire, 9</li>
-                        <li>Colônia Santo Antônio - Manaus - AM</li>
-                        <li>Seg - Sáb: 10h às 20h</li>
-                        <li>Tel/WhatsApp: <span id="phone-display-index" class="cursor-pointer underline decoration-dotted text-london-gold" onclick="revealPhone('phone-display-index')">Ver número</span></li>
-                    </ul>
-                    <div class="rounded-sm overflow-hidden shadow-md border border-stone-200">
-                        <a href="https://maps.app.goo.gl/iTZXMqYrz5CS9Xax6" onclick="openMapInfoModal(event, this.href, 'footer_map_image')" class="block w-full h-[200px] bg-stone-100">
-                            <img src="{{ url_for('static', filename='mapa.png') }}" alt="Localização London Noivas" class="w-full h-full object-cover hover:opacity-90 transition-opacity">
-                        </a>
-                    </div>
-                </div>
-
-                <div>
-                    <h4 class="font-bold text-stone-800 mb-6 tracking-widest uppercase text-sm">Links Rápidos</h4>
-                    <ul class="space-y-4 text-stone-500 text-sm">
-                        <li><a href="#colecoes" class="hover:text-london-gold transition-colors">Destaques</a></li>
-                        <li><a href="{{ url_for('catalogo') }}" class="hover:text-london-gold transition-colors">Catálogo Completo</a></li>
-                        <li><a href="https://wa.me/5592993531943" target="_blank" onclick="trackWhatsAppClick('footer_link')" class="hover:text-london-gold transition-colors">Agendamento/Dúvidas</a></li>
-                        <li>
-                             {% if not session.get('logged_in') %}
-                             <a href="{{ url_for('login', next=url_for('agenda')) }}" class="hover:text-london-gold transition-colors">Área Restrita</a>
-                             {% else %}
-                             <a href="{{ url_for('agenda') }}" class="hover:text-london-gold transition-colors">Painel Admin</a>
-                             {% endif %}
-                        </li>
-                    </ul>
-                </div>
-            </div>
-
-            <div class="border-t border-stone-200 pt-8 text-center text-stone-400 text-xs">
-                <p>&copy; 2025 London Noivas. Todos os direitos reservados. Desenvolvido com sofisticação.</p>
-            </div>
-        </div>
-        
-        <a id="floating-whatsapp-cta" href="https://wa.me/5592993531943" onclick="trackWhatsAppClick('floating_cta')" class="fixed bottom-8 right-8 bg-green-500 text-white p-4 rounded-full shadow-2xl hover:scale-110 transition-transform z-50 flex items-center gap-2 group">
-            <span class="max-w-0 overflow-hidden group-hover:max-w-xs transition-all duration-500 whitespace-nowrap font-bold">
-                Agendamento/Dúvidas
-            </span>
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.588-5.946 0-6.556 5.332-11.891 11.891-11.891 3.181 0 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.481 8.403 0 6.556-5.332 11.892-11.891 11.892-1.999 0-3.956-.503-5.692-1.448l-6.301 1.666zm6.29-4.143c1.589.943 3.197 1.441 4.934 1.441 5.485 0 9.95-4.465 9.95-9.95 0-2.652-1.036-5.147-2.919-7.031-1.883-1.883-4.384-2.917-7.031-2.917-5.485 0-9.951 4.465-9.951 9.95 0 2.07.635 4.089 1.835 5.823l-1.101 4.022 4.133-1.092zm10.293-7.234c-.298-.15-1.764-.871-2.037-.972-.273-.102-.472-.152-.671.152-.199.303-.771 1.018-.944 1.219-.174.202-.348.227-.646.077-.298-.15-1.258-.464-2.396-1.48-.885-.789-1.483-1.763-1.656-2.064-.174-.302-.018-.465.132-.614.135-.133.298-.348.447-.521.149-.174.199-.298.298-.497.099-.198.05-.373-.025-.522-.075-.15-.671-1.616-.919-2.213-.242-.581-.486-.502-.671-.512-.174-.01-.373-.013-.572-.013-.199 0-.523.075-.795.373-.273.302-1.045 1.018-1.045 2.486s1.07 2.885 1.219 3.085c.149.202 2.105 3.214 5.099 4.507.712.308 1.268.491 1.701.628.715.227 1.365.195 1.879.118.573-.086 1.764-.72 2.013-1.417.248-.696.248-1.292.174-1.417-.074-.125-.272-.201-.57-.352z"/>
-            </svg>
-        </a>
-    </footer>
+    {% set modern_footer = true %}
+    {% include 'footer.html' %}
 
     <!-- Catalog Modal -->
     <div id="catalog-modal" class="fixed inset-0 z-[100] hidden">

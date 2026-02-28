@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wireframe Option 1 — Refined Classic | London Noivas Home</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Comic Sans MS', 'Chalkboard SE', cursive;
+    background: #fff;
+    color: #333;
+    border-left: 4px solid #ccc;
+    border-right: 4px solid #ccc;
+    max-width: 1280px;
+    margin: 0 auto;
+  }
+  /* Legend */
+  .legend {
+    position: fixed; top: 12px; right: 12px; background: #fff;
+    border: 2px solid #999; padding: 10px 14px; z-index: 9999;
+    font-family: Arial, sans-serif; font-size: 11px; border-radius: 4px;
+    box-shadow: 2px 2px 6px rgba(0,0,0,0.2);
+  }
+  .legend-item { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+  .badge-reuse { background: #4CAF50; color: #fff; padding: 2px 6px; border-radius: 3px; font-weight: bold; font-size: 10px; }
+  .badge-new   { background: #FF9800; color: #fff; padding: 2px 6px; border-radius: 3px; font-weight: bold; font-size: 10px; }
+  /* Option header */
+  .option-header {
+    background: #f5f5f5; border-bottom: 3px solid #333;
+    padding: 20px 30px; text-align: center;
+  }
+  .option-header h1 { font-family: Arial, sans-serif; font-size: 22px; color: #111; }
+  .option-header p  { font-family: Arial, sans-serif; font-size: 13px; color: #555; margin-top: 6px; }
+  /* Wireframe components */
+  .wf-section { border: 2px dashed #bbb; margin: 0; padding: 30px 40px; position: relative; }
+  .wf-section + .wf-section { border-top: none; }
+  .section-label {
+    position: absolute; top: 8px; left: 12px;
+    font-family: Arial, sans-serif; font-size: 10px; color: #999;
+    text-transform: uppercase; letter-spacing: 1px;
+  }
+  .wf-box {
+    border: 2px solid #999; background: #f0f0f0;
+    display: flex; align-items: center; justify-content: center;
+    color: #666; font-size: 13px; text-align: center;
+    border-radius: 2px;
+  }
+  .wf-box.dark { background: #333; color: #ccc; border-color: #333; }
+  .wf-box.light { background: #fafafa; }
+  .wf-box.image { background: #ddd; position: relative; }
+  .wf-box.image::before {
+    content: ''; position: absolute; left: 10%; top: 10%;
+    width: 80%; height: 80%;
+    background: repeating-linear-gradient(45deg, #bbb, #bbb 1px, #ddd 1px, #ddd 8px);
+  }
+  .wf-pill {
+    display: inline-block; border: 2px solid #666; border-radius: 999px;
+    padding: 6px 18px; font-size: 12px; color: #444; margin: 4px;
+    background: #f9f9f9;
+  }
+  .wf-btn {
+    display: inline-block; border: 2px solid #333; border-radius: 4px;
+    padding: 8px 20px; font-size: 13px; background: #333; color: #fff;
+    margin: 4px; cursor: pointer;
+  }
+  .wf-btn.outline { background: #fff; color: #333; }
+  .wf-btn.cta { border-radius: 999px; background: #666; border-color: #666; font-size: 14px; padding: 12px 30px; }
+  .wf-input {
+    border: 2px solid #999; padding: 8px 12px; font-family: inherit;
+    font-size: 13px; border-radius: 3px; background: #fff; width: 100%;
+  }
+  .wf-text-line {
+    height: 12px; background: #ccc; border-radius: 3px; margin-bottom: 8px;
+  }
+  .wf-star { display: inline-block; font-size: 16px; color: #999; }
+  /* Reuse badge */
+  .comp-wrap { position: relative; display: block; }
+  .badge {
+    position: absolute; top: -10px; right: -4px;
+    padding: 2px 7px; border-radius: 3px;
+    font-family: Arial, sans-serif; font-size: 10px; font-weight: bold;
+    color: #fff; z-index: 10; white-space: nowrap;
+  }
+  .badge.reuse { background: #4CAF50; }
+  .badge.new   { background: #FF9800; }
+  /* Layout helpers */
+  .flex { display: flex; gap: 16px; }
+  .flex-center { display: flex; align-items: center; justify-content: center; gap: 16px; }
+  .col-1 { flex: 1; }
+  .col-2 { flex: 2; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
+  .mt { margin-top: 16px; }
+  .mb { margin-bottom: 16px; }
+  .text-center { text-align: center; }
+  .wf-hr { border: none; border-top: 2px dashed #ccc; margin: 20px 0; }
+  h2.wf-heading { font-family: Georgia, serif; font-size: 28px; color: #222; margin-bottom: 8px; }
+  h3.wf-subhead { font-family: Georgia, serif; font-size: 18px; color: #333; margin-bottom: 8px; }
+  p.wf-body { font-size: 13px; color: #666; line-height: 1.6; }
+  .eyebrow { font-family: Arial, sans-serif; font-size: 10px; text-transform: uppercase; letter-spacing: 3px; color: #888; margin-bottom: 6px; }
+  .wf-tag { display: inline-block; border: 1px solid #bbb; border-radius: 3px; padding: 3px 8px; font-size: 11px; color: #777; margin: 3px; }
+  .annotation {
+    font-family: Arial, sans-serif; font-size: 11px; color: #888;
+    border-left: 3px solid #ccc; padding-left: 8px; font-style: italic; margin-top: 8px;
+  }
+</style>
+</head>
+<body>
+
+<!-- Legend -->
+<div class="legend">
+  <strong style="font-family:Arial;font-size:12px;">Component Key</strong>
+  <div class="legend-item"><span class="badge-reuse">[REUSE]</span> Existing template</div>
+  <div class="legend-item"><span class="badge-new">[NEW]</span> New component</div>
+</div>
+
+<!-- Option Header -->
+<div class="option-header">
+  <h1>Option 1 — Refined Classic</h1>
+  <p>Conservative approach: improved visual hierarchy, new "How It Works" section & featured catalog preview. Mostly existing structure, refined layout.</p>
+</div>
+
+<!-- ── SECTION 1: STICKY HEADER ── -->
+<div class="wf-section" style="background:#222; padding: 16px 40px;">
+  <span class="section-label" style="color:#888;">Sticky Header — Smart scroll: transparent → solid</span>
+  <div class="flex" style="align-items:center; justify-content:space-between; margin-top:8px;">
+    <!-- Logo -->
+    <div class="comp-wrap" style="display:inline-block;">
+      <span class="badge reuse">[REUSE] Logo + Title</span>
+      <div class="flex" style="align-items:center; gap:10px;">
+        <div class="wf-box" style="width:44px;height:44px; background:#555; border:2px solid #777; font-size:10px;">LOGO</div>
+        <span style="color:#eee; font-family:Georgia,serif; font-size:18px; letter-spacing:4px;">LONDON NOIVAS</span>
+      </div>
+    </div>
+    <!-- Nav links -->
+    <div class="comp-wrap" style="display:inline-block;">
+      <span class="badge reuse">[REUSE] Nav Links</span>
+      <div class="flex" style="gap:28px; align-items:center;">
+        <span style="color:#ccc; font-size:13px;">CATÁLOGO</span>
+        <span style="color:#ccc; font-size:13px;">SOBRE</span>
+        <span style="color:#ccc; font-size:13px;">CONTATO</span>
+        <div class="comp-wrap" style="display:inline-block;">
+          <span class="badge new">[NEW] Schedule CTA</span>
+          <div class="wf-btn cta" style="font-size:12px; padding:8px 20px;">✦ AGENDAR PROVA</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="annotation" style="border-color:#555; color:#777;">↑ On scroll down: header bg transitions from transparent to dark stone (#1c1917). Progress indicator bar at top edge.</div>
+</div>
+
+<!-- ── SECTION 2: HERO — SPLIT LAYOUT ── -->
+<div class="wf-section" style="background:#f5f5f5; min-height:580px; padding:0;">
+  <span class="section-label">Hero — Split: Text Left / Image Right</span>
+  <div class="flex" style="min-height:580px; margin-top:20px;">
+    <!-- Left: Text -->
+    <div class="col-1" style="padding:60px 48px; display:flex; flex-direction:column; justify-content:center;">
+      <div class="comp-wrap" style="display:block;">
+        <span class="badge reuse">[REUSE] Hero Text Block</span>
+        <div class="eyebrow">✦ Elegância Britânica em Cada Detalhe</div>
+        <h2 class="wf-heading" style="font-size:40px; line-height:1.2; margin-top:8px;">
+          O Vestido dos<br/>Seus Sonhos<br/>Está Aqui
+        </h2>
+        <p class="wf-body mt" style="max-width:380px;">
+          Aluguel de vestidos exclusivos para noivas, madrinhas e ocasiões especiais em Manaus, AM.
+        </p>
+      </div>
+      <div class="mt" style="display:flex; flex-wrap:wrap; gap:10px; margin-top:24px;">
+        <div class="comp-wrap" style="display:inline-block;">
+          <span class="badge reuse">[REUSE] Occasion Tabs</span>
+          <div>
+            <span class="wf-pill">Noivas</span>
+            <span class="wf-pill">Madrinhas</span>
+            <span class="wf-pill">Formandas</span>
+          </div>
+        </div>
+      </div>
+      <div class="mt" style="margin-top:28px; display:flex; gap:14px; align-items:center;">
+        <div class="comp-wrap" style="display:inline-block;">
+          <span class="badge reuse">[REUSE] Primary CTA</span>
+          <div class="wf-btn cta">Ver Catálogo</div>
+        </div>
+        <div class="comp-wrap" style="display:inline-block;">
+          <span class="badge new">[NEW] Secondary CTA</span>
+          <span style="font-size:13px; color:#555; text-decoration:underline; cursor:pointer;">▶ Como funciona</span>
+        </div>
+      </div>
+      <div class="mt" style="margin-top:32px; display:flex; gap:28px;">
+        <div class="text-center">
+          <div style="font-family:Georgia,serif; font-size:26px; color:#333; font-weight:bold;">200+</div>
+          <div style="font-size:11px; color:#888; text-transform:uppercase; letter-spacing:1px;">Vestidos</div>
+        </div>
+        <div style="width:1px; background:#ccc;"></div>
+        <div class="text-center">
+          <div style="font-family:Georgia,serif; font-size:26px; color:#333; font-weight:bold;">500+</div>
+          <div style="font-size:11px; color:#888; text-transform:uppercase; letter-spacing:1px;">Noivas Atendidas</div>
+        </div>
+        <div style="width:1px; background:#ccc;"></div>
+        <div class="text-center">
+          <div style="font-family:Georgia,serif; font-size:26px; color:#333; font-weight:bold;">5★</div>
+          <div style="font-size:11px; color:#888; text-transform:uppercase; letter-spacing:1px;">Google Reviews</div>
+        </div>
+      </div>
+    </div>
+    <!-- Right: Image -->
+    <div class="col-1" style="position:relative; min-height:580px;">
+      <div class="comp-wrap" style="height:100%; display:block;">
+        <span class="badge reuse">[REUSE] Hero Image</span>
+        <div class="wf-box image" style="height:100%; min-height:580px; border:none; border-radius:0;">
+          <span style="position:relative; z-index:1; font-size:14px; color:#555;">[Wedding Dress Hero Image 600×700]</span>
+        </div>
+      </div>
+      <!-- Floating review badge -->
+      <div class="comp-wrap" style="position:absolute; bottom:40px; left:-24px; z-index:2;">
+        <span class="badge new">[NEW] Floating Review Card</span>
+        <div style="background:#fff; border:2px solid #ddd; border-radius:8px; padding:12px 16px; box-shadow:4px 4px 12px rgba(0,0,0,0.1); min-width:200px;">
+          <div style="font-size:11px; color:#555; margin-bottom:4px;">★★★★★ Google Reviews</div>
+          <div style="font-size:13px; color:#333; font-family:Georgia,serif;">"Atendimento impecável!"</div>
+          <div style="font-size:10px; color:#888; margin-top:4px;">— Mariana S., Noiva 2025</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="annotation" style="margin:0 40px 20px;">↑ Desktop: 50/50 split. Mobile: stacks vertically, image goes below text. Stats bar scrolls in on load.</div>
+</div>
+
+<!-- ── SECTION 3: HOW IT WORKS ── -->
+<div class="wf-section" style="background:#fff; text-align:center;">
+  <span class="section-label">NEW: "Como Funciona" — 4-Step Process</span>
+  <div class="eyebrow" style="margin-top:16px;">O Processo é Simples</div>
+  <h2 class="wf-heading">Como Funciona</h2>
+  <div class="grid-4" style="margin-top:36px;">
+    <!-- Step 1 -->
+    <div class="comp-wrap" style="display:block;">
+      <span class="badge new">[NEW] StepCard</span>
+      <div style="border:2px dashed #ccc; border-radius:6px; padding:24px 16px; text-align:center;">
+        <div style="width:48px; height:48px; border:2px solid #333; border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 16px; font-family:Georgia,serif; font-size:20px; color:#333;">1</div>
+        <div class="wf-box" style="width:48px; height:48px; margin:0 auto 12px; border-radius:50%; font-size:22px; background:#eee; border:2px solid #bbb;">👗</div>
+        <h3 class="wf-subhead" style="font-size:15px;">Navegue o Catálogo</h3>
+        <p class="wf-body" style="font-size:12px;">Explore nosso acervo online ou venha à loja.</p>
+      </div>
+    </div>
+    <!-- Step 2 -->
+    <div class="comp-wrap" style="display:block;">
+      <span class="badge new">[NEW] StepCard</span>
+      <div style="border:2px dashed #ccc; border-radius:6px; padding:24px 16px; text-align:center;">
+        <div style="width:48px; height:48px; border:2px solid #333; border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 16px; font-family:Georgia,serif; font-size:20px; color:#333;">2</div>
+        <div class="wf-box" style="width:48px; height:48px; margin:0 auto 12px; border-radius:50%; font-size:22px; background:#eee; border:2px solid #bbb;">📅</div>
+        <h3 class="wf-subhead" style="font-size:15px;">Agende sua Prova</h3>
+        <p class="wf-body" style="font-size:12px;">Escolha data e horário no nosso sistema de agendamento.</p>
+      </div>
+    </div>
+    <!-- Step 3 -->
+    <div class="comp-wrap" style="display:block;">
+      <span class="badge new">[NEW] StepCard</span>
+      <div style="border:2px dashed #ccc; border-radius:6px; padding:24px 16px; text-align:center;">
+        <div style="width:48px; height:48px; border:2px solid #333; border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 16px; font-family:Georgia,serif; font-size:20px; color:#333;">3</div>
+        <div class="wf-box" style="width:48px; height:48px; margin:0 auto 12px; border-radius:50%; font-size:22px; background:#eee; border:2px solid #bbb;">✂️</div>
+        <h3 class="wf-subhead" style="font-size:15px;">Ajuste Personalizado</h3>
+        <p class="wf-body" style="font-size:12px;">Nossas costureiras garantem o caimento perfeito.</p>
+      </div>
+    </div>
+    <!-- Step 4 -->
+    <div class="comp-wrap" style="display:block;">
+      <span class="badge new">[NEW] StepCard</span>
+      <div style="border:2px dashed #ccc; border-radius:6px; padding:24px 16px; text-align:center;">
+        <div style="width:48px; height:48px; border:2px solid #333; border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 16px; font-family:Georgia,serif; font-size:20px; color:#333;">4</div>
+        <div class="wf-box" style="width:48px; height:48px; margin:0 auto 12px; border-radius:50%; font-size:22px; background:#eee; border:2px solid #bbb;">✨</div>
+        <h3 class="wf-subhead" style="font-size:15px;">Viva o Momento</h3>
+        <p class="wf-body" style="font-size:12px;">Retire o vestido e brilhe no seu dia especial.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── SECTION 4: FEATURED CATALOG PREVIEW ── -->
+<div class="wf-section" style="background:#f5f5f5;">
+  <span class="section-label">NEW: Featured Catalog Preview</span>
+  <div class="text-center mb">
+    <div class="eyebrow" style="margin-top:16px;">Destaques</div>
+    <h2 class="wf-heading">Nossos Destaque</h2>
+    <!-- Category filter tabs -->
+    <div class="comp-wrap" style="display:inline-block; margin-top:16px;">
+      <span class="badge new">[NEW] CategoryFilterTabs</span>
+      <div>
+        <span class="wf-pill" style="background:#333; color:#fff; border-color:#333;">Todos</span>
+        <span class="wf-pill">Noivas</span>
+        <span class="wf-pill">Madrinhas</span>
+        <span class="wf-pill">Formandas</span>
+      </div>
+    </div>
+  </div>
+  <div class="grid-4" style="margin-top:24px;">
+    <!-- Item cards -->
+    <div class="comp-wrap" style="display:block;" title="templates/index.html catalog cards">
+      <span class="badge new">[NEW] DressCard</span>
+      <div style="border:2px solid #ddd; border-radius:4px; background:#fff; overflow:hidden;">
+        <div class="wf-box image" style="height:260px; border:none; border-radius:0;"></div>
+        <div style="padding:12px 14px;">
+          <div class="wf-text-line" style="width:70%;"></div>
+          <div class="wf-text-line" style="width:45%; height:10px;"></div>
+          <div style="margin-top:10px; display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-size:12px; color:#888;">Cód: LN-001</span>
+            <div class="wf-btn" style="font-size:11px; padding:5px 12px;">Ver Detalhes</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="border:2px solid #ddd; border-radius:4px; background:#fff; overflow:hidden;">
+      <div class="wf-box image" style="height:260px; border:none; border-radius:0;"></div>
+      <div style="padding:12px 14px;">
+        <div class="wf-text-line" style="width:60%;"></div>
+        <div class="wf-text-line" style="width:40%; height:10px;"></div>
+        <div style="margin-top:10px; display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-size:12px; color:#888;">Cód: LN-002</span>
+          <div class="wf-btn" style="font-size:11px; padding:5px 12px;">Ver Detalhes</div>
+        </div>
+      </div>
+    </div>
+    <div style="border:2px solid #ddd; border-radius:4px; background:#fff; overflow:hidden;">
+      <div class="wf-box image" style="height:260px; border:none; border-radius:0;"></div>
+      <div style="padding:12px 14px;">
+        <div class="wf-text-line" style="width:55%;"></div>
+        <div class="wf-text-line" style="width:50%; height:10px;"></div>
+        <div style="margin-top:10px; display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-size:12px; color:#888;">Cód: LN-003</span>
+          <div class="wf-btn" style="font-size:11px; padding:5px 12px;">Ver Detalhes</div>
+        </div>
+      </div>
+    </div>
+    <div style="border:2px solid #ddd; border-radius:4px; background:#fff; overflow:hidden; position:relative;">
+      <div class="wf-box image" style="height:260px; border:none; border-radius:0;"></div>
+      <div style="padding:12px 14px;">
+        <div class="wf-text-line" style="width:65%;"></div>
+        <div class="wf-text-line" style="width:35%; height:10px;"></div>
+        <div style="margin-top:10px; display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-size:12px; color:#888;">Cód: LN-004</span>
+          <div class="wf-btn" style="font-size:11px; padding:5px 12px;">Ver Detalhes</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="text-center mt" style="margin-top:28px;">
+    <div class="comp-wrap" style="display:inline-block;">
+      <span class="badge reuse">[REUSE] View All CTA</span>
+      <div class="wf-btn outline" style="padding:12px 36px; font-size:14px;">Ver Catálogo Completo →</div>
+    </div>
+  </div>
+  <div class="annotation">↑ Cards load from backend. Category filter tabs use JS to filter without page reload. "Ver Detalhes" opens existing catalog modal.</div>
+</div>
+
+<!-- ── SECTION 5: ABOUT / STORY ── -->
+<div class="wf-section" style="background:#fff;">
+  <span class="section-label">About Section — Refined (existing, improved)</span>
+  <div class="flex" style="align-items:center; gap:48px; margin-top:16px;">
+    <!-- Image -->
+    <div class="col-1" style="position:relative;">
+      <div class="comp-wrap" style="display:block;">
+        <span class="badge reuse">[REUSE] Showroom Image</span>
+        <div class="wf-box image" style="height:480px; border:2px solid #bbb; aspect-ratio:2/3;">
+          <span style="position:relative; z-index:1; font-size:13px; color:#555;">[London Noivas Showroom Image]</span>
+        </div>
+        <!-- Decorative corner -->
+        <div style="position:absolute; top:-12px; left:-12px; width:48px; height:48px; border-top:3px solid #aaa; border-left:3px solid #aaa; z-index:2;"></div>
+      </div>
+      <!-- Quote overlay -->
+      <div class="comp-wrap" style="position:absolute; bottom:-24px; right:-24px; z-index:2;">
+        <span class="badge reuse">[REUSE] Quote Card</span>
+        <div style="background:#333; color:#eee; padding:18px 20px; max-width:220px; box-shadow:4px 4px 12px rgba(0,0,0,0.2);">
+          <p style="font-family:Georgia,serif; font-size:14px; font-style:italic; line-height:1.5;">"Elegância é a única beleza que nunca desaparece."</p>
+          <p style="font-size:10px; color:#aaa; margin-top:8px; text-transform:uppercase; letter-spacing:2px;">— Audrey Hepburn</p>
+        </div>
+      </div>
+    </div>
+    <!-- Text -->
+    <div class="col-1" style="padding:40px 0;">
+      <div class="eyebrow">Tradição & Luxo Britânico</div>
+      <h2 class="wf-heading" style="font-size:34px; margin-top:8px;">London Noivas: Onde os sonhos tomam forma</h2>
+      <p class="wf-body mt">Inspirada no requinte das grandes boutiques de Londres, a London Noivas oferece uma experiência de aluguel de luxo sem precedentes.</p>
+      <div class="mt" style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:24px;">
+        <div style="display:flex; align-items:center; gap:10px; border:1px solid #ddd; border-radius:4px; padding:10px 14px;">
+          <div class="wf-box" style="width:36px; height:36px; border-radius:50%; flex-shrink:0; font-size:16px; background:#eee; border:1px solid #ccc;">✓</div>
+          <span style="font-size:12px; color:#555;">Atendimento Personalizado</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:10px; border:1px solid #ddd; border-radius:4px; padding:10px 14px;">
+          <div class="wf-box" style="width:36px; height:36px; border-radius:50%; flex-shrink:0; font-size:16px; background:#eee; border:1px solid #ccc;">✓</div>
+          <span style="font-size:12px; color:#555;">Peças Exclusivas Importadas</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:10px; border:1px solid #ddd; border-radius:4px; padding:10px 14px;">
+          <div class="wf-box" style="width:36px; height:36px; border-radius:50%; flex-shrink:0; font-size:16px; background:#eee; border:1px solid #ccc;">✓</div>
+          <span style="font-size:12px; color:#555;">Ajuste Sob Medida</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:10px; border:1px solid #ddd; border-radius:4px; padding:10px 14px;">
+          <div class="wf-box" style="width:36px; height:36px; border-radius:50%; flex-shrink:0; font-size:16px; background:#eee; border:1px solid #ccc;">✓</div>
+          <span style="font-size:12px; color:#555;">Acessórios Inclusos</span>
+        </div>
+      </div>
+      <div class="mt" style="margin-top:28px;">
+        <div class="wf-btn outline" style="display:inline-block; border-bottom:3px solid #333; border-radius:0; border-top:none; border-left:none; border-right:none; padding:4px 0; background:transparent; color:#333;">VISITE NOSSA LOJA →</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── SECTION 6: FEATURES (refined icons) ── -->
+<div class="wf-section" style="background:#222; color:#eee;">
+  <span class="section-label" style="color:#888;">Features Strip — Dark Band</span>
+  <div class="grid-3" style="margin-top:20px;">
+    <div class="comp-wrap" style="display:block; text-align:center;">
+      <span class="badge reuse">[REUSE] FeaturePillar</span>
+      <div style="border:2px dashed #555; border-radius:4px; padding:32px 20px; text-align:center;">
+        <div class="wf-box" style="width:56px; height:56px; margin:0 auto 16px; border-radius:50%; background:#444; border-color:#555; font-size:24px;">🔥</div>
+        <h3 style="font-family:Georgia,serif; font-size:18px; color:#eee; margin-bottom:10px; letter-spacing:2px;">Ajuste Sob Medida</h3>
+        <p style="font-size:12px; color:#888; line-height:1.6;">Costureiras especializadas garantem que o vestido fique perfeito no seu corpo.</p>
+      </div>
+    </div>
+    <div style="text-align:center; border:2px dashed #555; border-radius:4px; padding:32px 20px;">
+      <div class="wf-box" style="width:56px; height:56px; margin:0 auto 16px; border-radius:50%; background:#444; border-color:#555; font-size:24px;">♥</div>
+      <h3 style="font-family:Georgia,serif; font-size:18px; color:#eee; margin-bottom:10px; letter-spacing:2px;">Acessórios Disponíveis</h3>
+      <p style="font-size:12px; color:#888; line-height:1.6;">Véu, grinalda, bolsa e outros acessórios selecionados para o seu estilo.</p>
+    </div>
+    <div style="text-align:center; border:2px dashed #555; border-radius:4px; padding:32px 20px;">
+      <div class="wf-box" style="width:56px; height:56px; margin:0 auto 16px; border-radius:50%; background:#444; border-color:#555; font-size:24px;">★</div>
+      <h3 style="font-family:Georgia,serif; font-size:18px; color:#eee; margin-bottom:10px; letter-spacing:2px;">Curadoria Exclusiva</h3>
+      <p style="font-size:12px; color:#888; line-height:1.6;">Modelos dos melhores fornecedores do Brasil e do mundo.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ── SECTION 7: TESTIMONIALS (carousel) ── -->
+<div class="wf-section" style="background:#f9f9f9;">
+  <span class="section-label">Testimonials — Carousel (New interaction)</span>
+  <div class="text-center mb" style="margin-top:16px;">
+    <div class="eyebrow">Experiências Reais</div>
+    <h2 class="wf-heading">Experiências London Noivas</h2>
+    <div style="width:60px; height:2px; background:#ccc; margin:12px auto;"></div>
+  </div>
+  <!-- Carousel track -->
+  <div class="comp-wrap" style="display:block; position:relative;">
+    <span class="badge new">[NEW] TestimonialCarousel</span>
+    <div style="display:flex; gap:20px; overflow:hidden; padding: 10px 4px;">
+      <div style="min-width:300px; background:#fff; border:2px solid #ddd; border-top:4px solid #999; border-radius:4px; padding:28px; flex-shrink:0;">
+        <div style="color:#aaa; font-size:20px; margin-bottom:12px;">★★★★★</div>
+        <p style="font-size:13px; color:#555; font-style:italic; line-height:1.6;">"O atendimento foi impecável. O vestido parecia ter sido feito no meu corpo."</p>
+        <div style="margin-top:16px; display:flex; align-items:center; gap:10px;">
+          <div class="wf-box" style="width:36px; height:36px; border-radius:50%; background:#ddd; border:1px solid #bbb; font-size:14px;">M</div>
+          <div>
+            <div style="font-size:13px; font-weight:bold; color:#333;">Mariana Silva</div>
+            <div style="font-size:11px; color:#999; text-transform:uppercase; letter-spacing:1px;">Noiva 2025</div>
+          </div>
+        </div>
+      </div>
+      <div style="min-width:300px; background:#fff; border:2px solid #ddd; border-top:4px solid #999; border-radius:4px; padding:28px; flex-shrink:0;">
+        <div style="color:#aaa; font-size:20px; margin-bottom:12px;">★★★★★</div>
+        <p style="font-size:13px; color:#555; font-style:italic; line-height:1.6;">"A London Noivas superou todas as minhas expectativas. O acervo é maravilhoso."</p>
+        <div style="margin-top:16px; display:flex; align-items:center; gap:10px;">
+          <div class="wf-box" style="width:36px; height:36px; border-radius:50%; background:#ddd; border:1px solid #bbb; font-size:14px;">B</div>
+          <div>
+            <div style="font-size:13px; font-weight:bold; color:#333;">Beatriz Costa</div>
+            <div style="font-size:11px; color:#999; text-transform:uppercase; letter-spacing:1px;">Madrinha</div>
+          </div>
+        </div>
+      </div>
+      <div style="min-width:300px; background:#fff; border:2px solid #ddd; border-top:4px solid #999; border-radius:4px; padding:28px; flex-shrink:0;">
+        <div style="color:#aaa; font-size:20px; margin-bottom:12px;">★★★★★</div>
+        <p style="font-size:13px; color:#555; font-style:italic; line-height:1.6;">"Amei a curadoria e o atendimento! Me ajudou muito a decidir o que eu queria."</p>
+        <div style="margin-top:16px; display:flex; align-items:center; gap:10px;">
+          <div class="wf-box" style="width:36px; height:36px; border-radius:50%; background:#ddd; border:1px solid #bbb; font-size:14px;">F</div>
+          <div>
+            <div style="font-size:13px; font-weight:bold; color:#333;">Fernanda Lima</div>
+            <div style="font-size:11px; color:#999; text-transform:uppercase; letter-spacing:1px;">Formanda</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Carousel controls -->
+    <div style="text-align:center; margin-top:20px; display:flex; justify-content:center; gap:8px;">
+      <div style="width:10px; height:10px; border-radius:50%; background:#333; border:1px solid #333;"></div>
+      <div style="width:10px; height:10px; border-radius:50%; background:#ccc; border:1px solid #bbb;"></div>
+      <div style="width:10px; height:10px; border-radius:50%; background:#ccc; border:1px solid #bbb;"></div>
+    </div>
+    <div style="position:absolute; top:50%; right:0; transform:translateY(-50%);">
+      <button style="background:#333; color:#fff; border:none; width:36px; height:36px; border-radius:50%; cursor:pointer; font-size:16px;">›</button>
+    </div>
+  </div>
+  <div class="annotation">↑ Auto-plays every 4s. Swipe gesture on mobile. Dot indicators.</div>
+</div>
+
+<!-- ── SECTION 8: BOOKING CTA BAND ── -->
+<div class="wf-section" style="background:#111; text-align:center; padding:60px 40px;">
+  <span class="section-label" style="color:#666;">NEW: Booking CTA Band</span>
+  <div class="comp-wrap" style="display:inline-block;">
+    <span class="badge new">[NEW] CTABand</span>
+    <div>
+      <div class="eyebrow" style="color:#888; margin-top:0;">Pronta para encontrar seu vestido?</div>
+      <h2 style="font-family:Georgia,serif; font-size:36px; color:#eee; margin:12px 0;">Agende Sua Prova</h2>
+      <p style="font-size:14px; color:#888; max-width:400px; margin:0 auto 28px; line-height:1.6;">Escolha a data e horário que preferir e venha nos visitar.</p>
+      <div class="wf-btn cta" style="padding:16px 40px; font-size:15px; display:inline-block; border-radius:999px; background:#eee; color:#111; border-color:#eee;">✦ AGENDAR AGORA</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── SECTION 9: FOOTER ── -->
+<div class="wf-section" style="background:#f5f5f5;">
+  <span class="section-label">Footer — Refined (existing)</span>
+  <div class="grid-4" style="margin-top:20px; padding-bottom:32px; border-bottom:1px dashed #ccc;">
+    <!-- Brand -->
+    <div style="grid-column:span 2;">
+      <div class="comp-wrap" style="display:block;">
+        <span class="badge reuse">[REUSE] Brand Block</span>
+        <h2 style="font-family:Georgia,serif; font-size:22px; color:#222; letter-spacing:4px;">LONDON NOIVAS</h2>
+        <p class="wf-body" style="margin-top:10px; max-width:280px;">Tornando momentos especiais em memórias eternas através da elegância que você merece.</p>
+        <div style="margin-top:16px; display:flex; gap:10px; align-items:center;">
+          <div class="wf-box" style="width:38px; height:38px; border-radius:50%; font-size:16px; background:#ddd; border:1px solid #bbb;">📷</div>
+          <span style="font-size:13px; color:#666;">@londonnoivas</span>
+        </div>
+      </div>
+    </div>
+    <!-- Address -->
+    <div>
+      <div class="comp-wrap" style="display:block;">
+        <span class="badge reuse">[REUSE] Address Block</span>
+        <h4 style="font-size:12px; color:#333; text-transform:uppercase; letter-spacing:2px; margin-bottom:12px;">Onde Estamos</h4>
+        <p class="wf-body" style="font-size:12px;">Rua Voltaire, 9<br>Colônia Santo Antônio<br>Manaus - AM</p>
+        <p class="wf-body" style="font-size:12px; margin-top:8px;">Seg - Sáb: 10h às 20h</p>
+        <div class="wf-box image" style="height:120px; margin-top:12px; border:2px solid #ddd;">
+          <span style="position:relative; z-index:1; font-size:11px; color:#777;">[Map Image]</span>
+        </div>
+      </div>
+    </div>
+    <!-- Quick Links -->
+    <div>
+      <h4 style="font-size:12px; color:#333; text-transform:uppercase; letter-spacing:2px; margin-bottom:12px;">Links Rápidos</h4>
+      <ul style="list-style:none; font-size:13px; color:#666; line-height:2.2;">
+        <li>Destaques</li>
+        <li>Catálogo Completo</li>
+        <li>Agendamento / Dúvidas</li>
+        <li>Área Restrita</li>
+      </ul>
+    </div>
+  </div>
+  <div style="text-align:center; padding-top:20px;">
+    <p style="font-size:11px; color:#aaa;">© 2025 London Noivas. Todos os direitos reservados.</p>
+  </div>
+  <!-- Floating WhatsApp -->
+  <div class="comp-wrap" style="position:fixed; bottom:28px; right:28px; z-index:100;">
+    <span class="badge reuse">[REUSE] FloatingWhatsApp</span>
+    <div style="background:#555; width:52px; height:52px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; font-size:22px; box-shadow:0 4px 12px rgba(0,0,0,0.2);">💬</div>
+  </div>
+</div>
+
+<!-- Mobile note -->
+<div style="background:#fffbe6; border:2px dashed #f0c040; padding:20px 30px; font-family:Arial,sans-serif; font-size:12px; color:#555; margin:20px;">
+  <strong>📱 Mobile (≤768px):</strong> Hero stacks vertically (text above image) → "Como Funciona" becomes 2×2 grid → Catalog preview shows 2 columns → Features stacks to single column → Testimonials uses touch swipe carousel → Footer stacks to single column.
+</div>
+
+</body>
+</html>

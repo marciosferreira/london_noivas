@@ -1,6 +1,72 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='style_footer.css') }}" />
 
-<!-- footer.html -->
+{% if modern_footer %}
+<footer id="contato" class="bg-gradient-to-b from-slate-950 to-slate-900 pt-16 pb-12 border-t border-white/10 shadow-[0_-12px_30px_rgba(2,6,23,0.45)] text-stone-200">
+  <div class="container mx-auto px-6">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
+      <div class="col-span-1 md:col-span-2">
+        <h2 class="text-3xl font-serif mb-6 tracking-widest text-stone-100">LONDON NOIVAS</h2>
+        <p class="text-stone-400 mb-8 max-w-sm">
+          Tornando momentos especiais em memórias eternas através da elegância e sofisticação que você merece.
+        </p>
+        <div class="flex gap-4">
+          <a href="https://instagram.com/londonnoivas" target="_blank" class="flex items-center gap-3 group rounded-full border border-white/10 bg-white/5 px-4 py-2 hover:bg-white/10 transition-all">
+            <div class="w-10 h-10 border border-white/10 rounded-full flex items-center justify-center group-hover:bg-london-gold group-hover:text-white group-hover:border-london-gold transition-all">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M8 0C5.829 0 5.556.01 4.703.048 3.85.088 3.269.222 2.76.42a3.917 3.917 0 0 0-1.417.923A3.927 3.927 0 0 0 .42 2.76C.222 3.268.087 3.85.048 4.7.01 5.555 0 5.827 0 8.001c0 2.172.01 2.444.048 3.297.04.852.174 1.433.372 1.942.205.526.478.972.923 1.417.444.445.89.719 1.416.923.51.198 1.09.333 1.942.372C5.555 15.99 5.827 16 8 16s2.444-.01 3.298-.048c.851-.04 1.434-.174 1.943-.372a3.916 3.916 0 0 0 1.416-.923c.445-.445.718-.891.923-1.417.197-.509.332-1.09.372-1.942C15.99 10.445 16 10.173 16 8s-.01-2.445-.048-3.299c-.04-.851-.175-1.433-.372-1.941a3.926 3.926 0 0 0-.923-1.417A3.911 3.911 0 0 0 13.24.42c-.51-.198-1.092-.333-1.943-.372C10.443.01 10.172 0 7.998 0h.003zm-.717 1.442h.718c2.136 0 2.389.007 3.232.046.78.035 1.204.166 1.486.275.373.145.64.319.92.599.28.28.453.546.598.92.11.281.24.705.275 1.485.039.843.047 1.096.047 3.231s-.008 2.389-.047 3.232c-.035.78-.166 1.203-.275 1.485a2.47 2.47 0 0 1-.599.919c-.28.28-.546.453-.92.598-.281.11-.705.24-1.485.276-.843.038-1.096.047-3.232.047s-2.39-.009-3.233-.047c-.78-.036-1.203-.166-1.486-.276a2.478 2.478 0 0 1-.919-.598 2.48 2.48 0 0 1-.599-.92c-.11-.281-.24-.705-.275-1.485-.038-.843-.047-1.096-.047-3.232 0-2.136.009-2.388.047-3.231.036-.78.166-1.204.276-1.486.145-.373.319-.64.599-.92.28-.28.546-.453.92-.598.282-.11.705-.24 1.485-.276.738-.034 1.024-.044 2.515-.045v.002zm4.988 1.328a.96.96 0 1 0 0 1.92.96.96 0 0 0 0-1.92zm-4.27 1.122a4.109 4.109 0 1 0 0 8.217 4.109 4.109 0 0 0 0-8.217zm0 1.441a2.667 2.667 0 1 1 0 5.334 2.667 2.667 0 0 1 0-5.334z"/>
+              </svg>
+            </div>
+            <span class="text-stone-300 font-bold text-sm tracking-widest group-hover:text-london-gold transition-colors">@londonnoivas</span>
+          </a>
+        </div>
+      </div>
+      
+      <div>
+        <h4 class="font-bold text-stone-100 mb-6 tracking-widest uppercase text-sm">Onde Estamos</h4>
+        <ul class="space-y-4 text-stone-400 text-sm mb-6">
+          <li>Rua Voltaire, 9</li>
+          <li>Colônia Santo Antônio - Manaus - AM</li>
+          <li>Seg - Sáb: 10h às 20h</li>
+          <li>Tel/WhatsApp: <span id="phone-display-index" class="cursor-pointer underline decoration-dotted text-london-gold" onclick="revealPhone('phone-display-index')">Ver número</span></li>
+        </ul>
+        <div class="rounded-sm overflow-hidden shadow-md border border-white/10">
+          <a href="https://maps.app.goo.gl/iTZXMqYrz5CS9Xax6" onclick="openMapInfoModal(event, this.href, 'footer_map_image')" class="block w-full h-[200px] bg-stone-100">
+            <img src="{{ url_for('static', filename='mapa.png') }}" alt="Localização London Noivas" class="w-full h-full object-cover hover:opacity-90 transition-opacity">
+          </a>
+        </div>
+      </div>
+
+      <div>
+        <h4 class="font-bold text-stone-100 mb-6 tracking-widest uppercase text-sm">Links Rápidos</h4>
+        <ul class="space-y-4 text-stone-300 text-sm">
+          <li><a href="{{ url_for('catalogo') }}" class="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 hover:bg-white/10 hover:text-london-gold transition-all">Catálogo Completo</a></li>
+          <li><a href="https://wa.me/5592993531943" target="_blank" onclick="trackWhatsAppClick('footer_link')" class="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 hover:bg-white/10 hover:text-london-gold transition-all">Agendamento/Dúvidas</a></li>
+          <li>
+            {% if not session.get('logged_in') %}
+            <a href="{{ url_for('login', next=url_for('agenda')) }}" class="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 hover:bg-white/10 hover:text-london-gold transition-all">Área Restrita</a>
+            {% else %}
+            <a href="{{ url_for('agenda') }}" class="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 hover:bg-white/10 hover:text-london-gold transition-all">Painel Admin</a>
+            {% endif %}
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="border-t border-white/10 pt-8 text-center text-stone-400 text-xs">
+      <p>&copy; 2025 London Noivas. Todos os direitos reservados. Desenvolvido com sofisticação.</p>
+    </div>
+  </div>
+  
+  <a id="floating-whatsapp-cta" href="https://wa.me/5592993531943" onclick="trackWhatsAppClick('floating_cta')" class="fixed bottom-8 right-8 bg-green-500 text-white p-4 rounded-full shadow-2xl hover:scale-110 transition-transform z-50 flex items-center gap-2 group">
+    <span class="max-w-0 overflow-hidden group-hover:max-w-xs transition-all duration-500 whitespace-nowrap font-bold">
+      Agendamento/Dúvidas
+    </span>
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.588-5.946 0-6.556 5.332-11.891 11.891-11.891 3.181 0 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.481 8.403 0 6.556-5.332 11.892-11.891 11.892-1.999 0-3.956-.503-5.692-1.448l-6.301 1.666zm6.29-4.143c1.589.943 3.197 1.441 4.934 1.441 5.485 0 9.95-4.465 9.95-9.95 0-2.652-1.036-5.147-2.919-7.031-1.883-1.883-4.384-2.917-7.031-2.917-5.485 0-9.951 4.465-9.951 9.95 0 2.07.635 4.089 1.835 5.823l-1.101 4.022 4.133-1.092zm10.293-7.234c-.298-.15-1.764-.871-2.037-.972-.273-.102-.472-.152-.671.152-.199.303-.771 1.018-.944 1.219-.174.202-.348.227-.646.077-.298-.15-1.258-.464-2.396-1.48-.885-.789-1.483-1.763-1.656-2.064-.174-.302-.018-.465.132-.614.135-.133.298-.348.447-.521.149-.174.199-.298.298-.497.099-.198.05-.373-.025-.522-.075-.15-.671-1.616-.919-2.213-.242-.581-.486-.502-.671-.512-.174-.01-.373-.013-.572-.013-.199 0-.523.075-.795.373-.273.302-1.045 1.018-1.045 2.486s1.07 2.885 1.219 3.085c.149.202 2.105 3.214 5.099 4.507.712.308 1.268.491 1.701.628.715.227 1.365.195 1.879.118.573-.086 1.764-.72 2.013-1.417.248-.696.248-1.292.174-1.417-.074-.125-.272-.201-.57-.352z"/>
+    </svg>
+  </a>
+</footer>
+{% else %}
 <div class="footer-wrapper">
   <footer class="footer text-light">
     <div class="container py-4">
@@ -27,3 +93,4 @@
     </div>
   </footer>
 </div>
+{% endif %}

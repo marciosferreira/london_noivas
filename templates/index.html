@@ -11,14 +11,13 @@
         window.dataLayer = window.dataLayer || [];
         function gtag(){dataLayer.push(arguments);}
         gtag('js', new Date());
-
         gtag('config', 'G-23RSZ1SMRX');
     </script>
     
-    <!-- Google Fonts -->
+    <!-- Google Fonts - More refined pairing -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400&family=Outfit:wght@200;300;400;500;600&display=swap" rel="stylesheet">
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -27,23 +26,32 @@
             theme: {
                 extend: {
                     colors: {
-                        'london-gold': '#C5A059',
-                        'stone': {
-                            50: '#fafaf9',
-                            100: '#f5f5f4',
-                            200: '#e7e5e4',
-                            300: '#d6d3d1',
-                            400: '#a8a29e',
-                            500: '#78716c',
-                            600: '#57534e',
-                            700: '#44403c',
-                            800: '#292524',
-                            900: '#1c1917',
+                        'london-gold': '#B8956A',
+                        'london-gold-light': '#D4B896',
+                        'london-gold-dark': '#96704A',
+                        'ivory': {
+                            50: '#FDFCFA',
+                            100: '#FAF8F5',
+                            200: '#F3EFE8',
+                            300: '#E8E2D8',
+                        },
+                        'charcoal': {
+                            50: '#F7F7F7',
+                            100: '#E3E3E3',
+                            200: '#C8C8C8',
+                            300: '#A4A4A4',
+                            400: '#818181',
+                            500: '#666666',
+                            600: '#515151',
+                            700: '#434343',
+                            800: '#2D2D2D',
+                            900: '#1A1A1A',
+                            950: '#0D0D0D',
                         }
                     },
                     fontFamily: {
-                        serif: ['Playfair Display', 'serif'],
-                        sans: ['Lato', 'sans-serif'],
+                        serif: ['Cormorant Garamond', 'Georgia', 'serif'],
+                        sans: ['Outfit', 'sans-serif'],
                     }
                 }
             }
@@ -51,369 +59,538 @@
     </script>
     
     <style>
-        .animate-fadeIn {
-            animation: fadeIn 1.5s ease-out;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
+        /* ===== REFINED ANIMATIONS ===== */
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(30px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        /* Custom scrollbar */
-        ::-webkit-scrollbar {
-            width: 8px;
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
-        ::-webkit-scrollbar-track {
-            background: #f5f5f4;
+        @keyframes slideInLeft {
+            from { opacity: 0; transform: translateX(-40px); }
+            to { opacity: 1; transform: translateX(0); }
         }
-        ::-webkit-scrollbar-thumb {
-            background: #C5A059;
-            border-radius: 4px;
+        @keyframes scaleReveal {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
         }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #a38446;
+        @keyframes widthReveal {
+            from { width: 0; }
+            to { width: 80px; }
         }
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+        @keyframes floatSoft {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-6px); }
+        }
+
+        .animate-fadeUp { animation: fadeUp 1s ease-out forwards; }
+        .animate-fadeIn { animation: fadeIn 1.2s ease-out forwards; }
+        .animate-slideInLeft { animation: slideInLeft 0.8s ease-out forwards; }
+        .animate-scaleReveal { animation: scaleReveal 1s ease-out forwards; }
+        .animate-widthReveal { animation: widthReveal 0.8s ease-out 0.5s forwards; }
+
+        .delay-100 { animation-delay: 0.1s; }
+        .delay-200 { animation-delay: 0.2s; }
+        .delay-300 { animation-delay: 0.3s; }
+        .delay-400 { animation-delay: 0.4s; }
+        .delay-500 { animation-delay: 0.5s; }
+        .delay-600 { animation-delay: 0.6s; }
+        .delay-700 { animation-delay: 0.7s; }
+
+        /* ===== CUSTOM SCROLLBAR ===== */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #FAF8F5; }
+        ::-webkit-scrollbar-thumb { background: #B8956A; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #96704A; }
+
+        /* ===== GRAIN TEXTURE OVERLAY ===== */
+        .grain-overlay::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* ===== ELEGANT DIVIDER ===== */
+        .elegant-divider {
+            width: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #B8956A, transparent);
+        }
+        .elegant-divider.revealed { width: 80px; transition: width 1s ease-out; }
+
+        /* ===== HERO PARALLAX-LIKE DEPTH ===== */
+        .hero-image {
+            transition: transform 12s ease-out;
+        }
+        .hero-image:hover {
+            transform: scale(1.03);
+        }
+
+        /* ===== FEATURE CARD HOVER ===== */
+        .feature-card {
+            transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+        .feature-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 32px 64px -12px rgba(0,0,0,0.1), 0 0 0 1px rgba(184,149,106,0.1);
+        }
+        .feature-card .icon-ring {
+            transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+        .feature-card:hover .icon-ring {
+            background: #B8956A;
+            color: white;
+            border-color: #B8956A;
+            transform: scale(1.1);
+        }
+
+        /* ===== TESTIMONIAL CARD ===== */
+        .testimonial-card {
+            transition: all 0.4s ease;
+            position: relative;
+        }
+        .testimonial-card::before {
+            content: '\201C';
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 6rem;
+            color: #B8956A;
+            opacity: 0.12;
+            position: absolute;
+            top: -10px;
+            left: 20px;
+            line-height: 1;
+            pointer-events: none;
+        }
+        .testimonial-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px -8px rgba(0,0,0,0.08);
+        }
+
+        /* ===== LINK UNDERLINE EFFECT ===== */
+        .link-elegant {
+            position: relative;
+            display: inline-block;
+        }
+        .link-elegant::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 100%;
+            height: 1px;
+            background: #B8956A;
+            transform: scaleX(0);
+            transform-origin: right;
+            transition: transform 0.4s ease;
+        }
+        .link-elegant:hover::after {
+            transform: scaleX(1);
+            transform-origin: left;
+        }
+
+        /* ===== NAV LINK HOVER ===== */
+        .nav-link-refined {
+            position: relative;
+            padding-bottom: 2px;
+        }
+        .nav-link-refined::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            width: 0;
+            height: 1px;
+            background: #B8956A;
+            transition: all 0.3s ease;
+        }
+        .nav-link-refined:hover::after {
+            left: 0;
+            width: 100%;
+        }
+
+        /* ===== BUTTON SHIMMER ===== */
+        .btn-shimmer {
+            position: relative;
+            overflow: hidden;
+        }
+        .btn-shimmer::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+            transition: left 0.6s ease;
+        }
+        .btn-shimmer:hover::before {
+            left: 100%;
+        }
+
+        /* ===== SMOOTH SCROLL SECTIONS ===== */
+        .reveal-section {
+            opacity: 0;
+            transform: translateY(40px);
+            transition: all 0.8s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+        .reveal-section.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* ===== STAR RATING ===== */
+        .star-gold { color: #B8956A; }
     </style>
 </head>
-<body class="bg-stone-50 text-stone-800 font-sans antialiased">
+<body class="bg-ivory-50 text-charcoal-800 font-sans antialiased">
 
-    <!-- Header -->
-    <header id="main-header" class="sticky top-0 left-0 right-0 z-50 bg-stone-900 py-4 shadow-lg">
+    <!-- ======================== HEADER ======================== -->
+    <header id="main-header" class="sticky top-0 left-0 right-0 z-50 bg-charcoal-950/95 backdrop-blur-md py-4 shadow-[0_1px_0_rgba(184,149,106,0.15)]">
         <div class="container mx-auto px-6 flex justify-between items-center">
-            <div class="flex items-center gap-2">
-                <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-sm overflow-hidden bg-white">
+            <a href="{{ url_for('index') }}" class="flex items-center gap-3">
+                <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-sm overflow-hidden bg-white/90 shadow-sm">
                     <img src="{{ url_for('static', filename='logo.jpeg') }}" alt="London Noivas Logo" class="w-full h-full object-contain">
                 </div>
-                <h1 id="header-title" class="text-lg sm:text-2xl font-serif tracking-[0.2em] sm:tracking-widest text-white whitespace-nowrap">
-                    LONDON NOIVAS
-                </h1>
-            </div>
+                <div>
+                    <h1 id="header-title" class="text-base sm:text-xl font-serif font-light tracking-[0.25em] text-white whitespace-nowrap">
+                        LONDON NOIVAS
+                    </h1>
+                    <div class="hidden sm:block h-px w-full bg-gradient-to-r from-london-gold/60 to-transparent mt-0.5"></div>
+                </div>
+            </a>
 
-            <nav class="hidden md:flex gap-8 items-center font-medium tracking-wide text-sm">
-                <a href="{{ url_for('catalogo') }}" class="nav-link text-white hover:text-london-gold transition-colors">CATÁLOGO</a>
-                <a href="#sobre" class="nav-link text-white hover:text-london-gold transition-colors">SOBRE</a>
-                <a href="#contato" class="nav-link text-white hover:text-london-gold transition-colors">CONTATO</a>
-                <a href="{{ url_for('public_booking_root') }}" class="bg-london-gold text-white px-6 py-2 rounded-full hover:bg-opacity-90 transition-all shadow-lg">
-                    AGENDAR PROVA
+            <nav class="hidden md:flex gap-8 items-center text-[13px] font-sans font-medium tracking-[0.15em] uppercase">
+                <a href="{{ url_for('catalogo') }}" class="nav-link-refined text-ivory-200 hover:text-london-gold-light transition-colors">Catálogo</a>
+                <a href="#sobre" class="nav-link-refined text-ivory-200 hover:text-london-gold-light transition-colors">Sobre</a>
+                <a href="#contato" class="nav-link-refined text-ivory-200 hover:text-london-gold-light transition-colors">Contato</a>
+                <a href="{{ url_for('public_booking_root') }}" class="btn-shimmer bg-london-gold text-white px-7 py-2.5 rounded-sm hover:bg-london-gold-dark transition-all shadow-lg shadow-london-gold/20 tracking-[0.15em]">
+                    Agendar Prova
                 </a>
                 
                 {% if session.get('logged_in') %}
-                <a href="{{ url_for('agenda') }}" class="bg-white/10 text-white px-3 py-1 rounded hover:bg-white/20 transition-all text-[11px] leading-none ml-3">
+                <a href="{{ url_for('agenda') }}" class="bg-white/8 text-ivory-300 px-3 py-1.5 rounded-sm hover:bg-white/15 transition-all text-[10px] tracking-wider ml-2 border border-white/10">
                     PAINEL
                 </a>
-                <a href="{{ url_for('logout') }}" class="bg-white/10 text-white px-3 py-1 rounded hover:bg-white/20 transition-all text-[11px] leading-none">
-                    DESLOGAR
+                <a href="{{ url_for('logout') }}" class="bg-white/8 text-ivory-300 px-3 py-1.5 rounded-sm hover:bg-white/15 transition-all text-[10px] tracking-wider border border-white/10">
+                    SAIR
                 </a>
                 {% endif %}
             </nav>
             
             <button id="mobile-menu-btn" class="md:hidden text-london-gold focus:outline-none">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-7 h-7">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
                 </svg>
             </button>
         </div>
     </header>
 
-    <!-- Mobile Menu Overlay -->
-    <div id="mobile-menu" class="fixed inset-0 z-[60] bg-stone-900/95 backdrop-blur-sm transform translate-x-full transition-transform duration-300 md:hidden flex flex-col justify-center items-center">
-        <button id="close-menu-btn" class="absolute top-6 right-6 text-white hover:text-london-gold transition-colors focus:outline-none">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-10 h-10">
+    <!-- ======================== MOBILE MENU ======================== -->
+    <div id="mobile-menu" class="fixed inset-0 z-[60] bg-charcoal-950/98 backdrop-blur-lg transform translate-x-full transition-transform duration-300 md:hidden flex flex-col justify-center items-center">
+        <button id="close-menu-btn" class="absolute top-6 right-6 text-ivory-300 hover:text-london-gold transition-colors focus:outline-none">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor" class="w-10 h-10">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
         </button>
         
-        <nav class="flex flex-col gap-8 text-center">
-            <a href="/" class="text-2xl font-serif text-white hover:text-london-gold transition-colors" onclick="closeMobileMenu()">INÍCIO</a>
-            <a href="{{ url_for('catalogo') }}" class="text-2xl font-serif text-white hover:text-london-gold transition-colors" onclick="closeMobileMenu()">CATÁLOGO</a>
-            <a href="#sobre" class="text-2xl font-serif text-white hover:text-london-gold transition-colors" onclick="closeMobileMenu()">SOBRE</a>
-            <a href="#contato" class="text-2xl font-serif text-white hover:text-london-gold transition-colors" onclick="closeMobileMenu()">CONTATO</a>
-            <a href="{{ url_for('public_booking_root') }}" onclick="closeMobileMenu()" class="text-xl bg-london-gold text-white px-8 py-3 rounded-full hover:bg-white hover:text-london-gold transition-all shadow-lg mt-4">
-                AGENDAR PROVA
+        <nav class="flex flex-col gap-6 text-center">
+            <a href="/" class="text-2xl font-serif font-light text-ivory-100 hover:text-london-gold transition-colors tracking-widest" onclick="closeMobileMenu()">Início</a>
+            <a href="{{ url_for('catalogo') }}" class="text-2xl font-serif font-light text-ivory-100 hover:text-london-gold transition-colors tracking-widest" onclick="closeMobileMenu()">Catálogo</a>
+            <a href="#sobre" class="text-2xl font-serif font-light text-ivory-100 hover:text-london-gold transition-colors tracking-widest" onclick="closeMobileMenu()">Sobre</a>
+            <a href="#contato" class="text-2xl font-serif font-light text-ivory-100 hover:text-london-gold transition-colors tracking-widest" onclick="closeMobileMenu()">Contato</a>
+            <div class="w-12 h-px bg-london-gold/40 mx-auto my-2"></div>
+            <a href="{{ url_for('public_booking_root') }}" onclick="closeMobileMenu()" class="btn-shimmer text-lg bg-london-gold text-white px-10 py-3.5 rounded-sm hover:bg-london-gold-dark transition-all shadow-lg tracking-[0.2em] font-sans font-medium uppercase">
+                Agendar Prova
             </a>
             {% if session.get('logged_in') %}
-            <a href="{{ url_for('logout') }}" class="text-xl border border-white/30 text-white px-8 py-3 rounded-full hover:bg-white hover:text-stone-900 transition-all shadow-lg" onclick="closeMobileMenu()">
-                DESLOGAR
+            <a href="{{ url_for('logout') }}" class="text-sm border border-ivory-300/20 text-ivory-300 px-8 py-2.5 rounded-sm hover:bg-white/10 transition-all tracking-wider uppercase font-sans" onclick="closeMobileMenu()">
+                Sair
             </a>
             {% endif %}
         </nav>
     </div>
 
     <main>
-        <!-- Hero Section -->
-        <section class="relative min-h-screen w-full flex items-start md:items-center justify-center overflow-visible md:overflow-hidden pt-16 pb-10 md:pt-0 md:pb-0">
-            <!-- Background with overlay -->
+        <!-- ======================== HERO SECTION ======================== -->
+        <section class="relative min-h-screen w-full flex items-start md:items-center justify-center overflow-hidden pt-16 pb-10 md:pt-0 md:pb-0">
+            <!-- Background -->
             <div class="absolute inset-0 z-0">
                 <img 
-                    src="https://images.unsplash.com/photo-1583939003579-730e3918a45a?auto=format&fit=crop&q=80&w=2000" 
+                    src="https://images.unsplash.com/photo-1583939003579-730e3918a45a?auto=format&fit=crop&q=90&w=2800&dpr=2" 
                     alt="Luxury wedding dress" 
-                    class="w-full h-full object-cover object-[50%_25%]"
+                    class="hero-image w-full h-full object-cover object-[50%_25%]"
                 />
-                <div class="absolute inset-0 bg-black/40"></div>
+                <!-- Refined gradient overlay: darker at bottom for text readability -->
+                <div class="absolute inset-0 bg-gradient-to-b from-charcoal-950/30 via-charcoal-950/20 to-charcoal-950/70"></div>
+                <!-- Subtle vignette -->
+                <div class="absolute inset-0" style="background: radial-gradient(ellipse at center, transparent 40%, rgba(13,13,13,0.3) 100%);"></div>
             </div>
 
-            <div class="relative z-10 text-center px-6 max-w-4xl animate-fadeIn">
-                <span class="text-london-gold font-medium tracking-[0.3em] text-sm md:text-base mb-4 block">ELEGÂNCIA BRITÂNICA EM CADA DETALHE</span>
-                <h2 class="text-4xl md:text-6xl text-white font-serif mb-4 leading-tight">
-                    O Vestido dos Seus Sonhos <br/> Está Aqui
+            <div class="relative z-10 text-center px-6 max-w-4xl">
+                <!-- Decorative line -->
+                <div class="w-px h-12 bg-london-gold/60 mx-auto mb-6 animate-fadeIn opacity-0 delay-100" style="animation-fill-mode:forwards"></div>
+                
+                <span class="animate-fadeIn opacity-0 delay-200 text-london-gold-light font-sans font-light tracking-[0.4em] text-xs md:text-sm mb-5 block uppercase" style="animation-fill-mode:forwards">
+                    Elegância Britânica em Cada Detalhe
+                </span>
+                
+                <h2 class="animate-fadeUp opacity-0 delay-300 text-5xl md:text-7xl text-white font-serif font-light mb-5 leading-[1.1]" style="animation-fill-mode:forwards">
+                    O Vestido dos Seus<br/>
+                    <span class="italic font-light">Sonhos</span> Está Aqui
                 </h2>
-                <p class="text-stone-200 text-lg md:text-xl mb-6 max-w-2xl mx-auto font-light">
-                    Aluguel de vestidos exclusivos para noivas, madrinhas e ocasiões especiais. Viva uma experiência inesquecível com a curadoria London Noivas em Manaus.
+                
+                <p class="animate-fadeIn opacity-0 delay-400 text-ivory-200/80 text-base md:text-lg mb-8 max-w-2xl mx-auto font-light leading-relaxed tracking-wide" style="animation-fill-mode:forwards">
+                    Aluguel de vestidos exclusivos para noivas, madrinhas e ocasiões especiais.<br class="hidden md:block">
+                    Viva uma experiência inesquecível com a curadoria London Noivas em Manaus.
                 </p>
-                <div class="flex flex-wrap gap-4 justify-center max-w-4xl mx-auto">
+
+                <!-- Occasion CTAs -->
+                <div class="animate-fadeUp opacity-0 delay-600 flex flex-wrap gap-3 justify-center max-w-3xl mx-auto" style="animation-fill-mode:forwards">
                     {% if occasion_tabs %}
                         {% for tab in occasion_tabs %}
                         <a href="{{ url_for('catalogo', occasion=tab.slug) }}" 
-                           class="bg-white/10 backdrop-blur-sm border border-white/30 text-white px-6 py-3 rounded-sm font-medium tracking-wider hover:bg-white hover:text-stone-900 transition-all text-sm uppercase">
+                           class="group bg-white/5 backdrop-blur-md border border-white/20 text-white px-7 py-3 rounded-sm font-sans font-medium tracking-[0.15em] hover:bg-white hover:text-charcoal-900 hover:border-white transition-all duration-300 text-xs uppercase">
                             {{ tab.label }}
                         </a>
                         {% endfor %}
                     {% else %}
-                        <a href="{{ url_for('catalogo') }}" class="bg-white/10 backdrop-blur-sm border border-white/30 text-white px-6 py-3 rounded-sm font-medium tracking-wider hover:bg-white hover:text-stone-900 transition-all text-sm uppercase">
-                            VER CATÁLOGO
+                        <a href="{{ url_for('catalogo') }}" class="group bg-white/5 backdrop-blur-md border border-white/20 text-white px-8 py-3.5 rounded-sm font-sans font-medium tracking-[0.15em] hover:bg-white hover:text-charcoal-900 hover:border-white transition-all duration-300 text-xs uppercase">
+                            Ver Catálogo
                         </a>
                     {% endif %}
                 </div>
+                
+                <!-- Decorative bottom line -->
+                <div class="w-px h-8 bg-london-gold/40 mx-auto mt-10 animate-fadeIn opacity-0 delay-700" style="animation-fill-mode:forwards"></div>
+            </div>
+            
+            <!-- Scroll hint -->
+            <div class="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 animate-fadeIn opacity-0 delay-700" style="animation-fill-mode:forwards; animation: floatSoft 3s ease-in-out infinite, fadeIn 1.2s ease-out 0.7s forwards;">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor" class="w-5 h-5 text-white/40">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                </svg>
             </div>
         </section>
 
-        <!-- Intro Section -->
-        <section id="sobre" class="pt-12 pb-4 md:pt-24 md:pb-12 bg-white">
-            <div class="container mx-auto px-6 flex flex-col md:flex-row items-center gap-16">
-                <div class="md:w-1/2 flex justify-center">
-                    <div class="relative w-full md:w-[80%]">
-                        <div class="absolute -top-4 -left-4 w-24 h-24 border-t-2 border-l-2 border-london-gold z-10"></div>
-                        <!-- Imagem que representa o showroom real da foto enviada -->
+        <!-- ======================== ABOUT / INTRO SECTION ======================== -->
+        <section id="sobre" class="relative pt-16 pb-8 md:pt-28 md:pb-16 bg-white grain-overlay overflow-hidden">
+            <!-- Subtle decorative background -->
+            <div class="absolute top-0 right-0 w-1/3 h-full bg-gradient-to-l from-ivory-100/50 to-transparent pointer-events-none"></div>
+            
+            <div class="container mx-auto px-6 flex flex-col md:flex-row items-center gap-12 md:gap-20 relative z-10">
+                <!-- Image Column -->
+                <div class="md:w-[45%] flex justify-center reveal-section">
+                    <div class="relative w-full md:w-[85%]">
+                        <!-- Corner accents -->
+                        <div class="absolute -top-3 -left-3 w-16 h-16 border-t border-l border-london-gold/50 z-10 pointer-events-none"></div>
+                        <div class="absolute -bottom-3 -right-3 w-16 h-16 border-b border-r border-london-gold/50 z-10 pointer-events-none"></div>
+                        
                         <img 
                             src="{{ url_for('static', filename='london_noivas_image.png') }}" 
                             alt="Showroom London Noivas" 
-                            class="w-full shadow-2xl relative z-0 rounded-sm object-contain aspect-[2/3] bg-stone-100"
+                            class="w-full shadow-[0_25px_60px_-15px_rgba(0,0,0,0.15)] relative z-0 rounded-sm object-contain aspect-[2/3] bg-ivory-100"
                         />
-                        <div class="absolute -bottom-8 -right-8 bg-london-gold p-8 hidden md:block shadow-xl">
-                            <p class="text-white font-serif text-2xl italic leading-tight">"Elegância é a única beleza que nunca desaparece."</p>
-                            <p class="text-white/80 text-sm mt-3 tracking-widest uppercase font-bold">— Audrey Hepburn</p>
+                        
+                        <!-- Quote card (desktop only) -->
+                        <div class="absolute -bottom-6 -right-6 bg-charcoal-900 p-7 hidden md:block shadow-2xl max-w-[280px]">
+                            <p class="text-ivory-200 font-serif text-lg italic leading-snug">"Elegância é a única beleza que nunca desaparece."</p>
+                            <div class="w-8 h-px bg-london-gold mt-3 mb-2"></div>
+                            <p class="text-london-gold-light text-[10px] tracking-[0.3em] uppercase font-sans font-medium">Audrey Hepburn</p>
                         </div>
                     </div>
                 </div>
-                <div class="md:w-1/2 space-y-8">
-                    <div class="space-y-2">
-                        <span class="text-london-gold font-bold tracking-[0.3em] text-xs uppercase">Tradição & Luxo Britânico</span>
-                        <h2 class="text-4xl md:text-6xl font-serif text-stone-800 leading-tight">London Noivas: Onde os sonhos tomam forma</h2>
+                
+                <!-- Text Column -->
+                <div class="md:w-[55%] space-y-7 reveal-section">
+                    <div class="space-y-3">
+                        <span class="text-london-gold font-sans font-medium tracking-[0.3em] text-[10px] uppercase block">Tradição & Luxo Britânico</span>
+                        <h2 class="text-3xl md:text-5xl font-serif font-light text-charcoal-900 leading-[1.15]">
+                            London Noivas:<br/>
+                            <span class="italic">Onde os sonhos</span><br/>
+                            tomam forma
+                        </h2>
                     </div>
-                    <p class="text-stone-600 leading-relaxed text-lg font-light">
+                    
+                    <div class="w-10 h-px bg-london-gold/60"></div>
+                    
+                    <p class="text-charcoal-500 leading-[1.8] text-base font-light max-w-lg">
                         Inspirada no requinte das grandes boutiques de Londres, a London Noivas oferece uma experiência de aluguel de luxo sem precedentes. 
                         Nosso showroom foi projetado para ser o seu santuário, onde cada prova de vestido é um momento de celebração e descoberta da sua melhor versão.
                     </p>
-                    <div class="pt-4 grid grid-cols-1 sm:grid-cols-2 gap-6">
-                        <div class="flex items-center gap-4">
-                            <div class="w-12 h-12 rounded-full bg-stone-50 flex items-center justify-center text-london-gold border border-london-gold/20">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                    
+                    <div class="pt-2 grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <div class="flex items-center gap-4 group">
+                            <div class="w-10 h-10 rounded-full bg-ivory-100 flex items-center justify-center text-london-gold border border-london-gold/20 group-hover:bg-london-gold group-hover:text-white group-hover:border-london-gold transition-all duration-300 flex-shrink-0">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
                             </div>
-                            <span class="text-stone-700 font-medium text-sm tracking-wide">Atendimento Personalizado</span>
+                            <span class="text-charcoal-700 font-sans text-sm tracking-wide">Atendimento Personalizado</span>
                         </div>
-                        <div class="flex items-center gap-4">
-                            <div class="w-12 h-12 rounded-full bg-stone-50 flex items-center justify-center text-london-gold border border-london-gold/20">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                        <div class="flex items-center gap-4 group">
+                            <div class="w-10 h-10 rounded-full bg-ivory-100 flex items-center justify-center text-london-gold border border-london-gold/20 group-hover:bg-london-gold group-hover:text-white group-hover:border-london-gold transition-all duration-300 flex-shrink-0">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
                             </div>
-                            <span class="text-stone-700 font-medium text-sm tracking-wide">Peças Exclusivas Nacionais e Importadas</span>
+                            <span class="text-charcoal-700 font-sans text-sm tracking-wide">Peças Exclusivas Nacionais e Importadas</span>
                         </div>
                     </div>
-                    <div class="pt-6">
-                        <a href="https://www.google.com.br/search?sca_esv=b91b52423da4ab6e&cs=0&output=search&kgmid=/g/11ymffx4qh&q=London+Noivas+e+Madrinhas&shem=bdsle,shrtn&shndl=30&source=sh/x/kp/local/m1/1&kgs=74936c11b6f17298&utm_source=bdsle,shrtn,sh/x/kp/local/m1/1&kgs=74936c11b6f17298&utm_source=bdsle,shrtn,sh/x/kp/local/m1/1" class="inline-block border-b-2 border-london-gold text-stone-800 font-bold tracking-widest pb-1 hover:text-london-gold transition-colors" onclick="openMapInfoModal(event, this.href, 'visite_nossa_loja', 'visit_shop', 'engagement')">
-                            VISITE NOSSA LOJA
+                    
+                    <div class="pt-4">
+                        <a href="https://www.google.com.br/search?sca_esv=b91b52423da4ab6e&cs=0&output=search&kgmid=/g/11ymffx4qh&q=London+Noivas+e+Madrinhas&shem=bdsle,shrtn&shndl=30&source=sh/x/kp/local/m1/1&kgs=74936c11b6f17298&utm_source=bdsle,shrtn,sh/x/kp/local/m1/1&kgs=74936c11b6f17298&utm_source=bdsle,shrtn,sh/x/kp/local/m1/1" 
+                           class="link-elegant inline-flex items-center gap-2 text-charcoal-800 font-sans font-semibold tracking-[0.2em] text-xs uppercase hover:text-london-gold transition-colors" 
+                           onclick="openMapInfoModal(event, this.href, 'visite_nossa_loja', 'visit_shop', 'engagement')">
+                            Visite Nossa Loja
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                            </svg>
                         </a>
                     </div>
                 </div>
             </div>
         </section>
 
-
-
-        <!-- Features Section -->
-        <section class="py-24 bg-stone-900 text-white">
-            <div class="container mx-auto px-6">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-16">
-                    <div class="flex flex-col items-center text-center group">
-                        <div class="text-london-gold mb-6 group-hover:scale-110 transition-transform">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-10 h-10">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z" />
-                            </svg>
+        <!-- ======================== FEATURES SECTION ======================== -->
+        <section class="py-20 md:py-28 bg-ivory-100 relative grain-overlay">
+            <div class="container mx-auto px-6 relative z-10">
+                <!-- Section header -->
+                <div class="text-center mb-16 reveal-section">
+                    <span class="text-london-gold font-sans font-medium tracking-[0.3em] text-[10px] uppercase block mb-3">Nossos Diferenciais</span>
+                    <h2 class="text-3xl md:text-4xl font-serif font-light text-charcoal-900">Uma Experiência Completa</h2>
+                    <div class="w-10 h-px bg-london-gold mx-auto mt-4"></div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+                    <!-- Feature 1 -->
+                    <div class="feature-card reveal-section bg-white rounded-sm border border-ivory-300/50 shadow-[0_8px_30px_rgba(0,0,0,0.04)] px-8 py-10 text-center">
+                        <div class="mb-6 flex justify-center">
+                            <div class="icon-ring w-14 h-14 rounded-full border border-london-gold/30 bg-london-gold/5 flex items-center justify-center text-london-gold">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z" />
+                                </svg>
+                            </div>
                         </div>
-                        <h3 class="text-2xl font-serif mb-4 tracking-wider">Ajuste Sob Medida</h3>
-                        <p class="text-stone-400 font-light leading-relaxed">
+                        <h3 class="text-xl font-serif font-normal mb-3 tracking-wider text-charcoal-800">Ajuste Sob Medida</h3>
+                        <p class="text-charcoal-500 font-light leading-relaxed text-sm">
                             Costureiras especializadas garantem que o vestido fique perfeito no seu corpo.
                         </p>
                     </div>
-                    <div class="flex flex-col items-center text-center group">
-                        <div class="text-london-gold mb-6 group-hover:scale-110 transition-transform">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-10 h-10">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
-                            </svg>
+                    
+                    <!-- Feature 2 -->
+                    <div class="feature-card reveal-section bg-white rounded-sm border border-ivory-300/50 shadow-[0_8px_30px_rgba(0,0,0,0.04)] px-8 py-10 text-center">
+                        <div class="mb-6 flex justify-center">
+                            <div class="icon-ring w-14 h-14 rounded-full border border-london-gold/30 bg-london-gold/5 flex items-center justify-center text-london-gold">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+                                </svg>
+                            </div>
                         </div>
-                        <h3 class="text-2xl font-serif mb-4 tracking-wider">Acessórios Disponíveis</h3>
-                        <p class="text-stone-400 font-light leading-relaxed">
-                            Aluguel completo com véu, grinalda, bolsa, e outros acessórios selecionadas para o seu estilo.
+                        <h3 class="text-xl font-serif font-normal mb-3 tracking-wider text-charcoal-800">Acessórios Disponíveis</h3>
+                        <p class="text-charcoal-500 font-light leading-relaxed text-sm">
+                            Aluguel completo com véu, grinalda, bolsa, e outros acessórios selecionados para o seu estilo.
                         </p>
                     </div>
-                    <div class="flex flex-col items-center text-center group">
-                        <div class="text-london-gold mb-6 group-hover:scale-110 transition-transform">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-10 h-10">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.332A48.36 48.36 0 0012 9.75c-2.551 0-5.056.2-7.5.582V21M3 21h18M12 6.75h.008v.008H12V6.75z" />
-                            </svg>
+                    
+                    <!-- Feature 3 -->
+                    <div class="feature-card reveal-section bg-white rounded-sm border border-ivory-300/50 shadow-[0_8px_30px_rgba(0,0,0,0.04)] px-8 py-10 text-center">
+                        <div class="mb-6 flex justify-center">
+                            <div class="icon-ring w-14 h-14 rounded-full border border-london-gold/30 bg-london-gold/5 flex items-center justify-center text-london-gold">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.332A48.36 48.36 0 0012 9.75c-2.551 0-5.056.2-7.5.582V21M3 21h18M12 6.75h.008v.008H12V6.75z" />
+                                </svg>
+                            </div>
                         </div>
-                        <h3 class="text-2xl font-serif mb-4 tracking-wider">Curadoria Exclusiva</h3>
-                        <p class="text-stone-400 font-light leading-relaxed">
-                            Modelos trazidos dos melhores fornecdores do Brasil e do mundo
+                        <h3 class="text-xl font-serif font-normal mb-3 tracking-wider text-charcoal-800">Curadoria Exclusiva</h3>
+                        <p class="text-charcoal-500 font-light leading-relaxed text-sm">
+                            Modelos trazidos dos melhores fornecedores do Brasil e do mundo.
                         </p>
                     </div>
                 </div>
             </div>
         </section>
-        
 
-
-
-
-
-
-        <!-- Testimonials -->
-        <section class="py-24 bg-stone-50 overflow-hidden">
-            <div class="container mx-auto px-6 text-center mb-16">
-                <h2 class="text-4xl md:text-5xl font-serif text-stone-800">Experiências London Noivas</h2>
-                <div class="w-20 h-0.5 bg-london-gold mx-auto mt-4"></div>
+        <!-- ======================== TESTIMONIALS ======================== -->
+        <section class="py-20 md:py-28 bg-white relative overflow-hidden">
+            <!-- Decorative -->
+            <div class="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-london-gold/20 to-transparent"></div>
+            
+            <div class="container mx-auto px-6 text-center mb-14 reveal-section">
+                <span class="text-london-gold font-sans font-medium tracking-[0.3em] text-[10px] uppercase block mb-3">Depoimentos</span>
+                <h2 class="text-3xl md:text-5xl font-serif font-light text-charcoal-900">Experiências London Noivas</h2>
+                <div class="w-10 h-px bg-london-gold mx-auto mt-4"></div>
             </div>
-            <div class="flex flex-wrap justify-center gap-8">
+            
+            <div class="flex flex-wrap justify-center gap-6 md:gap-8 px-6">
                 <!-- Testimonial 1 -->
-                <div class="bg-white p-10 rounded-sm shadow-sm max-w-sm border-t-4 border-london-gold">
-                    <div class="flex justify-center mb-6">
-                        <svg class="w-4 h-4 text-london-gold fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-                        <svg class="w-4 h-4 text-london-gold fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-                        <svg class="w-4 h-4 text-london-gold fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-                        <svg class="w-4 h-4 text-london-gold fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-                        <svg class="w-4 h-4 text-london-gold fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                <div class="testimonial-card bg-ivory-50 p-8 md:p-10 rounded-sm shadow-[0_4px_20px_rgba(0,0,0,0.03)] max-w-sm border border-ivory-300/30 reveal-section">
+                    <div class="flex justify-center mb-5 gap-0.5">
+                        <svg class="w-3.5 h-3.5 star-gold fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                        <svg class="w-3.5 h-3.5 star-gold fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                        <svg class="w-3.5 h-3.5 star-gold fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                        <svg class="w-3.5 h-3.5 star-gold fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                        <svg class="w-3.5 h-3.5 star-gold fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
                     </div>
-                    <p class="text-stone-600 italic mb-6 leading-relaxed">"O atendimento foi impecável. O vestido parecia ter sido feito no meu corpo."</p>
-                    <div class="font-bold text-stone-800 tracking-widest text-sm uppercase">Mariana Silva</div>
-                    <div class="text-london-gold text-xs mt-1 uppercase font-bold tracking-tighter">Noiva 2025</div>
+                    <p class="text-charcoal-600 italic mb-6 leading-relaxed font-serif text-lg">"O atendimento foi impecável. O vestido parecia ter sido feito no meu corpo."</p>
+                    <div class="font-sans font-semibold text-charcoal-800 tracking-[0.15em] text-xs uppercase">Mariana Silva</div>
+                    <div class="text-london-gold text-[10px] mt-1 uppercase font-sans font-medium tracking-[0.2em]">Noiva 2025</div>
                 </div>
 
                 <!-- Testimonial 2 -->
-                <div class="bg-white p-10 rounded-sm shadow-sm max-w-sm border-t-4 border-london-gold">
-                    <div class="flex justify-center mb-6">
-                        <!-- Stars -->
-                        <svg class="w-4 h-4 text-london-gold fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-                        <svg class="w-4 h-4 text-london-gold fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-                        <svg class="w-4 h-4 text-london-gold fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-                        <svg class="w-4 h-4 text-london-gold fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-                        <svg class="w-4 h-4 text-london-gold fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                <div class="testimonial-card bg-ivory-50 p-8 md:p-10 rounded-sm shadow-[0_4px_20px_rgba(0,0,0,0.03)] max-w-sm border border-ivory-300/30 reveal-section">
+                    <div class="flex justify-center mb-5 gap-0.5">
+                        <svg class="w-3.5 h-3.5 star-gold fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                        <svg class="w-3.5 h-3.5 star-gold fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                        <svg class="w-3.5 h-3.5 star-gold fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                        <svg class="w-3.5 h-3.5 star-gold fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                        <svg class="w-3.5 h-3.5 star-gold fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
                     </div>
-                    <p class="text-stone-600 italic mb-6 leading-relaxed">"A London Noivas superou todas as minhas expectativas. O acervo é maravilhoso."</p>
-                    <div class="font-bold text-stone-800 tracking-widest text-sm uppercase">Beatriz Costa</div>
-                    <div class="text-london-gold text-xs mt-1 uppercase font-bold tracking-tighter">Madrinha</div>
+                    <p class="text-charcoal-600 italic mb-6 leading-relaxed font-serif text-lg">"A London Noivas superou todas as minhas expectativas. O acervo é maravilhoso."</p>
+                    <div class="font-sans font-semibold text-charcoal-800 tracking-[0.15em] text-xs uppercase">Beatriz Costa</div>
+                    <div class="text-london-gold text-[10px] mt-1 uppercase font-sans font-medium tracking-[0.2em]">Madrinha</div>
                 </div>
 
                 <!-- Testimonial 3 -->
-                <div class="bg-white p-10 rounded-sm shadow-sm max-w-sm border-t-4 border-london-gold">
-                    <div class="flex justify-center mb-6">
-                        <!-- Stars -->
-                        <svg class="w-4 h-4 text-london-gold fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-                        <svg class="w-4 h-4 text-london-gold fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-                        <svg class="w-4 h-4 text-london-gold fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-                        <svg class="w-4 h-4 text-london-gold fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-                        <svg class="w-4 h-4 text-london-gold fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                <div class="testimonial-card bg-ivory-50 p-8 md:p-10 rounded-sm shadow-[0_4px_20px_rgba(0,0,0,0.03)] max-w-sm border border-ivory-300/30 reveal-section">
+                    <div class="flex justify-center mb-5 gap-0.5">
+                        <svg class="w-3.5 h-3.5 star-gold fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                        <svg class="w-3.5 h-3.5 star-gold fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                        <svg class="w-3.5 h-3.5 star-gold fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                        <svg class="w-3.5 h-3.5 star-gold fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                        <svg class="w-3.5 h-3.5 star-gold fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
                     </div>
-                    <p class="text-stone-600 italic mb-6 leading-relaxed">"Amei a curadoria e o atendimento! Me ajudou muito a decidir o que eu queria."</p>
-                    <div class="font-bold text-stone-800 tracking-widest text-sm uppercase">Fernanda Lima</div>
-                    <div class="text-london-gold text-xs mt-1 uppercase font-bold tracking-tighter">Formanda</div>
+                    <p class="text-charcoal-600 italic mb-6 leading-relaxed font-serif text-lg">"Amei a curadoria e o atendimento! Me ajudou muito a decidir o que eu queria."</p>
+                    <div class="font-sans font-semibold text-charcoal-800 tracking-[0.15em] text-xs uppercase">Fernanda Lima</div>
+                    <div class="text-london-gold text-[10px] mt-1 uppercase font-sans font-medium tracking-[0.2em]">Formanda</div>
                 </div>
             </div>
         </section>
     </main>
 
-    <!-- Footer -->
-    <footer id="contato" class="bg-stone-50 pt-20 pb-10 border-t border-stone-200">
-        <div class="container mx-auto px-6">
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
-                <div class="col-span-1 md:col-span-2">
-                    <h2 class="text-3xl font-serif mb-6 tracking-widest text-stone-800">LONDON NOIVAS</h2>
-                    <p class="text-stone-500 mb-8 max-w-sm">
-                        Tornando momentos especiais em memórias eternas através da elegância e sofisticação que você merece.
-                    </p>
-                    <div class="flex gap-4">
-                        <a href="https://instagram.com/londonnoivas" target="_blank" class="flex items-center gap-3 group">
-                            <div class="w-10 h-10 border border-stone-300 rounded-full flex items-center justify-center group-hover:bg-london-gold group-hover:text-white group-hover:border-london-gold transition-all">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                                    <path d="M8 0C5.829 0 5.556.01 4.703.048 3.85.088 3.269.222 2.76.42a3.917 3.917 0 0 0-1.417.923A3.927 3.927 0 0 0 .42 2.76C.222 3.268.087 3.85.048 4.7.01 5.555 0 5.827 0 8.001c0 2.172.01 2.444.048 3.297.04.852.174 1.433.372 1.942.205.526.478.972.923 1.417.444.445.89.719 1.416.923.51.198 1.09.333 1.942.372C5.555 15.99 5.827 16 8 16s2.444-.01 3.298-.048c.851-.04 1.434-.174 1.943-.372a3.916 3.916 0 0 0 1.416-.923c.445-.445.718-.891.923-1.417.197-.509.332-1.09.372-1.942C15.99 10.445 16 10.173 16 8s-.01-2.445-.048-3.299c-.04-.851-.175-1.433-.372-1.941a3.926 3.926 0 0 0-.923-1.417A3.911 3.911 0 0 0 13.24.42c-.51-.198-1.092-.333-1.943-.372C10.443.01 10.172 0 7.998 0h.003zm-.717 1.442h.718c2.136 0 2.389.007 3.232.046.78.035 1.204.166 1.486.275.373.145.64.319.92.599.28.28.453.546.598.92.11.281.24.705.275 1.485.039.843.047 1.096.047 3.231s-.008 2.389-.047 3.232c-.035.78-.166 1.203-.275 1.485a2.47 2.47 0 0 1-.599.919c-.28.28-.546.453-.92.598-.281.11-.705.24-1.485.276-.843.038-1.096.047-3.232.047s-2.39-.009-3.233-.047c-.78-.036-1.203-.166-1.486-.276a2.478 2.478 0 0 1-.919-.598 2.48 2.48 0 0 1-.599-.92c-.11-.281-.24-.705-.275-1.485-.038-.843-.047-1.096-.047-3.232 0-2.136.009-2.388.047-3.231.036-.78.166-1.204.276-1.486.145-.373.319-.64.599-.92.28-.28.546-.453.92-.598.282-.11.705-.24 1.485-.276.738-.034 1.024-.044 2.515-.045v.002zm4.988 1.328a.96.96 0 1 0 0 1.92.96.96 0 0 0 0-1.92zm-4.27 1.122a4.109 4.109 0 1 0 0 8.217 4.109 4.109 0 0 0 0-8.217zm0 1.441a2.667 2.667 0 1 1 0 5.334 2.667 2.667 0 0 1 0-5.334z"/>
-                                </svg>
-                            </div>
-                            <span class="text-stone-500 font-bold text-sm tracking-widest group-hover:text-london-gold transition-colors">@londonnoivas</span>
-                        </a>
-                    </div>
-                </div>
-                
-                <div>
-                    <h4 class="font-bold text-stone-800 mb-6 tracking-widest uppercase text-sm">Onde Estamos</h4>
-                    <ul class="space-y-4 text-stone-500 text-sm mb-6">
-                        <li>Rua Voltaire, 9</li>
-                        <li>Colônia Santo Antônio - Manaus - AM</li>
-                        <li>Seg - Sáb: 10h às 20h</li>
-                        <li>Tel/WhatsApp: <span id="phone-display-index" class="cursor-pointer underline decoration-dotted text-london-gold" onclick="revealPhone('phone-display-index')">Ver número</span></li>
-                    </ul>
-                    <div class="rounded-sm overflow-hidden shadow-md border border-stone-200">
-                        <a href="https://maps.app.goo.gl/iTZXMqYrz5CS9Xax6" onclick="openMapInfoModal(event, this.href, 'footer_map_image')" class="block w-full h-[200px] bg-stone-100">
-                            <img src="{{ url_for('static', filename='mapa.png') }}" alt="Localização London Noivas" class="w-full h-full object-cover hover:opacity-90 transition-opacity">
-                        </a>
-                    </div>
-                </div>
+    {% set modern_footer = true %}
+    {% include 'footer.html' %}
 
-                <div>
-                    <h4 class="font-bold text-stone-800 mb-6 tracking-widest uppercase text-sm">Links Rápidos</h4>
-                    <ul class="space-y-4 text-stone-500 text-sm">
-                        <li><a href="#colecoes" class="hover:text-london-gold transition-colors">Destaques</a></li>
-                        <li><a href="{{ url_for('catalogo') }}" class="hover:text-london-gold transition-colors">Catálogo Completo</a></li>
-                        <li><a href="https://wa.me/5592993531943" target="_blank" onclick="trackWhatsAppClick('footer_link')" class="hover:text-london-gold transition-colors">Agendamento/Dúvidas</a></li>
-                        <li>
-                             {% if not session.get('logged_in') %}
-                             <a href="{{ url_for('login', next=url_for('agenda')) }}" class="hover:text-london-gold transition-colors">Área Restrita</a>
-                             {% else %}
-                             <a href="{{ url_for('agenda') }}" class="hover:text-london-gold transition-colors">Painel Admin</a>
-                             {% endif %}
-                        </li>
-                    </ul>
-                </div>
-            </div>
-
-            <div class="border-t border-stone-200 pt-8 text-center text-stone-400 text-xs">
-                <p>&copy; 2025 London Noivas. Todos os direitos reservados. Desenvolvido com sofisticação.</p>
-            </div>
-        </div>
-        
-        <!-- Floating WhatsApp CTA -->
-        <a id="floating-whatsapp-cta" href="https://wa.me/5592993531943" onclick="trackWhatsAppClick('floating_cta')" class="fixed bottom-8 right-8 bg-green-500 text-white p-4 rounded-full shadow-2xl hover:scale-110 transition-transform z-50 flex items-center gap-2 group">
-            <span class="max-w-0 overflow-hidden group-hover:max-w-xs transition-all duration-500 whitespace-nowrap font-bold">
-                Agendamento/Dúvidas
-            </span>
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.588-5.946 0-6.556 5.332-11.891 11.891-11.891 3.181 0 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.481 8.403 0 6.556-5.332 11.892-11.891 11.892-1.999 0-3.956-.503-5.692-1.448l-6.301 1.666zm6.29-4.143c1.589.943 3.197 1.441 4.934 1.441 5.485 0 9.95-4.465 9.95-9.95 0-2.652-1.036-5.147-2.919-7.031-1.883-1.883-4.384-2.917-7.031-2.917-5.485 0-9.951 4.465-9.951 9.95 0 2.07.635 4.089 1.835 5.823l-1.101 4.022 4.133-1.092zm10.293-7.234c-.298-.15-1.764-.871-2.037-.972-.273-.102-.472-.152-.671.152-.199.303-.771 1.018-.944 1.219-.174.202-.348.227-.646.077-.298-.15-1.258-.464-2.396-1.48-.885-.789-1.483-1.763-1.656-2.064-.174-.302-.018-.465.132-.614.135-.133.298-.348.447-.521.149-.174.199-.298.298-.497.099-.198.05-.373-.025-.522-.075-.15-.671-1.616-.919-2.213-.242-.581-.486-.502-.671-.512-.174-.01-.373-.013-.572-.013-.199 0-.523.075-.795.373-.273.302-1.045 1.018-1.045 2.486s1.07 2.885 1.219 3.085c.149.202 2.105 3.214 5.099 4.507.712.308 1.268.491 1.701.628.715.227 1.365.195 1.879.118.573-.086 1.764-.72 2.013-1.417.248-.696.248-1.292.174-1.417-.074-.125-.272-.201-.57-.352z"/>
-            </svg>
-        </a>
-    </footer>
-
-    <!-- Catalog Modal -->
+    <!-- ======================== CATALOG MODAL ======================== -->
     <div id="catalog-modal" class="fixed inset-0 z-[100] hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-        <div class="fixed inset-0 bg-stone-900/90 transition-opacity backdrop-blur-sm" onclick="closeCatalogModal()"></div>
+        <div class="fixed inset-0 bg-charcoal-950/90 transition-opacity backdrop-blur-sm" onclick="closeCatalogModal()"></div>
 
         <div class="fixed inset-0 z-10 overflow-y-auto">
             <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
                 <div class="relative transform overflow-hidden rounded-sm bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-5xl animate-fadeIn">
                     
                     <div class="absolute top-0 right-0 pt-4 pr-4 z-20">
-                        <button type="button" class="rounded-full bg-white/20 p-2 text-stone-500 hover:text-stone-800 focus:outline-none transition-colors" onclick="closeCatalogModal()">
+                        <button type="button" class="rounded-full bg-white/20 p-2 text-charcoal-400 hover:text-charcoal-800 focus:outline-none transition-colors" onclick="closeCatalogModal()">
                             <span class="sr-only">Fechar</span>
-                            <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <svg class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                             </svg>
                         </button>
@@ -421,43 +598,42 @@
 
                     <div class="flex flex-col md:flex-row h-full md:h-[80vh]">
                         <!-- Image Side -->
-                <div class="md:w-1/2 bg-stone-100 relative h-[50vh] md:h-full group cursor-zoom-in" onclick="openFullImage(document.getElementById('catalog-modal-img').src)">
-                    <img id="catalog-modal-img" src="" alt="Detalhe" class="absolute inset-0 w-full h-full object-contain transition-transform duration-500 hover:scale-105">
-                    <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 pointer-events-none">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="white" class="w-12 h-12 drop-shadow-lg">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607zM10.5 7.5v6m3-3h-6" />
-                        </svg>
-                    </div>
-                </div>
+                        <div class="md:w-1/2 bg-ivory-100 relative h-[50vh] md:h-full group cursor-zoom-in" onclick="openFullImage(document.getElementById('catalog-modal-img').src)">
+                            <img id="catalog-modal-img" src="" alt="Detalhe" class="absolute inset-0 w-full h-full object-contain transition-transform duration-500 hover:scale-105">
+                            <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 pointer-events-none">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="white" class="w-12 h-12 drop-shadow-lg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607zM10.5 7.5v6m3-3h-6" />
+                                </svg>
+                            </div>
+                        </div>
                         
                         <!-- Content Side -->
                         <div class="md:w-1/2 p-8 md:p-12 flex flex-col overflow-y-auto bg-white">
                             <div class="flex-1">
-                                <span class="text-london-gold font-bold tracking-widest text-xs uppercase mb-2 block">London Noivas Collection</span>
-                                <h3 id="catalog-modal-title" class="text-3xl md:text-4xl font-serif text-stone-900 mb-2 leading-tight"></h3>
-                        <p id="catalog-modal-occasions" class="text-stone-500 font-serif mb-2">Ocasiões: <span id="catalog-modal-occasions-value"></span></p>
-                        <p id="catalog-modal-color" class="text-stone-500 font-serif mb-2 hidden"><span id="catalog-modal-color-value"></span></p>
-                        <p id="catalog-modal-size" class="text-stone-500 font-serif mb-2 hidden">Tamanho: <span id="catalog-modal-size-value"></span></p>
-                        <p id="catalog-modal-price" class="text-stone-500 font-serif mb-2 hidden">Valor do aluguel: <span id="catalog-modal-price-value"></span></p>
-                        <p id="catalog-modal-obs" class="text-stone-500 font-serif mb-2 hidden">Observações: <span id="catalog-modal-obs-value"></span></p>
-                                <p class="text-xs text-stone-400 mb-6 font-mono">ID: <span id="catalog-modal-id-value"></span></p>
+                                <span class="text-london-gold font-sans font-medium tracking-[0.2em] text-[10px] uppercase mb-2 block">London Noivas Collection</span>
+                                <h3 id="catalog-modal-title" class="text-3xl md:text-4xl font-serif font-light text-charcoal-900 mb-2 leading-tight"></h3>
+                                <p id="catalog-modal-occasions" class="text-charcoal-500 font-serif mb-2">Ocasiões: <span id="catalog-modal-occasions-value"></span></p>
+                                <p id="catalog-modal-color" class="text-charcoal-500 font-serif mb-2 hidden"><span id="catalog-modal-color-value"></span></p>
+                                <p id="catalog-modal-size" class="text-charcoal-500 font-serif mb-2 hidden">Tamanho: <span id="catalog-modal-size-value"></span></p>
+                                <p id="catalog-modal-price" class="text-charcoal-500 font-serif mb-2 hidden">Valor do aluguel: <span id="catalog-modal-price-value"></span></p>
+                                <p id="catalog-modal-obs" class="text-charcoal-500 font-serif mb-2 hidden">Observações: <span id="catalog-modal-obs-value"></span></p>
+                                <p class="text-[10px] text-charcoal-400 mb-6 font-sans tracking-wider">ID: <span id="catalog-modal-id-value"></span></p>
                                 
-                                <div class="w-12 h-1 bg-stone-200 mb-8"></div>
+                                <div class="w-10 h-px bg-ivory-300 mb-8"></div>
                                 
                                 <div class="prose prose-stone max-w-none">
-                                    <h4 class="font-serif text-lg text-stone-800 mb-2">Descrição do Vestido</h4>
-                                    <p id="catalog-modal-desc" class="text-stone-600 font-light leading-relaxed text-lg mb-8"></p>
+                                    <h4 class="font-serif text-lg text-charcoal-800 mb-2 font-normal">Descrição do Vestido</h4>
+                                    <p id="catalog-modal-desc" class="text-charcoal-500 font-light leading-relaxed text-base mb-8"></p>
                                 </div>
-
                             </div>
                             
-                            <div class="mt-8 pt-8 border-t border-stone-100">
-                                <p class="text-stone-400 text-sm mb-4 text-center italic">Gostou deste modelo? Fale conosco agora.</p>
-                                <a id="catalog-modal-whatsapp-link" href="#" target="_blank" class="block w-full bg-[#25D366] hover:bg-[#1ebc57] text-white py-4 px-6 rounded-sm transition-colors text-center shadow-lg hover:shadow-xl transform hover:-translate-y-1 duration-200 flex items-center justify-center gap-3">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+                            <div class="mt-8 pt-8 border-t border-ivory-200">
+                                <p class="text-charcoal-400 text-sm mb-4 text-center italic font-serif">Gostou deste modelo? Fale conosco agora.</p>
+                                <a id="catalog-modal-whatsapp-link" href="#" target="_blank" class="btn-shimmer block w-full bg-[#25D366] hover:bg-[#1ebc57] text-white py-4 px-6 rounded-sm transition-all text-center shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 duration-200 flex items-center justify-center gap-3">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" viewBox="0 0 16 16">
                                         <path d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592zm3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.729.729 0 0 0-.529.247c-.182.198-.691.677-.691 1.654 0 .977.71 1.916.81 2.049.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232z"/>
                                     </svg>
-                                    <span class="font-bold tracking-widest text-sm">SOLICITAR INFORMAÇÕES</span>
+                                    <span class="font-sans font-semibold tracking-[0.15em] text-sm uppercase">Solicitar Informações</span>
                                 </a>
                             </div>
                         </div>
@@ -467,27 +643,16 @@
         </div>
     </div>
 
+    <!-- ======================== SCRIPTS (preserved from original) ======================== -->
     <script>
         window.catalogData = window.catalogData || {};
 
         function openCatalogModalById(itemId, source) {
             const data = window.catalogData && window.catalogData[itemId];
             if (data) {
-                // Pass UUID as itemId, and customId as display param
                 openCatalogModal(
-                    data.imageUrl,
-                    data.title,
-                    data.description,
-                    itemId,
-                    data.price,
-                    source,
-                    data.customId,
-                    data.occasions,
-                    data.color,
-                    data.size,
-                    data.colorBase,
-                    data.colorCommercial,
-                    data.itemObs
+                    data.imageUrl, data.title, data.description, itemId, data.price, source,
+                    data.customId, data.occasions, data.color, data.size, data.colorBase, data.colorCommercial, data.itemObs
                 );
             } else {
                 console.error('Dados do item não encontrados para ID:', itemId);
@@ -500,11 +665,9 @@
             function normalizarMonetarioParaNumero(raw) {
                 let s = (raw || '').toString().trim();
                 if (!s) return null;
-
                 s = s.replace(/\s+/g, '').replace(/^R\$\s*/i, '');
                 s = s.replace(/[^\d.,]/g, '');
                 if (!s) return null;
-
                 if (s.includes(',')) {
                     const parts = s.split(',');
                     const intPart = parts.slice(0, -1).join(',').replace(/[.,]/g, '');
@@ -514,7 +677,6 @@
                     const n = Number(`${intPart || '0'}.${decPart}`);
                     return Number.isFinite(n) ? n : null;
                 }
-
                 if (s.includes('.')) {
                     const dotParts = s.split('.');
                     if (dotParts.length === 2 && dotParts[1] && dotParts[1].length <= 2) {
@@ -525,13 +687,11 @@
                         const n = Number(`${intPart || '0'}.${decPart}`);
                         return Number.isFinite(n) ? n : null;
                     }
-
                     const digits = s.replace(/\D/g, '');
                     if (!digits) return null;
                     const n = Number(`${digits}.00`);
                     return Number.isFinite(n) ? n : null;
                 }
-
                 const digits = s.replace(/\D/g, '');
                 if (!digits) return null;
                 const n = Number(`${digits}.00`);
@@ -542,7 +702,6 @@
                 const s = (rawPrice || '').toString().trim();
                 if (!s || s === '0' || s === '0.00' || s === '0,00') return 'Consulte';
                 if (/consulte/i.test(s)) return 'Consulte';
-
                 const cleaned = s.replace(/^Valor do aluguel:\s*/i, '').trim();
                 const n = normalizarMonetarioParaNumero(cleaned);
                 if (n === null) return cleaned;
@@ -557,10 +716,7 @@
             const priceValue = document.getElementById('catalog-modal-price-value');
             const priceText = formatarPrecoParaModal(price);
             if (priceValue) priceValue.textContent = (priceText || '').toString().trim();
-            if (priceRow) {
-                if (priceText) priceRow.classList.remove('hidden');
-                else priceRow.classList.add('hidden');
-            }
+            if (priceRow) { priceText ? priceRow.classList.remove('hidden') : priceRow.classList.add('hidden'); }
             document.getElementById('catalog-modal-id-value').textContent = idToShow;
             document.getElementById('catalog-modal-occasions-value').textContent = occasions || 'Várias';
 
@@ -572,50 +728,33 @@
                 ? [baseText ? `Cor base: ${baseText}` : '', commercialText ? `Cor comercial: ${commercialText}` : ''].filter(Boolean).join(' / ')
                 : (color || '').toString().trim();
             if (colorValue) colorValue.textContent = colorText;
-            if (colorRow) {
-                if (colorText) colorRow.classList.remove('hidden');
-                else colorRow.classList.add('hidden');
-            }
+            if (colorRow) { colorText ? colorRow.classList.remove('hidden') : colorRow.classList.add('hidden'); }
 
             const sizeRow = document.getElementById('catalog-modal-size');
             const sizeValue = document.getElementById('catalog-modal-size-value');
             const sizeText = (size || '').toString().trim();
             if (sizeValue) sizeValue.textContent = sizeText;
-            if (sizeRow) {
-                if (sizeText) sizeRow.classList.remove('hidden');
-                else sizeRow.classList.add('hidden');
-            }
+            if (sizeRow) { sizeText ? sizeRow.classList.remove('hidden') : sizeRow.classList.add('hidden'); }
 
             const obsRow = document.getElementById('catalog-modal-obs');
             const obsValue = document.getElementById('catalog-modal-obs-value');
             const obsText = (itemObs || '').toString().trim();
             if (obsValue) obsValue.textContent = obsText;
-            if (obsRow) {
-                if (obsText) obsRow.classList.remove('hidden');
-                else obsRow.classList.add('hidden');
-            }
+            if (obsRow) { obsText ? obsRow.classList.remove('hidden') : obsRow.classList.add('hidden'); }
             
             const phoneNumber = "5592993531943";
-            
-            // Construct message with Title and ID
             let text = `Olá, gostaria de mais informações sobre o vestido: ${title}`;
             text += `\nCód: ${idToShow}`;
-            
-            // Check if it's an AI item (starts with ai_) or regular item
             const isAiItem = itemId && itemId.toString().startsWith('ai_');
-
             if (!isAiItem) {
                 const url = new URL('/catalogo', window.location.origin);
                 url.searchParams.set('item', itemId);
                 window.history.pushState({}, '', url);
                 text += `\nLink: ${url.toString()}`;
             }
-
             const encodedText = encodeURIComponent(text);
             const whatsappLink = document.getElementById('catalog-modal-whatsapp-link');
             whatsappLink.href = `https://wa.me/${phoneNumber}?text=${encodedText}`;
-            
-            // Dynamic tracking based on source (AI, Featured, or Catalog)
             if (source === 'featured') {
                 whatsappLink.onclick = function() { trackWhatsAppClick('featured_modal_whatsapp'); };
             } else if (isAiItem) {
@@ -623,61 +762,38 @@
             } else {
                 whatsappLink.onclick = function() { trackWhatsAppClick('catalog_modal_whatsapp'); };
             }
-            
             document.getElementById('catalog-modal').classList.remove('hidden');
-            document.body.style.overflow = 'hidden'; // Prevent scrolling
-
+            document.body.style.overflow = 'hidden';
             if (itemId && !isAiItem) {
-                // Increment visit count for all sources
-                fetch(`/api/item/${itemId}/visit`, { method: 'POST' })
-                    .catch(err => console.error('Error incrementing visit count:', err));
+                fetch(`/api/item/${itemId}/visit`, { method: 'POST' }).catch(err => console.error('Error incrementing visit count:', err));
             }
         }
 
         function closeCatalogModal() {
             document.getElementById('catalog-modal').classList.add('hidden');
-            document.body.style.overflow = ''; // Restore scrolling
-            
-            // Remove item param from URL
+            document.body.style.overflow = '';
             const url = new URL(window.location);
             url.searchParams.delete('item');
             window.history.pushState({}, '', url);
         }
 
-        // Check URL for item param on load
         window.addEventListener('load', function() {
             const urlParams = new URLSearchParams(window.location.search);
             const itemId = urlParams.get('item');
             if (itemId && window.catalogData && window.catalogData[itemId]) {
                 const item = window.catalogData[itemId];
-                openCatalogModal(
-                    item.imageUrl,
-                    item.title,
-                    item.description,
-                    itemId,
-                    item.price,
-                    'url_load',
-                    item.customId,
-                    item.occasions,
-                    item.color,
-                    item.size,
-                    item.colorBase,
-                    item.colorCommercial,
-                    item.itemObs
-                );
+                openCatalogModal(item.imageUrl, item.title, item.description, itemId, item.price, 'url_load', item.customId, item.occasions, item.color, item.size, item.colorBase, item.colorCommercial, item.itemObs);
             }
         });
     </script>
+
     <!-- Analytics Tracking Scripts -->
     <script>
-        // Google Analytics 4 Event Tracking
         const GA_MEASUREMENT_ID = 'G-23RSZ1SMRX';
 
         function trackEvent(eventName, params) {
             console.log('Event Tracked:', eventName, params);
-            if (typeof gtag !== 'undefined') {
-                gtag('event', eventName, params);
-            }
+            if (typeof gtag !== 'undefined') { gtag('event', eventName, params); }
         }
 
         let mapInfoModalState = { open: false, url: '', source: '', category: 'contact' };
@@ -685,26 +801,15 @@
         function openMapInfoModal(event, mapUrl, source, clickEventName, eventCategory) {
             if (event) event.preventDefault();
             const category = eventCategory || 'contact';
-            trackEvent(clickEventName || 'click_map_footer', {
-                'event_category': category,
-                'event_label': source || 'footer_map',
-                'transport_type': 'beacon'
-            });
+            trackEvent(clickEventName || 'click_map_footer', { 'event_category': category, 'event_label': source || 'footer_map', 'transport_type': 'beacon' });
             const modal = document.getElementById('map-info-modal');
             const openBtn = document.getElementById('map-modal-open');
-            if (!modal || !openBtn) {
-                window.open(mapUrl, '_blank', 'noopener,noreferrer');
-                return;
-            }
+            if (!modal || !openBtn) { window.open(mapUrl, '_blank', 'noopener,noreferrer'); return; }
             mapInfoModalState = { open: true, url: mapUrl || '', source: source || '', category };
             modal.classList.remove('hidden');
             document.body.style.overflow = 'hidden';
             openBtn.setAttribute('href', mapUrl || '#');
-            trackEvent('map_modal_open', {
-                'event_category': category,
-                'event_label': source || 'footer_map',
-                'transport_type': 'beacon'
-            });
+            trackEvent('map_modal_open', { 'event_category': category, 'event_label': source || 'footer_map', 'transport_type': 'beacon' });
         }
 
         function closeMapInfoModal(reason) {
@@ -714,32 +819,18 @@
             modal.classList.add('hidden');
             mapInfoModalState = { open: false, url: '', source: '', category: 'contact' };
             document.body.style.overflow = '';
-            trackEvent('map_modal_close', {
-                'event_category': category,
-                'event_label': reason || 'close',
-                'transport_type': 'beacon'
-            });
+            trackEvent('map_modal_close', { 'event_category': category, 'event_label': reason || 'close', 'transport_type': 'beacon' });
         }
 
         function confirmOpenMapFromModal() {
             const url = mapInfoModalState && mapInfoModalState.url ? mapInfoModalState.url : '';
-            trackEvent('map_modal_view_map', {
-                'event_category': (mapInfoModalState && mapInfoModalState.category) ? mapInfoModalState.category : 'contact',
-                'event_label': (mapInfoModalState && mapInfoModalState.source) ? mapInfoModalState.source : 'view_map',
-                'transport_type': 'beacon'
-            });
+            trackEvent('map_modal_view_map', { 'event_category': (mapInfoModalState && mapInfoModalState.category) ? mapInfoModalState.category : 'contact', 'event_label': (mapInfoModalState && mapInfoModalState.source) ? mapInfoModalState.source : 'view_map', 'transport_type': 'beacon' });
             closeMapInfoModal('view_map');
-            if (url) {
-                setTimeout(() => window.open(url, '_blank', 'noopener,noreferrer'), 60);
-            }
+            if (url) { setTimeout(() => window.open(url, '_blank', 'noopener,noreferrer'), 60); }
         }
 
         function trackWhatsAppClick(location) {
-            trackEvent('whatsapp_click', {
-                'event_category': 'contact',
-                'event_label': location,
-                'transport_type': 'beacon'
-            });
+            trackEvent('whatsapp_click', { 'event_category': 'contact', 'event_label': location, 'transport_type': 'beacon' });
         }
 
         window.addEventListener('load', () => {
@@ -755,13 +846,9 @@
             if (phoneSpan) {
                 phoneSpan.innerText = '(92) 99353-1943';
                 phoneSpan.classList.remove('cursor-pointer', 'underline', 'decoration-dotted', 'text-london-gold');
-                phoneSpan.classList.add('text-stone-800');
-                phoneSpan.onclick = null; // Remove click handler
-                
-                trackEvent('phone_reveal', {
-                    'event_category': 'contact',
-                    'event_label': 'footer_phone'
-                });
+                phoneSpan.classList.add('text-charcoal-800');
+                phoneSpan.onclick = null;
+                trackEvent('phone_reveal', { 'event_category': 'contact', 'event_label': 'footer_phone' });
             }
         }
 
@@ -772,62 +859,71 @@
 
         function openMobileMenu() {
             if (mobileMenu) mobileMenu.classList.remove('translate-x-full');
-            document.body.style.overflow = 'hidden'; // Prevent scrolling
+            document.body.style.overflow = 'hidden';
         }
-
         function closeMobileMenu() {
             if (mobileMenu) mobileMenu.classList.add('translate-x-full');
-            document.body.style.overflow = ''; // Restore scrolling
+            document.body.style.overflow = '';
         }
-
         if(mobileMenuBtn) mobileMenuBtn.addEventListener('click', openMobileMenu);
         if(closeMenuBtn) closeMenuBtn.addEventListener('click', closeMobileMenu);
 
         document.addEventListener('keydown', function(e) {
             if (e && e.key === 'Escape') {
                 const modal = document.getElementById('map-info-modal');
-                if (modal && !modal.classList.contains('hidden')) {
-                    closeMapInfoModal('esc');
-                }
+                if (modal && !modal.classList.contains('hidden')) { closeMapInfoModal('esc'); }
             }
         });
+
+        // ===== SCROLL REVEAL =====
+        const revealSections = document.querySelectorAll('.reveal-section');
+        const revealObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                    revealObserver.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+        revealSections.forEach(section => revealObserver.observe(section));
     </script>
+
+    <!-- Map Info Modal -->
     <div id="map-info-modal" class="fixed inset-0 z-[205] hidden" role="dialog" aria-modal="true" aria-labelledby="map-modal-title">
         <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeMapInfoModal('backdrop')"></div>
         <div class="absolute inset-0 flex items-center justify-center p-4">
-            <div class="w-full max-w-md bg-white rounded-sm shadow-2xl border border-stone-200">
-                <div class="flex items-start justify-between gap-4 p-5 border-b border-stone-100">
+            <div class="w-full max-w-md bg-white rounded-sm shadow-2xl border border-ivory-200">
+                <div class="flex items-start justify-between gap-4 p-5 border-b border-ivory-200">
                     <div>
-                        <h3 id="map-modal-title" class="font-serif text-stone-900 text-xl">Atenção</h3>
-                        <p class="text-stone-500 text-sm mt-1">O Google Street View esta desatualizado e mostra apenas a construçao da nossa loja, que foi concluida no final de 2025</p>
+                        <h3 id="map-modal-title" class="font-serif text-charcoal-900 text-xl">Atenção</h3>
+                        <p class="text-charcoal-500 text-sm mt-1">O Google Street View esta desatualizado e mostra apenas a construção da nossa loja, que foi concluída no final de 2025</p>
                     </div>
-                    <button type="button" onclick="closeMapInfoModal('x')" class="text-stone-500 hover:text-stone-800 transition-colors p-1" aria-label="Fechar">
+                    <button type="button" onclick="closeMapInfoModal('x')" class="text-charcoal-400 hover:text-charcoal-800 transition-colors p-1" aria-label="Fechar">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 18L18 6M6 6l12 12" />
                         </svg>
                     </button>
                 </div>
                 <div class="p-5 flex flex-col sm:flex-row gap-3 sm:justify-end">
-                    <button type="button" onclick="closeMapInfoModal('close_button')" class="w-full sm:w-auto px-5 py-3 border border-stone-200 text-stone-700 hover:bg-stone-50 transition-colors rounded-sm font-bold tracking-widest text-xs uppercase">
+                    <button type="button" onclick="closeMapInfoModal('close_button')" class="w-full sm:w-auto px-5 py-3 border border-ivory-300 text-charcoal-700 hover:bg-ivory-100 transition-colors rounded-sm font-sans font-semibold tracking-[0.15em] text-xs uppercase">
                         Fechar
                     </button>
-                    <a id="map-modal-open" href="#" target="_blank" rel="noopener noreferrer" onclick="event.preventDefault(); confirmOpenMapFromModal();" class="w-full sm:w-auto px-5 py-3 bg-stone-900 text-white hover:bg-london-gold transition-colors rounded-sm font-bold tracking-widest text-xs uppercase text-center">
+                    <a id="map-modal-open" href="#" target="_blank" rel="noopener noreferrer" onclick="event.preventDefault(); confirmOpenMapFromModal();" class="w-full sm:w-auto px-5 py-3 bg-charcoal-900 text-white hover:bg-london-gold transition-colors rounded-sm font-sans font-semibold tracking-[0.15em] text-xs uppercase text-center">
                         Ver mapa
                     </a>
                 </div>
             </div>
         </div>
     </div>
+
     <!-- Full Screen Image Modal -->
     <div id="full-image-modal" class="fixed inset-0 z-[200] hidden" role="dialog" aria-modal="true">
         <div class="absolute inset-0 bg-black/95 backdrop-blur-md" onclick="closeFullImage()"></div>
-        
         <button onclick="closeFullImage()" class="absolute top-4 right-4 z-[210] text-white/70 hover:text-white transition-colors p-2">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 18L18 6M6 6l12 12" />
             </svg>
         </button>
-
         <div class="absolute inset-0 flex items-center justify-center p-4 pointer-events-none">
             <img id="full-image-img" src="" alt="Full Screen" class="max-w-full max-h-full object-contain shadow-2xl pointer-events-auto rounded-sm">
         </div>
@@ -840,74 +936,23 @@
             const img = document.getElementById('full-image-img');
             img.src = src;
             modal.classList.remove('hidden');
-            document.body.style.overflow = 'hidden'; // Prevent scrolling
+            document.body.style.overflow = 'hidden';
         }
 
         function closeFullImage() {
             const modal = document.getElementById('full-image-modal');
             modal.classList.add('hidden');
-            // Only restore scrolling if catalog modal is not open, but since catalog modal also locks scrolling, 
-            // we should check if catalog modal is open.
-            // However, simplistically, if catalog modal is open, it handles its own overflow.
-            // But we can just set it back to hidden, which usually defaults to 'auto' on body remove,
-            // but here we are stacking modals.
-            
-            // If catalog modal is open, keep body overflow hidden.
             const catalogModal = document.getElementById('catalog-modal');
-            if (catalogModal && !catalogModal.classList.contains('hidden')) {
-                // Keep hidden
-            } else {
-                document.body.style.overflow = '';
-            }
+            if (catalogModal && !catalogModal.classList.contains('hidden')) { /* keep hidden */ }
+            else { document.body.style.overflow = ''; }
         }
 
-        // Close on Escape key
         document.addEventListener('keydown', function(event) {
             if (event.key === 'Escape') {
                 const fullModal = document.getElementById('full-image-modal');
                 if (!fullModal.classList.contains('hidden')) {
                     closeFullImage();
-                }
-            }
-        });
-    </script>
-    <!-- Full Screen Image Modal -->
-    <div id="full-image-modal" class="fixed inset-0 z-[200] hidden" role="dialog" aria-modal="true">
-        <div class="absolute inset-0 bg-black/95 backdrop-blur-md" onclick="closeFullImage()"></div>
-        
-        <button onclick="closeFullImage()" class="absolute top-4 right-4 z-[210] text-white/70 hover:text-white transition-colors p-2">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-        </button>
-
-        <div class="absolute inset-0 flex items-center justify-center p-4 pointer-events-none">
-            <img id="full-image-img" src="" alt="Full Screen" class="max-w-full max-h-full object-contain shadow-2xl pointer-events-auto rounded-sm">
-        </div>
-    </div>
-
-    <script>
-        function openFullImage(src) {
-            if (!src || src.includes('placeholder')) return;
-            const modal = document.getElementById('full-image-modal');
-            const img = document.getElementById('full-image-img');
-            img.src = src;
-            modal.classList.remove('hidden');
-            // Keep body overflow hidden (already set by catalog modal)
-        }
-
-        function closeFullImage() {
-            const modal = document.getElementById('full-image-modal');
-            modal.classList.add('hidden');
-        }
-
-        // Close on Escape key
-        document.addEventListener('keydown', function(event) {
-            if (event.key === 'Escape') {
-                const fullModal = document.getElementById('full-image-modal');
-                if (!fullModal.classList.contains('hidden')) {
-                    closeFullImage();
-                    event.stopPropagation(); // Prevent closing the underlying catalog modal
+                    event.stopPropagation();
                 }
             }
         });

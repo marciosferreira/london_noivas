@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wireframe Option 3 — Immersive Journey | London Noivas Home</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Comic Sans MS', 'Chalkboard SE', cursive;
+    background: #fff;
+    color: #333;
+    border-left: 4px solid #ccc;
+    border-right: 4px solid #ccc;
+    max-width: 1280px;
+    margin: 0 auto;
+  }
+  .legend {
+    position: fixed; top: 12px; right: 12px; background: #fff;
+    border: 2px solid #999; padding: 10px 14px; z-index: 9999;
+    font-family: Arial, sans-serif; font-size: 11px; border-radius: 4px;
+    box-shadow: 2px 2px 6px rgba(0,0,0,0.2);
+  }
+  .legend-item { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+  .badge-reuse { background: #4CAF50; color: #fff; padding: 2px 6px; border-radius: 3px; font-weight: bold; font-size: 10px; }
+  .badge-new   { background: #FF9800; color: #fff; padding: 2px 6px; border-radius: 3px; font-weight: bold; font-size: 10px; }
+  .option-header { background: #f5f5f5; border-bottom: 3px solid #333; padding: 20px 30px; text-align: center; }
+  .option-header h1 { font-family: Arial, sans-serif; font-size: 22px; color: #111; }
+  .option-header p  { font-family: Arial, sans-serif; font-size: 13px; color: #555; margin-top: 6px; }
+  .wf-section { border: 2px dashed #bbb; margin: 0; padding: 30px 40px; position: relative; }
+  .wf-section + .wf-section { border-top: none; }
+  .section-label { position: absolute; top: 8px; left: 12px; font-family: Arial, sans-serif; font-size: 10px; color: #999; text-transform: uppercase; letter-spacing: 1px; }
+  .wf-box { border: 2px solid #999; background: #f0f0f0; display: flex; align-items: center; justify-content: center; color: #666; font-size: 13px; text-align: center; border-radius: 2px; }
+  .wf-box.image { background: #ddd; position: relative; }
+  .wf-box.image::before { content: ''; position: absolute; left: 10%; top: 10%; width: 80%; height: 80%; background: repeating-linear-gradient(45deg, #bbb, #bbb 1px, #ddd 1px, #ddd 8px); }
+  .wf-pill { display: inline-block; border: 2px solid #666; border-radius: 999px; padding: 6px 18px; font-size: 12px; color: #444; margin: 4px; background: #f9f9f9; }
+  .wf-btn { display: inline-block; border: 2px solid #333; border-radius: 4px; padding: 8px 20px; font-size: 13px; background: #333; color: #fff; margin: 4px; cursor: pointer; }
+  .wf-btn.outline { background: #fff; color: #333; }
+  .comp-wrap { position: relative; display: block; }
+  .badge { position: absolute; top: -10px; right: -4px; padding: 2px 7px; border-radius: 3px; font-family: Arial, sans-serif; font-size: 10px; font-weight: bold; color: #fff; z-index: 10; white-space: nowrap; }
+  .badge.reuse { background: #4CAF50; }
+  .badge.new   { background: #FF9800; }
+  .flex { display: flex; gap: 16px; }
+  .col-1 { flex: 1; }
+  .mt { margin-top: 16px; }
+  .text-center { text-align: center; }
+  h2.wf-heading { font-family: Georgia, serif; font-size: 32px; color: #222; margin-bottom: 8px; }
+  p.wf-body { font-size: 13px; color: #666; line-height: 1.6; }
+  .eyebrow { font-family: Arial, sans-serif; font-size: 10px; text-transform: uppercase; letter-spacing: 3px; color: #888; margin-bottom: 6px; }
+  .annotation { font-family: Arial, sans-serif; font-size: 11px; color: #888; border-left: 3px solid #ccc; padding-left: 8px; font-style: italic; margin-top: 8px; }
+  /* Scroll progress bar */
+  .scroll-progress { height: 3px; background: #ddd; width: 100%; margin-top: 4px; }
+  .scroll-progress-fill { height: 100%; background: #555; width: 30%; }
+</style>
+</head>
+<body>
+
+<!-- Legend -->
+<div class="legend">
+  <strong style="font-family:Arial;font-size:12px;">Component Key</strong>
+  <div class="legend-item"><span class="badge-reuse">[REUSE]</span> Existing template</div>
+  <div class="legend-item"><span class="badge-new">[NEW]</span> New component</div>
+</div>
+
+<!-- Option Header -->
+<div class="option-header">
+  <h1>Option 3 — Immersive Journey</h1>
+  <p>Innovative approach: scroll-reveal experience, interactive occasion selector, AI search bar, parallax sections, video testimonials, map visit section, and live appointment availability.</p>
+</div>
+
+<!-- ── SECTION 1: FIXED SIDEBAR NAV + SCROLL PROGRESS ── -->
+<div class="wf-section" style="background:#fff; padding:0; border-bottom:2px solid #ddd;">
+  <span class="section-label">NEW: Smart Nav with Progress + Scroll Sections</span>
+  <div style="padding:14px 40px; display:flex; align-items:center; justify-content:space-between;">
+    <!-- Logo -->
+    <div class="comp-wrap" style="display:inline-flex; align-items:center; gap:10px;">
+      <span class="badge reuse">[REUSE] Logo</span>
+      <div class="wf-box" style="width:40px; height:40px; background:#ddd; border:2px solid #bbb; font-size:10px;">LOGO</div>
+      <span style="font-family:Georgia,serif; font-size:18px; letter-spacing:4px; color:#111;">LONDON NOIVAS</span>
+    </div>
+    <!-- Nav dots (section anchors) -->
+    <div class="comp-wrap" style="display:flex; gap:6px; align-items:center;">
+      <span class="badge new">[NEW] SectionNavDots</span>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <div style="display:flex; flex-direction:column; align-items:center; gap:2px;">
+          <div style="width:8px; height:8px; border-radius:50%; background:#333; border:1px solid #333;"></div>
+          <span style="font-size:9px; color:#666; font-family:Arial,sans-serif;">Início</span>
+        </div>
+        <div style="width:40px; height:1px; background:#ccc;"></div>
+        <div style="display:flex; flex-direction:column; align-items:center; gap:2px;">
+          <div style="width:8px; height:8px; border-radius:50%; background:#ccc; border:1px solid #bbb;"></div>
+          <span style="font-size:9px; color:#aaa; font-family:Arial,sans-serif;">Acervo</span>
+        </div>
+        <div style="width:40px; height:1px; background:#ccc;"></div>
+        <div style="display:flex; flex-direction:column; align-items:center; gap:2px;">
+          <div style="width:8px; height:8px; border-radius:50%; background:#ccc; border:1px solid #bbb;"></div>
+          <span style="font-size:9px; color:#aaa; font-family:Arial,sans-serif;">Sobre</span>
+        </div>
+        <div style="width:40px; height:1px; background:#ccc;"></div>
+        <div style="display:flex; flex-direction:column; align-items:center; gap:2px;">
+          <div style="width:8px; height:8px; border-radius:50%; background:#ccc; border:1px solid #bbb;"></div>
+          <span style="font-size:9px; color:#aaa; font-family:Arial,sans-serif;">Experiências</span>
+        </div>
+        <div style="width:40px; height:1px; background:#ccc;"></div>
+        <div style="display:flex; flex-direction:column; align-items:center; gap:2px;">
+          <div style="width:8px; height:8px; border-radius:50%; background:#ccc; border:1px solid #bbb;"></div>
+          <span style="font-size:9px; color:#aaa; font-family:Arial,sans-serif;">Agendar</span>
+        </div>
+      </div>
+    </div>
+    <!-- CTAs -->
+    <div style="display:flex; gap:12px; align-items:center;">
+      <span style="font-size:12px; color:#666; text-transform:uppercase; letter-spacing:1px;">Catálogo</span>
+      <div class="wf-btn" style="padding:8px 20px; font-size:12px; border-radius:999px;">✦ AGENDAR</div>
+    </div>
+  </div>
+  <!-- Scroll progress bar at bottom of nav -->
+  <div class="scroll-progress">
+    <div class="scroll-progress-fill"></div>
+  </div>
+  <div class="annotation" style="padding:4px 12px 8px;">↑ Scroll progress bar fills as user scrolls. Section dots highlight the current viewport section. Sticky on scroll.</div>
+</div>
+
+<!-- ── SECTION 2: FULLSCREEN HERO WITH INTERACTIVE OCCASION SELECTOR ── -->
+<div class="wf-section" style="background:#1a1a1a; min-height:700px; padding:0; position:relative; overflow:hidden;">
+  <span class="section-label" style="color:#666;">Immersive Hero — Interactive Occasion Switcher</span>
+  <!-- Background image -->
+  <div class="comp-wrap" style="height:700px; display:block;">
+    <span class="badge reuse">[REUSE] Hero Image</span>
+    <div class="wf-box image" style="height:700px; border:none; border-radius:0; opacity:0.7;">
+      <span style="position:relative;z-index:1;color:#888;font-size:14px;">[Occasion-dependent hero image changes on tab select]</span>
+    </div>
+  </div>
+  <!-- Overlay gradient -->
+  <div style="position:absolute; inset:0; background:linear-gradient(to right, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.3) 50%, transparent 100%); z-index:2;"></div>
+  <!-- Content -->
+  <div style="position:absolute; top:0; bottom:0; left:0; width:55%; padding:80px 60px; display:flex; flex-direction:column; justify-content:center; z-index:3;">
+    <!-- Occasion selector tabs (interactive) -->
+    <div class="comp-wrap" style="display:inline-block;">
+      <span class="badge new">[NEW] OccasionSwitcher</span>
+      <div style="display:flex; gap:0; margin-bottom:28px; border:2px solid rgba(255,255,255,0.2); border-radius:4px; overflow:hidden; width:fit-content;">
+        <div style="padding:8px 20px; background:rgba(255,255,255,0.15); color:#fff; font-size:12px; border-right:1px solid rgba(255,255,255,0.2); cursor:pointer; backdrop-filter:blur(4px);">
+          <span style="font-size:16px; display:block; text-align:center;">👰</span>
+          <span style="text-transform:uppercase; letter-spacing:1px; font-size:10px;">Noivas</span>
+        </div>
+        <div style="padding:8px 20px; color:rgba(255,255,255,0.5); font-size:12px; border-right:1px solid rgba(255,255,255,0.2); cursor:pointer;">
+          <span style="font-size:16px; display:block; text-align:center;">👗</span>
+          <span style="text-transform:uppercase; letter-spacing:1px; font-size:10px;">Madrinhas</span>
+        </div>
+        <div style="padding:8px 20px; color:rgba(255,255,255,0.5); font-size:12px; cursor:pointer;">
+          <span style="font-size:16px; display:block; text-align:center;">🎓</span>
+          <span style="text-transform:uppercase; letter-spacing:1px; font-size:10px;">Formandas</span>
+        </div>
+      </div>
+    </div>
+    <div class="eyebrow" style="color:#aaa; font-size:9px; letter-spacing:4px;">Elegância Britânica em Cada Detalhe</div>
+    <h2 style="font-family:Georgia,serif; font-size:54px; color:#fff; line-height:1.15; margin-top:10px;">O Vestido dos<br>Seus Sonhos<br>Está Aqui</h2>
+    <p style="font-size:14px; color:rgba(255,255,255,0.7); line-height:1.7; margin-top:14px; max-width:400px;">
+      Aluguel de vestidos exclusivos para noivas, madrinhas e ocasiões especiais em Manaus, AM.
+    </p>
+    <!-- Smart search bar -->
+    <div class="comp-wrap" style="margin-top:28px; display:block;">
+      <span class="badge new">[NEW] SmartSearchBar</span>
+      <div style="background:rgba(255,255,255,0.95); border-radius:4px; display:flex; overflow:hidden; max-width:480px; box-shadow:0 8px 32px rgba(0,0,0,0.3);">
+        <div style="flex:1; padding:14px 16px; font-size:13px; color:#aaa; border-right:1px solid #ddd;">🔍 Buscar por cor, tamanho ou estilo...</div>
+        <div style="padding:12px 20px; background:#333; color:#fff; font-size:12px; cursor:pointer; display:flex; align-items:center;">BUSCAR</div>
+      </div>
+      <div style="margin-top:8px; display:flex; gap:6px; flex-wrap:wrap;">
+        <span style="font-size:10px; color:rgba(255,255,255,0.5); background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); border-radius:999px; padding:3px 10px;">Vestido branco</span>
+        <span style="font-size:10px; color:rgba(255,255,255,0.5); background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); border-radius:999px; padding:3px 10px;">Tamanho 38</span>
+        <span style="font-size:10px; color:rgba(255,255,255,0.5); background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); border-radius:999px; padding:3px 10px;">Estilo princesa</span>
+      </div>
+    </div>
+    <!-- CTA pair -->
+    <div style="margin-top:28px; display:flex; gap:14px;">
+      <div class="wf-btn" style="border-radius:999px; background:rgba(255,255,255,0.9); color:#111; border-color:rgba(255,255,255,0.9); font-size:13px;">✦ AGENDAR PROVA</div>
+      <div class="wf-btn outline" style="border-radius:999px; border-color:rgba(255,255,255,0.4); color:#fff; background:transparent; font-size:13px;">VER ACERVO</div>
+    </div>
+  </div>
+  <!-- Right: floating catalog preview cards -->
+  <div style="position:absolute; right:40px; top:50%; transform:translateY(-50%); z-index:3; display:flex; flex-direction:column; gap:10px;">
+    <div class="comp-wrap" style="display:block;">
+      <span class="badge new">[NEW] MiniDressCard</span>
+      <div style="background:rgba(255,255,255,0.95); border-radius:6px; overflow:hidden; width:130px; box-shadow:0 4px 20px rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.2);">
+        <div class="wf-box image" style="height:100px; border:none; border-radius:0;"></div>
+        <div style="padding:8px 10px;">
+          <div style="font-size:10px; color:#333; font-weight:bold;">Vestido A-Line</div>
+          <div style="font-size:9px; color:#999; margin-top:2px;">Cód: LN-042</div>
+        </div>
+      </div>
+    </div>
+    <div style="background:rgba(255,255,255,0.95); border-radius:6px; overflow:hidden; width:130px; box-shadow:0 4px 20px rgba(0,0,0,0.3);">
+      <div class="wf-box image" style="height:100px; border:none; border-radius:0;"></div>
+      <div style="padding:8px 10px;">
+        <div style="font-size:10px; color:#333; font-weight:bold;">Vestido Sereia</div>
+        <div style="font-size:9px; color:#999; margin-top:2px;">Cód: LN-017</div>
+      </div>
+    </div>
+  </div>
+  <!-- Scroll hint -->
+  <div style="position:absolute; bottom:24px; left:50%; transform:translateX(-50%); z-index:4; text-align:center;">
+    <div style="width:1px; height:40px; background:rgba(255,255,255,0.3); margin:0 auto;"></div>
+    <span style="font-size:10px; color:rgba(255,255,255,0.4); text-transform:uppercase; letter-spacing:3px; display:block; margin-top:6px;">Rolar</span>
+  </div>
+</div>
+
+<!-- ── SECTION 3: HORIZONTAL SCROLL PROCESS TIMELINE ── -->
+<div class="wf-section" style="background:#f9f9f9; overflow:hidden;">
+  <span class="section-label">NEW: Horizontal Scroll Process Timeline</span>
+  <div style="text-align:center; margin-bottom:28px; margin-top:16px;">
+    <div class="eyebrow">A Jornada</div>
+    <h2 class="wf-heading" style="font-size:32px;">Sua Experiência Conosco</h2>
+  </div>
+  <div class="comp-wrap" style="display:block;">
+    <span class="badge new">[NEW] HorizontalTimeline</span>
+    <!-- Timeline track -->
+    <div style="position:relative; padding:0 40px 40px;">
+      <!-- Line -->
+      <div style="position:absolute; top:50px; left:60px; right:60px; height:2px; background:#ccc; z-index:0;"></div>
+      <!-- Steps -->
+      <div style="display:flex; gap:0; justify-content:space-between; position:relative; z-index:1;">
+        <!-- Step 1 -->
+        <div style="display:flex; flex-direction:column; align-items:center; gap:16px; width:18%;">
+          <div style="width:56px; height:56px; border-radius:50%; background:#333; color:#fff; display:flex; align-items:center; justify-content:center; font-family:Georgia,serif; font-size:20px; border:3px solid #fff; box-shadow:0 0 0 2px #333;">1</div>
+          <div style="text-align:center;">
+            <div style="font-size:20px; margin-bottom:8px;">🔍</div>
+            <div style="font-family:Georgia,serif; font-size:14px; color:#333; font-weight:bold;">Descoberta</div>
+            <div style="font-size:11px; color:#888; margin-top:4px; line-height:1.5;">Explore nosso catálogo online ou venha à loja.</div>
+          </div>
+        </div>
+        <!-- Step 2 -->
+        <div style="display:flex; flex-direction:column; align-items:center; gap:16px; width:18%;">
+          <div style="width:56px; height:56px; border-radius:50%; background:#ccc; color:#fff; display:flex; align-items:center; justify-content:center; font-family:Georgia,serif; font-size:20px; border:3px solid #fff; box-shadow:0 0 0 2px #ccc;">2</div>
+          <div style="text-align:center;">
+            <div style="font-size:20px; margin-bottom:8px;">📅</div>
+            <div style="font-family:Georgia,serif; font-size:14px; color:#555; font-weight:bold;">Agendamento</div>
+            <div style="font-size:11px; color:#888; margin-top:4px; line-height:1.5;">Escolha data e horário disponível online.</div>
+          </div>
+        </div>
+        <!-- Step 3 -->
+        <div style="display:flex; flex-direction:column; align-items:center; gap:16px; width:18%;">
+          <div style="width:56px; height:56px; border-radius:50%; background:#ccc; color:#fff; display:flex; align-items:center; justify-content:center; font-family:Georgia,serif; font-size:20px; border:3px solid #fff; box-shadow:0 0 0 2px #ccc;">3</div>
+          <div style="text-align:center;">
+            <div style="font-size:20px; margin-bottom:8px;">👗</div>
+            <div style="font-family:Georgia,serif; font-size:14px; color:#555; font-weight:bold;">Prova</div>
+            <div style="font-size:11px; color:#888; margin-top:4px; line-height:1.5;">Experimente no nosso showroom premium.</div>
+          </div>
+        </div>
+        <!-- Step 4 -->
+        <div style="display:flex; flex-direction:column; align-items:center; gap:16px; width:18%;">
+          <div style="width:56px; height:56px; border-radius:50%; background:#ccc; color:#fff; display:flex; align-items:center; justify-content:center; font-family:Georgia,serif; font-size:20px; border:3px solid #fff; box-shadow:0 0 0 2px #ccc;">4</div>
+          <div style="text-align:center;">
+            <div style="font-size:20px; margin-bottom:8px;">✂️</div>
+            <div style="font-family:Georgia,serif; font-size:14px; color:#555; font-weight:bold;">Ajuste</div>
+            <div style="font-size:11px; color:#888; margin-top:4px; line-height:1.5;">Costureiras fazem ajuste personalizado.</div>
+          </div>
+        </div>
+        <!-- Step 5 -->
+        <div style="display:flex; flex-direction:column; align-items:center; gap:16px; width:18%;">
+          <div style="width:56px; height:56px; border-radius:50%; background:#ccc; color:#fff; display:flex; align-items:center; justify-content:center; font-family:Georgia,serif; font-size:20px; border:3px solid #fff; box-shadow:0 0 0 2px #ccc;">5</div>
+          <div style="text-align:center;">
+            <div style="font-size:20px; margin-bottom:8px;">✨</div>
+            <div style="font-family:Georgia,serif; font-size:14px; color:#555; font-weight:bold;">Brilhe!</div>
+            <div style="font-size:11px; color:#888; margin-top:4px; line-height:1.5;">Retire e viva o seu dia inesquecível.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="annotation">↑ On mobile: swipe horizontally to progress through steps. Active step animates in with CSS transition.</div>
+</div>
+
+<!-- ── SECTION 4: CATALOG SHOWCASE — MOSAIC GRID ── -->
+<div class="wf-section" style="background:#fff; padding:0; overflow:hidden;">
+  <span class="section-label">NEW: Mosaic Catalog Showcase with Quick Filter</span>
+  <!-- Sticky filter bar -->
+  <div style="background:#fff; border-bottom:1px solid #eee; padding:16px 40px; display:flex; gap:12px; align-items:center; position:sticky; top:64px; z-index:5;">
+    <div class="comp-wrap" style="display:inline-flex; gap:8px; align-items:center;">
+      <span class="badge new">[NEW] QuickFilterBar</span>
+      <span style="font-size:11px; color:#888; text-transform:uppercase; letter-spacing:2px; font-family:Arial,sans-serif;">Filtrar:</span>
+      <span class="wf-pill" style="background:#333; color:#fff; border-color:#333; font-size:11px; padding:5px 14px;">Todos</span>
+      <span class="wf-pill" style="font-size:11px; padding:5px 14px;">Noivas</span>
+      <span class="wf-pill" style="font-size:11px; padding:5px 14px;">Madrinhas</span>
+      <span class="wf-pill" style="font-size:11px; padding:5px 14px;">Formandas</span>
+      <span class="wf-pill" style="font-size:11px; padding:5px 14px;">Longo</span>
+      <span class="wf-pill" style="font-size:11px; padding:5px 14px;">Curto</span>
+    </div>
+    <div style="margin-left:auto; display:flex; gap:8px; align-items:center;">
+      <span style="font-size:11px; color:#999; font-family:Arial,sans-serif;">128 peças</span>
+      <span class="wf-pill" style="font-size:11px; padding:5px 14px; border-color:#ccc; color:#666;">Ver todos →</span>
+    </div>
+  </div>
+  <!-- Masonry-style mosaic -->
+  <div style="padding:24px 40px 40px;">
+    <div class="comp-wrap" style="display:block;">
+      <span class="badge new">[NEW] MosaicGrid</span>
+      <div style="display:grid; grid-template-columns: repeat(4, 1fr); grid-auto-rows: 180px; gap:8px;">
+        <!-- Tall item spanning 2 rows -->
+        <div style="grid-row: span 2; border:2px solid #ddd; border-radius:4px; overflow:hidden; position:relative; background:#f5f5f5;">
+          <div class="wf-box image" style="height:100%; border:none; border-radius:0;"></div>
+          <div style="position:absolute; bottom:0; left:0; right:0; padding:12px; background:linear-gradient(transparent, rgba(0,0,0,0.7));">
+            <div style="font-size:11px; color:#eee; font-family:Georgia,serif;">Vestido de Noiva<br>Princesa</div>
+            <div style="font-size:10px; color:#aaa; margin-top:2px;">LN-042 · Cód: P-042</div>
+          </div>
+        </div>
+        <!-- Regular items -->
+        <div style="border:2px solid #ddd; border-radius:4px; overflow:hidden; position:relative; background:#f5f5f5;">
+          <div class="wf-box image" style="height:100%; border:none; border-radius:0;"></div>
+          <div style="position:absolute; bottom:0; padding:8px; background:linear-gradient(transparent, rgba(0,0,0,0.6)); left:0; right:0;">
+            <div style="font-size:10px; color:#eee; font-family:Georgia,serif;">Vestido Madrinha</div>
+          </div>
+        </div>
+        <div style="border:2px solid #ddd; border-radius:4px; overflow:hidden; position:relative; background:#f5f5f5;">
+          <div class="wf-box image" style="height:100%; border:none; border-radius:0;"></div>
+          <div style="position:absolute; bottom:0; padding:8px; background:linear-gradient(transparent, rgba(0,0,0,0.6)); left:0; right:0;">
+            <div style="font-size:10px; color:#eee; font-family:Georgia,serif;">Vestido Sereia</div>
+          </div>
+        </div>
+        <!-- Wide item spanning 2 columns -->
+        <div style="grid-column: span 2; border:2px solid #ddd; border-radius:4px; overflow:hidden; position:relative; background:#f5f5f5;">
+          <div class="wf-box image" style="height:100%; border:none; border-radius:0;"></div>
+          <div style="position:absolute; bottom:0; padding:8px; background:linear-gradient(transparent, rgba(0,0,0,0.6)); left:0; right:0;">
+            <div style="font-size:10px; color:#eee; font-family:Georgia,serif;">Vestido para Formatura · Destaque da Coleção</div>
+          </div>
+        </div>
+        <div style="border:2px solid #ddd; border-radius:4px; overflow:hidden; position:relative; background:#f5f5f5;">
+          <div class="wf-box image" style="height:100%; border:none; border-radius:0;"></div>
+          <div style="position:absolute; bottom:0; padding:8px; background:linear-gradient(transparent, rgba(0,0,0,0.6)); left:0; right:0;">
+            <div style="font-size:10px; color:#eee; font-family:Georgia,serif;">Vestido Noiva</div>
+          </div>
+        </div>
+        <div style="border:2px solid #ddd; border-radius:4px; overflow:hidden; position:relative; background:#f5f5f5;">
+          <div class="wf-box image" style="height:100%; border:none; border-radius:0;"></div>
+          <div style="position:absolute; bottom:0; padding:8px; background:linear-gradient(transparent, rgba(0,0,0,0.6)); left:0; right:0;">
+            <div style="font-size:10px; color:#eee; font-family:Georgia,serif;">Vestido Madrinha</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="text-align:center; margin-top:24px;">
+      <div class="wf-btn outline" style="padding:12px 40px; font-size:13px;">Carregar Mais Vestidos ↓</div>
+    </div>
+  </div>
+  <div class="annotation" style="margin:0 40px 20px;">↑ Each card opens the existing catalog modal on click. Quick filter bar sticks under nav while browsing. "Load more" uses AJAX.</div>
+</div>
+
+<!-- ── SECTION 5: PARALLAX ABOUT ── -->
+<div class="wf-section" style="background:#222; padding:0; position:relative; min-height:400px; overflow:hidden;">
+  <span class="section-label" style="color:#666;">NEW: Parallax About Section</span>
+  <!-- Parallax bg -->
+  <div class="comp-wrap" style="height:400px; display:block;">
+    <span class="badge reuse">[REUSE] Showroom Image (parallax)</span>
+    <div class="wf-box image" style="height:400px; border:none; border-radius:0; opacity:0.4;"></div>
+  </div>
+  <!-- Overlay content -->
+  <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; z-index:3;">
+    <div style="text-align:center; max-width:600px; padding:40px;">
+      <div style="font-family:Georgia,serif; font-size:72px; color:rgba(255,255,255,0.15); line-height:0.8; margin-bottom:16px;">"</div>
+      <h2 style="font-family:Georgia,serif; font-size:36px; color:#fff; line-height:1.3;">Inspirada nas grandes boutiques de Londres</h2>
+      <p style="font-size:14px; color:rgba(255,255,255,0.65); margin-top:16px; line-height:1.8;">Uma experiência de aluguel de luxo sem precedentes. Nosso showroom foi projetado para ser o seu santuário.</p>
+      <div style="margin-top:24px; display:flex; gap:48px; justify-content:center;">
+        <div style="text-align:center;">
+          <div style="font-family:Georgia,serif; font-size:28px; color:#eee; font-weight:bold;">200+</div>
+          <div style="font-size:10px; color:#888; text-transform:uppercase; letter-spacing:2px; margin-top:4px;">Vestidos</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-family:Georgia,serif; font-size:28px; color:#eee; font-weight:bold;">★ 5.0</div>
+          <div style="font-size:10px; color:#888; text-transform:uppercase; letter-spacing:2px; margin-top:4px;">Google</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-family:Georgia,serif; font-size:28px; color:#eee; font-weight:bold;">10+</div>
+          <div style="font-size:10px; color:#888; text-transform:uppercase; letter-spacing:2px; margin-top:4px;">Anos</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="annotation" style="position:absolute; bottom:10px; left:20px; color:#555; border-color:#444;">↑ Background image moves at 0.5x scroll speed for parallax depth effect.</div>
+</div>
+
+<!-- ── SECTION 6: VIDEO TESTIMONIALS ── -->
+<div class="wf-section" style="background:#f5f5f5;">
+  <span class="section-label">NEW: Video Testimonials Section</span>
+  <div style="text-align:center; margin-bottom:28px; margin-top:16px;">
+    <div class="eyebrow">Experiências Reais</div>
+    <h2 class="wf-heading" style="font-size:32px;">O que nossas clientes dizem</h2>
+  </div>
+  <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:20px;">
+    <!-- Video testimonial 1 -->
+    <div class="comp-wrap" style="display:block;">
+      <span class="badge new">[NEW] VideoTestimonialCard</span>
+      <div style="border:2px solid #ddd; border-radius:6px; overflow:hidden; background:#fff;">
+        <!-- Video thumbnail with play button -->
+        <div class="wf-box image" style="height:180px; border:none; border-radius:0; position:relative;">
+          <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; z-index:2;">
+            <div style="width:52px; height:52px; border-radius:50%; background:rgba(255,255,255,0.9); display:flex; align-items:center; justify-content:center; font-size:18px; box-shadow:0 2px 12px rgba(0,0,0,0.3);">▶</div>
+          </div>
+        </div>
+        <div style="padding:16px 18px;">
+          <div style="color:#aaa; font-size:16px; margin-bottom:6px;">★★★★★</div>
+          <p style="font-size:12px; color:#555; font-style:italic; line-height:1.5;">"O atendimento foi impecável..."</p>
+          <div style="margin-top:12px; display:flex; align-items:center; gap:8px;">
+            <div class="wf-box" style="width:32px; height:32px; border-radius:50%; background:#ddd; border:1px solid #bbb; font-size:12px;">M</div>
+            <div>
+              <div style="font-size:12px; font-weight:bold; color:#333;">Mariana Silva</div>
+              <div style="font-size:10px; color:#999;">Noiva 2025</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Video testimonial 2 -->
+    <div style="border:2px solid #ddd; border-radius:6px; overflow:hidden; background:#fff;">
+      <div class="wf-box image" style="height:180px; border:none; border-radius:0; position:relative;">
+        <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; z-index:2;">
+          <div style="width:52px; height:52px; border-radius:50%; background:rgba(255,255,255,0.9); display:flex; align-items:center; justify-content:center; font-size:18px; box-shadow:0 2px 12px rgba(0,0,0,0.3);">▶</div>
+        </div>
+      </div>
+      <div style="padding:16px 18px;">
+        <div style="color:#aaa; font-size:16px; margin-bottom:6px;">★★★★★</div>
+        <p style="font-size:12px; color:#555; font-style:italic; line-height:1.5;">"Superou todas as expectativas..."</p>
+        <div style="margin-top:12px; display:flex; align-items:center; gap:8px;">
+          <div class="wf-box" style="width:32px; height:32px; border-radius:50%; background:#ddd; border:1px solid #bbb; font-size:12px;">B</div>
+          <div>
+            <div style="font-size:12px; font-weight:bold; color:#333;">Beatriz Costa</div>
+            <div style="font-size:10px; color:#999;">Madrinha</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Video testimonial 3 -->
+    <div style="border:2px solid #ddd; border-radius:6px; overflow:hidden; background:#fff;">
+      <div class="wf-box image" style="height:180px; border:none; border-radius:0; position:relative;">
+        <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; z-index:2;">
+          <div style="width:52px; height:52px; border-radius:50%; background:rgba(255,255,255,0.9); display:flex; align-items:center; justify-content:center; font-size:18px; box-shadow:0 2px 12px rgba(0,0,0,0.3);">▶</div>
+        </div>
+      </div>
+      <div style="padding:16px 18px;">
+        <div style="color:#aaa; font-size:16px; margin-bottom:6px;">★★★★★</div>
+        <p style="font-size:12px; color:#555; font-style:italic; line-height:1.5;">"Me ajudou muito a decidir..."</p>
+        <div style="margin-top:12px; display:flex; align-items:center; gap:8px;">
+          <div class="wf-box" style="width:32px; height:32px; border-radius:50%; background:#ddd; border:1px solid #bbb; font-size:12px;">F</div>
+          <div>
+            <div style="font-size:12px; font-weight:bold; color:#333;">Fernanda Lima</div>
+            <div style="font-size:10px; color:#999;">Formanda</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── SECTION 7: MAP + VISIT SECTION ── -->
+<div class="wf-section" style="background:#fff; padding:0; overflow:hidden;">
+  <span class="section-label">NEW: Immersive Store Visit Section</span>
+  <div class="flex" style="gap:0; min-height:400px;">
+    <!-- Map half -->
+    <div class="col-1" style="min-height:400px;">
+      <div class="comp-wrap" style="height:100%; display:block;">
+        <span class="badge reuse">[REUSE] Map Image</span>
+        <div class="wf-box image" style="height:400px; border:none; border-radius:0;">
+          <span style="position:relative;z-index:1;font-size:13px;color:#666;">[Google Maps Embed or Image]</span>
+        </div>
+      </div>
+    </div>
+    <!-- Info half -->
+    <div class="col-1" style="padding:48px 48px; background:#f5f5f5; display:flex; flex-direction:column; justify-content:center;">
+      <div class="eyebrow">Visite-nos</div>
+      <h2 class="wf-heading" style="font-size:30px; margin-top:8px;">Venha ao nosso<br>Showroom</h2>
+      <div style="margin-top:20px; display:flex; flex-direction:column; gap:14px;">
+        <div style="display:flex; gap:14px; align-items:flex-start;">
+          <span style="font-size:20px; flex-shrink:0;">📍</span>
+          <div>
+            <div style="font-size:13px; font-weight:bold; color:#333;">Endereço</div>
+            <div style="font-size:12px; color:#777; margin-top:2px;">Rua Voltaire, 9 · Colônia Santo Antônio<br>Manaus - AM, 69093-078</div>
+          </div>
+        </div>
+        <div style="display:flex; gap:14px; align-items:flex-start;">
+          <span style="font-size:20px; flex-shrink:0;">🕐</span>
+          <div>
+            <div style="font-size:13px; font-weight:bold; color:#333;">Horário</div>
+            <div style="font-size:12px; color:#777; margin-top:2px;">Segunda a Sábado: 10h às 20h</div>
+          </div>
+        </div>
+        <div style="display:flex; gap:14px; align-items:flex-start;">
+          <span style="font-size:20px; flex-shrink:0;">📞</span>
+          <div>
+            <div style="font-size:13px; font-weight:bold; color:#333;">Telefone</div>
+            <div style="font-size:12px; color:#777; margin-top:2px;">(92) 99353-1943</div>
+          </div>
+        </div>
+      </div>
+      <!-- Live availability indicator -->
+      <div class="comp-wrap" style="display:block; margin-top:24px; background:#fff; border:2px dashed #ccc; border-radius:6px; padding:16px 20px;">
+        <span class="badge new">[NEW] LiveAvailabilityWidget</span>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <div style="font-size:12px; font-weight:bold; color:#333;">Próximas disponibilidades</div>
+          <div style="display:flex; align-items:center; gap:5px;">
+            <div style="width:8px; height:8px; border-radius:50%; background:#4CAF50; animation:pulse 1.5s infinite;"></div>
+            <span style="font-size:10px; color:#4CAF50; font-family:Arial,sans-serif;">AO VIVO</span>
+          </div>
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <div style="border:1px solid #ddd; border-radius:4px; padding:6px 10px; font-size:11px; color:#555; background:#fff;">Seg 03/03 · 10h</div>
+          <div style="border:1px solid #ddd; border-radius:4px; padding:6px 10px; font-size:11px; color:#555; background:#fff;">Seg 03/03 · 14h</div>
+          <div style="border:1px solid #ddd; border-radius:4px; padding:6px 10px; font-size:11px; color:#555; background:#fff;">Ter 04/03 · 11h</div>
+          <div style="border:1px solid #ddd; border-radius:4px; padding:6px 10px; font-size:11px; color:#555; background:#fff; opacity:0.4; text-decoration:line-through;">Qua 05/03</div>
+        </div>
+        <div class="wf-btn" style="margin-top:14px; width:100%; text-align:center; padding:10px; font-size:12px; border-radius:4px;">RESERVAR HORÁRIO →</div>
+      </div>
+    </div>
+  </div>
+  <div class="annotation" style="padding:10px 40px 14px;">↑ Availability slots sync from /api/available_slots. Strikethrough = booked. RESERVAR links to /agendar booking flow.</div>
+</div>
+
+<!-- ── SECTION 8: FOOTER ── -->
+<div class="wf-section" style="background:#0d0d0d; padding:48px 40px 28px;">
+  <span class="section-label" style="color:#444;">Footer — Immersive Dark</span>
+  <div style="display:grid; grid-template-columns: 1.5fr 1fr 1fr 1.2fr; gap:40px; margin-top:12px; border-bottom:1px solid #1f1f1f; padding-bottom:36px; margin-bottom:20px;">
+    <!-- Brand -->
+    <div>
+      <div class="comp-wrap" style="display:block;">
+        <span class="badge reuse">[REUSE] Brand Footer</span>
+        <div class="flex" style="align-items:center; gap:10px; margin-bottom:14px;">
+          <div class="wf-box" style="width:36px; height:36px; background:#333; border-color:#444; font-size:10px;">L</div>
+          <div style="font-family:Georgia,serif; font-size:16px; color:#eee; letter-spacing:4px;">LONDON NOIVAS</div>
+        </div>
+        <p style="font-size:11px; color:#555; line-height:1.7;">Tornando momentos especiais em memórias eternas através da elegância que você merece.</p>
+        <div style="margin-top:16px; display:flex; gap:10px;">
+          <div class="wf-box" style="width:32px; height:32px; border-radius:50%; background:#1a1a1a; border-color:#333; font-size:13px; color:#777;">📷</div>
+        </div>
+      </div>
+    </div>
+    <!-- Collections -->
+    <div>
+      <h4 style="font-size:10px; color:#555; text-transform:uppercase; letter-spacing:3px; margin-bottom:14px; font-family:Arial,sans-serif;">Coleções</h4>
+      <ul style="list-style:none; font-size:12px; color:#444; line-height:2.4;">
+        <li style="cursor:pointer; hover:color:#eee;">Vestidos de Noiva</li>
+        <li>Vestidos de Madrinha</li>
+        <li>Vestidos de Formatura</li>
+        <li>Acessórios</li>
+      </ul>
+    </div>
+    <!-- Links -->
+    <div>
+      <h4 style="font-size:10px; color:#555; text-transform:uppercase; letter-spacing:3px; margin-bottom:14px; font-family:Arial,sans-serif;">Links</h4>
+      <ul style="list-style:none; font-size:12px; color:#444; line-height:2.4;">
+        <li>Catálogo Completo</li>
+        <li>Agendar Prova</li>
+        <li>Sobre Nós</li>
+        <li>Área Restrita</li>
+      </ul>
+    </div>
+    <!-- Newsletter -->
+    <div>
+      <div class="comp-wrap" style="display:block;">
+        <span class="badge new">[NEW] NewsletterSignup</span>
+        <h4 style="font-size:10px; color:#555; text-transform:uppercase; letter-spacing:3px; margin-bottom:14px; font-family:Arial,sans-serif;">Novidades</h4>
+        <p style="font-size:11px; color:#555; margin-bottom:12px; line-height:1.6;">Receba alertas de novos vestidos e datas disponíveis.</p>
+        <div style="display:flex; overflow:hidden; border-radius:4px; border:1px solid #333;">
+          <div style="flex:1; padding:10px 12px; background:#1a1a1a; font-size:11px; color:#444;">seu@email.com</div>
+          <div style="padding:10px 14px; background:#555; color:#eee; font-size:10px; cursor:pointer; text-transform:uppercase; letter-spacing:1px;">OK</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div style="display:flex; justify-content:space-between; font-size:10px; color:#333; align-items:center;">
+    <span>© 2025 London Noivas. Todos os direitos reservados.</span>
+    <div style="display:flex; gap:16px;"><span>Termos de Uso</span><span>Privacidade</span></div>
+  </div>
+  <!-- Floating WhatsApp -->
+  <div class="comp-wrap" style="position:fixed; bottom:28px; right:28px; z-index:100;">
+    <span class="badge reuse">[REUSE] FloatingWhatsApp</span>
+    <div style="background:#555; width:56px; height:56px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; font-size:24px; box-shadow:0 4px 16px rgba(0,0,0,0.3);">💬</div>
+  </div>
+</div>
+
+<!-- Mobile note -->
+<div style="background:#fffbe6; border:2px dashed #f0c040; padding:20px 30px; font-family:Arial,sans-serif; font-size:12px; color:#555; margin:20px;">
+  <strong>📱 Mobile (≤768px):</strong> Nav dots hidden, hamburger replaces → Occasion switcher becomes scrollable horizontal tabs → Search bar goes full-width below hero text → Timeline swipes horizontally with touch → Mosaic grid becomes 2 columns → Parallax disabled on mobile (static image) → Video testimonials become vertical scroll → Map goes full-width above store info → Footer 2 columns stacked.
+</div>
+
+</body>
+</html>

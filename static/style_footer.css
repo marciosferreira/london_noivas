@@ -1,19 +1,21 @@
 /* Estilo geral da navbar */
 .footer-wrapper {
-  background-color: #003366 !important;
+  background: linear-gradient(180deg, #0f172a 0%, #0b1324 100%) !important;
   padding-left: 0;
   padding-right: 0;
-  padding-top: -1rem;
-  padding-bottom: 1rem;
-  max-width: 1200px;
-  margin: -30px auto 0 auto; /* ← top 10px */
-  width: 90%;
-  border-radius: 12px;
+  padding-top: 1.75rem;
+  padding-bottom: 1.75rem;
+  max-width: 100%;
+  margin: 0;
+  width: 100%;
+  border-radius: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 -12px 30px rgba(2, 6, 23, 0.35);
 }
 
 .footer {
   background-color: transparent;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
 }
 
 .footer a {
@@ -24,17 +26,27 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  padding: 0.5rem 0.9rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(6px);
 }
 
 .footer a:hover {
   color: #ffc107;
   transform: translateY(-2px);
-  text-decoration: underline;
+  background: rgba(255, 193, 7, 0.12);
+  border-color: rgba(255, 193, 7, 0.35);
 }
 
 .footer-links .col-6 {
   padding-left: 0.5rem;
   padding-right: 0.5rem;
+}
+
+.footer-links {
+  gap: 0.5rem;
 }
 
 @media (max-width: 576px) {
