@@ -1,5 +1,6 @@
 import datetime
 import uuid
+import os
 from urllib.parse import urlparse, urlencode
 from boto3.dynamodb.conditions import Key, Attr
 
@@ -16,6 +17,7 @@ from flask import (
 import json
 import datetime
 from decimal import Decimal
+from openai import OpenAI
 
 from utils import get_user_timezone
 
@@ -158,6 +160,82 @@ def init_item_routes(
             payment_transactions_table,
             entity="item",
         )
+
+    def _get_openai_client():
+        api_key = (
+            os.getenv("OPENAI_API_KEY")
+            or os.getenv("OPENAI_KEY")
+            or os.getenv("OPENAI_APIKEY")
+        )
+        if not api_key:
+            return None
+        return OpenAI(api_key=api_key)
+
+    @app.route("/api/ai/item-text", methods=["POST"])
+    def ai_item_text():
+        if not session.get("logged_in"):
+            return jsonify({"error": "unauthorized"}), 401
+
+        payload = request.get_json(silent=True) or {}
+        image_url = (payload.get("image_url") or "").strip()
+        image_base64 = (payload.get("image_base64") or "").strip()
+        image_mime = (payload.get("image_mime") or "image/jpeg").strip()
+
+        if image_base64:
+            if image_base64.startswith("data:"):
+                image_url = image_base64
+            else:
+                image_url = f"data:{image_mime};base64,{image_base64}"
+
+        if not image_url:
+            return jsonify({"error": "missing_image"}), 400
+
+        client = _get_openai_client()
+        if not client:
+            return jsonify({"error": "missing_api_key"}), 500
+
+        try:
+            response = client.chat.completions.create(
+                model="gpt-4o",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": (
+                            "Você é uma estilista de moda da London Noivas. Analise a imagem do vestido e "
+                            "gere uma descrição rica e técnica em português brasileiro, mencionando cor, "
+                            "estilo, modelo, tecido, caimento, detalhes (ex: alcinha, costa nua, sereia), "
+                            "brilho, enfeites e qualquer elemento relevante. "
+                            "O título deve ser curto (cerca de 5 palavras) e capturar a essência do vestido. "
+                            "Responda apenas JSON com chaves title e description."
+                        ),
+                    },
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": "Título curto (~5 palavras) e descrição com 2-3 frases.",
+                            },
+                            {"type": "image_url", "image_url": {"url": image_url}},
+                        ],
+                    },
+                ],
+                response_format={"type": "json_object"},
+                max_tokens=350,
+                temperature=0.2,
+            )
+            content = (response.choices[0].message.content or "").strip()
+            data = json.loads(content) if content else {}
+        except Exception:
+            current_app.logger.exception("ai_item_text_error")
+            return jsonify({"error": "openai_error"}), 500
+
+        title = (data.get("title") or "").strip()
+        description = (data.get("description") or "").strip()
+        if not title and not description:
+            return jsonify({"error": "empty_result"}), 500
+
+        return jsonify({"title": title, "description": description})
 
     @app.route("/add_item", methods=["GET", "POST"])
     def add_item():
