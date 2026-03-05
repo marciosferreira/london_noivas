@@ -1,6 +1,8 @@
 import os
 import uuid
 import datetime
+import io
+from PIL import Image
 from flask import Flask, request, session
 
 import boto3
@@ -13,6 +15,7 @@ aws_region = "us-east-1"
 aws_access_key_id = os.getenv("AWS_ACCESS_KEY_ID")
 aws_secret_access_key = os.getenv("AWS_SECRET_ACCESS_KEY")
 s3_bucket_name = "alugueqqc-images"
+cloudfront_domain = os.getenv("CLOUDFRONT_DOMAIN")
 
 s3 = boto3.client(
     "s3",
@@ -175,13 +178,72 @@ def send_admin_notification_email(admin_email, new_user_email, new_user_username
     )
 
 
+def optimize_image(image_file, max_width=1920, quality=85):
+    """
+    Redimensiona e comprime a imagem para otimização web.
+    Retorna um objeto BytesIO com a imagem otimizada em formato JPEG.
+    """
+    try:
+        # Abre a imagem usando Pillow
+        # Se image_file for um FileStorage (Flask), ele se comporta como arquivo
+        image_file.seek(0)
+        img = Image.open(image_file)
+        
+        # Trata transparência (PNG/WEBP) convertendo para fundo branco antes de virar JPEG
+        if img.mode in ('RGBA', 'LA') or (img.mode == 'P' and 'transparency' in img.info):
+            background = Image.new('RGB', img.size, (255, 255, 255))
+            if img.mode == 'P':
+                img = img.convert('RGBA')
+            background.paste(img, mask=img.split()[-1])
+            img = background
+        elif img.mode != 'RGB':
+            img = img.convert('RGB')
+            
+        # Redimensiona se necessário (limita maior dimensão)
+        width, height = img.size
+        
+        # Se alguma dimensão for maior que o máximo permitido
+        if width > max_width or height > max_width:
+            # Usa thumbnail para redimensionar proporcionalmente
+            # max_width é usado como limite para ambas dimensões (bounding box)
+            img.thumbnail((max_width, max_width), Image.Resampling.LANCZOS)
+            
+        # Salva em um buffer de memória
+        output = io.BytesIO()
+        img.save(output, format='JPEG', quality=quality, optimize=True)
+        output.seek(0)
+        
+        return output
+    except Exception as e:
+        print(f"Erro ao otimizar imagem: {e}")
+        # Se der erro, retorna o arquivo original (resetando o ponteiro)
+        image_file.seek(0)
+        return image_file
+
+
 def upload_image_to_s3(image_file, prefix="images"):
     """Uploads an image to S3 and returns the URL."""
     if image_file:
-        filename = secure_filename(image_file.filename)
+        # Otimiza a imagem antes do upload
+        optimized_file = optimize_image(image_file)
+        
+        # Define o nome do arquivo
+        # Se a otimização funcionou, o formato será JPEG
+        original_filename = secure_filename(image_file.filename)
+        if hasattr(optimized_file, 'filename'): # Se retornou o original
+             filename = secure_filename(optimized_file.filename)
+             content_type = optimized_file.content_type if hasattr(optimized_file, 'content_type') else None
+        else: # Se retornou BytesIO (otimizado)
+             filename_base = original_filename.rsplit('.', 1)[0]
+             filename = f"{filename_base}.jpg"
+             content_type = 'image/jpeg'
+
         item_id = str(uuid.uuid4())
         s3_key = f"{prefix}/{item_id}_{filename}"
-        s3.upload_fileobj(image_file, s3_bucket_name, s3_key)
+        
+        extra_args = {'ContentType': content_type} if content_type else {}
+        
+        s3.upload_fileobj(optimized_file, s3_bucket_name, s3_key, ExtraArgs=extra_args)
         image_url = f"https://{s3_bucket_name}.s3.amazonaws.com/{s3_key}"
         return image_url
     return ""
@@ -217,6 +279,27 @@ def copy_image_in_s3(original_url):
 
     # Retorna a URL da nova cópia
     return f"https://{bucket_name}.s3.amazonaws.com/{new_key}"
+
+
+def get_cloudfront_url(url):
+    """
+    Transforma uma URL do S3 em URL do CloudFront se configurado.
+    Ex: https://bucket.s3.amazonaws.com/key -> https://domain.cloudfront.net/key
+    """
+    if not url or not isinstance(url, str):
+        return url
+    
+    cf_domain = os.getenv("CLOUDFRONT_DOMAIN")
+    if not cf_domain:
+        return url
+
+    # Verifica se é URL do nosso bucket S3
+    s3_prefix = f"https://{s3_bucket_name}.s3.amazonaws.com/"
+    
+    if url.startswith(s3_prefix):
+        return url.replace(s3_prefix, f"https://{cf_domain}/")
+    
+    return url
 
 
 def aplicar_filtro(

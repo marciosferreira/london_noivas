@@ -335,17 +335,23 @@ def format_currency(value):
         return str(value)
 
 
+from utils import get_cloudfront_url
+
 # Registrar filtros no Jinja
 app.jinja_env.filters["format_cpf"] = format_cpf
 app.jinja_env.filters["format_cnpj"] = format_cnpj
 app.jinja_env.filters["format_phone"] = format_phone
 app.jinja_env.filters["format_currency"] = format_currency
+app.jinja_env.filters["cloudfront_url"] = get_cloudfront_url
 
 from datetime import datetime
 
 @app.context_processor
 def inject_now():
-    return {'now': datetime.now}
+    return {
+        'now': datetime.now,
+        'CLOUDFRONT_DOMAIN': os.getenv('CLOUDFRONT_DOMAIN')
+    }
 
 if __name__ == "__main__":
     # Determina se está no localhost

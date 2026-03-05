@@ -56,7 +56,7 @@
           <div class="position-relative" data-inv-carousel="1" data-item-id="{{ item.item_id }}">
             <img
               id="inv-img-{{ item.item_id }}"
-              src="{{ image_value if image_value and image_value != 'N/A' else url_for('static', filename='item-placeholder.png') }}"
+              src="{{ (image_value | cloudfront_url) if image_value and image_value != 'N/A' else url_for('static', filename='item-placeholder.png') }}"
               alt="Imagem"
               class="card-img-top mx-auto d-block"
               style="height: 240px; width: 100%; object-fit: contain; background-color: #f8f9fa; cursor: pointer"
@@ -86,8 +86,8 @@
           <script>
             window.inventoryData = window.inventoryData || {};
             window.inventoryData['{{ item.item_id }}'] = {
-              imageUrl: '{{ image_value if image_value and image_value != "N/A" else "" }}',
-              imageUrls: {{ (item.get('item_image_urls') or []) | tojson }},
+              imageUrl: '{{ (image_value | cloudfront_url) if image_value and image_value != "N/A" else "" }}',
+              imageUrls: {{ (item.get('item_image_urls') or []) | map('cloudfront_url') | list | tojson }},
               mainImageIndex: {{ (item.get('item_main_image_index') or 0) | int }}
             };
           </script>
@@ -218,7 +218,7 @@
     liPrev.className = 'page-item';
     const aPrev = document.createElement('a');
     aPrev.className = 'page-link';
-    aPrev.innerText = '← Anterior';
+    aPrev.innerText = '← Ant.';
     aPrev.href = `${prefix}page=${currentPage - 1}`;
     liPrev.appendChild(aPrev);
     paginacao.appendChild(liPrev);
@@ -245,7 +245,7 @@
     liNext.className = 'page-item';
     const aNext = document.createElement('a');
     aNext.className = 'page-link';
-    aNext.innerText = 'Próxima →';
+    aNext.innerText = 'Próx. →';
     aNext.href = `${prefix}page=${paginationData.nextPage}`;
     liNext.appendChild(aNext);
     paginacao.appendChild(liNext);

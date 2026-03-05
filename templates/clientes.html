@@ -85,7 +85,7 @@
     liPrev.className = 'page-item';
     const aPrev = document.createElement('a');
     aPrev.className = 'page-link';
-    aPrev.innerText = '← Anterior';
+    aPrev.innerText = '← Ant.';
     aPrev.href = `?page=${currentPage - 1}`;
     liPrev.appendChild(aPrev);
     paginacao.appendChild(liPrev);
@@ -105,7 +105,7 @@
     liNext.className = 'page-item';
     const aNext = document.createElement('a');
     aNext.className = 'page-link';
-    aNext.innerText = 'Próxima →';
+    aNext.innerText = 'Próx. →';
     aNext.href = `?page=${currentPage + 1}`;
     liNext.appendChild(aNext);
     paginacao.appendChild(liNext);

@@ -196,7 +196,7 @@
                      onclick="openCatalogModalById('{{ item.item_id }}', 'catalog')">
                     
                     <div class="aspect-[3/4] overflow-hidden bg-stone-200 relative" data-card-carousel="1" data-item-id="{{ item.item_id }}">
-                        <img id="catalog-card-img-{{ item.item_id }}" src="{{ item.item_image_url }}" alt="{{ item.title }}" class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-700">
+                        <img id="catalog-card-img-{{ item.item_id }}" src="{{ item.item_image_url | cloudfront_url }}" alt="{{ item.title }}" class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-700">
                         <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors"></div>
                         {% set image_urls = item.get('item_image_urls') or [] %}
                         {% if image_urls and (image_urls | length) > 1 %}
@@ -259,8 +259,8 @@
                     
                     window.catalogData = window.catalogData || {};
                     window.catalogData['{{ item.item_id }}'] = {
-                        imageUrl: '{{ item.item_image_url }}',
-                        imageUrls: {{ (item.get('item_image_urls') or []) | tojson }},
+                        imageUrl: '{{ item.item_image_url | cloudfront_url }}',
+                        imageUrls: {{ (item.get('item_image_urls') or []) | map('cloudfront_url') | list | tojson }},
                         mainImageIndex: {{ (item.get('item_main_image_index') or 0) | int }},
                         title: '{{ item.title | replace("'", "\\'") }}',
                         description: '{{ item.item_description | replace("'", "\\'") | replace("\n", " ") }}',
@@ -286,7 +286,7 @@
         <div id="catalog-pagination" class="{% if total_pages and total_pages > 1 %}flex{% else %}hidden{% endif %} justify-center items-center mt-12 gap-4">
             {% if page and page > 1 %}
             <a href="{% if active_cor_comercial and active_tamanho %}{{ url_for('catalogo', page=page-1, occasion=active_occasion, cor_comercial=active_cor_comercial, tamanho=active_tamanho) }}{% elif active_cor_comercial %}{{ url_for('catalogo', page=page-1, occasion=active_occasion, cor_comercial=active_cor_comercial) }}{% elif active_tamanho %}{{ url_for('catalogo', page=page-1, occasion=active_occasion, tamanho=active_tamanho) }}{% else %}{{ url_for('catalogo', page=page-1, occasion=active_occasion) }}{% endif %}" class="px-6 py-3 border border-stone-300 text-stone-600 hover:bg-stone-800 hover:text-white hover:border-stone-800 transition-all font-medium rounded-sm">
-                &larr; Anterior
+                &larr; Ant.
             </a>
             {% endif %}
             
@@ -295,7 +295,7 @@
             
             {% if page and total_pages and page < total_pages %}
             <a href="{% if active_cor_comercial and active_tamanho %}{{ url_for('catalogo', page=page+1, occasion=active_occasion, cor_comercial=active_cor_comercial, tamanho=active_tamanho) }}{% elif active_cor_comercial %}{{ url_for('catalogo', page=page+1, occasion=active_occasion, cor_comercial=active_cor_comercial) }}{% elif active_tamanho %}{{ url_for('catalogo', page=page+1, occasion=active_occasion, tamanho=active_tamanho) }}{% else %}{{ url_for('catalogo', page=page+1, occasion=active_occasion) }}{% endif %}" class="px-6 py-3 border border-stone-300 text-stone-600 hover:bg-stone-800 hover:text-white hover:border-stone-800 transition-all font-medium rounded-sm">
-                Próxima &rarr;
+                Próx. &rarr;
             </a>
             {% endif %}
         </div>

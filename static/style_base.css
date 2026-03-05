@@ -1,6 +1,11 @@
 /* ---------------------------------------
    RESET & BASE
 --------------------------------------- */
+/* Fix conflict between Tailwind and Bootstrap collapse class */
+.collapse:not(tr):not(tbody) {
+  visibility: visible !important;
+}
+
 * {
   margin: 0;
   padding: 0;

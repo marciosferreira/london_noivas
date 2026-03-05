@@ -36,7 +36,7 @@
           </p>
 
           {% if item.image_url and item.image_url != 'N/A' %}
-          <img class="preview" src="{{ item.image_url }}" alt="Imagem do Item" data-bs-toggle="modal" data-bs-target="#imageModal" />
+          <img class="preview" src="{{ item.image_url | cloudfront_url }}" alt="Imagem do Item" data-bs-toggle="modal" data-bs-target="#imageModal" />
           {% else %}
           <img class="preview" src="{{ url_for('static', filename='item-placeholder.png') }}" alt="Sem imagem" />
           {% endif %}

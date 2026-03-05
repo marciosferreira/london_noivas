@@ -27,7 +27,7 @@
         <tr>
           <td data-label="Imagem">
             {% if item.image_url and item.image_url != "" %}
-            <img src="{{ item.image_url }}" alt="Imagem do item" class="img-fluid item-thumbnail" style="max-width: 100px" />
+            <img src="{{ item.image_url | cloudfront_url }}" alt="Imagem do item" class="img-fluid item-thumbnail" style="max-width: 100px" />
             {% else %}
             <img
               src="{{ url_for('static', filename='item-placeholder.png') }}"
