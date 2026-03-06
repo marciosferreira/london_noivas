@@ -60,7 +60,7 @@
     liNext.className = `page-item ${!hasNext ? 'disabled' : ''}`;
     const aNext = document.createElement('a');
     aNext.className = 'page-link';
-    aNext.innerHTML = 'Próxima <i class="fas fa-chevron-right"></i>';
+    aNext.innerHTML = 'Próx. <i class="fas fa-chevron-right"></i>';
     if (hasNext) {
       aNext.href = `${prefix}page=${currentPage + 1}`;
     } else {
