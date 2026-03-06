@@ -334,7 +334,7 @@ def format_currency(value):
     except (ValueError, TypeError):
         return str(value)
 
-
+#
 from utils import get_cloudfront_url
 
 # Registrar filtros no Jinja
