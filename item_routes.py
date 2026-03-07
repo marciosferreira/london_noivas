@@ -2531,11 +2531,42 @@ def init_item_routes(
     @app.route("/api/item/<item_id>/visit", methods=["POST"])
     def increment_visit_count(item_id):
         try:
+            # Update item total count
             itens_table.update_item(
                 Key={"item_id": item_id},
                 UpdateExpression="ADD visit_count :inc",
                 ExpressionAttributeValues={":inc": 1}
             )
+            
+            # Log visit for popularity calculation (last 30 days)
+            try:
+                import time
+                import boto3
+                
+                timestamp = datetime.datetime.now().isoformat()
+                # TTL: 30 days from now (in seconds)
+                ttl_value = int(time.time()) + (30 * 24 * 60 * 60)
+                
+                # Initialize resource locally to avoid changing function signature
+                dynamodb_resource = boto3.resource(
+                    'dynamodb',
+                    region_name=os.getenv('AWS_REGION', 'us-east-1'),
+                    aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
+                    aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY')
+                )
+                visits_table = dynamodb_resource.Table("alugueqqc_item_visits")
+                
+                visits_table.put_item(
+                    Item={
+                        "item_id": item_id,
+                        "timestamp": timestamp,
+                        "ttl": ttl_value
+                    }
+                )
+            except Exception as e_log:
+                print(f"Error logging visit for item {item_id}: {e_log}")
+                # Don't fail the request if logging fails
+            
             return jsonify({"success": True}), 200
         except Exception as e:
             print(f"Error incrementing visit count for item {item_id}: {e}")

@@ -86,7 +86,10 @@ ses_client = boto3.client(
 
 
 # Create Flask app
+from werkzeug.middleware.proxy_fix import ProxyFix
+
 app = Flask(__name__)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 # Defina uma chave secreta forte e fixa
 app.secret_key = os.environ.get("SECRET_KEY", "chave-secreta-estatica-e-forte-london")
 

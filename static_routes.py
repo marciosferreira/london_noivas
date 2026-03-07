@@ -635,6 +635,63 @@ def init_static_routes(
             print(f"Error loading vitrine: {e}")
             return render_template("index.html", itens=[], fields_config=[], occasion_tabs=[])
 
+    # Global cache for recent visits
+    _recent_visits_cache = {
+        "data": {},  # {item_id: count}
+        "last_updated": 0
+    }
+
+    def _get_recent_visits_map():
+        import time
+        import boto3
+        from boto3.dynamodb.conditions import Attr
+        
+        now = time.time()
+        if now - _recent_visits_cache["last_updated"] < 300: # 5 minutes cache
+            return _recent_visits_cache["data"]
+            
+        try:
+            # Initialize resource locally
+            dynamodb_resource = boto3.resource(
+                'dynamodb',
+                region_name=os.getenv('AWS_REGION', 'us-east-1'),
+                aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
+                aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY')
+            )
+            visits_table = dynamodb_resource.Table("alugueqqc_item_visits")
+            
+            cutoff_date = (datetime.datetime.now() - datetime.timedelta(days=30)).isoformat()
+            
+            # Scan with filter
+            response = visits_table.scan(
+                FilterExpression=Attr("timestamp").gte(cutoff_date),
+                ProjectionExpression="item_id"
+            )
+            items = response.get("Items", [])
+            
+            while "LastEvaluatedKey" in response:
+                response = visits_table.scan(
+                    FilterExpression=Attr("timestamp").gte(cutoff_date),
+                    ProjectionExpression="item_id",
+                    ExclusiveStartKey=response["LastEvaluatedKey"]
+                )
+                items.extend(response.get("Items", []))
+                
+            # Count
+            counts = {}
+            for i in items:
+                iid = i.get("item_id")
+                if iid:
+                    counts[iid] = counts.get(iid, 0) + 1
+                    
+            _recent_visits_cache["data"] = counts
+            _recent_visits_cache["last_updated"] = now
+            return counts
+        except Exception as e:
+            # Se a tabela não existir ou der erro, retorna vazio e não quebra o site
+            print(f"Error fetching recent visits: {e}")
+            return {}
+
     @app.route("/catalogo")
     def catalogo():
         try:
@@ -670,13 +727,13 @@ def init_static_routes(
             ]
             if not active_occasion:
                 active_occasion = occasion_tabs[0]["slug"] if occasion_tabs else ""
-
+    
             valid_slugs = {t["slug"] for t in occasion_tabs}
             if active_occasion not in valid_slugs:
                 active_occasion = occasion_tabs[0]["slug"] if occasion_tabs else ""
-
+    
             active_occasion_label = next((t["label"] for t in occasion_tabs if t["slug"] == active_occasion), "Catálogo")
-
+    
             occasion_descriptions = {
                 "noiva": "Este é o seu dia — e o seu vestido deve refletir isso. A noiva é o centro de todas as atenções, e não há motivo para ter medo de brilhar. Escolha um vestido que faça você se sentir a mulher mais bonita da sala, porque neste dia, você será. Aposte em detalhes que traduzam a sua personalidade: se você é clássica, renda e corte princesa; se é moderna, linhas limpas e tecidos fluidos. O segredo é simples — quando você se olhar no espelho e sentir um frio na barriga, é esse o vestido certo.",
                 "civil": "O casamento civil pede elegância com leveza. Aqui, a ideia não é um vestido de baile, mas uma peça sofisticada que diga \"estou celebrando algo especial\". Midi, curto ou longo — todos funcionam. O importante é que o vestido transmita a alegria do momento sem exagero. Pense nele como aquele look que você usaria para a noite mais importante da sua vida, mas com a naturalidade de quem sabe exatamente o que está fazendo. Tecidos como crepe, cetim e musseline são escolhas certeiras.",
@@ -687,18 +744,18 @@ def init_static_routes(
                 "gala": "Evento de gala é sinônimo de sofisticação máxima. Aqui, o vestido precisa comunicar poder, elegância e presença. Pense em red carpet: tecidos que caem com perfeição, cortes que valorizam a silhueta e detalhes que revelam bom gosto sem esforço aparente. Menos é mais — mas o \"menos\" precisa ser impecável. Um vestido de gala bem escolhido fala por você antes mesmo de você abrir a boca. Aposte em cores profundas, modelagens clássicas e aquele acabamento que faz as pessoas virarem a cabeça quando você passa.",
                 "convidada": "A regra de ouro da convidada: esteja linda, mas nunca mais que a noiva. Parece simples, mas é aqui que muita gente erra. O truque é encontrar o equilíbrio entre glamour e bom senso — um vestido que mostre que você se arrumou para a ocasião, sem roubar a cena de quem deve brilhar mais. Evite branco e tons muito claros (território da noiva), fuja do exagero nos brilhos e aposte em cores que valorizem você sem gritar. O vestido perfeito de convidada é aquele que rende elogios a noite toda — mas nunca ofusca a protagonista do dia."
             }
-
+    
             active_occasion_description = occasion_descriptions.get(active_occasion, "")
-
+    
             filtered_items = []
             for item in all_items:
                 occ = item.get("_occasions") if isinstance(item, dict) else None
                 if not isinstance(occ, list):
                     occ = _get_item_occasions(item)
-
+    
                 if any(_slugify(o) == active_occasion for o in occ):
                     filtered_items.append(item)
-
+    
             commercial_color_counts = {}
             commercial_color_display_by_norm = {}
             for item in filtered_items:
@@ -715,7 +772,7 @@ def init_static_routes(
                         continue
                     commercial_color_counts[norm] = commercial_color_counts.get(norm, 0) + 1
                     commercial_color_display_by_norm.setdefault(norm, display)
-
+    
             commercial_colors = [
                 commercial_color_display_by_norm[norm]
                 for norm, _count in sorted(
@@ -723,7 +780,7 @@ def init_static_routes(
                     key=lambda kv: (-kv[1], commercial_color_display_by_norm.get(kv[0], kv[0])),
                 )
             ]
-
+    
             size_counts = {}
             size_display_by_norm = {}
             for item in filtered_items:
@@ -743,7 +800,7 @@ def init_static_routes(
                         continue
                     size_counts[norm] = size_counts.get(norm, 0) + 1
                     size_display_by_norm.setdefault(norm, str(s).strip())
-
+    
             catalog_sizes = [
                 size_display_by_norm[norm]
                 for norm, _count in sorted(
@@ -751,7 +808,7 @@ def init_static_routes(
                     key=lambda kv: (-kv[1], size_display_by_norm.get(kv[0], kv[0])),
                 )
             ]
-
+    
             itens = filtered_items
             if active_cor_comercial:
                 target_norm = _normalize_text(active_cor_comercial)
@@ -769,7 +826,7 @@ def init_static_routes(
                         ):
                             color_filtered.append(item)
                     itens = color_filtered
-
+    
             if active_tamanho:
                 target_size_norm = active_tamanho.strip().casefold()
                 if target_size_norm:
@@ -789,25 +846,34 @@ def init_static_routes(
                         if target_size_norm in item_norms:
                             size_filtered.append(item)
                     itens = size_filtered
-
+    
             for item in itens:
                 if isinstance(item, dict):
                     occ = item.get("_occasions") or []
                     item["category"] = occ[0] if occ else "Outros"
-
-            # Embaralhamento consistente baseado na sessão (Seed)
-            # Garante que a ordem se mantém durante a navegação/paginação do usuário
-            if "catalog_seed" not in session:
-                session["catalog_seed"] = random.randint(1, 100000)
-            
-            # 1. Ordenar por ID para garantir estado inicial determinístico (scan do Dynamo pode variar)
-            itens.sort(key=lambda x: x.get("item_id", ""))
-            
-            # 2. Embaralhar usando o seed da sessão
-            random.Random(session["catalog_seed"]).shuffle(itens)
+    
+            # Carregar mapa de visitas recentes
+            recent_map = _get_recent_visits_map()
+            for item in itens:
+                if isinstance(item, dict):
+                    iid = item.get("item_id")
+                    item["recent_visits"] = recent_map.get(iid, 0)
+    
+            # Ordenar por recent_visits (decrescente), depois visit_count (decrescente)
+            # Como critério de desempate final, usa o item_id reverso
+            def get_sort_key(item):
+                rv = item.get("recent_visits", 0)
+                vc = item.get("visit_count", 0)
+                try:
+                    vc = int(vc)
+                except (ValueError, TypeError):
+                    vc = 0
+                return (rv, vc, item.get("item_id", ""))
+    
+            itens.sort(key=get_sort_key, reverse=True)
             
             fields_config = schemas.get_schema_fields("item")
-
+    
             # Paginação em memória
             total_items = len(itens)
             total_pages = (total_items + per_page - 1) // per_page
@@ -815,7 +881,7 @@ def init_static_routes(
             start = (page - 1) * per_page
             end = start + per_page
             current_itens = itens[start:end]
-
+    
             if requested_item_id:
                 found_in_page = any(
                     isinstance(item, dict) and str(item.get("item_id")) == str(requested_item_id)
@@ -880,7 +946,7 @@ def init_static_routes(
                 catalog_sizes=[],
                 active_tamanho="",
             )
-
+    
     @app.route("/home")
     def home():
         if not session.get("logged_in"):

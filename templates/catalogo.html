@@ -53,6 +53,18 @@
     <style>
         .animate-fadeIn { animation: fadeIn 1.5s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Lazy Load Styles */
+        .lazy-image {
+            opacity: 0;
+            transform: scale(0.95);
+            transition: opacity 0.7s ease-out, transform 0.7s ease-out;
+            will-change: opacity, transform;
+        }
+        .lazy-image.loaded {
+            opacity: 1;
+            transform: scale(1);
+        }
     </style>
 </head>
 <body class="bg-stone-50 text-stone-800 font-sans antialiased">
@@ -120,73 +132,123 @@
         </nav>
     </div>
 
-    <main class="container mx-auto px-6 pt-10 pb-12">
-        <div class="text-center mb-16">
-            <h2 class="text-4xl md:text-5xl font-serif text-stone-800 mb-4">{{ active_occasion_label }}</h2>
-            <div class="w-24 h-1 bg-london-gold mx-auto mb-6"></div>
-            {% if active_occasion_description %}
-            <p class="text-stone-600 max-w-4xl mx-auto mb-8 text-lg leading-relaxed font-light italic px-4">
-                "{{ active_occasion_description }}"
-            </p>
-            {% else %}
-            <p class="text-stone-500 max-w-xl mx-auto mb-8">
-                Explore nossa coleção completa para cada ocasião.
-            </p>
-            {% endif %}
+    <main class="container mx-auto px-4 pt-2 pb-4">
+        <div class="text-center mb-2">
+            <h2 class="text-xl md:text-2xl font-serif text-stone-800 mb-1">{{ active_occasion_label }}</h2>
+            <div class="w-10 h-px bg-london-gold mx-auto mb-2 opacity-60"></div>
+
         </div>
 
         <!-- Occasion Tabs -->
-        <div class="flex flex-wrap gap-3 justify-center mb-12" id="occasion-tabs">
+        <div class="flex flex-wrap gap-1.5 justify-center mb-3" id="occasion-tabs">
             {% for tab in occasion_tabs %}
             <a href="{{ url_for('catalogo', occasion=tab.slug) }}"
-               class="px-6 py-2 rounded-full text-sm font-medium tracking-wider border transition-all duration-300 {{ 'bg-london-gold text-white border-london-gold shadow-md' if active_occasion == tab.slug else 'bg-white text-stone-600 border-stone-200 hover:bg-stone-50 hover:border-london-gold hover:text-london-gold' }}">
+               class="px-3 py-1 rounded-full text-[10px] sm:text-xs font-medium tracking-wider border transition-all duration-300 {{ 'bg-london-gold text-white border-london-gold shadow-sm' if active_occasion == tab.slug else 'bg-white text-stone-600 border-stone-200 hover:bg-stone-50 hover:border-london-gold hover:text-london-gold' }}">
                 {{ tab.label | upper }}
             </a>
             {% endfor %}
         </div>
 
-        {% if commercial_colors or active_cor_comercial %}
-        <div class="flex flex-wrap gap-2 justify-center mb-10" id="commercial-color-cloud">
-            <a href="{% if active_tamanho %}{{ url_for('catalogo', occasion=active_occasion, tamanho=active_tamanho) }}{% else %}{{ url_for('catalogo', occasion=active_occasion) }}{% endif %}"
-               class="px-4 py-2 rounded-full text-xs font-medium tracking-wider border transition-all duration-300 {{ 'bg-stone-800 text-white border-stone-800 shadow-sm' if not active_cor_comercial else 'bg-white text-stone-600 border-stone-200 hover:bg-stone-50 hover:border-stone-800 hover:text-stone-800' }}">
-                TODAS
-            </a>
-            {% if commercial_colors %}
-            {% for cor in commercial_colors %}
-            <a href="{% if active_tamanho %}{{ url_for('catalogo', occasion=active_occasion, cor_comercial=cor, tamanho=active_tamanho) }}{% else %}{{ url_for('catalogo', occasion=active_occasion, cor_comercial=cor) }}{% endif %}"
-               class="px-4 py-2 rounded-full text-xs font-medium tracking-wider border transition-all duration-300 {{ 'bg-stone-800 text-white border-stone-800 shadow-sm' if active_cor_comercial == cor else 'bg-white text-stone-600 border-stone-200 hover:bg-stone-50 hover:border-stone-800 hover:text-stone-800' }}">
-                {{ cor }}
-            </a>
-            {% endfor %}
-            {% endif %}
+        <!-- Advanced Filters Toggle -->
+        <div class="flex justify-center mb-4">
+            <button id="toggle-filters-btn" onclick="toggleFilters()" class="group flex items-center gap-2 px-5 py-1.5 bg-white border border-stone-200 rounded-full text-stone-600 hover:border-london-gold hover:text-london-gold transition-all shadow-sm hover:shadow text-[10px] sm:text-xs font-medium tracking-widest uppercase {% if active_cor_comercial or active_tamanho %}border-london-gold text-london-gold ring-1 ring-london-gold/30{% endif %}">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 group-hover:text-london-gold transition-colors">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
+                </svg>
+                <span>
+                    Filtros
+                    {% if not active_cor_comercial and not active_tamanho %} (Cor e Tamanho){% endif %}
+                    {% if active_cor_comercial %}
+                    <span class="ml-1 text-[10px] md:text-xs bg-london-gold text-white px-2 py-0.5 rounded-full normal-case tracking-wide border border-london-gold/20">Cor: {{ active_cor_comercial }}</span>
+                    {% endif %}
+                    {% if active_tamanho %}
+                    <span class="ml-1 text-[10px] md:text-xs bg-london-gold text-white px-2 py-0.5 rounded-full normal-case tracking-wide border border-london-gold/20">Tam: {{ active_tamanho }}</span>
+                    {% endif %}
+                </span>
+                <svg id="filter-chevron" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 transition-transform duration-300 group-hover:text-london-gold">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                </svg>
+            </button>
         </div>
-        {% endif %}
 
-        {% if catalog_sizes or active_tamanho %}
-        <div class="flex flex-wrap gap-2 justify-center mb-10" id="size-cloud">
-            <a href="{% if active_cor_comercial %}{{ url_for('catalogo', occasion=active_occasion, cor_comercial=active_cor_comercial) }}{% else %}{{ url_for('catalogo', occasion=active_occasion) }}{% endif %}"
-               class="px-4 py-2 rounded-full text-xs font-medium tracking-wider border transition-all duration-300 {{ 'bg-stone-800 text-white border-stone-800 shadow-sm' if not active_tamanho else 'bg-white text-stone-600 border-stone-200 hover:bg-stone-50 hover:border-stone-800 hover:text-stone-800' }}">
-                TODOS
-            </a>
-            {% if catalog_sizes %}
-            {% for tamanho in catalog_sizes %}
-            <a href="{% if active_cor_comercial %}{{ url_for('catalogo', occasion=active_occasion, cor_comercial=active_cor_comercial, tamanho=tamanho) }}{% else %}{{ url_for('catalogo', occasion=active_occasion, tamanho=tamanho) }}{% endif %}"
-               class="px-4 py-2 rounded-full text-xs font-medium tracking-wider border transition-all duration-300 {{ 'bg-stone-800 text-white border-stone-800 shadow-sm' if active_tamanho == tamanho else 'bg-white text-stone-600 border-stone-200 hover:bg-stone-50 hover:border-stone-800 hover:text-stone-800' }}">
-                {{ tamanho }}
-            </a>
-            {% endfor %}
-            {% endif %}
-        </div>
-        {% endif %}
+        <!-- Advanced Filters Panel -->
+        <div id="advanced-filters-panel" class="overflow-hidden transition-all duration-500 ease-in-out max-h-0 opacity-0 mb-0">
+            <div class="bg-stone-50/80 backdrop-blur-sm rounded-xl p-4 md:p-6 max-w-5xl mx-auto border border-stone-100 shadow-inner">
+                
+                <div class="grid md:grid-cols-2 gap-6">
+                    <!-- Colors Section -->
+                    {% if commercial_colors or active_cor_comercial %}
+                    <div class="flex flex-col items-center">
+                        <h3 class="font-serif text-stone-800 text-base mb-2 flex items-center gap-2">
+                            <span class="w-6 h-px bg-london-gold"></span>
+                            Cores
+                            <span class="w-6 h-px bg-london-gold"></span>
+                        </h3>
+                        <div class="flex flex-wrap gap-2 justify-center" id="commercial-color-cloud">
+                            <a href="{% if active_tamanho %}{{ url_for('catalogo', occasion=active_occasion, tamanho=active_tamanho) }}{% else %}{{ url_for('catalogo', occasion=active_occasion) }}{% endif %}"
+                               class="px-3 py-1 rounded-full text-xs font-medium tracking-wider border transition-all duration-300 {{ 'bg-stone-800 text-white border-stone-800 shadow-md transform scale-105' if not active_cor_comercial else 'bg-white text-stone-500 border-stone-200 hover:bg-stone-50 hover:border-stone-400 hover:text-stone-800' }}">
+                                TODAS
+                            </a>
+                            {% if commercial_colors %}
+                            {% for cor in commercial_colors %}
+                            <a href="{% if active_tamanho %}{{ url_for('catalogo', occasion=active_occasion, cor_comercial=cor, tamanho=active_tamanho) }}{% else %}{{ url_for('catalogo', occasion=active_occasion, cor_comercial=cor) }}{% endif %}"
+                               class="px-3 py-1 rounded-full text-xs font-medium tracking-wider border transition-all duration-300 {{ 'bg-stone-800 text-white border-stone-800 shadow-md transform scale-105' if active_cor_comercial == cor else 'bg-white text-stone-500 border-stone-200 hover:bg-stone-50 hover:border-stone-400 hover:text-stone-800' }}">
+                                {{ cor }}
+                            </a>
+                            {% endfor %}
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
 
-        {% if active_occasion in ['debutante', 'noiva'] %}
-        <div class="max-w-3xl mx-auto mb-10">
-            <div class="bg-amber-50 border border-amber-200 text-amber-900 rounded-lg px-5 py-4 text-sm md:text-base shadow-sm">
-                <span class="font-semibold">Mais vestidos disponíveis na loja:</span>
-                consulte nossa equipe para ver outras opções.
+                    <!-- Sizes Section -->
+                    {% if catalog_sizes or active_tamanho %}
+                    <div class="flex flex-col items-center">
+                        <h3 class="font-serif text-stone-800 text-base mb-2 flex items-center gap-2">
+                            <span class="w-6 h-px bg-london-gold"></span>
+                            Tamanhos
+                            <span class="w-6 h-px bg-london-gold"></span>
+                        </h3>
+                        <div class="flex flex-wrap gap-2 justify-center" id="size-cloud">
+                            <a href="{% if active_cor_comercial %}{{ url_for('catalogo', occasion=active_occasion, cor_comercial=active_cor_comercial) }}{% else %}{{ url_for('catalogo', occasion=active_occasion) }}{% endif %}"
+                               class="px-3 py-1 rounded-full text-xs font-medium tracking-wider border transition-all duration-300 {{ 'bg-stone-800 text-white border-stone-800 shadow-md transform scale-105' if not active_tamanho else 'bg-white text-stone-500 border-stone-200 hover:bg-stone-50 hover:border-stone-400 hover:text-stone-800' }}">
+                                TODOS
+                            </a>
+                            {% if catalog_sizes %}
+                            {% for tamanho in catalog_sizes %}
+                            <a href="{% if active_cor_comercial %}{{ url_for('catalogo', occasion=active_occasion, cor_comercial=active_cor_comercial, tamanho=tamanho) }}{% else %}{{ url_for('catalogo', occasion=active_occasion, tamanho=tamanho) }}{% endif %}"
+                               class="px-3 py-1 rounded-full text-xs font-medium tracking-wider border transition-all duration-300 {{ 'bg-stone-800 text-white border-stone-800 shadow-md transform scale-105' if active_tamanho == tamanho else 'bg-white text-stone-500 border-stone-200 hover:bg-stone-50 hover:border-stone-400 hover:text-stone-800' }}">
+                                {{ tamanho }}
+                            </a>
+                            {% endfor %}
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
             </div>
         </div>
-        {% endif %}
+
+        <script>
+            function toggleFilters() {
+                const panel = document.getElementById('advanced-filters-panel');
+                const chevron = document.getElementById('filter-chevron');
+                
+                if (panel.classList.contains('max-h-0')) {
+                    // Expand
+                    panel.classList.remove('max-h-0', 'opacity-0', 'mb-0');
+                    panel.classList.add('max-h-[1000px]', 'opacity-100', 'mb-6');
+                    chevron.classList.add('rotate-180');
+                } else {
+                    // Collapse
+                    panel.classList.remove('max-h-[1000px]', 'opacity-100', 'mb-6');
+                    panel.classList.add('max-h-0', 'opacity-0', 'mb-0');
+                    chevron.classList.remove('rotate-180');
+                }
+            }
+        </script>
+
+
 
         <!-- Catalog Grid -->
         <div id="catalog-grid" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-8">
@@ -196,7 +258,12 @@
                      onclick="openCatalogModalById('{{ item.item_id }}', 'catalog')">
                     
                     <div class="aspect-[3/4] overflow-hidden bg-stone-200 relative" data-card-carousel="1" data-item-id="{{ item.item_id }}">
-                        <img id="catalog-card-img-{{ item.item_id }}" src="{{ item.item_image_url | cloudfront_url }}" alt="{{ item.title }}" class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-700">
+                        <img id="catalog-card-img-{{ item.item_id }}" 
+                             src="{% if loop.index <= 4 %}{{ item.item_image_url | cloudfront_url }}{% else %}data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=={% endif %}"
+                             {% if loop.index > 4 %}data-src="{{ item.item_image_url | cloudfront_url }}"{% endif %}
+                             alt="{{ item.title }}" 
+                             class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-700 {% if loop.index > 4 %}lazy-image{% endif %}" 
+                             {% if loop.index <= 4 %}loading="eager" fetchpriority="high"{% endif %}>
                         <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors"></div>
                         {% set image_urls = item.get('item_image_urls') or [] %}
                         {% if image_urls and (image_urls | length) > 1 %}
@@ -283,20 +350,49 @@
         </div>
 
         <!-- Pagination Controls -->
-        <div id="catalog-pagination" class="{% if total_pages and total_pages > 1 %}flex{% else %}hidden{% endif %} justify-center items-center mt-12 gap-4">
+        <div id="catalog-pagination" class="{% if total_pages and total_pages > 1 %}flex{% else %}hidden{% endif %} flex-col sm:flex-row justify-center items-center mt-4 gap-4 sm:gap-8">
             {% if page and page > 1 %}
-            <a href="{% if active_cor_comercial and active_tamanho %}{{ url_for('catalogo', page=page-1, occasion=active_occasion, cor_comercial=active_cor_comercial, tamanho=active_tamanho) }}{% elif active_cor_comercial %}{{ url_for('catalogo', page=page-1, occasion=active_occasion, cor_comercial=active_cor_comercial) }}{% elif active_tamanho %}{{ url_for('catalogo', page=page-1, occasion=active_occasion, tamanho=active_tamanho) }}{% else %}{{ url_for('catalogo', page=page-1, occasion=active_occasion) }}{% endif %}" class="px-6 py-3 border border-stone-300 text-stone-600 hover:bg-stone-800 hover:text-white hover:border-stone-800 transition-all font-medium rounded-sm">
-                &larr; Ant.
+            <a href="{% if active_cor_comercial and active_tamanho %}{{ url_for('catalogo', page=page-1, occasion=active_occasion, cor_comercial=active_cor_comercial, tamanho=active_tamanho) }}{% elif active_cor_comercial %}{{ url_for('catalogo', page=page-1, occasion=active_occasion, cor_comercial=active_cor_comercial) }}{% elif active_tamanho %}{{ url_for('catalogo', page=page-1, occasion=active_occasion, tamanho=active_tamanho) }}{% else %}{{ url_for('catalogo', page=page-1, occasion=active_occasion) }}{% endif %}" class="px-6 py-2 border border-stone-300 text-stone-600 hover:bg-stone-800 hover:text-white hover:border-stone-800 transition-all font-medium rounded-sm text-sm shadow-sm hover:shadow order-last sm:order-first w-full sm:w-auto text-center">
+                &larr; Anterior
             </a>
+            {% else %}
+            <div class="hidden sm:block w-[100px]"></div> <!-- Spacer for alignment -->
             {% endif %}
             
-            <span class="font-serif text-stone-500 mx-4">
-                Página <span class="text-stone-800 font-bold">{{ page|default(1) }}</span> de {{ total_pages|default(1) }}
+            <div class="flex flex-col items-center gap-0.5 order-first sm:order-none mb-2 sm:mb-0">
+                <span class="font-serif text-stone-400 text-[10px] uppercase tracking-[0.2em]">Você está na</span>
+                <span class="font-serif text-stone-800 text-lg">
+                    Página <span class="font-bold text-xl mx-1">{{ page|default(1) }}</span> <span class="text-stone-400 italic font-light text-base">de</span> <span class="text-base">{{ total_pages|default(1) }}</span>
+                </span>
+            </div>
             
             {% if page and total_pages and page < total_pages %}
-            <a href="{% if active_cor_comercial and active_tamanho %}{{ url_for('catalogo', page=page+1, occasion=active_occasion, cor_comercial=active_cor_comercial, tamanho=active_tamanho) }}{% elif active_cor_comercial %}{{ url_for('catalogo', page=page+1, occasion=active_occasion, cor_comercial=active_cor_comercial) }}{% elif active_tamanho %}{{ url_for('catalogo', page=page+1, occasion=active_occasion, tamanho=active_tamanho) }}{% else %}{{ url_for('catalogo', page=page+1, occasion=active_occasion) }}{% endif %}" class="px-6 py-3 border border-stone-300 text-stone-600 hover:bg-stone-800 hover:text-white hover:border-stone-800 transition-all font-medium rounded-sm">
-                Próx. &rarr;
+            <a href="{% if active_cor_comercial and active_tamanho %}{{ url_for('catalogo', page=page+1, occasion=active_occasion, cor_comercial=active_cor_comercial, tamanho=active_tamanho) }}{% elif active_cor_comercial %}{{ url_for('catalogo', page=page+1, occasion=active_occasion, cor_comercial=active_cor_comercial) }}{% elif active_tamanho %}{{ url_for('catalogo', page=page+1, occasion=active_occasion, tamanho=active_tamanho) }}{% else %}{{ url_for('catalogo', page=page+1, occasion=active_occasion) }}{% endif %}" class="px-6 py-2 border border-stone-300 text-stone-600 hover:bg-stone-800 hover:text-white hover:border-stone-800 transition-all font-medium rounded-sm text-sm shadow-sm hover:shadow order-last w-full sm:w-auto text-center">
+                Próxima &rarr;
             </a>
+            {% else %}
+            <div class="hidden sm:block w-[100px]"></div> <!-- Spacer for alignment -->
+            {% endif %}
+        </div>
+
+        {% if page|default(1)|int == total_pages|default(1)|int %}
+        <div class="max-w-3xl mx-auto mt-6 mb-4 px-4 text-center">
+            <div class="bg-amber-50 border border-amber-200 text-amber-900 rounded-lg px-6 py-4 text-lg shadow-sm inline-block">
+                <span class="font-bold">Mais vestidos disponíveis na loja:</span>
+                consulte nossa equipe para ver outras opções.
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="mt-4 text-center px-4">
+            {% if active_occasion_description %}
+            <p class="text-stone-600 max-w-4xl mx-auto mb-8 text-lg leading-relaxed font-light italic">
+                "{{ active_occasion_description }}"
+            </p>
+            {% else %}
+            <p class="text-stone-500 max-w-xl mx-auto mb-8">
+                Explore nossa coleção completa para cada ocasião.
+            </p>
             {% endif %}
         </div>
 
@@ -320,7 +416,7 @@
 
                 <!-- Image Side -->
                 <div class="md:w-1/2 bg-stone-100 relative h-[40vh] md:h-auto group">
-                    <img id="modal-img" src="" alt="Detail" class="w-full h-full object-contain transition-transform duration-500 hover:scale-105 cursor-zoom-in" onclick="openFullImage(this.src)">
+                    <img id="modal-img" src="" alt="Detail" class="w-full h-full object-contain transition-transform duration-500 hover:scale-105 cursor-zoom-in" onclick="openFullImage(this.src)" loading="lazy">
                     <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 pointer-events-none">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="white" class="w-12 h-12 drop-shadow-lg">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607zM10.5 7.5v6m3-3h-6" />
@@ -457,7 +553,7 @@
                 html += `
                     <button type="button" class="pointer-events-auto ${opacity} transition-opacity" onclick="setCatalogCardImageFromThumb(event, '${itemId}', ${i})">
                         <span class="block w-12 h-12 rounded-md overflow-hidden bg-stone-100 ${ring}">
-                            <img src="${url}" alt="" class="w-full h-full object-contain" />
+                            <img src="${url}" alt="" class="w-full h-full object-contain" loading="lazy" />
                         </span>
                     </button>
                 `;
@@ -502,7 +598,7 @@
                 const itemId = node.getAttribute('data-item-id');
                 if (!itemId) return;
                 const urls = getCatalogCardImages(itemId);
-                if (urls.length > 1) setCatalogCardImage(itemId, getCatalogCardIndex(itemId));
+                // if (urls.length > 1) setCatalogCardImage(itemId, getCatalogCardIndex(itemId));
                 let startX = null;
                 let startY = null;
                 node.addEventListener('touchstart', (ev) => {
@@ -904,6 +1000,39 @@
 
         if(mobileMenuBtn) mobileMenuBtn.addEventListener('click', openMobileMenu);
         if(closeMenuBtn) closeMenuBtn.addEventListener('click', closeMobileMenu);
+    </script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            var lazyImages = [].slice.call(document.querySelectorAll("img.lazy-image"));
+
+            if ("IntersectionObserver" in window) {
+                let lazyImageObserver = new IntersectionObserver(function(entries, observer) {
+                    entries.forEach(function(entry) {
+                        if (entry.isIntersecting) {
+                            let lazyImage = entry.target;
+                            if (lazyImage.dataset.src) {
+                                lazyImage.src = lazyImage.dataset.src;
+                                lazyImage.onload = () => lazyImage.classList.add("loaded");
+                                lazyImage.removeAttribute("data-src");
+                            }
+                            lazyImageObserver.unobserve(lazyImage);
+                        }
+                    });
+                });
+
+                lazyImages.forEach(function(lazyImage) {
+                    lazyImageObserver.observe(lazyImage);
+                });
+            } else {
+                // Fallback
+                lazyImages.forEach(function(lazyImage) {
+                    if (lazyImage.dataset.src) {
+                        lazyImage.src = lazyImage.dataset.src;
+                        lazyImage.classList.add("loaded");
+                    }
+                });
+            }
+        });
     </script>
 </body>
 </html>
