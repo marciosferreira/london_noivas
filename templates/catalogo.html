@@ -930,6 +930,7 @@
             const params = new URLSearchParams(window.location.search);
             const occasionParam = ((params.get('occasion') || params.get('ocasion') || '') + '').toLowerCase();
             const href = window.location.href.toLowerCase();
+            const pathname = window.location.pathname.toLowerCase();
             const isLocalHost = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost';
             const storage = window.sessionStorage;
             const isNoiva = (
@@ -940,7 +941,9 @@
                 href.includes('ocasion=noiva') ||
                 href.includes('ocasion=noivas')
             );
-            if (!isNoiva || storage.getItem(DONE_KEY)) return;
+            const isComoFunciona = pathname === '/como-funciona' || pathname.startsWith('/como-funciona/');
+            const shouldTrackNoivaEngagement = isNoiva || isComoFunciona;
+            if (!shouldTrackNoivaEngagement || storage.getItem(DONE_KEY)) return;
 
             let startTime = Date.now();
             let interval = null;
@@ -1000,6 +1003,8 @@
                 status: function() {
                     return {
                         isNoiva,
+                        isComoFunciona,
+                        shouldTrackNoivaEngagement,
                         visibility: document.visibilityState,
                         gtagReady: typeof gtag === 'function',
                         dataLayerReady: Array.isArray(window.dataLayer),
