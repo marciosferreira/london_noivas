@@ -18,6 +18,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400&family=Outfit:wght@200;300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="preload" as="image" href="{{ url_for('static', filename='background-mobile.webp') }}" media="(max-width: 767px)" fetchpriority="high">
+    <link rel="preload" as="image" href="{{ url_for('static', filename='background-desktop.webp') }}" media="(min-width: 768px)" fetchpriority="high">
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -336,11 +338,20 @@
         <section class="hero-section relative w-full flex items-start md:items-center justify-center overflow-hidden pt-16 pb-10 md:pt-0 md:pb-0">
             <!-- Background -->
             <div class="absolute inset-0 z-0">
-                <img 
-                    src="{{ url_for('static', filename='background.jpg') }}" 
-                    alt="Luxury wedding dress" 
-                    class="hero-image w-full h-full object-cover"
-                />
+                <picture>
+                    <source media="(max-width: 767px)" srcset="{{ url_for('static', filename='background-mobile.webp') }}" type="image/webp">
+                    <source media="(min-width: 768px)" srcset="{{ url_for('static', filename='background-desktop.webp') }}" type="image/webp">
+                    <img 
+                        src="{{ url_for('static', filename='background.jpg') }}" 
+                        alt="Luxury wedding dress" 
+                        width="2000"
+                        height="1514"
+                        loading="eager"
+                        decoding="async"
+                        fetchpriority="high"
+                        class="hero-image w-full h-full object-cover"
+                    />
+                </picture>
                 <!-- Refined gradient overlay: darker at bottom for text readability -->
                 <div class="absolute inset-0 bg-gradient-to-b from-charcoal-950/40 via-charcoal-950/30 to-charcoal-950/70"></div>
                 <!-- Subtle vignette -->

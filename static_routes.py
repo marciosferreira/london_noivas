@@ -695,12 +695,12 @@ def init_static_routes(
     @app.route("/catalogo")
     def catalogo():
         try:
-            page = request.args.get('page', 1, type=int)
+            page = max(request.args.get('page', 1, type=int), 1)
             active_occasion = request.args.get("occasion", "", type=str)
             active_cor_comercial = request.args.get("cor_comercial", "", type=str).strip()
             active_tamanho = request.args.get("tamanho", "", type=str).strip()
             requested_item_id = request.args.get("item", "", type=str)
-            per_page = 12
+            per_page = 48
             
             # Fetch all available items (same as index) but filtered by account
             response = itens_table.scan(
@@ -876,7 +876,9 @@ def init_static_routes(
     
             # Paginação em memória
             total_items = len(itens)
-            total_pages = (total_items + per_page - 1) // per_page
+            total_pages = max((total_items + per_page - 1) // per_page, 1)
+            if page > total_pages:
+                page = total_pages
             
             start = (page - 1) * per_page
             end = start + per_page

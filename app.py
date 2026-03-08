@@ -195,6 +195,10 @@ def service_worker():
 def add_header(response):
     if request.path.startswith("/static/icons/"):
         response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+    elif request.path.startswith("/static/") and request.path.lower().endswith(
+        (".jpg", ".jpeg", ".png", ".webp", ".avif", ".svg")
+    ):
+        response.headers["Cache-Control"] = "public, max-age=604800"
     return response
 
 
