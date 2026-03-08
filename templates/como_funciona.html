@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="pt-br" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Como Funciona - London Noivas</title>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-23RSZ1SMRX"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-23RSZ1SMRX');
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'london-gold': '#B8956A',
+                        'london-gold-dark': '#96704A',
+                        'ivory': {
+                            100: '#FAF8F5'
+                        },
+                        'charcoal': {
+                            900: '#1A1A1A',
+                            950: '#0D0D0D'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-ivory-100 text-charcoal-900 antialiased">
+    <header class="sticky top-0 left-0 right-0 z-50 bg-charcoal-950/95 backdrop-blur-md py-4 shadow-[0_1px_0_rgba(184,149,106,0.15)]">
+        <div class="container mx-auto px-6 flex justify-between items-center">
+            <a href="{{ url_for('index') }}" class="flex items-center gap-3">
+                <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-sm overflow-hidden bg-white/90 shadow-sm">
+                    <img src="{{ url_for('static', filename='logo.jpeg') }}" alt="London Noivas Logo" class="w-full h-full object-contain">
+                </div>
+                <div>
+                    <h1 class="text-base sm:text-xl font-serif font-light tracking-[0.25em] text-white whitespace-nowrap">
+                        LONDON NOIVAS
+                    </h1>
+                    <div class="hidden sm:block h-px w-full bg-gradient-to-r from-london-gold/60 to-transparent mt-0.5"></div>
+                </div>
+            </a>
+
+            <nav class="hidden md:flex gap-8 items-center text-[13px] font-sans font-medium tracking-[0.15em] uppercase">
+                <a href="{{ url_for('catalogo', occasion='noiva') }}" class="text-ivory-100 hover:text-london-gold transition-colors">Catálogo</a>
+                <a href="{{ url_for('como_funciona') }}" class="text-london-gold transition-colors">Como Funciona</a>
+                <a href="{{ url_for('index') }}#contato" class="text-ivory-100 hover:text-london-gold transition-colors">Contato</a>
+                <a href="{{ url_for('public_booking_root') }}" class="bg-london-gold text-white px-7 py-2.5 rounded-sm hover:bg-london-gold-dark transition-all shadow-lg tracking-[0.15em]">
+                    Agendar Prova
+                </a>
+            </nav>
+
+            <button id="mobile-menu-btn" class="md:hidden text-london-gold focus:outline-none">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-7 h-7">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <div id="mobile-menu" class="fixed inset-0 z-[60] bg-gray-900/98 backdrop-blur-lg transform translate-x-full transition-transform duration-300 md:hidden flex flex-col justify-center items-center" style="background-color: rgba(13, 13, 13, 0.98);">
+        <button id="close-menu-btn" class="absolute top-6 right-6 text-ivory-100 hover:text-london-gold transition-colors focus:outline-none">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor" class="w-10 h-10">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+        </button>
+        <nav class="flex flex-col gap-6 text-center">
+            <a href="{{ url_for('index') }}" class="text-2xl font-serif font-light text-ivory-100 hover:text-london-gold transition-colors tracking-widest" onclick="closeMobileMenu()">Início</a>
+            <a href="{{ url_for('catalogo', occasion='noiva') }}" class="text-2xl font-serif font-light text-ivory-100 hover:text-london-gold transition-colors tracking-widest" onclick="closeMobileMenu()">Catálogo</a>
+            <a href="{{ url_for('como_funciona') }}" class="text-2xl font-serif font-light text-london-gold transition-colors tracking-widest" onclick="closeMobileMenu()">Como Funciona</a>
+            <a href="{{ url_for('index') }}#contato" class="text-2xl font-serif font-light text-ivory-100 hover:text-london-gold transition-colors tracking-widest" onclick="closeMobileMenu()">Contato</a>
+            <div class="w-12 h-px bg-london-gold/40 mx-auto my-2"></div>
+            <a href="{{ url_for('public_booking_root') }}" onclick="closeMobileMenu()" class="text-lg bg-london-gold text-white px-10 py-3.5 rounded-sm hover:bg-london-gold-dark transition-all shadow-lg tracking-[0.2em] font-sans font-medium uppercase">
+                Agendar Prova
+            </a>
+        </nav>
+    </div>
+
+    <main class="container mx-auto px-6 py-10 md:py-14">
+        <div class="max-w-4xl mx-auto text-center mb-10">
+            <h2 class="text-3xl md:text-5xl font-serif text-charcoal-900">Como Funciona: A Experiência London Noivas</h2>
+            <div class="w-16 h-px bg-london-gold mx-auto mt-4 mb-6"></div>
+            <p class="text-charcoal-900/70 text-base md:text-lg leading-relaxed">
+                Alugar o vestido dos seus sonhos na London Noivas é um processo transparente, seguro e desenhado para que você se preocupe apenas em brilhar no seu evento.
+            </p>
+        </div>
+
+        <div class="max-w-5xl mx-auto mb-5">
+            <h3 class="font-serif text-2xl md:text-3xl text-charcoal-900">O Passo a Passo da sua Escolha</h3>
+        </div>
+
+        <div class="max-w-5xl mx-auto grid md:grid-cols-2 gap-5">
+            <div class="bg-white rounded-sm border border-stone-200 p-6 shadow-sm">
+                <span class="text-london-gold font-semibold tracking-[0.2em] text-xs uppercase">Etapa 01</span>
+                <h3 class="font-serif text-2xl text-charcoal-900 mt-2 mb-3">Curadoria e seleção</h3>
+                <p class="text-charcoal-900/70 leading-relaxed">Explore nossa coleção online ou visite nosso showroom em Manaus. Contamos com consultoria especializada para identificar o modelo que melhor valoriza sua silhueta e o estilo do evento.</p>
+            </div>
+            <div class="bg-white rounded-sm border border-stone-200 p-6 shadow-sm">
+                <span class="text-london-gold font-semibold tracking-[0.2em] text-xs uppercase">Etapa 02</span>
+                <h3 class="font-serif text-2xl text-charcoal-900 mt-2 mb-3">Prova de caimento e ajustes</h3>
+                <p class="text-charcoal-900/70 leading-relaxed">Realizamos a prova técnica para validar o ajuste perfeito. Caso sejam necessários ajustes finos, agendamos uma segunda prova de segurança antes da data de retirada.</p>
+            </div>
+            <div class="bg-white rounded-sm border border-stone-200 p-6 shadow-sm">
+                <span class="text-london-gold font-semibold tracking-[0.2em] text-xs uppercase">Etapa 03</span>
+                <h3 class="font-serif text-2xl text-charcoal-900 mt-2 mb-3">Reserva garantida</h3>
+                <p class="text-charcoal-900/70 leading-relaxed">A reserva é formalizada mediante contrato e pagamento de 50% do valor. Isso garante que sua peça exclusiva esteja bloqueada para o seu grande dia.</p>
+            </div>
+            <div class="bg-white rounded-sm border border-stone-200 p-6 shadow-sm">
+                <span class="text-london-gold font-semibold tracking-[0.2em] text-xs uppercase">Etapa 04</span>
+                <h3 class="font-serif text-2xl text-charcoal-900 mt-2 mb-3">Retirada e finalização</h3>
+                <p class="text-charcoal-900/70 leading-relaxed">A retirada ocorre habitualmente 1 ou 2 dias antes do evento. O saldo restante pode ser parcelado, conforme condições da operadora. Sua peça é entregue em capa protetora, pronta para o uso.</p>
+            </div>
+            <div class="bg-white rounded-sm border border-stone-200 p-6 shadow-sm">
+                <span class="text-london-gold font-semibold tracking-[0.2em] text-xs uppercase">Etapa 05</span>
+                <h3 class="font-serif text-2xl text-charcoal-900 mt-2 mb-3">Uso e preservação</h3>
+                <p class="text-charcoal-900/70 leading-relaxed">Nossos vestidos passam por lavagem profissional e passadoria técnica. Nunca tente lavar ou remover manchas por conta própria; nossa equipe utiliza processos químicos específicos para fibras delicadas.</p>
+            </div>
+            <div class="bg-white rounded-sm border border-stone-200 p-6 shadow-sm">
+                <span class="text-london-gold font-semibold tracking-[0.2em] text-xs uppercase">Etapa 06</span>
+                <h3 class="font-serif text-2xl text-charcoal-900 mt-2 mb-3">Devolução facilitada</h3>
+                <p class="text-charcoal-900/70 leading-relaxed">A devolução padrão ocorre no primeiro dia útil após o evento. Extensões de prazo podem ser solicitadas e serão avaliadas conforme o cronograma de reservas da peça.</p>
+            </div>
+        </div>
+
+        <div class="max-w-5xl mx-auto mt-8 bg-white rounded-sm border border-stone-200 p-6 shadow-sm">
+            <h3 class="font-serif text-2xl text-charcoal-900 mb-4">Logística e segurança</h3>
+            <div class="space-y-3 text-charcoal-900/75 leading-relaxed">
+                <p><span class="font-semibold text-charcoal-900">Atenção ao transporte:</span> devido à delicadeza dos tecidos e ao volume das peças, não recomendamos o transporte por motocicleta. O calor do escapamento e a exposição podem causar danos irreversíveis às fibras e bordados.</p>
+                <p><span class="font-semibold text-charcoal-900">Entregas por aplicativo:</span> aceitamos retiradas via app, desde que solicitadas pelo cliente. Para sua segurança, exigimos o uso de entrega por código. O extravio em viagens sem código é de inteira responsabilidade do contratante.</p>
+            </div>
+        </div>
+
+        <div class="max-w-5xl mx-auto mt-8 bg-white rounded-sm border border-stone-200 p-6 shadow-sm">
+            <h3 class="font-serif text-2xl text-charcoal-900 mb-4">Planeje sua visita</h3>
+            <div class="space-y-3 text-charcoal-900/75 leading-relaxed">
+                <p>Para garantirmos um atendimento personalizado e exclusivo, trabalhamos preferencialmente com horário marcado.</p>
+                <p><span class="font-semibold text-charcoal-900">Horário de atendimento:</span> segunda a sábado, das 10:00 às 20:00.</p>
+                <p><span class="font-semibold text-charcoal-900">Último check-in:</span> 19:00.</p>
+            </div>
+        </div>
+
+        <div class="max-w-3xl mx-auto text-center mt-12 flex flex-col items-center gap-3">
+            <a href="{{ url_for('public_booking_root') }}" class="inline-flex items-center justify-center px-9 py-3.5 bg-charcoal-900 text-white hover:bg-london-gold transition-all rounded-sm tracking-[0.18em] text-xs uppercase font-semibold">
+                AUTO AGENDAMENTO AGORA
+            </a>
+            <a id="como-funciona-whatsapp-link" href="https://wa.me/5592993531943" target="_blank" onclick="trackWhatsAppClick('como_funciona_whatsapp')" class="inline-flex items-center justify-center gap-3 px-9 py-3.5 bg-[#25D366] hover:bg-[#1ebc57] text-white rounded-sm transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 duration-200 tracking-[0.18em] text-xs uppercase font-semibold">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592zm3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.729.729 0 0 0-.529.247c-.182.198-.691.677-.691 1.654 0 .977.71 1.916.81 2.049.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232z"/>
+                </svg>
+                <span class="font-bold tracking-widest text-sm uppercase">Falar com consultora no WhatsApp</span>
+            </a>
+        </div>
+    </main>
+
+    {% set modern_footer = true %}
+    {% set enable_map_modal = true %}
+    {% include 'footer.html' %}
+
+    <script>
+        function trackEvent(eventName, params) {
+            if (typeof gtag === 'function') gtag('event', eventName, params);
+        }
+
+        function trackWhatsAppClick(location) {
+            trackEvent('whatsapp_click', { event_category: 'contact', event_label: location, transport_type: 'beacon' });
+        }
+
+        function openMobileMenu() {
+            const mobileMenu = document.getElementById('mobile-menu');
+            if (mobileMenu) mobileMenu.classList.remove('translate-x-full');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeMobileMenu() {
+            const mobileMenu = document.getElementById('mobile-menu');
+            if (mobileMenu) mobileMenu.classList.add('translate-x-full');
+            document.body.style.overflow = '';
+        }
+
+        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+        const closeMenuBtn = document.getElementById('close-menu-btn');
+        if (mobileMenuBtn) mobileMenuBtn.addEventListener('click', openMobileMenu);
+        if (closeMenuBtn) closeMenuBtn.addEventListener('click', closeMobileMenu);
+
+        window.addEventListener('load', () => {
+            const floatingCta = document.getElementById('floating-whatsapp-cta');
+            const pageCta = document.getElementById('como-funciona-whatsapp-link');
+            const phoneNumber = '5592993531943';
+            const text = 'Olá, visitei o site da London Noivas e tenho a seguinte demanda:\n\n';
+            const link = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(text)}`;
+            if (floatingCta) floatingCta.href = link;
+            if (pageCta) pageCta.href = link;
+        });
+    </script>
+</body>
+</html>

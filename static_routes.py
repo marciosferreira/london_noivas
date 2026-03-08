@@ -166,6 +166,10 @@ def init_static_routes(
     def terms():
         return render_template("terms.html")
 
+    @app.route("/como-funciona")
+    def como_funciona():
+        return render_template("como_funciona.html")
+
     @app.route("/contato", methods=["GET", "POST"])
     def contato():
         if request.method == "POST":
