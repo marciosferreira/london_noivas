@@ -100,6 +100,33 @@
   </footer>
 </div>
 {% endif %}
+<script>
+  (function() {
+    window.revealPhone = function(elementId) {
+      const phoneSpan = document.getElementById(elementId);
+      if (!phoneSpan) return;
+
+      phoneSpan.innerText = '(92) 99353-1943';
+      phoneSpan.classList.remove('cursor-pointer', 'underline', 'decoration-dotted', 'text-london-gold', 'text-charcoal-800');
+      phoneSpan.classList.add('text-white');
+      phoneSpan.onclick = null;
+
+      const eventName = 'phone_reveal';
+      const params = { event_category: 'contact', event_label: 'footer_phone', transport_type: 'beacon' };
+      if (typeof window.trackEvent === 'function') {
+        window.trackEvent(eventName, params);
+        return;
+      }
+      if (typeof window.gtag === 'function') {
+        window.gtag('event', eventName, params);
+        return;
+      }
+      if (Array.isArray(window.dataLayer)) {
+        window.dataLayer.push({ event: eventName, ...params });
+      }
+    };
+  })();
+</script>
 {% if enable_map_modal %}
 <script>
   (function() {
