@@ -28,7 +28,7 @@
             <a class="nav-link fw-bold {% if request.endpoint == 'index' %}active{% endif %}" href="{{ url_for('index') }}">Início</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link fw-bold {% if request.endpoint == 'catalogo' %}active{% endif %}" href="{{ url_for('catalogo') }}">Catálogo</a>
+            <a class="nav-link fw-bold {% if request.endpoint == 'catalogo' %}active{% endif %}" href="{{ url_for('catalogo', occasion='noiva') }}">Catálogo</a>
           </li>
           <li class="nav-item">
             <a class="nav-link fw-bold" href="{{ url_for('public_booking_root') }}">Agendar prova</a>

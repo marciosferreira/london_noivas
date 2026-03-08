@@ -695,8 +695,15 @@ def init_static_routes(
     @app.route("/catalogo")
     def catalogo():
         try:
+            requested_occasion = (request.args.get("occasion") or request.args.get("ocasion") or "").strip().lower()
+            if not requested_occasion:
+                redirect_args = request.args.to_dict(flat=True)
+                redirect_args.pop("ocasion", None)
+                redirect_args["occasion"] = "noiva"
+                return redirect(url_for("catalogo", **redirect_args))
+
             page = max(request.args.get('page', 1, type=int), 1)
-            active_occasion = request.args.get("occasion", "", type=str)
+            active_occasion = requested_occasion
             active_cor_comercial = request.args.get("cor_comercial", "", type=str).strip()
             active_tamanho = request.args.get("tamanho", "", type=str).strip()
             requested_item_id = request.args.get("item", "", type=str)

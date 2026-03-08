@@ -4,7 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Catálogo Completo - London Noivas</title>
-    <!-- Same head content as index.html -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-23RSZ1SMRX"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-23RSZ1SMRX');
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -911,6 +917,110 @@
                 }, 200);
             }
         });
+    </script>
+    <script>
+        (function() {
+            const TARGET_SECONDS = 60;
+            const STORAGE_KEY = 'tempo_acumulado_noiva_60s_v3';
+            const DONE_KEY = 'evento_noiva_enviado_60s_v3';
+            const EVENT_NAME = 'noiva_1_minute';
+            const CHECK_INTERVAL_MS = 1000;
+            const params = new URLSearchParams(window.location.search);
+            const occasionParam = ((params.get('occasion') || params.get('ocasion') || '') + '').toLowerCase();
+            const href = window.location.href.toLowerCase();
+            const isLocalHost = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost';
+            const storage = window.sessionStorage;
+            const isNoiva = (
+                occasionParam === 'noiva' ||
+                occasionParam === 'noivas' ||
+                href.includes('occasion=noiva') ||
+                href.includes('occasion=noivas') ||
+                href.includes('ocasion=noiva') ||
+                href.includes('ocasion=noivas')
+            );
+            if (!isNoiva || storage.getItem(DONE_KEY)) return;
+
+            let startTime = Date.now();
+            let interval = null;
+
+            function sendToAnalytics(seconds) {
+                const payload = {
+                    engagement_time_msec: seconds * 1000,
+                    category: 'noiva_engajamento',
+                    value: seconds
+                };
+                if (isLocalHost) payload.debug_mode = true;
+                if (typeof gtag === 'function') {
+                    gtag('event', EVENT_NAME, payload);
+                    return true;
+                }
+                if (Array.isArray(window.dataLayer)) {
+                    window.dataLayer.push({ event: EVENT_NAME, ...payload });
+                    return true;
+                }
+                return false;
+            }
+
+            function processTime(force) {
+                if (!force && document.visibilityState !== 'visible') return;
+                const now = Date.now();
+                const sessionSeconds = Math.round((now - startTime) / 1000);
+                const totalSaved = parseInt(storage.getItem(STORAGE_KEY) || '0', 10);
+                const currentTotal = totalSaved + sessionSeconds;
+
+                if (currentTotal >= TARGET_SECONDS) {
+                    const sent = sendToAnalytics(currentTotal);
+                    if (sent) {
+                        storage.setItem(DONE_KEY, 'true');
+                        storage.removeItem(STORAGE_KEY);
+                        if (interval) clearInterval(interval);
+                        return;
+                    }
+                }
+
+                storage.setItem(STORAGE_KEY, String(currentTotal));
+                startTime = now;
+            }
+
+            document.addEventListener('visibilitychange', function() {
+                if (document.visibilityState === 'hidden') processTime(true);
+                if (document.visibilityState === 'visible') startTime = Date.now();
+            });
+            window.addEventListener('pagehide', function() { processTime(true); });
+            window.addEventListener('beforeunload', function() { processTime(true); });
+
+            interval = setInterval(function() {
+                processTime();
+                if (storage.getItem(DONE_KEY)) clearInterval(interval);
+            }, CHECK_INTERVAL_MS);
+
+            window.__noivaTimerDebug = {
+                status: function() {
+                    return {
+                        isNoiva,
+                        visibility: document.visibilityState,
+                        gtagReady: typeof gtag === 'function',
+                        dataLayerReady: Array.isArray(window.dataLayer),
+                        checkIntervalMs: CHECK_INTERVAL_MS,
+                        storedSeconds: parseInt(storage.getItem(STORAGE_KEY) || '0', 10),
+                        done: storage.getItem(DONE_KEY)
+                    };
+                },
+                tick: function() {
+                    processTime(true);
+                    return this.status();
+                },
+                reset: function() {
+                    storage.removeItem(STORAGE_KEY);
+                    storage.removeItem(DONE_KEY);
+                    startTime = Date.now();
+                    return this.status();
+                },
+                fire: function() {
+                    return sendToAnalytics(TARGET_SECONDS);
+                }
+            };
+        })();
     </script>
     <!-- Full Screen Image Modal -->
     <div id="full-image-modal" class="fixed inset-0 z-[200] hidden" role="dialog" aria-modal="true">

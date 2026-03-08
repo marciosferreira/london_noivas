@@ -45,7 +45,7 @@
       <div>
         <h4 class="font-bold text-stone-100 mb-6 tracking-widest uppercase text-sm">Links Rápidos</h4>
         <ul class="space-y-4 text-stone-300 text-sm">
-          <li><a href="{{ url_for('catalogo') }}" class="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 hover:bg-white/10 hover:text-london-gold transition-all">Catálogo Completo</a></li>
+          <li><a href="{{ url_for('catalogo', occasion='noiva') }}" class="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 hover:bg-white/10 hover:text-london-gold transition-all">Catálogo Completo</a></li>
           <li><a href="https://wa.me/5592993531943" target="_blank" onclick="trackWhatsAppClick('footer_link')" class="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 hover:bg-white/10 hover:text-london-gold transition-all">Agendamento/Dúvidas</a></li>
           <li>
             {% if not session.get('logged_in') %}
