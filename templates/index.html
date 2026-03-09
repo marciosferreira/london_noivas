@@ -28,9 +28,9 @@
             theme: {
                 extend: {
                     colors: {
-                        'london-gold': '#B8956A',
+                        'london-gold': '#B8966E',
                         'london-gold-light': '#D4B896',
-                        'london-gold-dark': '#96704A',
+                        'london-gold-dark': '#9A7A56',
                         'ivory': {
                             50: '#FDFCFA',
                             100: '#FAF8F5',
@@ -155,7 +155,7 @@
         }
         .feature-card:hover {
             transform: translateY(-8px);
-            box-shadow: 0 32px 64px -12px rgba(0,0,0,0.1), 0 0 0 1px rgba(184,149,106,0.1);
+            box-shadow: 0 4px 20px rgba(184,150,110,0.15);
         }
         .feature-card .icon-ring {
             transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
@@ -176,7 +176,7 @@
             content: '\201C';
             font-family: 'Cormorant Garamond', serif;
             font-size: 6rem;
-            color: #B8956A;
+            color: #D4B896;
             opacity: 0.12;
             position: absolute;
             top: -10px;
@@ -265,17 +265,17 @@
         .star-gold { color: #B8956A; }
     </style>
 </head>
-<body class="bg-ivory-50 text-charcoal-800 font-sans antialiased">
+<body class="bg-[#FDF9F4] text-[#4A3C30] font-sans antialiased">
 
     <!-- ======================== HEADER ======================== -->
-    <header id="main-header" class="sticky top-0 left-0 right-0 z-50 bg-charcoal-950/95 backdrop-blur-md py-4 shadow-[0_1px_0_rgba(184,149,106,0.15)]">
+    <header id="main-header" class="sticky top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md py-4 border-b border-[#E8E0D6] shadow-[0_1px_0_rgba(184,150,110,0.12)]">
         <div class="container mx-auto px-6 flex justify-between items-center">
             <a href="{{ url_for('index') }}" class="flex items-center gap-3">
                 <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-sm overflow-hidden bg-white/90 shadow-sm">
                     <img src="{{ url_for('static', filename='logo.jpeg') }}" alt="London Noivas Logo" class="w-full h-full object-contain">
                 </div>
                 <div>
-                    <h1 id="header-title" class="text-base sm:text-xl font-serif font-light tracking-[0.25em] text-white whitespace-nowrap">
+                    <h1 id="header-title" class="text-base sm:text-xl font-serif font-semibold tracking-[0.25em] text-[#2C2118] whitespace-nowrap">
                         LONDON NOIVAS
                     </h1>
                     <div class="hidden sm:block h-px w-full bg-gradient-to-r from-london-gold/60 to-transparent mt-0.5"></div>
@@ -283,19 +283,19 @@
             </a>
 
             <nav class="hidden md:flex gap-8 items-center text-[13px] font-sans font-medium tracking-[0.15em] uppercase">
-                <a href="{{ url_for('catalogo', occasion='noiva') }}" class="nav-link-refined text-ivory-200 hover:text-london-gold-light transition-colors">Catálogo</a>
-                <a href="{{ url_for('como_funciona') }}" class="nav-link-refined text-ivory-200 hover:text-london-gold-light transition-colors">Como Funciona</a>
-                <a href="#sobre" class="nav-link-refined text-ivory-200 hover:text-london-gold-light transition-colors">Sobre</a>
-                <a href="#contato" class="nav-link-refined text-ivory-200 hover:text-london-gold-light transition-colors">Contato</a>
+                <a href="{{ url_for('catalogo', occasion='noiva') }}" class="nav-link-refined text-[#2C2118] hover:text-london-gold transition-colors">Catálogo</a>
+                <a href="{{ url_for('como_funciona') }}" class="nav-link-refined text-[#2C2118] hover:text-london-gold transition-colors">Como Funciona</a>
+                <a href="#sobre" class="nav-link-refined text-[#2C2118] hover:text-london-gold transition-colors">Sobre</a>
+                <a href="#contato" class="nav-link-refined text-[#2C2118] hover:text-london-gold transition-colors">Contato</a>
                 <a href="{{ url_for('public_booking_root') }}" class="btn-shimmer bg-london-gold text-white px-7 py-2.5 rounded-sm hover:bg-london-gold-dark transition-all shadow-lg shadow-london-gold/20 tracking-[0.15em]">
                     Agendar Prova
                 </a>
                 
                 {% if session.get('logged_in') %}
-                <a href="{{ url_for('agenda') }}" class="bg-white/8 text-ivory-300 px-3 py-1.5 rounded-sm hover:bg-white/15 transition-all text-[10px] tracking-wider ml-2 border border-white/10">
+                <a href="{{ url_for('agenda') }}" class="bg-[#F5EDE0] text-[#2C2118] px-3 py-1.5 rounded-sm hover:bg-[#E8E0D6] transition-all text-[10px] tracking-wider ml-2 border border-[#E8E0D6]">
                     PAINEL
                 </a>
-                <a href="{{ url_for('logout') }}" class="bg-white/8 text-ivory-300 px-3 py-1.5 rounded-sm hover:bg-white/15 transition-all text-[10px] tracking-wider border border-white/10">
+                <a href="{{ url_for('logout') }}" class="bg-[#F5EDE0] text-[#2C2118] px-3 py-1.5 rounded-sm hover:bg-[#E8E0D6] transition-all text-[10px] tracking-wider border border-[#E8E0D6]">
                     SAIR
                 </a>
                 {% endif %}
@@ -310,8 +310,8 @@
     </header>
 
     <!-- ======================== MOBILE MENU ======================== -->
-    <div id="mobile-menu" class="fixed inset-0 z-[60] bg-gray-900/98 backdrop-blur-lg transform translate-x-full transition-transform duration-300 md:hidden flex flex-col justify-center items-center" style="background-color: rgba(13, 13, 13, 0.98);">
-        <button id="close-menu-btn" class="absolute top-6 right-6 text-ivory-300 hover:text-london-gold transition-colors focus:outline-none">
+    <div id="mobile-menu" class="fixed inset-0 z-[60] bg-[#2C2118]/95 backdrop-blur-lg transform translate-x-full transition-transform duration-300 md:hidden flex flex-col justify-center items-center">
+        <button id="close-menu-btn" class="absolute top-6 right-6 text-[#F5EDE0] hover:text-london-gold transition-colors focus:outline-none">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor" class="w-10 h-10">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -328,7 +328,7 @@
                 Agendar Prova
             </a>
             {% if session.get('logged_in') %}
-            <a href="{{ url_for('logout') }}" class="text-sm border border-ivory-300/20 text-ivory-300 px-8 py-2.5 rounded-sm hover:bg-white/10 transition-all tracking-wider uppercase font-sans" onclick="closeMobileMenu()">
+            <a href="{{ url_for('logout') }}" class="text-sm border border-[#E8E0D6]/40 text-[#F5EDE0] px-8 py-2.5 rounded-sm hover:bg-white/10 transition-all tracking-wider uppercase font-sans" onclick="closeMobileMenu()">
                 Sair
             </a>
             {% endif %}
@@ -426,7 +426,7 @@
                         />
                         
                         <!-- Quote card (desktop only) -->
-                        <div class="absolute -bottom-6 -right-6 bg-charcoal-900 p-7 hidden md:block shadow-2xl max-w-[280px]">
+                        <div class="absolute -bottom-6 -right-6 bg-[#2C2118] p-7 hidden md:block shadow-2xl max-w-[280px]">
                             <p class="text-ivory-200 font-serif text-lg italic leading-snug">"Elegância é a única beleza que nunca desaparece."</p>
                             <div class="w-8 h-px bg-london-gold mt-3 mb-2"></div>
                             <p class="text-london-gold-light text-[10px] tracking-[0.3em] uppercase font-sans font-medium">Audrey Hepburn</p>
@@ -486,7 +486,7 @@
         </section>
 
         <!-- ======================== FEATURES SECTION ======================== -->
-        <section class="py-20 md:py-28 bg-ivory-100 relative grain-overlay">
+        <section class="py-20 md:py-28 bg-[#FDF9F4] relative grain-overlay">
             <div class="container mx-auto px-6 relative z-10">
                 <!-- Section header -->
                 <div class="text-center mb-16 reveal-section">
@@ -557,7 +557,7 @@
             
             <div class="flex flex-wrap justify-center gap-6 md:gap-8 px-6">
                 <!-- Testimonial 1 -->
-                <div class="testimonial-card bg-ivory-50 p-8 md:p-10 rounded-sm shadow-[0_4px_20px_rgba(0,0,0,0.03)] max-w-sm border border-ivory-300/30 reveal-section">
+                <div class="testimonial-card bg-white p-8 md:p-10 rounded-sm shadow-[0_4px_20px_rgba(184,150,110,0.15)] max-w-sm border border-[#E8E0D6] reveal-section">
                     <div class="flex justify-center mb-5 gap-0.5">
                         <svg class="w-3.5 h-3.5 star-gold fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
                         <svg class="w-3.5 h-3.5 star-gold fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
@@ -566,12 +566,12 @@
                         <svg class="w-3.5 h-3.5 star-gold fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
                     </div>
                     <p class="text-charcoal-600 italic mb-6 leading-relaxed font-serif text-lg">"O atendimento foi impecável. O vestido parecia ter sido feito no meu corpo."</p>
-                    <div class="font-sans font-semibold text-charcoal-800 tracking-[0.15em] text-xs uppercase">Mariana Silva</div>
-                    <div class="text-london-gold text-[10px] mt-1 uppercase font-sans font-medium tracking-[0.2em]">Noiva 2025</div>
+                    <div class="font-sans font-semibold text-[#2C2118] tracking-[0.15em] text-xs uppercase">Mariana Silva</div>
+                    <div class="text-[#9A8878] text-[10px] mt-1 uppercase font-sans font-medium tracking-[0.2em]">Noiva 2025</div>
                 </div>
 
                 <!-- Testimonial 2 -->
-                <div class="testimonial-card bg-ivory-50 p-8 md:p-10 rounded-sm shadow-[0_4px_20px_rgba(0,0,0,0.03)] max-w-sm border border-ivory-300/30 reveal-section">
+                <div class="testimonial-card bg-white p-8 md:p-10 rounded-sm shadow-[0_4px_20px_rgba(184,150,110,0.15)] max-w-sm border border-[#E8E0D6] reveal-section">
                     <div class="flex justify-center mb-5 gap-0.5">
                         <svg class="w-3.5 h-3.5 star-gold fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
                         <svg class="w-3.5 h-3.5 star-gold fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
@@ -580,12 +580,12 @@
                         <svg class="w-3.5 h-3.5 star-gold fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
                     </div>
                     <p class="text-charcoal-600 italic mb-6 leading-relaxed font-serif text-lg">"A London Noivas superou todas as minhas expectativas. O acervo é maravilhoso."</p>
-                    <div class="font-sans font-semibold text-charcoal-800 tracking-[0.15em] text-xs uppercase">Beatriz Costa</div>
-                    <div class="text-london-gold text-[10px] mt-1 uppercase font-sans font-medium tracking-[0.2em]">Madrinha</div>
+                    <div class="font-sans font-semibold text-[#2C2118] tracking-[0.15em] text-xs uppercase">Beatriz Costa</div>
+                    <div class="text-[#9A8878] text-[10px] mt-1 uppercase font-sans font-medium tracking-[0.2em]">Madrinha</div>
                 </div>
 
                 <!-- Testimonial 3 -->
-                <div class="testimonial-card bg-ivory-50 p-8 md:p-10 rounded-sm shadow-[0_4px_20px_rgba(0,0,0,0.03)] max-w-sm border border-ivory-300/30 reveal-section">
+                <div class="testimonial-card bg-white p-8 md:p-10 rounded-sm shadow-[0_4px_20px_rgba(184,150,110,0.15)] max-w-sm border border-[#E8E0D6] reveal-section">
                     <div class="flex justify-center mb-5 gap-0.5">
                         <svg class="w-3.5 h-3.5 star-gold fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
                         <svg class="w-3.5 h-3.5 star-gold fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
@@ -594,8 +594,8 @@
                         <svg class="w-3.5 h-3.5 star-gold fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
                     </div>
                     <p class="text-charcoal-600 italic mb-6 leading-relaxed font-serif text-lg">"Amei a curadoria e o atendimento! Me ajudou muito a decidir o que eu queria."</p>
-                    <div class="font-sans font-semibold text-charcoal-800 tracking-[0.15em] text-xs uppercase">Fernanda Lima</div>
-                    <div class="text-london-gold text-[10px] mt-1 uppercase font-sans font-medium tracking-[0.2em]">Formanda</div>
+                    <div class="font-sans font-semibold text-[#2C2118] tracking-[0.15em] text-xs uppercase">Fernanda Lima</div>
+                    <div class="text-[#9A8878] text-[10px] mt-1 uppercase font-sans font-medium tracking-[0.2em]">Formanda</div>
                 </div>
             </div>
         </section>

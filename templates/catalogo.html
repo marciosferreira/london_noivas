@@ -17,9 +17,9 @@
             theme: {
                 extend: {
                     colors: {
-                        'london-gold': '#B8956A',
+                        'london-gold': '#B8966E',
                         'london-gold-light': '#D4B896',
-                        'london-gold-dark': '#96704A',
+                        'london-gold-dark': '#9A7A56',
                         'ivory': {
                             50: '#FDFCFA',
                             100: '#FAF8F5',
@@ -75,16 +75,16 @@
         }
     </style>
 </head>
-<body class="bg-stone-50 text-stone-800 font-sans antialiased">
+<body class="bg-[#FDF9F4] text-[#4A3C30] font-sans antialiased">
 
-    <header id="main-header" class="sticky top-0 left-0 right-0 z-50 bg-charcoal-950/95 backdrop-blur-md py-4 shadow-[0_1px_0_rgba(184,149,106,0.15)]">
+    <header id="main-header" class="sticky top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md py-4 border-b border-[#E8E0D6] shadow-[0_1px_0_rgba(184,150,110,0.12)]">
         <div class="container mx-auto px-6 flex justify-between items-center">
             <a href="{{ url_for('index') }}" class="flex items-center gap-3">
                 <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-sm overflow-hidden bg-white/90 shadow-sm">
                     <img src="{{ url_for('static', filename='logo.jpeg') }}" alt="London Noivas Logo" class="w-full h-full object-contain">
                 </div>
                 <div>
-                    <h1 id="header-title" class="text-base sm:text-xl font-serif font-light tracking-[0.25em] text-white whitespace-nowrap">
+                    <h1 id="header-title" class="text-base sm:text-xl font-serif font-light tracking-[0.25em] text-[#2C2118] whitespace-nowrap">
                         LONDON NOIVAS
                     </h1>
                     <div class="hidden sm:block h-px w-full bg-gradient-to-r from-london-gold/60 to-transparent mt-0.5"></div>
@@ -92,19 +92,19 @@
             </a>
 
             <nav class="hidden md:flex gap-8 items-center text-[13px] font-sans font-medium tracking-[0.15em] uppercase">
-                <a href="{{ url_for('index') }}" class="nav-link-refined text-ivory-200 hover:text-london-gold-light transition-colors">Home</a>
-                <a href="{{ url_for('como_funciona') }}" class="nav-link-refined text-ivory-200 hover:text-london-gold-light transition-colors">Como Funciona</a>
-                <a href="{{ url_for('index') }}#sobre" class="nav-link-refined text-ivory-200 hover:text-london-gold-light transition-colors">Sobre</a>
-                <a href="{{ url_for('index') }}#contato" class="nav-link-refined text-ivory-200 hover:text-london-gold-light transition-colors">Contato</a>
+                <a href="{{ url_for('index') }}" class="nav-link-refined text-[#2C2118] hover:text-london-gold transition-colors">Home</a>
+                <a href="{{ url_for('como_funciona') }}" class="nav-link-refined text-[#2C2118] hover:text-london-gold transition-colors">Como Funciona</a>
+                <a href="{{ url_for('index') }}#sobre" class="nav-link-refined text-[#2C2118] hover:text-london-gold transition-colors">Sobre</a>
+                <a href="{{ url_for('index') }}#contato" class="nav-link-refined text-[#2C2118] hover:text-london-gold transition-colors">Contato</a>
                 <a href="{{ url_for('public_booking_root') }}" class="btn-shimmer bg-london-gold text-white px-7 py-2.5 rounded-sm hover:bg-london-gold-dark transition-all shadow-lg shadow-london-gold/20 tracking-[0.15em]">
                     Agendar Prova
                 </a>
                 
                 {% if session.get('logged_in') %}
-                <a href="{{ url_for('agenda') }}" class="bg-white/8 text-ivory-300 px-3 py-1.5 rounded-sm hover:bg-white/15 transition-all text-[10px] tracking-wider ml-2 border border-white/10">
+                <a href="{{ url_for('agenda') }}" class="bg-[#F5EDE0] text-[#2C2118] px-3 py-1.5 rounded-sm hover:bg-[#E8E0D6] transition-all text-[10px] tracking-wider ml-2 border border-[#E8E0D6]">
                     PAINEL
                 </a>
-                <a href="{{ url_for('logout') }}" class="bg-white/8 text-ivory-300 px-3 py-1.5 rounded-sm hover:bg-white/15 transition-all text-[10px] tracking-wider border border-white/10">
+                <a href="{{ url_for('logout') }}" class="bg-[#F5EDE0] text-[#2C2118] px-3 py-1.5 rounded-sm hover:bg-[#E8E0D6] transition-all text-[10px] tracking-wider border border-[#E8E0D6]">
                     SAIR
                 </a>
                 {% endif %}
@@ -118,7 +118,7 @@
         </div>
     </header>
 
-    <div id="mobile-menu" class="fixed inset-0 z-[60] bg-gray-900/98 backdrop-blur-lg transform translate-x-full transition-transform duration-300 md:hidden flex flex-col justify-center items-center" style="background-color: rgba(13, 13, 13, 0.98);">
+    <div id="mobile-menu" class="fixed inset-0 z-[60] bg-[#2C2118]/95 backdrop-blur-lg transform translate-x-full transition-transform duration-300 md:hidden flex flex-col justify-center items-center">
         <button id="close-menu-btn" class="absolute top-6 right-6 text-ivory-300 hover:text-london-gold transition-colors focus:outline-none">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor" class="w-10 h-10">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -135,7 +135,7 @@
                 Agendar Prova
             </a>
             {% if session.get('logged_in') %}
-            <a href="{{ url_for('logout') }}" class="text-sm border border-ivory-300/20 text-ivory-300 px-8 py-2.5 rounded-sm hover:bg-white/10 transition-all tracking-wider uppercase font-sans" onclick="closeMobileMenu()">
+            <a href="{{ url_for('logout') }}" class="text-sm border border-[#E8E0D6]/40 text-[#F5EDE0] px-8 py-2.5 rounded-sm hover:bg-white/10 transition-all tracking-wider uppercase font-sans" onclick="closeMobileMenu()">
                 Sair
             </a>
             {% endif %}
@@ -264,7 +264,7 @@
         <div id="catalog-grid" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-8">
             {% if itens %}
                 {% for item in itens %}
-                <div class="group bg-white rounded-sm shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden animate-fadeIn"
+                <div class="group bg-white rounded-sm border border-[#E8E0D6] shadow-sm hover:shadow-[0_4px_20px_rgba(184,150,110,0.15)] transition-all duration-300 cursor-pointer overflow-hidden animate-fadeIn"
                      onclick="openCatalogModalById('{{ item.item_id }}', 'catalog')">
                     
                     <div class="aspect-[3/4] overflow-hidden bg-stone-200 relative" data-card-carousel="1" data-item-id="{{ item.item_id }}">
@@ -303,7 +303,7 @@
                         {% if session.get('logged_in') %}
                         <a href="{{ url_for('edit_item', item_id=item.item_id, next=request.full_path) }}"
                            onclick="event.stopPropagation();"
-                           class="absolute top-3 left-3 bg-white/95 text-stone-800 px-3 py-1 rounded-full text-xs font-bold tracking-widest uppercase shadow-sm hover:bg-stone-800 hover:text-white transition-colors">
+                           class="absolute top-3 left-3 bg-[#B8966E] text-white px-3 py-1 rounded-full text-xs font-bold tracking-widest uppercase shadow-sm hover:bg-[#9A7A56] transition-colors">
                             Editar
                         </a>
                         {% endif %}
@@ -479,7 +479,7 @@
                             </svg>
                             <span class="font-bold tracking-widest text-sm">SOLICITAR INFORMAÇÕES</span>
                         </a>
-                        <a id="modal-booking-link" href="#" class="mt-3 block w-full bg-stone-900 hover:bg-stone-800 text-white py-4 px-6 rounded-sm transition-colors text-center shadow-lg hover:shadow-xl transform hover:-translate-y-1 duration-200 flex items-center justify-center gap-3 hidden">
+                        <a id="modal-booking-link" href="#" class="mt-3 block w-full bg-[#B8966E] hover:bg-[#9A7A56] text-white py-4 px-6 rounded-sm transition-colors text-center shadow-lg hover:shadow-xl transform hover:-translate-y-1 duration-200 flex items-center justify-center gap-3 hidden">
                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
                                 <path d="M11 6.5a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v8a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5z"/>
                                 <path d="M4.5 1a.5.5 0 0 1 .5.5V3h6V1.5a.5.5 0 0 1 1 0V3h.5A1.5 1.5 0 0 1 14 4.5v10A1.5 1.5 0 0 1 12.5 16h-9A1.5 1.5 0 0 1 2 14.5v-10A1.5 1.5 0 0 1 3.5 3H4V1.5a.5.5 0 0 1 .5-.5M3.5 4a.5.5 0 0 0-.5.5V6h10V4.5a.5.5 0 0 0-.5-.5z"/>
@@ -1237,7 +1237,7 @@
 
     <!-- Back to Top Button -->
     <button id="back-to-top" 
-        class="fixed bottom-6 left-6 z-40 bg-london-gold text-white px-3 py-2.5 rounded-2xl shadow-lg transform transition-all duration-300 translate-y-20 opacity-0 hover:bg-london-gold-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-london-gold print:hidden flex flex-col items-center justify-center"
+        class="fixed bottom-6 left-6 z-40 bg-[#B8966E] text-white px-3 py-2.5 rounded-2xl shadow-lg transform transition-all duration-300 translate-y-20 opacity-0 hover:bg-[#9A7A56] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#B8966E] print:hidden flex flex-col items-center justify-center"
         aria-label="Voltar ao topo">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />

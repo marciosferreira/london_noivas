@@ -1,6 +1,6 @@
 /* Estilo geral da navbar */
 .footer-wrapper {
-  background: linear-gradient(180deg, #0f172a 0%, #0b1324 100%) !important;
+  background: #2c2118 !important;
   padding-left: 0;
   padding-right: 0;
   padding-top: 1.75rem;
@@ -9,8 +9,8 @@
   margin: 0;
   width: 100%;
   border-radius: 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 -12px 30px rgba(2, 6, 23, 0.35);
+  border-top: 1px solid #3d3020;
+  box-shadow: 0 -12px 30px rgba(44, 33, 24, 0.35);
 }
 
 .footer {
@@ -19,7 +19,7 @@
 }
 
 .footer a {
-  color: #f8f9fa;
+  color: #c9ad8a;
   text-decoration: none;
   font-weight: 500;
   transition: all 0.3s ease;
@@ -29,15 +29,15 @@
   padding: 0.5rem 0.9rem;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid #3d3020;
   backdrop-filter: blur(6px);
 }
 
 .footer a:hover {
-  color: #ffc107;
+  color: #d4b896;
   transform: translateY(-2px);
-  background: rgba(255, 193, 7, 0.12);
-  border-color: rgba(255, 193, 7, 0.35);
+  background: rgba(212, 184, 150, 0.14);
+  border-color: rgba(212, 184, 150, 0.4);
 }
 
 .footer-links .col-6 {

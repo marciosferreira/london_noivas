@@ -17,8 +17,8 @@
             theme: {
                 extend: {
                     colors: {
-                        'london-gold': '#B8956A',
-                        'london-gold-dark': '#96704A',
+                        'london-gold': '#B8966E',
+                        'london-gold-dark': '#9A7A56',
                         'ivory': {
                             100: '#FAF8F5'
                         },
@@ -32,15 +32,15 @@
         }
     </script>
 </head>
-<body class="bg-ivory-100 text-charcoal-900 antialiased">
-    <header class="sticky top-0 left-0 right-0 z-50 bg-charcoal-950/95 backdrop-blur-md py-4 shadow-[0_1px_0_rgba(184,149,106,0.15)]">
+<body class="bg-[#FDF9F4] text-[#4A3C30] antialiased">
+    <header class="sticky top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md py-4 border-b border-[#E8E0D6] shadow-[0_1px_0_rgba(184,150,110,0.12)]">
         <div class="container mx-auto px-6 flex justify-between items-center">
             <a href="{{ url_for('index') }}" class="flex items-center gap-3">
                 <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-sm overflow-hidden bg-white/90 shadow-sm">
                     <img src="{{ url_for('static', filename='logo.jpeg') }}" alt="London Noivas Logo" class="w-full h-full object-contain">
                 </div>
                 <div>
-                    <h1 class="text-base sm:text-xl font-serif font-light tracking-[0.25em] text-white whitespace-nowrap">
+                    <h1 class="text-base sm:text-xl font-serif font-light tracking-[0.25em] text-[#2C2118] whitespace-nowrap">
                         LONDON NOIVAS
                     </h1>
                     <div class="hidden sm:block h-px w-full bg-gradient-to-r from-london-gold/60 to-transparent mt-0.5"></div>
@@ -48,9 +48,9 @@
             </a>
 
             <nav class="hidden md:flex gap-8 items-center text-[13px] font-sans font-medium tracking-[0.15em] uppercase">
-                <a href="{{ url_for('catalogo', occasion='noiva') }}" class="text-ivory-100 hover:text-london-gold transition-colors">Catálogo</a>
+                <a href="{{ url_for('catalogo', occasion='noiva') }}" class="text-[#2C2118] hover:text-london-gold transition-colors">Catálogo</a>
                 <a href="{{ url_for('como_funciona') }}" class="text-london-gold transition-colors">Como Funciona</a>
-                <a href="{{ url_for('index') }}#contato" class="text-ivory-100 hover:text-london-gold transition-colors">Contato</a>
+                <a href="{{ url_for('index') }}#contato" class="text-[#2C2118] hover:text-london-gold transition-colors">Contato</a>
                 <a href="{{ url_for('public_booking_root') }}" class="bg-london-gold text-white px-7 py-2.5 rounded-sm hover:bg-london-gold-dark transition-all shadow-lg tracking-[0.15em]">
                     Agendar Prova
                 </a>
@@ -64,7 +64,7 @@
         </div>
     </header>
 
-    <div id="mobile-menu" class="fixed inset-0 z-[60] bg-gray-900/98 backdrop-blur-lg transform translate-x-full transition-transform duration-300 md:hidden flex flex-col justify-center items-center" style="background-color: rgba(13, 13, 13, 0.98);">
+    <div id="mobile-menu" class="fixed inset-0 z-[60] bg-[#2C2118]/95 backdrop-blur-lg transform translate-x-full transition-transform duration-300 md:hidden flex flex-col justify-center items-center">
         <button id="close-menu-btn" class="absolute top-6 right-6 text-ivory-100 hover:text-london-gold transition-colors focus:outline-none">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor" class="w-10 h-10">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -96,47 +96,47 @@
         </div>
 
         <div class="max-w-5xl mx-auto grid md:grid-cols-2 gap-5">
-            <div class="bg-white rounded-sm border border-stone-200 p-6 shadow-sm">
+            <div class="bg-white rounded-sm border border-[#E8E0D6] p-6 shadow-sm hover:shadow-[0_4px_20px_rgba(184,150,110,0.15)] transition-shadow">
                 <span class="text-london-gold font-semibold tracking-[0.2em] text-xs uppercase">Etapa 01</span>
                 <h3 class="font-serif text-2xl text-charcoal-900 mt-2 mb-3">Curadoria e seleção</h3>
                 <p class="text-charcoal-900/70 leading-relaxed">Explore nossa coleção online ou visite nosso showroom em Manaus. Contamos com consultoria especializada para identificar o modelo que melhor valoriza sua silhueta e o estilo do evento.</p>
             </div>
-            <div class="bg-white rounded-sm border border-stone-200 p-6 shadow-sm">
+            <div class="bg-white rounded-sm border border-[#E8E0D6] p-6 shadow-sm hover:shadow-[0_4px_20px_rgba(184,150,110,0.15)] transition-shadow">
                 <span class="text-london-gold font-semibold tracking-[0.2em] text-xs uppercase">Etapa 02</span>
                 <h3 class="font-serif text-2xl text-charcoal-900 mt-2 mb-3">Prova de caimento e ajustes</h3>
                 <p class="text-charcoal-900/70 leading-relaxed">Realizamos a prova técnica para validar o ajuste perfeito. Caso sejam necessários ajustes finos, agendamos uma segunda prova de segurança antes da data de retirada.</p>
             </div>
-            <div class="bg-white rounded-sm border border-stone-200 p-6 shadow-sm">
+            <div class="bg-white rounded-sm border border-[#E8E0D6] p-6 shadow-sm hover:shadow-[0_4px_20px_rgba(184,150,110,0.15)] transition-shadow">
                 <span class="text-london-gold font-semibold tracking-[0.2em] text-xs uppercase">Etapa 03</span>
                 <h3 class="font-serif text-2xl text-charcoal-900 mt-2 mb-3">Reserva garantida</h3>
                 <p class="text-charcoal-900/70 leading-relaxed">A reserva é formalizada mediante contrato e pagamento de 50% do valor. Isso garante que sua peça exclusiva esteja bloqueada para o seu grande dia.</p>
             </div>
-            <div class="bg-white rounded-sm border border-stone-200 p-6 shadow-sm">
+            <div class="bg-white rounded-sm border border-[#E8E0D6] p-6 shadow-sm hover:shadow-[0_4px_20px_rgba(184,150,110,0.15)] transition-shadow">
                 <span class="text-london-gold font-semibold tracking-[0.2em] text-xs uppercase">Etapa 04</span>
                 <h3 class="font-serif text-2xl text-charcoal-900 mt-2 mb-3">Retirada e finalização</h3>
                 <p class="text-charcoal-900/70 leading-relaxed">A retirada ocorre habitualmente 1 ou 2 dias antes do evento. O saldo restante pode ser parcelado, conforme condições da operadora. Sua peça é entregue em capa protetora, pronta para o uso.</p>
             </div>
-            <div class="bg-white rounded-sm border border-stone-200 p-6 shadow-sm">
+            <div class="bg-white rounded-sm border border-[#E8E0D6] p-6 shadow-sm hover:shadow-[0_4px_20px_rgba(184,150,110,0.15)] transition-shadow">
                 <span class="text-london-gold font-semibold tracking-[0.2em] text-xs uppercase">Etapa 05</span>
                 <h3 class="font-serif text-2xl text-charcoal-900 mt-2 mb-3">Uso e preservação</h3>
                 <p class="text-charcoal-900/70 leading-relaxed">Nossos vestidos passam por lavagem profissional e passadoria técnica. Nunca tente lavar ou remover manchas por conta própria; nossa equipe utiliza processos químicos específicos para fibras delicadas.</p>
             </div>
-            <div class="bg-white rounded-sm border border-stone-200 p-6 shadow-sm">
+            <div class="bg-white rounded-sm border border-[#E8E0D6] p-6 shadow-sm hover:shadow-[0_4px_20px_rgba(184,150,110,0.15)] transition-shadow">
                 <span class="text-london-gold font-semibold tracking-[0.2em] text-xs uppercase">Etapa 06</span>
                 <h3 class="font-serif text-2xl text-charcoal-900 mt-2 mb-3">Devolução facilitada</h3>
                 <p class="text-charcoal-900/70 leading-relaxed">A devolução padrão ocorre no primeiro dia útil após o evento. Extensões de prazo podem ser solicitadas e serão avaliadas conforme o cronograma de reservas da peça.</p>
             </div>
         </div>
 
-        <div class="max-w-5xl mx-auto mt-8 bg-white rounded-sm border border-stone-200 p-6 shadow-sm">
+        <div class="max-w-5xl mx-auto mt-8 bg-white rounded-sm border border-[#E8E0D6] p-6 shadow-sm">
             <h3 class="font-serif text-2xl text-charcoal-900 mb-4">Logística e segurança</h3>
             <div class="space-y-3 text-charcoal-900/75 leading-relaxed">
                 <p><span class="font-semibold text-charcoal-900">Atenção ao transporte:</span> devido à delicadeza dos tecidos e ao volume das peças, não recomendamos o transporte por motocicleta. O calor do escapamento e a exposição podem causar danos irreversíveis às fibras e bordados.</p>
-                <p><span class="font-semibold text-charcoal-900">Entregas por aplicativo:</span> aceitamos retiradas via app, desde que solicitadas pelo cliente. Para sua segurança, exigimos o uso de entrega por código. O extravio em viagens sem código é de inteira responsabilidade do contratante.</p>
+                <p><span class="font-semibold text-charcoal-900">Transporte por aplicativo:</span> aceitamos retiradas e devoluções via aplicativo, desde que solicitadas pelo próprio cliente. O cliente deve acompanhar todo o procedimento pelo seu próprio app, garantindo um transporte seguro. Para sua segurança, exigimos o uso de entrega com código, e o eventual extravio é de inteira responsabilidade do contratante.</p>
             </div>
         </div>
 
-        <div class="max-w-5xl mx-auto mt-8 bg-white rounded-sm border border-stone-200 p-6 shadow-sm">
+        <div class="max-w-5xl mx-auto mt-8 bg-white rounded-sm border border-[#E8E0D6] p-6 shadow-sm">
             <h3 class="font-serif text-2xl text-charcoal-900 mb-4">Planeje sua visita</h3>
             <div class="space-y-3 text-charcoal-900/75 leading-relaxed">
                 <p>Para garantirmos um atendimento personalizado e exclusivo, trabalhamos preferencialmente com horário marcado.</p>
@@ -146,7 +146,7 @@
         </div>
 
         <div class="max-w-3xl mx-auto text-center mt-12 flex flex-col items-center gap-3">
-            <a href="{{ url_for('public_booking_root') }}" class="inline-flex items-center justify-center px-9 py-3.5 bg-charcoal-900 text-white hover:bg-london-gold transition-all rounded-sm tracking-[0.18em] text-xs uppercase font-semibold">
+            <a href="{{ url_for('public_booking_root') }}" class="inline-flex items-center justify-center px-9 py-3.5 bg-[#B8966E] text-white hover:bg-[#9A7A56] transition-all rounded-sm tracking-[0.18em] text-xs uppercase font-semibold">
                 AUTO AGENDAMENTO AGORA
             </a>
             <a id="como-funciona-whatsapp-link" href="https://wa.me/5592993531943" target="_blank" onclick="trackWhatsAppClick('como_funciona_whatsapp')" class="inline-flex items-center justify-center gap-3 px-9 py-3.5 bg-[#25D366] hover:bg-[#1ebc57] text-white rounded-sm transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 duration-200 tracking-[0.18em] text-xs uppercase font-semibold">
