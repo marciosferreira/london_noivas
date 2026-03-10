@@ -200,30 +200,22 @@
     </script>
     <script>
         (function() {
-            const TARGET_SECONDS = 60;
+            const TARGET_SECONDS = 90;
             const STORAGE_KEY = 'tempo_acumulado_noiva_90s_v4';
             const DONE_KEY = 'evento_noiva_enviado_90s_v4';
             const VISITED_KEY = 'paginas_visitadas_noiva_90s_v4';
             const EVENT_NAME = 'noiva_1_minute';
             const CHECK_INTERVAL_MS = 1000;
             const params = new URLSearchParams(window.location.search);
-            const occasionParam = ((params.get('occasion') || params.get('ocasion') || '') + '').toLowerCase();
-            const href = window.location.href.toLowerCase();
+            const occasionParam = ((params.get('occasion') || params.get('ocasion') || '') + '').toLowerCase().trim();
             const pathname = window.location.pathname.toLowerCase();
             const isLocalHost = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost';
             const storage = window.sessionStorage;
-            const isNoiva = (
-                occasionParam === 'noiva' ||
-                occasionParam === 'noivas' ||
-                href.includes('occasion=noiva') ||
-                href.includes('occasion=noivas') ||
-                href.includes('ocasion=noiva') ||
-                href.includes('ocasion=noivas')
-            );
+            const isTrackedOccasion = occasionParam === 'noiva' || occasionParam === 'civil';
             const isComoFunciona = pathname === '/como-funciona' || pathname.startsWith('/como-funciona/');
             const isCatalogo = pathname === '/catalogo' || pathname.startsWith('/catalogo/');
-            const isCatalogoNoiva = isCatalogo && isNoiva;
-            const shouldTrackNoivaEngagement = isCatalogoNoiva || isComoFunciona;
+            const isCatalogoTrackedOccasion = isCatalogo && isTrackedOccasion;
+            const shouldTrackNoivaEngagement = isCatalogoTrackedOccasion || isComoFunciona;
             if (!shouldTrackNoivaEngagement || storage.getItem(DONE_KEY)) return;
 
             let startTime = Date.now();
@@ -246,11 +238,11 @@
 
             function hasVisitedRequiredPages() {
                 const visited = getVisitedPages();
-                return !!(visited.catalogo_noiva && visited.como_funciona);
+                return !!(visited.catalogo_ocasiao && visited.como_funciona);
             }
 
             const visitedPages = getVisitedPages();
-            if (isCatalogoNoiva) visitedPages.catalogo_noiva = true;
+            if (isCatalogoTrackedOccasion) visitedPages.catalogo_ocasiao = true;
             if (isComoFunciona) visitedPages.como_funciona = true;
             setVisitedPages(visitedPages);
 
