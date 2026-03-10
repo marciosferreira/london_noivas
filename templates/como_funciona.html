@@ -201,8 +201,9 @@
     <script>
         (function() {
             const TARGET_SECONDS = 90;
-            const STORAGE_KEY = 'tempo_acumulado_noiva_60s_v3';
-            const DONE_KEY = 'evento_noiva_enviado_60s_v3';
+            const STORAGE_KEY = 'tempo_acumulado_noiva_90s_v4';
+            const DONE_KEY = 'evento_noiva_enviado_90s_v4';
+            const VISITED_KEY = 'paginas_visitadas_noiva_90s_v4';
             const EVENT_NAME = 'noiva_1_minute';
             const CHECK_INTERVAL_MS = 1000;
             const params = new URLSearchParams(window.location.search);
@@ -220,11 +221,38 @@
                 href.includes('ocasion=noivas')
             );
             const isComoFunciona = pathname === '/como-funciona' || pathname.startsWith('/como-funciona/');
-            const shouldTrackNoivaEngagement = isNoiva || isComoFunciona;
+            const isCatalogo = pathname === '/catalogo' || pathname.startsWith('/catalogo/');
+            const isCatalogoNoiva = isCatalogo && isNoiva;
+            const shouldTrackNoivaEngagement = isCatalogoNoiva || isComoFunciona;
             if (!shouldTrackNoivaEngagement || storage.getItem(DONE_KEY)) return;
 
             let startTime = Date.now();
             let interval = null;
+
+            function getVisitedPages() {
+                const raw = storage.getItem(VISITED_KEY);
+                if (!raw) return {};
+                try {
+                    const parsed = JSON.parse(raw);
+                    return parsed && typeof parsed === 'object' ? parsed : {};
+                } catch (_) {
+                    return {};
+                }
+            }
+
+            function setVisitedPages(pages) {
+                storage.setItem(VISITED_KEY, JSON.stringify(pages));
+            }
+
+            function hasVisitedRequiredPages() {
+                const visited = getVisitedPages();
+                return !!(visited.catalogo_noiva && visited.como_funciona);
+            }
+
+            const visitedPages = getVisitedPages();
+            if (isCatalogoNoiva) visitedPages.catalogo_noiva = true;
+            if (isComoFunciona) visitedPages.como_funciona = true;
+            setVisitedPages(visitedPages);
 
             function sendToAnalytics(seconds) {
                 const payload = {
@@ -251,7 +279,7 @@
                 const totalSaved = parseInt(storage.getItem(STORAGE_KEY) || '0', 10);
                 const currentTotal = totalSaved + sessionSeconds;
 
-                if (currentTotal >= TARGET_SECONDS) {
+                if (currentTotal >= TARGET_SECONDS && hasVisitedRequiredPages()) {
                     const sent = sendToAnalytics(currentTotal);
                     if (sent) {
                         storage.setItem(DONE_KEY, 'true');
