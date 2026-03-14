@@ -1,6 +1,7 @@
 import datetime
 import uuid
 import os
+import hashlib
 from urllib.parse import urlparse, urlencode
 from boto3.dynamodb.conditions import Key, Attr
 
@@ -2099,6 +2100,90 @@ def init_item_routes(
             print("Erro: Usuário não autenticado corretamente.")
             return redirect(url_for("login"))
 
+        if request.method == "POST" and (request.form.get("action") or "").strip() == "reset_visit_scoreboard":
+            redirect_args = {
+                k: v
+                for k, v in request.form.items()
+                if k not in {"action"}
+            }
+            try:
+                response = itens_table.query(
+                    IndexName="account_id-created_at-index",
+                    KeyConditionExpression=Key("account_id").eq(account_id),
+                    FilterExpression=Attr("status").is_in(["available", "archive"]),
+                    ProjectionExpression="item_id",
+                )
+                all_account_items = response.get("Items", [])
+                while "LastEvaluatedKey" in response:
+                    response = itens_table.query(
+                        IndexName="account_id-created_at-index",
+                        KeyConditionExpression=Key("account_id").eq(account_id),
+                        FilterExpression=Attr("status").is_in(["available", "archive"]),
+                        ProjectionExpression="item_id",
+                        ExclusiveStartKey=response["LastEvaluatedKey"],
+                    )
+                    all_account_items.extend(response.get("Items", []))
+
+                item_ids = []
+                for item in all_account_items:
+                    item_id = str(item.get("item_id") or "").strip()
+                    if item_id:
+                        item_ids.append(item_id)
+                        itens_table.update_item(
+                            Key={"item_id": item_id},
+                            UpdateExpression="SET visit_count = :zero",
+                            ExpressionAttributeValues={":zero": 0},
+                        )
+
+                import boto3
+
+                dynamodb_resource = boto3.resource(
+                    "dynamodb",
+                    region_name=os.getenv("AWS_REGION", "us-east-1"),
+                    aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
+                    aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
+                )
+                visits_table = dynamodb_resource.Table("alugueqqc_item_visits")
+
+                deleted_rows = 0
+                with visits_table.batch_writer() as batch:
+                    for item_id in item_ids:
+                        last_evaluated_key = None
+                        while True:
+                            query_params = {
+                                "KeyConditionExpression": Key("item_id").eq(item_id),
+                                "ProjectionExpression": "item_id, #ts",
+                                "ExpressionAttributeNames": {"#ts": "timestamp"},
+                            }
+                            if last_evaluated_key:
+                                query_params["ExclusiveStartKey"] = last_evaluated_key
+
+                            visits_response = visits_table.query(**query_params)
+                            visit_rows = visits_response.get("Items", [])
+
+                            for visit in visit_rows:
+                                visit_ts = visit.get("timestamp")
+                                if not visit_ts:
+                                    continue
+                                batch.delete_item(
+                                    Key={"item_id": item_id, "timestamp": visit_ts}
+                                )
+                                deleted_rows += 1
+
+                            last_evaluated_key = visits_response.get("LastEvaluatedKey")
+                            if not last_evaluated_key:
+                                break
+
+                flash(
+                    f"Placar de visualizações zerado com sucesso ({len(item_ids)} itens, {deleted_rows} registros de visitas removidos).",
+                    "success",
+                )
+            except Exception as e:
+                print(f"Erro ao zerar placar de visualizações: {e}")
+                flash("Não foi possível zerar o placar de visualizações.", "danger")
+
+            return redirect(url_for("reports", **redirect_args))
+
         # 🔥 Carrega configuração de campos
         fields_all_entities = {}
         for ent in ["item", "client", "transaction"]:
@@ -2428,6 +2513,10 @@ def init_item_routes(
         except Exception as e:
             print(f"Erro ao contar itens ativos: {e}")
 
+        top_sort = (request.args.get("top_sort") or "30d").strip().lower()
+        if top_sort not in {"30d", "total"}:
+            top_sort = "30d"
+
         # 🔝 Top 30 Itens Mais Visualizados
         top_visited_items = []
         try:
@@ -2449,12 +2538,62 @@ def init_item_routes(
                 )
                 all_account_items.extend(response.get("Items", []))
 
-            # Ordena por visit_count decrescente
-            top_visited_items = sorted(
-                all_account_items, 
-                key=lambda x: int(x.get('visit_count') or 0), 
-                reverse=True
-            )[:30]
+            import boto3
+            recent_visits_map = {}
+            item_ids = {
+                str(item.get("item_id"))
+                for item in all_account_items
+                if isinstance(item, dict) and item.get("item_id")
+            }
+            if item_ids:
+                dynamodb_resource = boto3.resource(
+                    "dynamodb",
+                    region_name=os.getenv("AWS_REGION", "us-east-1"),
+                    aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
+                    aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
+                )
+                visits_table = dynamodb_resource.Table("alugueqqc_item_visits")
+                cutoff_date = (datetime.datetime.now() - datetime.timedelta(days=30)).isoformat()
+                visits_response = visits_table.scan(
+                    FilterExpression=Attr("timestamp").gte(cutoff_date),
+                    ProjectionExpression="item_id",
+                )
+                visit_rows = visits_response.get("Items", [])
+                while "LastEvaluatedKey" in visits_response:
+                    visits_response = visits_table.scan(
+                        FilterExpression=Attr("timestamp").gte(cutoff_date),
+                        ProjectionExpression="item_id",
+                        ExclusiveStartKey=visits_response["LastEvaluatedKey"],
+                    )
+                    visit_rows.extend(visits_response.get("Items", []))
+
+                for visit in visit_rows:
+                    visited_item_id = str(visit.get("item_id") or "")
+                    if visited_item_id and visited_item_id in item_ids:
+                        recent_visits_map[visited_item_id] = recent_visits_map.get(visited_item_id, 0) + 1
+
+            for item in all_account_items:
+                item_id = str(item.get("item_id") or "")
+                item["visit_count_30d"] = int(recent_visits_map.get(item_id, 0))
+
+            def to_int(value):
+                try:
+                    return int(value or 0)
+                except (ValueError, TypeError):
+                    return 0
+
+            if top_sort == "total":
+                sort_key = lambda item: (
+                    to_int(item.get("visit_count")),
+                    to_int(item.get("visit_count_30d")),
+                )
+            else:
+                sort_key = lambda item: (
+                    to_int(item.get("visit_count_30d")),
+                    to_int(item.get("visit_count")),
+                )
+
+            top_visited_items = sorted(all_account_items, key=sort_key, reverse=True)[:30]
             
         except Exception as e:
             print(f"Erro ao buscar top itens visualizados: {e}")
@@ -2483,6 +2622,7 @@ def init_item_routes(
             current_stripe_transaction=current_stripe_transaction,
             fields_all_entities=fields_all_entities,
             top_visited_items=top_visited_items,
+            top_sort=top_sort,
         )
 
     @app.route("/query", methods=["POST"])
@@ -2536,43 +2676,83 @@ def init_item_routes(
     @app.route("/api/item/<item_id>/visit", methods=["POST"])
     def increment_visit_count(item_id):
         try:
-            # Update item total count
+            payload = request.get_json(silent=True) or {}
+
+            visitor_key = ""
+            session_user_id = str(session.get("user_id") or "").strip()
+            if session_user_id:
+                visitor_key = f"user:{session_user_id}"
+            else:
+                raw_visitor_id = str(payload.get("visitor_id") or "").strip()
+                if raw_visitor_id and len(raw_visitor_id) <= 128:
+                    visitor_key = f"visitor:{raw_visitor_id}"
+                else:
+                    forwarded_for = request.headers.get("X-Forwarded-For", "")
+                    client_ip = (forwarded_for.split(",")[0] if forwarded_for else request.remote_addr) or ""
+                    client_ip = str(client_ip).strip()
+                    if client_ip:
+                        visitor_key = f"ip:{hashlib.sha256(client_ip.encode('utf-8')).hexdigest()[:32]}"
+
+            import time
+            import boto3
+
+            timestamp = datetime.datetime.now().isoformat()
+            ttl_value = int(time.time()) + (30 * 24 * 60 * 60)
+
+            dynamodb_resource = boto3.resource(
+                'dynamodb',
+                region_name=os.getenv('AWS_REGION', 'us-east-1'),
+                aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
+                aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY')
+            )
+            visits_table = dynamodb_resource.Table("alugueqqc_item_visits")
+
+            already_counted = False
+            if visitor_key:
+                try:
+                    query_kwargs = {
+                        "KeyConditionExpression": Key("item_id").eq(item_id),
+                        "FilterExpression": Attr("visitor_key").eq(visitor_key),
+                        "ProjectionExpression": "item_id, #ts",
+                        "ExpressionAttributeNames": {"#ts": "timestamp"},
+                    }
+                    response = visits_table.query(**query_kwargs)
+                    if response.get("Items"):
+                        already_counted = True
+                    while (not already_counted) and response.get("LastEvaluatedKey"):
+                        query_kwargs["ExclusiveStartKey"] = response["LastEvaluatedKey"]
+                        response = visits_table.query(**query_kwargs)
+                        if response.get("Items"):
+                            already_counted = True
+                            break
+                except Exception as e_check:
+                    print(f"Error checking prior visit for item {item_id}: {e_check}")
+
+            if already_counted:
+                return jsonify({"success": True, "counted": False}), 200
+
             itens_table.update_item(
                 Key={"item_id": item_id},
                 UpdateExpression="ADD visit_count :inc",
                 ExpressionAttributeValues={":inc": 1}
             )
-            
-            # Log visit for popularity calculation (last 30 days)
+
             try:
-                import time
-                import boto3
-                
-                timestamp = datetime.datetime.now().isoformat()
-                # TTL: 30 days from now (in seconds)
-                ttl_value = int(time.time()) + (30 * 24 * 60 * 60)
-                
-                # Initialize resource locally to avoid changing function signature
-                dynamodb_resource = boto3.resource(
-                    'dynamodb',
-                    region_name=os.getenv('AWS_REGION', 'us-east-1'),
-                    aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
-                    aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY')
-                )
-                visits_table = dynamodb_resource.Table("alugueqqc_item_visits")
-                
+                visits_item = {
+                    "item_id": item_id,
+                    "timestamp": timestamp,
+                    "ttl": ttl_value
+                }
+                if visitor_key:
+                    visits_item["visitor_key"] = visitor_key
+
                 visits_table.put_item(
-                    Item={
-                        "item_id": item_id,
-                        "timestamp": timestamp,
-                        "ttl": ttl_value
-                    }
+                    Item=visits_item
                 )
             except Exception as e_log:
                 print(f"Error logging visit for item {item_id}: {e_log}")
-                # Don't fail the request if logging fails
-            
-            return jsonify({"success": True}), 200
+
+            return jsonify({"success": True, "counted": True}), 200
         except Exception as e:
             print(f"Error incrementing visit count for item {item_id}: {e}")
             return jsonify({"error": str(e)}), 500

@@ -7,7 +7,7 @@
 <div class="alert alert-info d-flex justify-content-between align-items-center">
 {% set filtros_validos = request.args.items() | rejectattr("0", "in", ["start_date", "end_date", "item_id", "client_id", "page", "force_no_next"]) | list %}
 {% set tem_filtros = filtros_validos | length > 0 %}
-
+  <span>
     {% if tem_filtros %}
       <i class="fas fa-filter me-2"></i>
 <strong>Filtros detalhados aplicados:</strong> {{ filtros_validos | length }} campo{{ 's' if filtros_validos | length != 1 else '' }}.
@@ -15,7 +15,7 @@
       Nenhum filtro detalhado aplicado.
     {% endif %}
   </span>
-  <button id="toggle-filtros-btn" class="btn btn-sm btn-outline-secondary">Filtro detalhado</button>
+  <button id="toggle-filtros-btn" type="button" class="btn btn-sm btn-outline-secondary">Filtro detalhado</button>
 </div>
 
 <!-- Seção dos Filtros -->
@@ -148,6 +148,7 @@
                       <div class="d-flex gap-2">
                         <input type="date" class="form-control" name="start_{{ field.id }}" value="{{ request.args.get('start_' ~ field.id, '') }}">
                         <input type="date" class="form-control" name="end_{{ field.id }}" value="{{ request.args.get('end_' ~ field.id, '') }}">
+                      </div>
 
                     {% elif field.type in ["transaction_ret_date", "created_at"] %}
                       <div class="d-flex gap-2">
@@ -204,13 +205,16 @@
 
     // Mostrar filtros se houver query strings (mas não forçar)
     if (toggleBtn && section) {
-      toggleBtn.addEventListener('click', function () {
+      toggleBtn.addEventListener('click', function (e) {
+        e.preventDefault();
         section.classList.toggle('d-none');
         toggleBtn.textContent = section.classList.contains('d-none') ? 'Filtro detalhado' : 'Ocultar Filtros';
       });
     }
 
     // Unifica os filtros e datas ao submeter
+    if (!filtrosForm || !datasForm) return;
+
     filtrosForm.addEventListener('submit', function (e) {
       e.preventDefault();
       const params = new URLSearchParams();

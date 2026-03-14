@@ -870,18 +870,47 @@ def init_static_routes(
                     iid = item.get("item_id")
                     item["recent_visits"] = recent_map.get(iid, 0)
     
-            # Ordenar por recent_visits (decrescente), depois visit_count (decrescente)
-            # Como critério de desempate final, usa o item_id reverso
-            def get_sort_key(item):
-                rv = item.get("recent_visits", 0)
-                vc = item.get("visit_count", 0)
+            def to_int(value):
                 try:
-                    vc = int(vc)
+                    return int(value or 0)
                 except (ValueError, TypeError):
-                    vc = 0
-                return (rv, vc, item.get("item_id", ""))
-    
-            itens.sort(key=get_sort_key, reverse=True)
+                    return 0
+
+            recent_first = []
+            total_second = []
+            remaining_last = []
+
+            for item in itens:
+                rv = to_int(item.get("recent_visits")) if isinstance(item, dict) else 0
+                vc = to_int(item.get("visit_count")) if isinstance(item, dict) else 0
+                if rv > 0:
+                    recent_first.append(item)
+                elif vc > 0:
+                    total_second.append(item)
+                else:
+                    remaining_last.append(item)
+
+            recent_first.sort(
+                key=lambda item: (
+                    to_int(item.get("recent_visits")) if isinstance(item, dict) else 0,
+                    to_int(item.get("visit_count")) if isinstance(item, dict) else 0,
+                    item.get("item_id", "") if isinstance(item, dict) else "",
+                ),
+                reverse=True,
+            )
+            total_second.sort(
+                key=lambda item: (
+                    to_int(item.get("visit_count")) if isinstance(item, dict) else 0,
+                    item.get("item_id", "") if isinstance(item, dict) else "",
+                ),
+                reverse=True,
+            )
+            remaining_last.sort(
+                key=lambda item: item.get("item_id", "") if isinstance(item, dict) else "",
+                reverse=True,
+            )
+
+            itens = recent_first + total_second + remaining_last
             
             fields_config = schemas.get_schema_fields("item")
     

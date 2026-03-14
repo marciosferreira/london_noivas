@@ -500,6 +500,32 @@
         window.catalogCardIndices = window.catalogCardIndices || {};
         const BOOKING_BASE_URL = "{{ url_for('public_booking_root') }}";
 
+        function getPersistentVisitorId() {
+            const storageKey = 'ln_visitor_id';
+            try {
+                let visitorId = localStorage.getItem(storageKey);
+                if (visitorId) return visitorId;
+                if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+                    visitorId = window.crypto.randomUUID();
+                } else {
+                    visitorId = `${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
+                }
+                localStorage.setItem(storageKey, visitorId);
+                return visitorId;
+            } catch (e) {
+                return '';
+            }
+        }
+
+        function registerItemVisit(itemId) {
+            const payload = { visitor_id: getPersistentVisitorId() };
+            return fetch(`/api/item/${itemId}/visit`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            }).catch(err => console.error('Error incrementing visit count:', err));
+        }
+
         function getCatalogCardImages(itemId) {
             const data = window.catalogData && window.catalogData[itemId];
             if (!data) return [];
@@ -864,9 +890,7 @@
             document.body.style.overflow = 'hidden';
 
             if (itemId && !isAiItem) {
-                // Increment visit count for all sources
-                fetch(`/api/item/${itemId}/visit`, { method: 'POST' })
-                    .catch(err => console.error('Error incrementing visit count:', err));
+                registerItemVisit(itemId);
             }
         }
 
