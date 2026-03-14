@@ -21,7 +21,7 @@
       <a href="#" class="btn btn-outline-secondary" id="filter-toggle" onclick="toggleFilters(event)">Filtros</a>
     {% endif %}
     {% if show_add_item %}
-      <a href="{{ add_route }}?next={{ request.url }}" class="btn btn-primary">
+      <a href="{{ url_for('add_item', next=request.url) }}" class="btn btn-primary">
         <i class="fas fa-plus me-1"></i> Adicionar item
       </a>
     {% endif %}
@@ -165,5 +165,4 @@
     }
   });
 </script>
-
 

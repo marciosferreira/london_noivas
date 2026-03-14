@@ -242,9 +242,14 @@ def init_item_routes(
         if not session.get("logged_in"):
             return redirect(url_for("login"))
 
-        next_page = request.args.get("next", url_for("index"))
-        origin = next_page.rstrip("/").split("/")[-1]
-        origin_status = "available" if origin == "inventory" else "archive"
+        next_page = (
+            request.args.get("next")
+            or request.form.get("next")
+            or url_for("inventory")
+        )
+        next_path = urlparse(next_page).path or ""
+        origin = next_path.rstrip("/").split("/")[-1] if next_path else "inventory"
+        origin_status = "archive" if origin == "archive" else "available"
         title = "Adicionar item em inventário" if origin_status == "available" else "Adicionar item em arquivo"
 
 
