@@ -25,7 +25,7 @@
       <div class="collapse navbar-collapse justify-content-end" id="publicNavbar">
         <ul class="navbar-nav align-items-lg-center gap-lg-2">
           <li class="nav-item">
-            <a class="nav-link fw-bold {% if request.endpoint == 'index' %}active{% endif %}" href="{{ url_for('index') }}">Início</a>
+            <a class="nav-link fw-bold {% if request.endpoint == 'index' %}active{% endif %}" href="{{ url_for('index') }}">Home</a>
           </li>
           <li class="nav-item">
             <a class="nav-link fw-bold {% if request.endpoint == 'catalogo' %}active{% endif %}" href="{{ url_for('catalogo', occasion='noiva') }}">Catálogo</a>

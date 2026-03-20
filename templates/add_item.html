@@ -126,9 +126,6 @@
                             <i class="fas fa-upload me-1"></i> Escolher Foto
                         </label>
                         <input type="file" class="d-none" id="image_file" name="image_file" multiple {% if field.required %}data-required="true"{% endif %} />
-                        <button type="button" onclick="removeImage()" id="remove-btn" class="btn btn-outline-danger btn-sm" style="{{ 'display: block;' if valor and valor != 'N/A' else 'display: none;' }}">
-                            <i class="fas fa-trash me-1"></i> Remover
-                        </button>
                     </div>
                 </div>
 
@@ -249,9 +246,12 @@
       const reader = new FileReader();
       reader.onload = function (ev) {
         const src = ev.target.result;
-        const wrapper = document.createElement('label');
+        const wrapper = document.createElement('div');
         wrapper.className = 'd-inline-flex align-items-center gap-2 border rounded px-2 py-1 bg-white';
-        wrapper.style.cursor = 'pointer';
+
+        const label = document.createElement('label');
+        label.className = 'd-inline-flex align-items-center gap-2 m-0';
+        label.style.cursor = 'pointer';
 
         const radio = document.createElement('input');
         radio.type = 'radio';
@@ -274,8 +274,17 @@
         img.style.objectFit = 'cover';
         img.className = 'rounded';
 
-        wrapper.appendChild(radio);
-        wrapper.appendChild(img);
+        label.appendChild(radio);
+        label.appendChild(img);
+        wrapper.appendChild(label);
+
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.className = 'btn btn-outline-danger btn-sm py-0 px-2';
+        removeBtn.setAttribute('data-remove-new-index', String(idx));
+        removeBtn.setAttribute('aria-label', 'Remover imagem');
+        removeBtn.innerHTML = '&times;';
+        wrapper.appendChild(removeBtn);
         thumbs.appendChild(wrapper);
 
         const selected = document.querySelector('#image-thumbs input[name="main_image_index"]:checked');
@@ -286,17 +295,6 @@
       };
       reader.readAsDataURL(file);
     });
-  }
-
-  function removeImage() {
-    document.getElementById('item-image').src = "{{ url_for('static', filename='item-placeholder.png') }}";
-    document.getElementById('image-url-input').value = 'DELETE_IMAGE';
-    selectedImageFiles.length = 0;
-    syncImageInputFiles();
-    const thumbs = document.getElementById('image-thumbs');
-    if (thumbs) thumbs.innerHTML = '';
-    document.getElementById('remove-btn').style.display = 'none';
-    document.getElementById('image_file').value = '';
   }
   
   document.getElementById('image_file')?.addEventListener('change', function (e) {
@@ -312,9 +310,27 @@
 
     selectedImageFiles.push(...incomingFiles);
     renderNewImageThumbs();
-    document.getElementById('remove-btn').style.display = 'block';
     e.target.value = '';
     syncImageInputFiles();
+  });
+
+  document.addEventListener('click', function (e) {
+    const removeBtn = e.target && e.target.closest ? e.target.closest('[data-remove-new-index]') : null;
+    if (!removeBtn) return;
+    const removeIdx = Number(removeBtn.getAttribute('data-remove-new-index'));
+    if (!Number.isInteger(removeIdx) || removeIdx < 0 || removeIdx >= selectedImageFiles.length) return;
+    selectedImageFiles.splice(removeIdx, 1);
+    syncImageInputFiles();
+    renderNewImageThumbs();
+    const selected = document.querySelector('#image-thumbs input[name="main_image_index"]:checked');
+    if (selected) {
+      const src = selected.getAttribute('data-image-src');
+      if (src) {
+        document.getElementById('item-image').src = src;
+        return;
+      }
+    }
+    document.getElementById('item-image').src = "{{ url_for('static', filename='item-placeholder.png') }}";
   });
 
   document.addEventListener('change', function (e) {
