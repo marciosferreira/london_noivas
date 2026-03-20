@@ -2,6 +2,7 @@ import datetime
 import uuid
 import os
 import hashlib
+import re
 from urllib.parse import urlparse, urlencode
 from boto3.dynamodb.conditions import Key, Attr
 
@@ -3166,7 +3167,127 @@ def list_raw_itens(
             cleaned.append(val)
         return sorted(cleaned, key=lambda x: x.casefold())
 
-    color_options = _load_color_options_for_account(account_id)
+    def _split_color_tokens(value):
+        if value is None:
+            return []
+        if isinstance(value, (list, tuple, set)):
+            out = []
+            for v in value:
+                out.extend(_split_color_tokens(v))
+            return out
+        text = str(value).strip()
+        if not text:
+            return []
+        parts = re.split(r"[/,;]|\s+e\s+", text, flags=re.IGNORECASE)
+        return [p.strip() for p in parts if str(p).strip()]
+
+    def _merge_unique(existing_map, values):
+        for v in values:
+            text = str(v or "").strip()
+            if not text:
+                continue
+            key = text.casefold()
+            if key not in existing_map:
+                existing_map[key] = text
+
+    def _load_dynamic_color_filter_options(account_id, allowed_statuses):
+        if not account_id:
+            return [], [], []
+
+        allowed = {str(s).strip().casefold() for s in (allowed_statuses or []) if str(s).strip()}
+        if not allowed:
+            return [], [], []
+
+        all_colors_map = {}
+        base_colors_map = {}
+        commercial_colors_map = {}
+
+        account_settings_resp = users_table.get_item(Key={"user_id": f"account_settings:{account_id}"})
+        account_settings_item = account_settings_resp.get("Item") or {}
+        account_color_options = account_settings_item.get("color_options")
+        if isinstance(account_color_options, list):
+            for option in account_color_options:
+                if option is None:
+                    continue
+                if isinstance(option, dict):
+                    base_value = (
+                        option.get("base")
+                        or option.get("cor_base")
+                        or option.get("base_color")
+                    )
+                    commercial_value = (
+                        option.get("name")
+                        or option.get("color")
+                        or option.get("comercial")
+                        or option.get("cor")
+                        or option.get("cor_comercial")
+                        or option.get("commercial")
+                    )
+                    _merge_unique(base_colors_map, _split_color_tokens(base_value))
+                    _merge_unique(commercial_colors_map, _split_color_tokens(commercial_value))
+                    _merge_unique(
+                        all_colors_map,
+                        _split_color_tokens(commercial_value) or _split_color_tokens(base_value),
+                    )
+                else:
+                    _merge_unique(commercial_colors_map, _split_color_tokens(option))
+                    _merge_unique(all_colors_map, _split_color_tokens(option))
+
+        exclusive_start_key = None
+
+        while True:
+            query_kwargs = {
+                "IndexName": "account_id-created_at-index",
+                "KeyConditionExpression": Key("account_id").eq(account_id),
+                "ProjectionExpression": "item_id, #st, cor, cores, color, item_cor, item_color, cor_base, color_base, cor_comercial, color_comercial",
+                "ExpressionAttributeNames": {"#st": "status"},
+                "ScanIndexForward": False,
+                "Limit": 200,
+            }
+            if exclusive_start_key:
+                query_kwargs["ExclusiveStartKey"] = exclusive_start_key
+
+            response = itens_table.query(**query_kwargs)
+            items_batch = response.get("Items", [])
+
+            for item in items_batch:
+                status = str(item.get("status") or "").strip().casefold()
+                if status not in allowed:
+                    continue
+
+                base_tokens = _split_color_tokens(item.get("cor_base") or item.get("color_base"))
+                commercial_tokens = _split_color_tokens(item.get("cor_comercial") or item.get("color_comercial"))
+                fallback_tokens = _split_color_tokens(
+                    item.get("cor")
+                    or item.get("cores")
+                    or item.get("color")
+                    or item.get("item_cor")
+                    or item.get("item_color")
+                )
+
+                effective_commercial = commercial_tokens or fallback_tokens
+                effective_all = effective_commercial or base_tokens
+
+                _merge_unique(base_colors_map, base_tokens)
+                _merge_unique(commercial_colors_map, effective_commercial)
+                _merge_unique(all_colors_map, effective_all)
+
+            exclusive_start_key = response.get("LastEvaluatedKey")
+            if not exclusive_start_key:
+                break
+
+        all_colors = sorted(all_colors_map.values(), key=lambda x: x.casefold())
+        base_colors = sorted(base_colors_map.values(), key=lambda x: x.casefold())
+        commercial_colors = sorted(commercial_colors_map.values(), key=lambda x: x.casefold())
+        return all_colors, base_colors, commercial_colors
+
+    color_options, base_color_options, commercial_color_options = _load_dynamic_color_filter_options(account_id, status_list)
+    if not color_options:
+        color_options = _load_color_options_for_account(account_id)
+    if not base_color_options:
+        base_color_options = list(color_options)
+    if not commercial_color_options:
+        commercial_color_options = list(color_options)
     size_options = _load_size_options_for_account(account_id)
 
     fields_config = get_all_fields(entity)
@@ -3242,6 +3363,8 @@ def list_raw_itens(
                     current_page=1,
                     fields_config=fields_config,
                     color_options=color_options,
+                    base_color_options=base_color_options,
+                    commercial_color_options=commercial_color_options,
                     size_options=size_options,
                 )
             else:
@@ -3476,6 +3599,8 @@ def list_raw_itens(
         has_next=has_next,
         has_prev=current_page > 1,
         color_options=color_options,
+        base_color_options=base_color_options,
+        commercial_color_options=commercial_color_options,
         size_options=size_options,
     )
 

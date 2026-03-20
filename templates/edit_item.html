@@ -244,16 +244,94 @@
 {% block scripts %}
 <script>
   // --- Funções de Imagem ---
+  const selectedNewImageFiles = [];
+  const initialExistingImageCount = document.querySelectorAll('#existing-image-thumbs input[name="main_image_index"]').length;
+
+  function syncNewImageInputFiles() {
+    const input = document.getElementById('image_file');
+    if (!input) return;
+    const dt = new DataTransfer();
+    selectedNewImageFiles.forEach(file => dt.items.add(file));
+    input.files = dt.files;
+  }
+
+  function updateRemoveButtonVisibility() {
+    const hasExisting = document.querySelectorAll('#existing-image-thumbs input[name="main_image_index"]').length > 0;
+    const hasNew = selectedNewImageFiles.length > 0;
+    document.getElementById('remove-btn').style.display = (hasExisting || hasNew) ? 'block' : 'none';
+  }
+
+  function renderNewImageThumbs() {
+    const thumbsNew = document.getElementById('new-image-thumbs');
+    if (!thumbsNew) return;
+
+    const previousSelectedValue = document.querySelector('#new-image-thumbs input[name="main_image_index"]:checked')?.value || null;
+    thumbsNew.innerHTML = '';
+
+    selectedNewImageFiles.forEach((file, idx) => {
+      const combinedIdx = initialExistingImageCount + idx;
+      const reader = new FileReader();
+      reader.onload = function (ev) {
+        const src = ev.target.result;
+        const wrapper = document.createElement('label');
+        wrapper.className = 'd-inline-flex align-items-center gap-2 border rounded px-2 py-1 bg-white';
+        wrapper.style.cursor = 'pointer';
+
+        const radio = document.createElement('input');
+        radio.type = 'radio';
+        radio.name = 'main_image_index';
+        radio.value = String(combinedIdx);
+        radio.className = 'form-check-input m-0';
+        radio.setAttribute('data-image-src', src);
+        if (previousSelectedValue && previousSelectedValue === String(combinedIdx)) {
+          radio.checked = true;
+        }
+        radio.addEventListener('change', () => {
+          document.getElementById('item-image').src = src;
+        });
+
+        const img = document.createElement('img');
+        img.src = src;
+        img.alt = 'Foto';
+        img.style.height = '44px';
+        img.style.width = '44px';
+        img.style.objectFit = 'cover';
+        img.className = 'rounded';
+
+        wrapper.appendChild(radio);
+        wrapper.appendChild(img);
+        thumbsNew.appendChild(wrapper);
+
+        const selected = document.querySelector('input[name="main_image_index"]:checked');
+        if (!selected) {
+          radio.checked = true;
+          document.getElementById('item-image').src = src;
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
   function removeImage() {
-    const selected = document.querySelector('#existing-image-thumbs input[name="main_image_index"]:checked');
+    const selected = document.querySelector('input[name="main_image_index"]:checked');
     if (selected) {
       const src = selected.getAttribute('data-image-src');
-      if (src) markImageForDeletion(src);
-      const wrapper = selected.closest('div');
-      if (wrapper) wrapper.remove();
+      const selectedIndex = Number(selected.value);
+      if (selected.closest('#new-image-thumbs')) {
+        const newIdx = selectedIndex - initialExistingImageCount;
+        if (newIdx >= 0 && newIdx < selectedNewImageFiles.length) {
+          selectedNewImageFiles.splice(newIdx, 1);
+          syncNewImageInputFiles();
+          renderNewImageThumbs();
+        }
+      } else {
+        if (src) markImageForDeletion(src);
+        const wrapper = selected.closest('div');
+        if (wrapper) wrapper.remove();
+      }
       selected.checked = false;
       updatePreviewAfterDeletion();
-      document.getElementById('remove-btn').style.display = document.querySelectorAll('#existing-image-thumbs [data-delete-url]').length ? 'block' : 'none';
+      updateRemoveButtonVisibility();
       return;
     }
   }
@@ -275,6 +353,12 @@
       if (src) document.getElementById('item-image').src = src;
       return;
     }
+    const newRemaining = document.querySelector('#new-image-thumbs input[name="main_image_index"]');
+    if (newRemaining) {
+      const src = newRemaining.getAttribute('data-image-src');
+      if (src) document.getElementById('item-image').src = src;
+      return;
+    }
     document.getElementById('item-image').src = "{{ url_for('static', filename='item-placeholder.png') }}";
   }
 
@@ -290,60 +374,25 @@
     }
     if (wrapper) wrapper.remove();
     updatePreviewAfterDeletion();
-    const hasAny = document.querySelectorAll('#existing-image-thumbs [data-delete-url]').length > 0;
-    document.getElementById('remove-btn').style.display = hasAny ? 'block' : 'none';
+    updateRemoveButtonVisibility();
   });
   
   document.getElementById('image_file')?.addEventListener('change', function (e) {
-    const files = Array.from(e.target.files || []);
-    const thumbsNew = document.getElementById('new-image-thumbs');
-    if (thumbsNew) thumbsNew.innerHTML = '';
-    if (!files.length) return;
-
-    document.getElementById('remove-btn').style.display = 'block';
+    const incomingFiles = Array.from(e.target.files || []);
+    if (!incomingFiles.length) return;
     const existingCount = document.querySelectorAll('#existing-image-thumbs input[name="main_image_index"]').length;
-    const selected = document.querySelector('input[name="main_image_index"]:checked');
-    if ((existingCount + files.length) > 4) {
-      const restante = Math.max(0, 4 - existingCount);
+    if ((existingCount + selectedNewImageFiles.length + incomingFiles.length) > 4) {
+      const restante = Math.max(0, 4 - existingCount - selectedNewImageFiles.length);
       alert(`Limite de fotos por item: no máximo 4. Você pode adicionar no máximo ${restante} agora.`);
       e.target.value = '';
-      if (thumbsNew) thumbsNew.innerHTML = '';
       return;
     }
 
-    files.forEach((file, idx) => {
-      const combinedIdx = existingCount + idx;
-      const reader = new FileReader();
-      reader.onload = function (ev) {
-        const src = ev.target.result;
-        const wrapper = document.createElement('label');
-        wrapper.className = 'd-inline-flex align-items-center gap-2 border rounded px-2 py-1 bg-white';
-        wrapper.style.cursor = 'pointer';
-
-        const radio = document.createElement('input');
-        radio.type = 'radio';
-        radio.name = 'main_image_index';
-        radio.value = String(combinedIdx);
-        radio.className = 'form-check-input m-0';
-        radio.setAttribute('data-image-src', src);
-        radio.addEventListener('change', () => {
-          document.getElementById('item-image').src = src;
-        });
-
-        const img = document.createElement('img');
-        img.src = src;
-        img.alt = 'Foto';
-        img.style.height = '44px';
-        img.style.width = '44px';
-        img.style.objectFit = 'cover';
-        img.className = 'rounded';
-
-        wrapper.appendChild(radio);
-        wrapper.appendChild(img);
-        if (thumbsNew) thumbsNew.appendChild(wrapper);
-      };
-      reader.readAsDataURL(file);
-    });
+    selectedNewImageFiles.push(...incomingFiles);
+    renderNewImageThumbs();
+    updateRemoveButtonVisibility();
+    e.target.value = '';
+    syncNewImageInputFiles();
   });
 
   document.addEventListener('change', function (e) {
@@ -351,6 +400,10 @@
     if (!target || target.name !== 'main_image_index') return;
     const src = target.getAttribute('data-image-src');
     if (src) document.getElementById('item-image').src = src;
+  });
+
+  document.querySelector('form')?.addEventListener('submit', function () {
+    syncNewImageInputFiles();
   });
 
   // --- Funções Monetárias ---

@@ -228,30 +228,24 @@
 {% block scripts %}
 <script>
   // --- Funções de Imagem ---
-  function removeImage() {
-    document.getElementById('item-image').src = "{{ url_for('static', filename='item-placeholder.png') }}";
-    document.getElementById('image-url-input').value = 'DELETE_IMAGE';
-    const thumbs = document.getElementById('image-thumbs');
-    if (thumbs) thumbs.innerHTML = '';
-    document.getElementById('remove-btn').style.display = 'none';
-    document.getElementById('image_file').value = '';
+  const selectedImageFiles = [];
+
+  function syncImageInputFiles() {
+    const input = document.getElementById('image_file');
+    if (!input) return;
+    const dt = new DataTransfer();
+    selectedImageFiles.forEach(file => dt.items.add(file));
+    input.files = dt.files;
   }
-  
-  document.getElementById('image_file')?.addEventListener('change', function (e) {
-    const files = Array.from(e.target.files || []);
+
+  function renderNewImageThumbs() {
     const thumbs = document.getElementById('image-thumbs');
-    if (thumbs) thumbs.innerHTML = '';
-    if (!files.length) return;
-    if (files.length > 4) {
-      alert('Limite de fotos por item: no máximo 4.');
-      e.target.value = '';
-      document.getElementById('remove-btn').style.display = 'none';
-      return;
-    }
+    if (!thumbs) return;
+    const previouslySelectedValue = document.querySelector('#image-thumbs input[name="main_image_index"]:checked')?.value || null;
+    thumbs.innerHTML = '';
+    if (!selectedImageFiles.length) return;
 
-    document.getElementById('remove-btn').style.display = 'block';
-
-    files.forEach((file, idx) => {
+    selectedImageFiles.forEach((file, idx) => {
       const reader = new FileReader();
       reader.onload = function (ev) {
         const src = ev.target.result;
@@ -264,7 +258,10 @@
         radio.name = 'main_image_index';
         radio.value = String(idx);
         radio.className = 'form-check-input m-0';
-        if (idx === 0) radio.checked = true;
+        radio.setAttribute('data-image-src', src);
+        if (previouslySelectedValue && previouslySelectedValue === String(idx)) {
+          radio.checked = true;
+        }
         radio.addEventListener('change', () => {
           document.getElementById('item-image').src = src;
         });
@@ -279,14 +276,56 @@
 
         wrapper.appendChild(radio);
         wrapper.appendChild(img);
-        if (thumbs) thumbs.appendChild(wrapper);
+        thumbs.appendChild(wrapper);
 
-        if (idx === 0) {
+        const selected = document.querySelector('#image-thumbs input[name="main_image_index"]:checked');
+        if (!selected) {
+          radio.checked = true;
           document.getElementById('item-image').src = src;
         }
       };
       reader.readAsDataURL(file);
     });
+  }
+
+  function removeImage() {
+    document.getElementById('item-image').src = "{{ url_for('static', filename='item-placeholder.png') }}";
+    document.getElementById('image-url-input').value = 'DELETE_IMAGE';
+    selectedImageFiles.length = 0;
+    syncImageInputFiles();
+    const thumbs = document.getElementById('image-thumbs');
+    if (thumbs) thumbs.innerHTML = '';
+    document.getElementById('remove-btn').style.display = 'none';
+    document.getElementById('image_file').value = '';
+  }
+  
+  document.getElementById('image_file')?.addEventListener('change', function (e) {
+    const incomingFiles = Array.from(e.target.files || []);
+    if (!incomingFiles.length) return;
+
+    if ((selectedImageFiles.length + incomingFiles.length) > 4) {
+      const restante = Math.max(0, 4 - selectedImageFiles.length);
+      alert(`Limite de fotos por item: no máximo 4. Você pode adicionar no máximo ${restante} agora.`);
+      e.target.value = '';
+      return;
+    }
+
+    selectedImageFiles.push(...incomingFiles);
+    renderNewImageThumbs();
+    document.getElementById('remove-btn').style.display = 'block';
+    e.target.value = '';
+    syncImageInputFiles();
+  });
+
+  document.addEventListener('change', function (e) {
+    const target = e.target;
+    if (!target || target.name !== 'main_image_index') return;
+    const src = target.getAttribute('data-image-src');
+    if (src) document.getElementById('item-image').src = src;
+  });
+
+  document.querySelector('form')?.addEventListener('submit', function () {
+    syncImageInputFiles();
   });
 
   // --- Funções Monetárias ---

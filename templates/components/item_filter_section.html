@@ -36,7 +36,7 @@
 <div id="filter-section" class="d-none">
 <form action="{{ request.path }}" method="get" id="form-filtros" onsubmit="return removeCamposVazios(event)" class="mb-4 p-3 bg-light rounded shadow-sm border">
     <div class="row g-2 align-items-end">
-      {% for field in fields_config if field.filterable %}
+      {% for field in fields_config if field.filterable and field.id != "cor" %}
       <div class="col-12 col-md-4">
         {% if field.type != "item_image_url" %}
           <label class="form-label">{{ field.label }}</label>
@@ -53,10 +53,18 @@
           </div>
           {% endfor %}
 
-        {% elif field.id == "cor" %}
+        {% elif field.id == "cor_base" %}
           <select name="{{ field.id }}" class="form-select">
             <option value="">Todas</option>
-            {% for opt in (color_options or []) %}
+            {% for opt in (base_color_options or []) %}
+              <option value="{{ opt }}" {% if request.args.get(field.id) == opt %}selected{% endif %}>{{ opt }}</option>
+            {% endfor %}
+          </select>
+
+        {% elif field.id == "cor_comercial" %}
+          <select name="{{ field.id }}" class="form-select">
+            <option value="">Todas</option>
+            {% for opt in (commercial_color_options or color_options or []) %}
               <option value="{{ opt }}" {% if request.args.get(field.id) == opt %}selected{% endif %}>{{ opt }}</option>
             {% endfor %}
           </select>
@@ -165,4 +173,3 @@
     }
   });
 </script>
-

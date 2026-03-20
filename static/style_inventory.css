@@ -61,3 +61,17 @@
   z-index: 1;
   position: absolute;
 }
+
+.inventory-item-meta {
+  gap: 0.35rem !important;
+}
+
+.inventory-item-meta .small {
+  font-size: 0.75rem !important;
+  line-height: 1.2;
+  padding-bottom: 0.2rem !important;
+}
+
+.inventory-item-meta .small > span:last-child {
+  margin-top: 0.1rem !important;
+}

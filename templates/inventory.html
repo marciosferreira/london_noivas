@@ -126,7 +126,7 @@
           </div>
 
           <!-- Resumo do Item -->
-          <div class="d-flex flex-column gap-2 mb-2">
+          <div class="d-flex flex-column gap-2 mb-2 inventory-item-meta">
             <div class="d-flex flex-column small border-bottom pb-1">
               <span class="text-muted">Código do Item</span>
               <span class="mt-1">{{ item.item_custom_id if item.item_custom_id is defined and item.item_custom_id else '-' }}</span>
@@ -158,7 +158,7 @@
             </div>
           </div>
 
-          <div class="d-flex flex-column gap-2">
+          <div class="d-flex flex-column gap-2 inventory-item-meta">
             {% for field in fields_config 
                  if field.preview and field.visible and field.type != 'item_image_url' 
                  and field.id not in ['item_id','item_custom_id','item_description','description','nome','descricao','item_title','title','titulo'] %}

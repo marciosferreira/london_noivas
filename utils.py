@@ -627,7 +627,33 @@ def entidade_atende_filtros_dinamico(item, filtros, fields_config, image_url_req
                           "item_custom_id", "item_description", "item_obs"]:
             filtro = filtros.get(field_id)
 
-            if field_id == "tamanho":
+            if field_id in ["cor", "cor_base", "cor_comercial"]:
+                if filtro:
+                    selected_norm = {_norm_token(v) for v in _split_multi_tokens(filtro) if _norm_token(v)}
+                    if field_id == "cor_base":
+                        color_source = item.get("cor_base") or item.get("color_base")
+                    elif field_id == "cor_comercial":
+                        color_source = (
+                            item.get("cor_comercial")
+                            or item.get("color_comercial")
+                            or item.get("cor")
+                            or item.get("cores")
+                            or item.get("color")
+                        )
+                    else:
+                        color_source = (
+                            item.get("cor_comercial")
+                            or item.get("color_comercial")
+                            or item.get("cor")
+                            or item.get("cores")
+                            or item.get("color")
+                            or item.get("cor_base")
+                            or item.get("color_base")
+                        )
+                    item_norm = {_norm_token(v) for v in _split_multi_tokens(color_source) if _norm_token(v)}
+                    if selected_norm and not (item_norm & selected_norm):
+                        return False
+            elif field_id == "tamanho":
                 if filtro:
                     selected = filtro if isinstance(filtro, (list, tuple, set)) else [filtro]
                     selected_norm = {_norm_token(v) for v in selected if _norm_token(v)}
