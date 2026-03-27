@@ -651,7 +651,7 @@ def init_static_routes(
         from boto3.dynamodb.conditions import Attr
         
         now = time.time()
-        if now - _recent_visits_cache["last_updated"] < 300: # 5 minutes cache
+        if now - _recent_visits_cache["last_updated"] < 1800: # 30 minutes cache
             return _recent_visits_cache["data"]
             
         try:
@@ -666,20 +666,24 @@ def init_static_routes(
             
             cutoff_date = (datetime.datetime.now() - datetime.timedelta(days=30)).isoformat()
             
-            # Scan with filter
+            # Scan with filter — capped at 50 000 items to avoid full-table reads
             response = visits_table.scan(
                 FilterExpression=Attr("timestamp").gte(cutoff_date),
-                ProjectionExpression="item_id"
+                ProjectionExpression="item_id",
+                Limit=50000
             )
             items = response.get("Items", [])
-            
-            while "LastEvaluatedKey" in response:
+
+            pages = 1
+            while "LastEvaluatedKey" in response and pages < 5:
                 response = visits_table.scan(
                     FilterExpression=Attr("timestamp").gte(cutoff_date),
                     ProjectionExpression="item_id",
+                    Limit=50000,
                     ExclusiveStartKey=response["LastEvaluatedKey"]
                 )
                 items.extend(response.get("Items", []))
+                pages += 1
                 
             # Count
             counts = {}

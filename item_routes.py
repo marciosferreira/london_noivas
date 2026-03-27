@@ -61,6 +61,8 @@ def init_item_routes(
     payment_transactions_table,
 ):
 
+    _top_visits_cache = {"data": None, "last_updated": 0}
+
     @app.route("/rented")
     def rented():
         return list_transactions(
@@ -2540,6 +2542,7 @@ def init_item_routes(
                 all_account_items.extend(response.get("Items", []))
 
             import boto3
+            import time as _time
             recent_visits_map = {}
             item_ids = {
                 str(item.get("item_id"))
@@ -2547,31 +2550,42 @@ def init_item_routes(
                 if isinstance(item, dict) and item.get("item_id")
             }
             if item_ids:
-                dynamodb_resource = boto3.resource(
-                    "dynamodb",
-                    region_name=os.getenv("AWS_REGION", "us-east-1"),
-                    aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
-                    aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
-                )
-                visits_table = dynamodb_resource.Table("alugueqqc_item_visits")
-                cutoff_date = (datetime.datetime.now() - datetime.timedelta(days=30)).isoformat()
-                visits_response = visits_table.scan(
-                    FilterExpression=Attr("timestamp").gte(cutoff_date),
-                    ProjectionExpression="item_id",
-                )
-                visit_rows = visits_response.get("Items", [])
-                while "LastEvaluatedKey" in visits_response:
+                _now = _time.time()
+                if _top_visits_cache["data"] is not None and _now - _top_visits_cache["last_updated"] < 1800:
+                    recent_visits_map = _top_visits_cache["data"]
+                else:
+                    dynamodb_resource = boto3.resource(
+                        "dynamodb",
+                        region_name=os.getenv("AWS_REGION", "us-east-1"),
+                        aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
+                        aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
+                    )
+                    visits_table = dynamodb_resource.Table("alugueqqc_item_visits")
+                    cutoff_date = (datetime.datetime.now() - datetime.timedelta(days=30)).isoformat()
                     visits_response = visits_table.scan(
                         FilterExpression=Attr("timestamp").gte(cutoff_date),
                         ProjectionExpression="item_id",
-                        ExclusiveStartKey=visits_response["LastEvaluatedKey"],
+                        Limit=50000,
                     )
-                    visit_rows.extend(visits_response.get("Items", []))
+                    visit_rows = visits_response.get("Items", [])
+                    pages = 1
+                    while "LastEvaluatedKey" in visits_response and pages < 5:
+                        visits_response = visits_table.scan(
+                            FilterExpression=Attr("timestamp").gte(cutoff_date),
+                            ProjectionExpression="item_id",
+                            Limit=50000,
+                            ExclusiveStartKey=visits_response["LastEvaluatedKey"],
+                        )
+                        visit_rows.extend(visits_response.get("Items", []))
+                        pages += 1
 
-                for visit in visit_rows:
-                    visited_item_id = str(visit.get("item_id") or "")
-                    if visited_item_id and visited_item_id in item_ids:
-                        recent_visits_map[visited_item_id] = recent_visits_map.get(visited_item_id, 0) + 1
+                    for visit in visit_rows:
+                        visited_item_id = str(visit.get("item_id") or "")
+                        if visited_item_id and visited_item_id in item_ids:
+                            recent_visits_map[visited_item_id] = recent_visits_map.get(visited_item_id, 0) + 1
+
+                    _top_visits_cache["data"] = recent_visits_map
+                    _top_visits_cache["last_updated"] = _now
 
             for item in all_account_items:
                 item_id = str(item.get("item_id") or "")

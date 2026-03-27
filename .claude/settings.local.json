@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -l \"init_.*_routes\" *.py)",
+      "Bash(source \"c:/Users/mnsmferr/london_noivas/LondoN/Scripts/activate\")",
+      "Bash(pip --version)"
+    ]
+  }
+}
