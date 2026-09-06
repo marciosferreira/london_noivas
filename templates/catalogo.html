@@ -455,12 +455,12 @@
                     <div class="flex-1">
                         <span class="text-london-gold font-bold tracking-widest text-xs uppercase mb-2 block">London Noivas Collection</span>
                         <h3 id="modal-title" class="text-3xl md:text-4xl font-serif text-stone-900 mb-2 leading-tight"></h3>
-                        <p id="modal-occasions" class="text-stone-500 font-serif mb-2">Ocasiões: <span id="modal-occasions-value"></span></p>
-                        <p id="modal-color" class="text-stone-500 font-serif mb-2 hidden"><span id="modal-color-value"></span></p>
-                        <p id="modal-size" class="text-stone-500 font-serif mb-2 hidden">Tamanho: <span id="modal-size-value"></span></p>
-                        <p id="modal-price" class="text-stone-500 font-serif mb-2 hidden">Valor do aluguel: <span id="modal-price-value"></span></p>
+                        {% if catalog_field_visibility.occasions %}<p id="modal-occasions" class="text-stone-500 font-serif mb-2">Ocasiões: <span id="modal-occasions-value"></span></p>{% endif %}
+                        {% if catalog_field_visibility.color %}<p id="modal-color" class="text-stone-500 font-serif mb-2 hidden"><span id="modal-color-value"></span></p>{% endif %}
+                        {% if catalog_field_visibility.size %}<p id="modal-size" class="text-stone-500 font-serif mb-2 hidden">Tamanho: <span id="modal-size-value"></span></p>{% endif %}
+                        {% if catalog_field_visibility.price %}<p id="modal-price" class="text-stone-500 font-serif mb-2 hidden">Valor do aluguel: <span id="modal-price-value"></span></p>{% endif %}
                         <p id="modal-obs" class="text-stone-500 font-serif mb-2 hidden">Observações: <span id="modal-obs-value"></span></p>
-                        <p class="text-xs text-stone-400 mb-6 font-mono">ID: <span id="modal-id-value"></span></p>
+                        {% if catalog_field_visibility.id %}<p class="text-xs text-stone-400 mb-6 font-mono">ID: <span id="modal-id-value"></span></p>{% endif %}
                         
                         <div class="w-12 h-1 bg-stone-200 mb-8"></div>
                         
@@ -811,8 +811,10 @@
                 if (priceText) priceRow.classList.remove('hidden');
                 else priceRow.classList.add('hidden');
             }
-            document.getElementById('modal-id-value').textContent = idToShow;
-            document.getElementById('modal-occasions-value').textContent = occasions || 'Várias';
+            const idValueEl = document.getElementById('modal-id-value');
+            if (idValueEl) idValueEl.textContent = idToShow;
+            const occasionsValueEl = document.getElementById('modal-occasions-value');
+            if (occasionsValueEl) occasionsValueEl.textContent = occasions || 'Várias';
 
             const colorRow = document.getElementById('modal-color');
             const colorValue = document.getElementById('modal-color-value');

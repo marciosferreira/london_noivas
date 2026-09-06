@@ -51,6 +51,23 @@ def init_static_routes(
     if not public_account_ids:
         public_account_ids = [LONDON_NOIVAS_ACCOUNT_ID, "london_noivas"]
 
+    CATALOG_FIELD_KEYS = ["occasions", "color", "size", "price", "id"]
+
+    def _load_catalog_field_visibility():
+        defaults = {key: True for key in CATALOG_FIELD_KEYS}
+        try:
+            resp = users_table.get_item(
+                Key={"user_id": f"account_settings:{public_account_ids[0]}"}
+            )
+            item = resp.get("Item") or {}
+            stored = item.get("catalog_field_visibility")
+            if not isinstance(stored, dict):
+                return defaults
+            return {key: bool(stored.get(key, True)) for key in CATALOG_FIELD_KEYS}
+        except Exception as e:
+            print(f"Error loading catalog field visibility: {e}")
+            return defaults
+
     ai_meta_cache = {"mtime": None, "by_id": None}
 
     def _normalize_text(text):
@@ -632,12 +649,13 @@ def init_static_routes(
             ]
             
             fields_config = schemas.get_schema_fields("item")
-            
-            return render_template("index.html", fields_config=fields_config, occasion_tabs=occasion_tabs)
-            
+            catalog_field_visibility = _load_catalog_field_visibility()
+
+            return render_template("index.html", fields_config=fields_config, occasion_tabs=occasion_tabs, catalog_field_visibility=catalog_field_visibility)
+
         except Exception as e:
             print(f"Error loading vitrine: {e}")
-            return render_template("index.html", itens=[], fields_config=[], occasion_tabs=[])
+            return render_template("index.html", itens=[], fields_config=[], occasion_tabs=[], catalog_field_visibility=_load_catalog_field_visibility())
 
     # Global cache for recent visits
     _recent_visits_cache = {
@@ -975,8 +993,9 @@ def init_static_routes(
                 active_cor_comercial=active_cor_comercial,
                 catalog_sizes=catalog_sizes,
                 active_tamanho=active_tamanho,
+                catalog_field_visibility=_load_catalog_field_visibility(),
             )
-            
+
         except Exception as e:
             print(f"Error loading catalogo: {e}")
             return render_template(
@@ -991,6 +1010,7 @@ def init_static_routes(
                 active_cor_comercial="",
                 catalog_sizes=[],
                 active_tamanho="",
+                catalog_field_visibility=_load_catalog_field_visibility(),
             )
     
     @app.route("/home")

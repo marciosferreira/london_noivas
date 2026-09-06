@@ -1,4 +1,5 @@
 venv/
+.venv/
 test_flask_app.py
 .env
 

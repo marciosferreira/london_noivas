@@ -184,6 +184,32 @@ def init_auth_routes(
             ExpressionAttributeValues={":s": cleaned},
         )
 
+    CATALOG_FIELD_KEYS = ["occasions", "color", "size", "price", "id"]
+
+    def _default_catalog_field_visibility():
+        return {key: True for key in CATALOG_FIELD_KEYS}
+
+    def _load_catalog_field_visibility(account_id):
+        defaults = _default_catalog_field_visibility()
+        if not account_id:
+            return defaults
+        resp = users_table.get_item(Key={"user_id": _color_settings_key(account_id)})
+        item = resp.get("Item") or {}
+        stored = item.get("catalog_field_visibility")
+        if not isinstance(stored, dict):
+            return defaults
+        return {key: bool(stored.get(key, True)) for key in CATALOG_FIELD_KEYS}
+
+    def _save_catalog_field_visibility(account_id, visibility):
+        if not account_id:
+            raise ValueError("account_id não encontrado na sessão.")
+        cleaned = {key: bool(visibility.get(key, True)) for key in CATALOG_FIELD_KEYS}
+        users_table.update_item(
+            Key={"user_id": _color_settings_key(account_id)},
+            UpdateExpression="SET catalog_field_visibility = :v",
+            ExpressionAttributeValues={":v": cleaned},
+        )
+
     # Registration route
     @app.route("/register", methods=["GET", "POST"])
     def register():
@@ -955,6 +981,15 @@ def init_auth_routes(
         transactions = []
         current_transaction = {}
 
+        can_manage_catalog_fields = session.get("role") in ["admin", "general_admin"]
+        catalog_field_visibility = _default_catalog_field_visibility()
+        if can_manage_catalog_fields:
+            try:
+                catalog_field_visibility = _load_catalog_field_visibility(session.get("account_id"))
+            except Exception as e:
+                print(f"Erro ao carregar campos do catálogo: {e}")
+                flash(f"Erro ao carregar campos do catálogo: {e}", "danger")
+
         return render_template(
             "adjustments.html",
             username=username,
@@ -967,6 +1002,8 @@ def init_auth_routes(
             base_color_options=BASE_COLORS,
             can_manage_sizes=can_manage_sizes,
             size_options=size_options,
+            can_manage_catalog_fields=can_manage_catalog_fields,
+            catalog_field_visibility=catalog_field_visibility,
             timezones=[
                 "America/Sao_Paulo",
                 "America/Fortaleza",
@@ -1220,6 +1257,25 @@ def init_auth_routes(
             print(f"Erro ao editar tamanho: {e}")
             flash(f"Erro ao editar tamanho: {e}", "danger")
         return redirect(url_for("adjustments"))
+
+    @app.route("/catalog-fields/update", methods=["POST"])
+    def update_catalog_field_visibility():
+        if not session.get("logged_in"):
+            return redirect(url_for("login"))
+
+        if session.get("role") not in ["admin", "general_admin"]:
+            flash("Você não tem permissão para acessar esta funcionalidade.", "danger")
+            return redirect(url_for("adjustments"))
+
+        visibility = {key: request.form.get(f"show_{key}") == "on" for key in CATALOG_FIELD_KEYS}
+
+        try:
+            _save_catalog_field_visibility(session.get("account_id"), visibility)
+            flash("Campos do catálogo atualizados com sucesso.", "success")
+        except Exception as e:
+            print(f"Erro ao salvar campos do catálogo: {e}")
+            flash(f"Erro ao salvar campos do catálogo: {e}", "danger")
+        return redirect(url_for("adjustments") + "#catalog-fields")
 
     @app.route("/admin-dashboard")
     def admin_dashboard():

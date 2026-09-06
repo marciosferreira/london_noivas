@@ -638,12 +638,12 @@
                             <div class="flex-1">
                                 <span class="text-london-gold font-sans font-medium tracking-[0.2em] text-[10px] uppercase mb-2 block">London Noivas Collection</span>
                                 <h3 id="catalog-modal-title" class="text-3xl md:text-4xl font-serif font-light text-charcoal-900 mb-2 leading-tight"></h3>
-                                <p id="catalog-modal-occasions" class="text-charcoal-500 font-serif mb-2">Ocasiões: <span id="catalog-modal-occasions-value"></span></p>
-                                <p id="catalog-modal-color" class="text-charcoal-500 font-serif mb-2 hidden"><span id="catalog-modal-color-value"></span></p>
-                                <p id="catalog-modal-size" class="text-charcoal-500 font-serif mb-2 hidden">Tamanho: <span id="catalog-modal-size-value"></span></p>
-                                <p id="catalog-modal-price" class="text-charcoal-500 font-serif mb-2 hidden">Valor do aluguel: <span id="catalog-modal-price-value"></span></p>
+                                {% if catalog_field_visibility.occasions %}<p id="catalog-modal-occasions" class="text-charcoal-500 font-serif mb-2">Ocasiões: <span id="catalog-modal-occasions-value"></span></p>{% endif %}
+                                {% if catalog_field_visibility.color %}<p id="catalog-modal-color" class="text-charcoal-500 font-serif mb-2 hidden"><span id="catalog-modal-color-value"></span></p>{% endif %}
+                                {% if catalog_field_visibility.size %}<p id="catalog-modal-size" class="text-charcoal-500 font-serif mb-2 hidden">Tamanho: <span id="catalog-modal-size-value"></span></p>{% endif %}
+                                {% if catalog_field_visibility.price %}<p id="catalog-modal-price" class="text-charcoal-500 font-serif mb-2 hidden">Valor do aluguel: <span id="catalog-modal-price-value"></span></p>{% endif %}
                                 <p id="catalog-modal-obs" class="text-charcoal-500 font-serif mb-2 hidden">Observações: <span id="catalog-modal-obs-value"></span></p>
-                                <p class="text-[10px] text-charcoal-400 mb-6 font-sans tracking-wider">ID: <span id="catalog-modal-id-value"></span></p>
+                                {% if catalog_field_visibility.id %}<p class="text-[10px] text-charcoal-400 mb-6 font-sans tracking-wider">ID: <span id="catalog-modal-id-value"></span></p>{% endif %}
                                 
                                 <div class="w-10 h-px bg-ivory-300 mb-8"></div>
                                 
@@ -769,8 +769,10 @@
             const priceText = formatarPrecoParaModal(price);
             if (priceValue) priceValue.textContent = (priceText || '').toString().trim();
             if (priceRow) { priceText ? priceRow.classList.remove('hidden') : priceRow.classList.add('hidden'); }
-            document.getElementById('catalog-modal-id-value').textContent = idToShow;
-            document.getElementById('catalog-modal-occasions-value').textContent = occasions || 'Várias';
+            const idValueEl = document.getElementById('catalog-modal-id-value');
+            if (idValueEl) idValueEl.textContent = idToShow;
+            const occasionsValueEl = document.getElementById('catalog-modal-occasions-value');
+            if (occasionsValueEl) occasionsValueEl.textContent = occasions || 'Várias';
 
             const colorRow = document.getElementById('catalog-modal-color');
             const colorValue = document.getElementById('catalog-modal-color-value');

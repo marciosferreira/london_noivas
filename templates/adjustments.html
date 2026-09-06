@@ -141,6 +141,42 @@
       </div>
       {% endif %}
 
+      {% if can_manage_catalog_fields %}
+      <div class="col-12 col-lg-6">
+        <div class="card shadow-sm h-100" id="catalog-fields">
+          <div class="card-header bg-white">
+            <strong>Campos exibidos no catálogo</strong>
+          </div>
+          <div class="card-body">
+            <p class="text-muted small">Escolha quais campos aparecem nos detalhes do vestido (modal) do catálogo público.</p>
+            <form method="POST" action="{{ url_for('update_catalog_field_visibility') }}">
+              <div class="form-check mb-2">
+                <input type="checkbox" class="form-check-input" id="show_occasions" name="show_occasions" {% if catalog_field_visibility.occasions %}checked{% endif %}>
+                <label class="form-check-label" for="show_occasions">Ocasiões</label>
+              </div>
+              <div class="form-check mb-2">
+                <input type="checkbox" class="form-check-input" id="show_color" name="show_color" {% if catalog_field_visibility.color %}checked{% endif %}>
+                <label class="form-check-label" for="show_color">Cor (base / comercial)</label>
+              </div>
+              <div class="form-check mb-2">
+                <input type="checkbox" class="form-check-input" id="show_size" name="show_size" {% if catalog_field_visibility.size %}checked{% endif %}>
+                <label class="form-check-label" for="show_size">Tamanho</label>
+              </div>
+              <div class="form-check mb-2">
+                <input type="checkbox" class="form-check-input" id="show_price" name="show_price" {% if catalog_field_visibility.price %}checked{% endif %}>
+                <label class="form-check-label" for="show_price">Valor do aluguel</label>
+              </div>
+              <div class="form-check mb-3">
+                <input type="checkbox" class="form-check-input" id="show_id" name="show_id" {% if catalog_field_visibility.id %}checked{% endif %}>
+                <label class="form-check-label" for="show_id">ID</label>
+              </div>
+              <button type="submit" class="btn btn-primary w-100">Salvar</button>
+            </form>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
       <div class="col-12 col-lg-6">
         <div class="card shadow-sm h-100">
           <div class="card-header bg-white">
