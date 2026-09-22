@@ -721,17 +721,20 @@ def init_static_routes(
     @app.route("/catalogo")
     def catalogo():
         try:
-            requested_occasion = (request.args.get("occasion") or request.args.get("ocasion") or "").strip().lower()
-            if not requested_occasion:
+            occasion_param_present = ("occasion" in request.args) or ("ocasion" in request.args)
+            if not occasion_param_present:
                 redirect_args = request.args.to_dict(flat=True)
                 redirect_args.pop("ocasion", None)
                 redirect_args["occasion"] = "noiva"
                 return redirect(url_for("catalogo", **redirect_args))
 
+            raw_occasion = (request.args.get("occasion") or request.args.get("ocasion") or "").strip().lower()
             page = max(request.args.get('page', 1, type=int), 1)
-            active_occasion = requested_occasion
-            active_cor_comercial = request.args.get("cor_comercial", "", type=str).strip()
-            active_tamanho = request.args.get("tamanho", "", type=str).strip()
+            active_occasions = [s.strip() for s in raw_occasion.split(",") if s.strip()]
+            raw_cor_comercial = request.args.get("cor_comercial", "", type=str).strip()
+            active_cores = [s.strip() for s in raw_cor_comercial.split(",") if s.strip()]
+            raw_tamanho = request.args.get("tamanho", "", type=str).strip()
+            active_tamanhos = [s.strip() for s in raw_tamanho.split(",") if s.strip()]
             requested_item_id = request.args.get("item", "", type=str)
             per_page = 48
             
@@ -758,15 +761,16 @@ def init_static_routes(
                 {"slug": "gala", "label": "Gala"},
                 {"slug": "convidada", "label": "Convidada"},
             ]
-            if not active_occasion:
-                active_occasion = occasion_tabs[0]["slug"] if occasion_tabs else ""
-    
             valid_slugs = {t["slug"] for t in occasion_tabs}
-            if active_occasion not in valid_slugs:
-                active_occasion = occasion_tabs[0]["slug"] if occasion_tabs else ""
-    
-            active_occasion_label = next((t["label"] for t in occasion_tabs if t["slug"] == active_occasion), "Catálogo")
-    
+            active_occasions = [s for s in active_occasions if s in valid_slugs]
+
+            active_occasion = active_occasions[0] if active_occasions else ""
+
+            if len(active_occasions) == 1:
+                active_occasion_label = next((t["label"] for t in occasion_tabs if t["slug"] == active_occasions[0]), "Catálogo")
+            else:
+                active_occasion_label = "Catálogo Completo"
+
             occasion_descriptions = {
                 "noiva": "Este é o seu dia — e o seu vestido deve refletir isso. A noiva é o centro de todas as atenções, e não há motivo para ter medo de brilhar. Escolha um vestido que faça você se sentir a mulher mais bonita da sala, porque neste dia, você será. Aposte em detalhes que traduzam a sua personalidade: se você é clássica, renda e corte princesa; se é moderna, linhas limpas e tecidos fluidos. O segredo é simples — quando você se olhar no espelho e sentir um frio na barriga, é esse o vestido certo.",
                 "civil": "O casamento civil pede elegância com leveza. Aqui, a ideia não é um vestido de baile, mas uma peça sofisticada que diga \"estou celebrando algo especial\". Midi, curto ou longo — todos funcionam. O importante é que o vestido transmita a alegria do momento sem exagero. Pense nele como aquele look que você usaria para a noite mais importante da sua vida, mas com a naturalidade de quem sabe exatamente o que está fazendo. Tecidos como crepe, cetim e musseline são escolhas certeiras.",
@@ -778,17 +782,20 @@ def init_static_routes(
                 "convidada": "A regra de ouro da convidada: esteja linda, mas nunca mais que a noiva. Parece simples, mas é aqui que muita gente erra. O truque é encontrar o equilíbrio entre glamour e bom senso — um vestido que mostre que você se arrumou para a ocasião, sem roubar a cena de quem deve brilhar mais. Evite branco e tons muito claros (território da noiva), fuja do exagero nos brilhos e aposte em cores que valorizem você sem gritar. O vestido perfeito de convidada é aquele que rende elogios a noite toda — mas nunca ofusca a protagonista do dia."
             }
     
-            active_occasion_description = occasion_descriptions.get(active_occasion, "")
-    
-            filtered_items = []
-            for item in all_items:
-                occ = item.get("_occasions") if isinstance(item, dict) else None
-                if not isinstance(occ, list):
-                    occ = _get_item_occasions(item)
-    
-                if any(_slugify(o) == active_occasion for o in occ):
-                    filtered_items.append(item)
-    
+            active_occasion_description = occasion_descriptions.get(active_occasion, "") if len(active_occasions) == 1 else ""
+
+            if active_occasions:
+                filtered_items = []
+                for item in all_items:
+                    occ = item.get("_occasions") if isinstance(item, dict) else None
+                    if not isinstance(occ, list):
+                        occ = _get_item_occasions(item)
+
+                    if any(_slugify(o) in active_occasions for o in occ):
+                        filtered_items.append(item)
+            else:
+                filtered_items = list(all_items)
+
             commercial_color_counts = {}
             commercial_color_display_by_norm = {}
             for item in filtered_items:
@@ -843,9 +850,9 @@ def init_static_routes(
             ]
     
             itens = filtered_items
-            if active_cor_comercial:
-                target_norm = _normalize_text(active_cor_comercial)
-                if target_norm:
+            if active_cores:
+                target_norms = {_normalize_text(c) for c in active_cores if _normalize_text(c)}
+                if target_norms:
                     color_filtered = []
                     for item in itens:
                         if not isinstance(item, dict):
@@ -853,16 +860,16 @@ def init_static_routes(
                         raw_color = item.get("cor_comercial") or item.get("corCommercial")
                         colors = raw_color if isinstance(raw_color, list) else [raw_color]
                         if any(
-                            isinstance(c, str) and _normalize_text(c) == target_norm
+                            isinstance(c, str) and _normalize_text(c) in target_norms
                             for c in colors
                             if c is not None
                         ):
                             color_filtered.append(item)
                     itens = color_filtered
-    
-            if active_tamanho:
-                target_size_norm = active_tamanho.strip().casefold()
-                if target_size_norm:
+
+            if active_tamanhos:
+                target_size_norms = {s.strip().casefold() for s in active_tamanhos if s.strip()}
+                if target_size_norms:
                     size_filtered = []
                     for item in itens:
                         if not isinstance(item, dict):
@@ -876,10 +883,10 @@ def init_static_routes(
                             parts = [p.strip() for p in s.split(",")]
                             expanded.extend([p for p in parts if p])
                         item_norms = {str(s).strip().casefold() for s in expanded if str(s).strip()}
-                        if target_size_norm in item_norms:
+                        if item_norms & target_size_norms:
                             size_filtered.append(item)
                     itens = size_filtered
-    
+
             for item in itens:
                 if isinstance(item, dict):
                     occ = item.get("_occasions") or []
@@ -978,21 +985,27 @@ def init_static_routes(
                         if len(current_itens) > per_page:
                             current_itens = current_itens[:per_page]
             
+            template_name = (
+                "components/catalog_results.html"
+                if request.headers.get("X-Requested-With") == "XMLHttpRequest"
+                else "catalogo.html"
+            )
             return render_template(
-                "catalogo.html", 
+                template_name,
                 itens=current_itens,
                 fields_config=fields_config,
                 page=page,
                 total_pages=total_pages,
                 total_items=total_items,
                 active_occasion=active_occasion,
+                active_occasions=active_occasions,
                 active_occasion_label=active_occasion_label,
                 active_occasion_description=active_occasion_description,
                 occasion_tabs=occasion_tabs,
                 commercial_colors=commercial_colors,
-                active_cor_comercial=active_cor_comercial,
+                active_cores=active_cores,
                 catalog_sizes=catalog_sizes,
-                active_tamanho=active_tamanho,
+                active_tamanhos=active_tamanhos,
                 catalog_field_visibility=_load_catalog_field_visibility(),
             )
 
@@ -1005,11 +1018,12 @@ def init_static_routes(
                 page=1,
                 total_pages=1,
                 active_occasion="",
+                active_occasions=[],
                 occasion_tabs=[],
                 commercial_colors=[],
-                active_cor_comercial="",
+                active_cores=[],
                 catalog_sizes=[],
-                active_tamanho="",
+                active_tamanhos=[],
                 catalog_field_visibility=_load_catalog_field_visibility(),
             )
     

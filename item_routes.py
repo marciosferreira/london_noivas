@@ -541,6 +541,13 @@ def init_item_routes(
                 field_id = field["id"]
                 field_type = field.get("type")
                 # is_fixed ignorado pois tudo agora é raiz
+
+                # cor_base e cor_comercial não têm input próprio no formulário —
+                # são derivados do campo "cor" (bloco is_color_field abaixo). Pular aqui
+                # evita que o valor derivado seja sobrescrito com string vazia.
+                if field_id in ["cor_base", "cor_comercial"]:
+                    continue
+
                 label_text = (field.get("label") or "").strip().lower()
                 is_color_field = field_id in ["cor", "color", "item_cor", "item_color"] or label_text == "cor"
                 is_size_field = field_id in ["tamanho", "size", "item_tamanho", "item_size"] or label_text == "tamanho"
