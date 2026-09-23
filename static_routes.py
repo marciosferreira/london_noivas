@@ -624,19 +624,6 @@ def init_static_routes(
     @app.route("/")
     def index():
         try:
-            # Fetch ALL available items for vitrine (filtered by account)
-            response = itens_table.scan(
-                FilterExpression=Attr("status").eq("available") & Attr("account_id").is_in(public_account_ids)
-            )
-            all_items = response.get("Items", [])
-            
-            while "LastEvaluatedKey" in response:
-                response = itens_table.scan(
-                    FilterExpression=Attr("status").eq("available") & Attr("account_id").is_in(public_account_ids),
-                    ExclusiveStartKey=response["LastEvaluatedKey"]
-                )
-                all_items.extend(response.get("Items", []))
-
             occasion_tabs = [
                 {"slug": "noiva", "label": "Noiva"},
                 {"slug": "civil", "label": "Civil"},
@@ -647,15 +634,29 @@ def init_static_routes(
                 {"slug": "gala", "label": "Gala"},
                 {"slug": "convidada", "label": "Convidada"},
             ]
-            
+
             fields_config = schemas.get_schema_fields("item")
             catalog_field_visibility = _load_catalog_field_visibility()
+            featured_items = _get_featured_items(limit=12)
 
-            return render_template("index.html", fields_config=fields_config, occasion_tabs=occasion_tabs, catalog_field_visibility=catalog_field_visibility)
+            return render_template(
+                "index.html",
+                fields_config=fields_config,
+                occasion_tabs=occasion_tabs,
+                catalog_field_visibility=catalog_field_visibility,
+                featured_items=featured_items,
+            )
 
         except Exception as e:
             print(f"Error loading vitrine: {e}")
-            return render_template("index.html", itens=[], fields_config=[], occasion_tabs=[], catalog_field_visibility=_load_catalog_field_visibility())
+            return render_template(
+                "index.html",
+                itens=[],
+                fields_config=[],
+                occasion_tabs=[],
+                catalog_field_visibility=_load_catalog_field_visibility(),
+                featured_items=[],
+            )
 
     # Global cache for recent visits
     _recent_visits_cache = {
@@ -717,6 +718,43 @@ def init_static_routes(
             # Se a tabela não existir ou der erro, retorna vazio e não quebra o site
             print(f"Error fetching recent visits: {e}")
             return {}
+
+    def _get_featured_items(limit=12):
+        """Busca um conjunto limitado de itens disponíveis via GSI (sem scan completo
+        da tabela) para a vitrine da home, priorizando os mais visitados."""
+        items = []
+        seen_ids = set()
+        for acc_id in public_account_ids:
+            try:
+                response = itens_table.query(
+                    IndexName="account_id-created_at-index",
+                    KeyConditionExpression=Key("account_id").eq(acc_id),
+                    FilterExpression=Attr("status").eq("available"),
+                    ScanIndexForward=False,
+                    Limit=60,
+                )
+                for item in response.get("Items", []):
+                    iid = item.get("item_id")
+                    if iid and iid not in seen_ids:
+                        seen_ids.add(iid)
+                        items.append(item)
+            except Exception as e:
+                print(f"Error querying featured items for account {acc_id}: {e}")
+
+        recent_map = _get_recent_visits_map()
+
+        def to_int(value):
+            try:
+                return int(value or 0)
+            except (ValueError, TypeError):
+                return 0
+
+        def sort_key(item):
+            iid = item.get("item_id")
+            return (to_int(recent_map.get(iid, 0)), to_int(item.get("visit_count")))
+
+        items.sort(key=sort_key, reverse=True)
+        return items[:limit]
 
     @app.route("/catalogo")
     def catalogo():

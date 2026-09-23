@@ -3,7 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Catálogo Completo - London Noivas</title>
+    {% set catalog_page_label = active_occasion_label|default('Catálogo Completo', true) %}
+    {% if active_occasion and catalog_page_label != 'Catálogo Completo' %}
+        {% set catalog_meta_description = 'Vestidos de ' ~ catalog_page_label ~ ' para alugar na London Noivas, em Manaus. Confira fotos, cores e tamanhos disponíveis.' %}
+    {% else %}
+        {% set catalog_meta_description = 'Catálogo completo de vestidos para noiva, madrinha, debutante, formatura e gala. Aluguel em Manaus com atendimento personalizado.' %}
+    {% endif %}
+    {% set catalog_meta_image = (itens[0].item_image_url | cloudfront_url) if (itens and itens[0].get('item_image_url')) else (request.url_root.rstrip('/') ~ url_for('static', filename='background.jpg')) %}
+    <title>{{ catalog_page_label }} - London Noivas</title>
+    <meta name="description" content="{{ catalog_meta_description }}">
+    <link rel="canonical" href="{{ request.url_root }}catalogo">
+
+    <!-- Open Graph / WhatsApp / Facebook preview -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="London Noivas">
+    <meta property="og:locale" content="pt_BR">
+    <meta property="og:title" content="{{ catalog_page_label }} - London Noivas">
+    <meta property="og:description" content="{{ catalog_meta_description }}">
+    <meta property="og:image" content="{{ catalog_meta_image }}">
+    <meta property="og:url" content="{{ request.url }}">
+
+    <!-- Twitter card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{{ catalog_page_label }} - London Noivas">
+    <meta name="twitter:description" content="{{ catalog_meta_description }}">
+    <meta name="twitter:image" content="{{ catalog_meta_image }}">
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-23RSZ1SMRX"></script>
     <script>
         window.dataLayer = window.dataLayer || [];
@@ -315,6 +339,17 @@
             window.addEventListener('popstate', function() {
                 Object.assign(catalogState, readCatalogStateFromUrl());
                 fetchCatalog(window.location.pathname + window.location.search, {});
+
+                // Fecha o modal quando o usuário usa o botão "voltar" do navegador/Android
+                // (abrir o modal empilha um estado no histórico; sem isso, o back não fechava o modal).
+                const params = new URLSearchParams(window.location.search);
+                if (!params.get('item')) {
+                    const modal = document.getElementById('catalog-modal');
+                    if (modal && !modal.classList.contains('hidden')) {
+                        modal.classList.add('hidden');
+                        document.body.style.overflow = '';
+                    }
+                }
             });
         </script>
 
@@ -325,7 +360,7 @@
     {% include 'footer.html' %}
 
     <!-- Catalog Modal -->
-    <div id="catalog-modal" class="fixed inset-0 z-[100] hidden">
+    <div id="catalog-modal" class="fixed inset-0 z-[100] hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
         <div class="absolute inset-0 bg-stone-900/95 backdrop-blur-sm" onclick="closeCatalogModal()"></div>
         <div class="absolute inset-0 flex items-center justify-center p-4 md:p-8 pointer-events-none">
             <div class="bg-white w-full max-w-6xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col md:flex-row pointer-events-auto rounded-sm relative">
@@ -338,7 +373,7 @@
 
                 <!-- Image Side -->
                 <div class="md:w-1/2 bg-stone-100 relative h-[40vh] md:h-auto group">
-                    <img id="modal-img" src="" alt="Detail" class="w-full h-full object-contain transition-transform duration-500 hover:scale-105 cursor-zoom-in" onclick="openFullImage(this.src)" loading="lazy">
+                    <img id="modal-img" src="" alt="Detail" class="w-full h-full object-contain transition-transform duration-500 hover:scale-105 cursor-zoom-in" onclick="openFullImage(this.src)">
                     <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 pointer-events-none">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="white" class="w-12 h-12 drop-shadow-lg">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607zM10.5 7.5v6m3-3h-6" />
@@ -614,6 +649,26 @@
             setCatalogModalImage(window.catalogModalIndex + 1);
         }
 
+        // Trava o scroll do body preservando a posição (evita o "rubber-band" do iOS
+        // vazar para o fundo da página e restaura o scroll exato ao fechar o modal).
+        let __lockedScrollY = 0;
+        function lockBodyScroll() {
+            __lockedScrollY = window.scrollY || window.pageYOffset || 0;
+            document.body.style.position = 'fixed';
+            document.body.style.top = `-${__lockedScrollY}px`;
+            document.body.style.left = '0';
+            document.body.style.right = '0';
+            document.body.style.overflow = 'hidden';
+        }
+        function unlockBodyScroll() {
+            document.body.style.position = '';
+            document.body.style.top = '';
+            document.body.style.left = '';
+            document.body.style.right = '';
+            document.body.style.overflow = '';
+            window.scrollTo(0, __lockedScrollY);
+        }
+
         function openCatalogModalById(itemId, source) {
             const data = window.catalogData && window.catalogData[itemId];
             if (data) {
@@ -796,7 +851,7 @@
             }
             
             document.getElementById('catalog-modal').classList.remove('hidden');
-            document.body.style.overflow = 'hidden';
+            lockBodyScroll();
 
             if (itemId && !isAiItem) {
                 registerItemVisit(itemId);
@@ -805,12 +860,24 @@
 
         function closeCatalogModal() {
             document.getElementById('catalog-modal').classList.add('hidden');
-            document.body.style.overflow = '';
-            
+            unlockBodyScroll();
+
             const url = new URL(window.location);
             url.searchParams.delete('item');
             window.history.pushState({}, '', url);
         }
+
+        // Fecha o modal com Esc (a menos que o modal de imagem em tela cheia esteja aberto por cima —
+        // nesse caso o Esc fecha primeiro a imagem, como no comportamento padrão de modais empilhados).
+        document.addEventListener('keydown', function(event) {
+            if (event.key !== 'Escape') return;
+            const fullModal = document.getElementById('full-image-modal');
+            if (fullModal && !fullModal.classList.contains('hidden')) return;
+            const catalogModal = document.getElementById('catalog-modal');
+            if (catalogModal && !catalogModal.classList.contains('hidden')) {
+                closeCatalogModal();
+            }
+        });
 
         const activeOccasion = "{{ active_occasion }}";
 
@@ -1030,46 +1097,6 @@
             }
         });
     </script>
-    <!-- Full Screen Image Modal -->
-    <div id="full-image-modal" class="fixed inset-0 z-[200] hidden" role="dialog" aria-modal="true">
-        <div class="absolute inset-0 bg-black/95 backdrop-blur-md" onclick="closeFullImage()"></div>
-        
-        <button onclick="closeFullImage()" class="absolute top-4 right-4 z-[210] text-white/70 hover:text-white transition-colors p-2">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-        </button>
-
-        <div class="absolute inset-0 flex items-center justify-center p-4 pointer-events-none">
-            <img id="full-image-img" src="" alt="Full Screen" class="max-w-full max-h-full object-contain shadow-2xl pointer-events-auto rounded-sm">
-        </div>
-    </div>
-
-    <script>
-        function openFullImage(src) {
-            if (!src || src.includes('placeholder')) return;
-            const modal = document.getElementById('full-image-modal');
-            const img = document.getElementById('full-image-img');
-            img.src = src;
-            modal.classList.remove('hidden');
-        }
-
-        function closeFullImage() {
-            const modal = document.getElementById('full-image-modal');
-            modal.classList.add('hidden');
-        }
-
-        // Close on Escape key
-        document.addEventListener('keydown', function(event) {
-            if (event.key === 'Escape') {
-                const fullModal = document.getElementById('full-image-modal');
-                if (!fullModal.classList.contains('hidden')) {
-                    closeFullImage();
-                    event.stopPropagation();
-                }
-            }
-        });
-    </script>
 
     
     <script>
@@ -1100,7 +1127,7 @@
             function getGridColumns() {
                 if (window.matchMedia("(min-width: 1024px)").matches) return 4;
                 if (window.matchMedia("(min-width: 768px)").matches) return 3;
-                return 1;
+                return 2;
             }
 
             function assignRows() {
@@ -1181,7 +1208,7 @@
                             lazyImageObserver.unobserve(lazyImage);
                         }
                     });
-                });
+                }, { rootMargin: '800px 0px' }); // Começa a carregar antes de entrar na tela, evitando spinner no scroll
 
                 lazyImages.forEach(function(lazyImage) {
                     lazyImageObserver.observe(lazyImage);

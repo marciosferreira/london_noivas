@@ -4,6 +4,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>London Noivas - Aluguel de Vestidos</title>
+    <meta name="description" content="Aluguel de vestidos de noiva, madrinha, debutante, formatura e gala em Manaus. Showroom London Noivas: acervo exclusivo, ajuste sob medida e atendimento personalizado.">
+    <link rel="canonical" href="{{ request.url_root }}">
+
+    <!-- Open Graph / WhatsApp / Facebook preview -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="London Noivas">
+    <meta property="og:locale" content="pt_BR">
+    <meta property="og:title" content="London Noivas - Aluguel de Vestidos em Manaus">
+    <meta property="og:description" content="Vestidos de noiva, madrinha, debutante, formatura e gala para alugar em Manaus. Agende sua prova.">
+    <meta property="og:image" content="{{ request.url_root.rstrip('/') }}{{ url_for('static', filename='background.jpg') }}">
+    <meta property="og:url" content="{{ request.url }}">
+
+    <!-- Twitter card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="London Noivas - Aluguel de Vestidos em Manaus">
+    <meta name="twitter:description" content="Vestidos de noiva, madrinha, debutante, formatura e gala para alugar em Manaus.">
+    <meta name="twitter:image" content="{{ request.url_root.rstrip('/') }}{{ url_for('static', filename='background.jpg') }}">
 
     <!-- Google Analytics 4 (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-23RSZ1SMRX"></script>
@@ -405,6 +422,93 @@
             </div>
         </section>
 
+        <!-- ======================== FEATURED / VITRINE SECTION ======================== -->
+        {% if featured_items %}
+        <section id="vitrine" class="relative pt-10 pb-12 md:pt-16 md:pb-20 bg-[#FDF9F4]">
+            <div class="container mx-auto px-6">
+                <div class="flex items-end justify-between mb-6 md:mb-8">
+                    <div>
+                        <span class="text-london-gold font-sans font-medium tracking-[0.3em] text-[10px] uppercase block mb-2">Vitrine</span>
+                        <h2 class="text-2xl md:text-4xl font-serif font-light text-charcoal-900">Mais Procurados</h2>
+                    </div>
+                    <a href="{{ url_for('catalogo', occasion='noiva') }}" class="hidden sm:flex items-center gap-2 text-xs font-sans font-medium tracking-[0.15em] uppercase text-charcoal-700 hover:text-london-gold transition-colors">
+                        Ver catálogo completo
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                        </svg>
+                    </a>
+                </div>
+
+                <div id="featured-carousel" class="flex gap-4 md:gap-5 overflow-x-auto pb-4 snap-x snap-mandatory -mx-6 px-6" style="scroll-padding-left:1.5rem;">
+                    {% for item in featured_items %}
+                    <div class="group flex-shrink-0 w-[62vw] sm:w-[280px] snap-start bg-white rounded-sm border border-[#E8E0D6] shadow-sm hover:shadow-[0_4px_20px_rgba(184,150,110,0.15)] transition-all duration-300 cursor-pointer overflow-hidden"
+                         onclick="openCatalogModalById('{{ item.item_id }}', 'home_carousel')">
+                        <div class="aspect-[3/4] overflow-hidden bg-stone-200">
+                            <img src="{{ item.item_image_url | cloudfront_url }}" alt="{{ item.title }}" loading="lazy" decoding="async"
+                                 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700">
+                        </div>
+                        <div class="p-4">
+                            <h3 class="font-serif text-base text-stone-800 truncate">{{ item.title }}</h3>
+                            <p class="text-[11px] text-london-gold tracking-widest font-bold uppercase mt-1">Ver Detalhes</p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="text-center mt-2 sm:hidden">
+                    <a href="{{ url_for('catalogo', occasion='noiva') }}" class="inline-flex items-center gap-2 text-xs font-sans font-medium tracking-[0.15em] uppercase text-charcoal-700 hover:text-london-gold transition-colors">
+                        Ver catálogo completo
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                        </svg>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        {% set featured_items_list = [] %}
+        {% for item in featured_items %}
+            {% set occs = [] %}
+            {% if item.occasion_noiva == '1' %}{% set _ = occs.append('Noiva') %}{% endif %}
+            {% if item.occasion_civil == '1' %}{% set _ = occs.append('Civil') %}{% endif %}
+            {% if item.occasion_madrinha == '1' %}{% set _ = occs.append('Madrinha') %}{% endif %}
+            {% if item.occasion_mae_dos_noivos == '1' %}{% set _ = occs.append('Mãe dos Noivos') %}{% endif %}
+            {% if item.occasion_formatura == '1' %}{% set _ = occs.append('Formatura') %}{% endif %}
+            {% if item.occasion_debutante == '1' %}{% set _ = occs.append('Debutante') %}{% endif %}
+            {% if item.occasion_gala == '1' %}{% set _ = occs.append('Gala') %}{% endif %}
+            {% if item.occasion_convidada == '1' %}{% set _ = occs.append('Convidada') %}{% endif %}
+            {% set item_payload = {
+                'id': item.item_id,
+                'imageUrl': item.item_image_url | cloudfront_url,
+                'title': item.title,
+                'description': item.item_description,
+                'itemObs': (item.item_obs or '') | string,
+                'price': item.item_value,
+                'customId': item.item_custom_id,
+                'color': (item.cor or item.cores or '') | string,
+                'colorBase': (item.cor_base or '') | string,
+                'colorCommercial': (item.cor_comercial or '') | string,
+                'size': (item.tamanho or item.size or '') | string,
+                'occasions': occs | join(', ')
+            } %}
+            {% set _ = featured_items_list.append(item_payload) %}
+        {% endfor %}
+        <script type="application/json" id="featured-items-data">{{ featured_items_list | tojson }}</script>
+        <script>
+            (function() {
+                var el = document.getElementById('featured-items-data');
+                if (!el) return;
+                try {
+                    var list = JSON.parse(el.textContent);
+                    window.catalogData = window.catalogData || {};
+                    list.forEach(function(d) { window.catalogData[d.id] = d; });
+                } catch (e) {
+                    console.error('Falha ao ler dados da vitrine:', e);
+                }
+            })();
+        </script>
+        {% endif %}
+
         <!-- ======================== ABOUT / INTRO SECTION ======================== -->
         <section id="sobre" class="relative pt-16 pb-8 md:pt-28 md:pb-16 bg-white grain-overlay overflow-hidden">
             <!-- Subtle decorative background -->
@@ -744,6 +848,26 @@
             }).catch(err => console.error('Error incrementing visit count:', err));
         }
 
+        // Trava o scroll do body preservando a posição (evita o "rubber-band" do iOS
+        // vazar para o fundo da página e restaura o scroll exato ao fechar o modal).
+        let __lockedScrollY = 0;
+        function lockBodyScroll() {
+            __lockedScrollY = window.scrollY || window.pageYOffset || 0;
+            document.body.style.position = 'fixed';
+            document.body.style.top = `-${__lockedScrollY}px`;
+            document.body.style.left = '0';
+            document.body.style.right = '0';
+            document.body.style.overflow = 'hidden';
+        }
+        function unlockBodyScroll() {
+            document.body.style.position = '';
+            document.body.style.top = '';
+            document.body.style.left = '';
+            document.body.style.right = '';
+            document.body.style.overflow = '';
+            window.scrollTo(0, __lockedScrollY);
+        }
+
         function openCatalogModalById(itemId, source) {
             const data = window.catalogData && window.catalogData[itemId];
             if (data) {
@@ -862,7 +986,7 @@
                 whatsappLink.onclick = function() { trackWhatsAppClick('catalog_modal_whatsapp'); };
             }
             document.getElementById('catalog-modal').classList.remove('hidden');
-            document.body.style.overflow = 'hidden';
+            lockBodyScroll();
             if (itemId && !isAiItem) {
                 registerItemVisit(itemId);
             }
@@ -870,11 +994,35 @@
 
         function closeCatalogModal() {
             document.getElementById('catalog-modal').classList.add('hidden');
-            document.body.style.overflow = '';
+            unlockBodyScroll();
             const url = new URL(window.location);
             url.searchParams.delete('item');
             window.history.pushState({}, '', url);
         }
+
+        // Fecha o modal com Esc (a menos que o modal de imagem em tela cheia esteja aberto por cima).
+        document.addEventListener('keydown', function(event) {
+            if (event.key !== 'Escape') return;
+            const fullModal = document.getElementById('full-image-modal');
+            if (fullModal && !fullModal.classList.contains('hidden')) return;
+            const catalogModal = document.getElementById('catalog-modal');
+            if (catalogModal && !catalogModal.classList.contains('hidden')) {
+                closeCatalogModal();
+            }
+        });
+
+        // Fecha o modal quando o usuário usa o botão "voltar" do navegador/Android
+        // (abrir o modal empilha um estado no histórico; sem isso, o back não fechava o modal).
+        window.addEventListener('popstate', function() {
+            const params = new URLSearchParams(window.location.search);
+            if (!params.get('item')) {
+                const modal = document.getElementById('catalog-modal');
+                if (modal && !modal.classList.contains('hidden')) {
+                    modal.classList.add('hidden');
+                    unlockBodyScroll();
+                }
+            }
+        });
 
         window.addEventListener('load', function() {
             const urlParams = new URLSearchParams(window.location.search);

@@ -29,6 +29,24 @@ import schemas
 ALLOWED_EXTENSIONS = {"jpeg", "jpg", "png", "gif", "webp"}
 MAX_ITEM_IMAGES = 4
 
+_visits_table_cache = {"table": None}
+
+
+def _get_visits_table():
+    """Retorna a tabela de visitas de itens, criando o client boto3 uma única vez
+    (em vez de recriá-lo a cada request)."""
+    if _visits_table_cache["table"] is None:
+        import boto3
+
+        dynamodb_resource = boto3.resource(
+            'dynamodb',
+            region_name=os.getenv('AWS_REGION', 'us-east-1'),
+            aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
+            aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY')
+        )
+        _visits_table_cache["table"] = dynamodb_resource.Table("alugueqqc_item_visits")
+    return _visits_table_cache["table"]
+
 
 def handle_image_upload(image_file):
     if image_file and image_file.filename != "":
@@ -2716,18 +2734,11 @@ def init_item_routes(
                         visitor_key = f"ip:{hashlib.sha256(client_ip.encode('utf-8')).hexdigest()[:32]}"
 
             import time
-            import boto3
 
             timestamp = datetime.datetime.now().isoformat()
             ttl_value = int(time.time()) + (30 * 24 * 60 * 60)
 
-            dynamodb_resource = boto3.resource(
-                'dynamodb',
-                region_name=os.getenv('AWS_REGION', 'us-east-1'),
-                aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
-                aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY')
-            )
-            visits_table = dynamodb_resource.Table("alugueqqc_item_visits")
+            visits_table = _get_visits_table()
 
             already_counted = False
             if visitor_key:
