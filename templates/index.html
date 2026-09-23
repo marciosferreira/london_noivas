@@ -280,6 +280,20 @@
 
         /* ===== STAR RATING ===== */
         .star-gold { color: #B8956A; }
+
+        /* ===== CARROSSEL DA VITRINE ===== */
+        /* Barra de scroll escondida: a posição é comunicada pela barra de progresso. */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* Título do card em no máximo 2 linhas (os títulos têm ~30 caracteres
+           e cortariam com ellipsis em uma linha só). */
+        .clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
     </style>
 </head>
 <body class="bg-[#FDF9F4] text-[#4A3C30] font-sans antialiased">
@@ -430,7 +444,8 @@
                 'eyebrow': 'Coleção',
                 'title': 'Vestidos de Noiva',
                 'bg': 'bg-[#FDF9F4]',
-                'cta_occasion': 'noiva'
+                'cta_occasion': 'noiva',
+                'eager': true
             },
             {
                 'dresses': featured_items_festa,
@@ -438,7 +453,8 @@
                 'eyebrow': 'Vitrine',
                 'title': 'Vestidos de Festa',
                 'bg': 'bg-white',
-                'cta_occasion': 'civil,madrinha,mae-dos-noivos,formatura,debutante,gala,convidada'
+                'cta_occasion': 'civil,madrinha,mae-dos-noivos,formatura,debutante,gala,convidada',
+                'eager': false
             }
         ] %}
         {% for carousel in carousels %}
@@ -458,29 +474,71 @@
                     </a>
                 </div>
 
-                <div id="{{ carousel.anchor }}-carousel" class="flex gap-4 md:gap-5 overflow-x-auto pb-4 snap-x snap-mandatory -mx-6 px-6" style="scroll-padding-left:1.5rem;">
-                    {% for item in carousel.dresses %}
-                    <div class="group flex-shrink-0 w-[62vw] sm:w-[280px] snap-start bg-white rounded-sm border border-[#E8E0D6] shadow-sm hover:shadow-[0_4px_20px_rgba(184,150,110,0.15)] transition-all duration-300 cursor-pointer overflow-hidden"
-                         onclick="openCatalogModalById('{{ item.item_id }}', '{{ carousel.anchor }}')">
-                        <div class="aspect-[3/4] overflow-hidden bg-stone-200">
-                            <img src="{{ item.item_image_url | cloudfront_url }}" alt="{{ item.title }}" loading="lazy" decoding="async"
-                                 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700">
-                        </div>
-                        <div class="p-4">
-                            <h3 class="font-serif text-base text-stone-800 truncate">{{ item.title }}</h3>
-                            <p class="text-[11px] text-london-gold tracking-widest font-bold uppercase mt-1">Ver Detalhes</p>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-
-                <div class="text-center mt-2 sm:hidden">
-                    <a href="{{ url_for('catalogo', occasion=carousel.cta_occasion) }}" class="inline-flex items-center gap-2 text-xs font-sans font-medium tracking-[0.15em] uppercase text-charcoal-700 hover:text-london-gold transition-colors">
-                        Ver catálogo completo
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                <div class="relative" data-carousel>
+                    <!-- Setas apenas no desktop: no mobile a navegação é por swipe -->
+                    <button type="button" data-carousel-prev aria-label="Ver anteriores"
+                            class="hidden md:flex absolute left-0 top-[38%] -translate-y-1/2 -translate-x-1/2 z-10 w-10 h-10 items-center justify-center rounded-full bg-white/95 shadow-md border border-[#E8E0D6] text-charcoal-700 hover:text-london-gold transition-colors disabled:opacity-0 disabled:pointer-events-none">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
                         </svg>
-                    </a>
+                    </button>
+                    <button type="button" data-carousel-next aria-label="Ver próximos"
+                            class="hidden md:flex absolute right-0 top-[38%] -translate-y-1/2 translate-x-1/2 z-10 w-10 h-10 items-center justify-center rounded-full bg-white/95 shadow-md border border-[#E8E0D6] text-charcoal-700 hover:text-london-gold transition-colors disabled:opacity-0 disabled:pointer-events-none">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5 15.75 12l-7.5 7.5" />
+                        </svg>
+                    </button>
+
+                    <div id="{{ carousel.anchor }}-carousel" data-carousel-track
+                         class="flex gap-3 md:gap-5 overflow-x-auto pb-2 snap-x snap-mandatory -mx-6 px-6 no-scrollbar"
+                         style="scroll-padding-left:1.5rem; overscroll-behavior-x: contain;">
+                        {% for item in carousel.dresses %}
+                        {% set image_urls = item.get('item_image_urls') or [] %}
+                        {% set is_priority = carousel.eager and loop.index <= 2 %}
+                        <a href="{{ url_for('catalogo', occasion=carousel.cta_occasion, item=item.item_id) }}"
+                           data-dress-modal="{{ item.item_id }}" data-dress-source="{{ carousel.anchor }}"
+                           class="group flex-shrink-0 w-[74vw] sm:w-[300px] snap-start block transition-transform duration-200 active:scale-[0.98]">
+                            <div class="relative aspect-[3/4] overflow-hidden rounded-sm bg-ivory-100">
+                                <!-- Preenche o quadro sem cortar o vestido: a mesma foto, borrada, ao fundo.
+                                     Mesma URL = o navegador reaproveita o download, não baixa duas vezes. -->
+                                <img src="{{ item.item_image_url | cloudfront_url }}" alt="" aria-hidden="true"
+                                     class="absolute inset-0 w-full h-full object-cover scale-110 blur-xl opacity-50"
+                                     {% if is_priority %}fetchpriority="high"{% else %}loading="lazy"{% endif %} decoding="async">
+                                <img src="{{ item.item_image_url | cloudfront_url }}" alt="{{ item.title }}"
+                                     class="relative w-full h-full object-contain transition-transform duration-700 md:group-hover:scale-[1.03]"
+                                     {% if is_priority %}fetchpriority="high"{% else %}loading="lazy"{% endif %} decoding="async">
+                                {% if (image_urls | length) > 1 %}
+                                <span class="absolute top-3 right-3 inline-flex items-center gap-1 bg-white/85 backdrop-blur-sm text-charcoal-700 text-[11px] font-sans font-semibold px-2 py-1 rounded-full shadow-sm">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M18 8.25h.008v.008H18V8.25zm2.25 10.5H3.75A1.5 1.5 0 012.25 17.25V6.75A1.5 1.5 0 013.75 5.25h16.5a1.5 1.5 0 011.5 1.5v10.5a1.5 1.5 0 01-1.5 1.5z" />
+                                    </svg>
+                                    {{ image_urls | length }}
+                                </span>
+                                {% endif %}
+                            </div>
+                            <h3 class="mt-3 font-serif text-[15px] leading-snug text-charcoal-800 clamp-2 group-hover:text-london-gold transition-colors">{{ item.title }}</h3>
+                        </a>
+                        {% endfor %}
+
+                        <!-- Card final: em vez de terminar em nada, o swipe desemboca numa saída -->
+                        <a href="{{ url_for('catalogo', occasion=carousel.cta_occasion) }}"
+                           class="group flex-shrink-0 w-[74vw] sm:w-[300px] snap-start self-stretch block transition-transform duration-200 active:scale-[0.98]">
+                            <div class="h-full min-h-[40vh] flex flex-col items-center justify-center gap-3 rounded-sm border border-dashed border-london-gold/40 bg-white/60 group-hover:border-london-gold/70 transition-colors p-6 text-center">
+                                <span class="w-12 h-12 rounded-full border border-london-gold/40 flex items-center justify-center text-london-gold group-hover:bg-london-gold group-hover:text-white transition-all">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                                    </svg>
+                                </span>
+                                <span class="font-serif text-lg text-charcoal-800">Ver todos os vestidos</span>
+                                <span class="text-[11px] font-sans tracking-[0.15em] uppercase text-charcoal-400">{{ carousel.title }}</span>
+                            </div>
+                        </a>
+                    </div>
+
+                    <!-- Barra de progresso: comunica quantos itens existem e onde o usuário está -->
+                    <div data-carousel-progress class="relative mx-auto mt-4 h-[3px] w-20 rounded-full bg-charcoal-100 overflow-hidden hidden">
+                        <span class="absolute top-0 left-0 h-full rounded-full bg-london-gold"></span>
+                    </div>
                 </div>
             </div>
         </section>
@@ -528,6 +586,64 @@
                 } catch (e) {
                     console.error('Falha ao ler dados da vitrine:', e);
                 }
+            })();
+
+            // Os cards são links de verdade (/catalogo?item=...), então funcionam sem JS,
+            // abrem em nova aba e são acessíveis por teclado. Com JS, abrimos o modal ali mesmo.
+            document.addEventListener('click', function(e) {
+                var link = e.target.closest('[data-dress-modal]');
+                if (!link) return;
+                // Deixa o navegador cuidar de ctrl/cmd/shift-clique e clique do meio
+                if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+                e.preventDefault();
+                openCatalogModalById(link.dataset.dressModal, link.dataset.dressSource || 'home');
+            });
+
+            // Barra de progresso e setas (desktop) dos carrosséis da vitrine
+            (function() {
+                function initCarousel(root) {
+                    var track = root.querySelector('[data-carousel-track]');
+                    var bar = root.querySelector('[data-carousel-progress]');
+                    var prev = root.querySelector('[data-carousel-prev]');
+                    var next = root.querySelector('[data-carousel-next]');
+                    if (!track) return;
+                    var thumb = bar ? bar.firstElementChild : null;
+
+                    function update() {
+                        var max = track.scrollWidth - track.clientWidth;
+                        if (bar) {
+                            if (max <= 4) {
+                                bar.classList.add('hidden');
+                            } else {
+                                bar.classList.remove('hidden');
+                                if (thumb) {
+                                    var visiblePct = Math.max((track.clientWidth / track.scrollWidth) * 100, 18);
+                                    var ratio = track.scrollLeft / max;
+                                    thumb.style.width = visiblePct + '%';
+                                    thumb.style.left = (ratio * (100 - visiblePct)) + '%';
+                                }
+                            }
+                        }
+                        if (prev) prev.disabled = track.scrollLeft <= 4;
+                        if (next) next.disabled = track.scrollLeft >= max - 4;
+                    }
+
+                    function step(direction) {
+                        var card = track.querySelector('a');
+                        var amount = card ? card.offsetWidth + 20 : track.clientWidth * 0.8;
+                        track.scrollBy({ left: direction * amount, behavior: 'smooth' });
+                    }
+
+                    track.addEventListener('scroll', function() {
+                        window.requestAnimationFrame(update);
+                    }, { passive: true });
+                    window.addEventListener('resize', update);
+                    if (prev) prev.addEventListener('click', function() { step(-1); });
+                    if (next) next.addEventListener('click', function() { step(1); });
+                    update();
+                }
+
+                document.querySelectorAll('[data-carousel]').forEach(initCarousel);
             })();
         </script>
 
