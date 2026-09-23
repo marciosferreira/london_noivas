@@ -480,6 +480,8 @@
             {% set item_payload = {
                 'id': item.item_id,
                 'imageUrl': item.item_image_url | cloudfront_url,
+                'imageUrls': (item.get('item_image_urls') or []) | map('cloudfront_url') | list,
+                'mainImageIndex': (item.get('item_main_image_index') or 0) | int,
                 'title': item.title,
                 'description': item.item_description,
                 'itemObs': (item.item_obs or '') | string,
@@ -780,6 +782,17 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607zM10.5 7.5v6m3-3h-6" />
                                 </svg>
                             </div>
+                            <button id="catalog-modal-prev" onclick="prevCatalogModalImage(event)" class="absolute left-3 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-charcoal-800 rounded-full shadow-md p-2 hidden">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                                </svg>
+                            </button>
+                            <button id="catalog-modal-next" onclick="nextCatalogModalImage(event)" class="absolute right-3 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-charcoal-800 rounded-full shadow-md p-2 hidden">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                </svg>
+                            </button>
+                            <div id="catalog-modal-image-counter" class="absolute bottom-3 left-1/2 -translate-x-1/2 bg-white/90 text-charcoal-700 text-xs tracking-widest font-bold px-3 py-1 rounded-full shadow-md hidden"></div>
                         </div>
                         
                         <!-- Content Side -->
@@ -868,11 +881,50 @@
             window.scrollTo(0, __lockedScrollY);
         }
 
+        // Navegação entre as fotos do mesmo vestido dentro do modal (setas + contador).
+        window.catalogModalImages = [];
+        window.catalogModalIndex = 0;
+
+        function setCatalogModalImage(index) {
+            const images = Array.isArray(window.catalogModalImages) ? window.catalogModalImages : [];
+            if (!images.length) return;
+            let idx = Number(index);
+            if (!Number.isFinite(idx)) idx = 0;
+            if (idx < 0) idx = images.length - 1;
+            if (idx >= images.length) idx = 0;
+            window.catalogModalIndex = idx;
+
+            const img = document.getElementById('catalog-modal-img');
+            if (img) img.src = images[idx];
+
+            const prevBtn = document.getElementById('catalog-modal-prev');
+            const nextBtn = document.getElementById('catalog-modal-next');
+            const counter = document.getElementById('catalog-modal-image-counter');
+
+            const showNav = images.length > 1;
+            if (prevBtn) prevBtn.classList.toggle('hidden', !showNav);
+            if (nextBtn) nextBtn.classList.toggle('hidden', !showNav);
+            if (counter) {
+                counter.classList.toggle('hidden', !showNav);
+                if (showNav) counter.textContent = `${idx + 1}/${images.length}`;
+            }
+        }
+
+        function prevCatalogModalImage(e) {
+            if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+            setCatalogModalImage(window.catalogModalIndex - 1);
+        }
+
+        function nextCatalogModalImage(e) {
+            if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+            setCatalogModalImage(window.catalogModalIndex + 1);
+        }
+
         function openCatalogModalById(itemId, source) {
             const data = window.catalogData && window.catalogData[itemId];
             if (data) {
                 openCatalogModal(
-                    data.imageUrl, data.title, data.description, itemId, data.price, source,
+                    data.imageUrl, data.imageUrls, data.mainImageIndex, data.title, data.description, itemId, data.price, source,
                     data.customId, data.occasions, data.color, data.size, data.colorBase, data.colorCommercial, data.itemObs
                 );
             } else {
@@ -880,7 +932,7 @@
             }
         }
 
-        function openCatalogModal(imageUrl, title, description, itemId, price, source, customDisplayId, occasions, color, size, colorBase, colorCommercial, itemObs) {
+        function openCatalogModal(imageUrl, imageUrls, mainImageIndex, title, description, itemId, price, source, customDisplayId, occasions, color, size, colorBase, colorCommercial, itemObs) {
             const idToShow = customDisplayId || itemId;
 
             function normalizarMonetarioParaNumero(raw) {
@@ -930,7 +982,19 @@
                 return `R$ ${n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
             }
 
-            document.getElementById('catalog-modal-img').src = imageUrl || 'https://via.placeholder.com/600x800?text=Sem+Imagem';
+            const urls = Array.isArray(imageUrls) ? imageUrls.filter(u => typeof u === 'string' && u.trim()) : [];
+            if (!urls.length && imageUrl) urls.push(imageUrl);
+            let modalIdx = 0;
+            const mainIdxNum = Number(mainImageIndex);
+            if (Number.isFinite(mainIdxNum) && mainIdxNum >= 0 && mainIdxNum < urls.length) modalIdx = mainIdxNum;
+            else if (imageUrl) {
+                const found = urls.findIndex(u => u === imageUrl);
+                if (found >= 0) modalIdx = found;
+            }
+            window.catalogModalImages = urls;
+            window.catalogModalIndex = modalIdx;
+            if (urls.length) setCatalogModalImage(modalIdx);
+            else document.getElementById('catalog-modal-img').src = 'https://via.placeholder.com/600x800?text=Sem+Imagem';
             document.getElementById('catalog-modal-title').textContent = title;
             document.getElementById('catalog-modal-desc').textContent = description;
             const priceRow = document.getElementById('catalog-modal-price');
@@ -1029,7 +1093,7 @@
             const itemId = urlParams.get('item');
             if (itemId && window.catalogData && window.catalogData[itemId]) {
                 const item = window.catalogData[itemId];
-                openCatalogModal(item.imageUrl, item.title, item.description, itemId, item.price, 'url_load', item.customId, item.occasions, item.color, item.size, item.colorBase, item.colorCommercial, item.itemObs);
+                openCatalogModal(item.imageUrl, item.imageUrls, item.mainImageIndex, item.title, item.description, itemId, item.price, 'url_load', item.customId, item.occasions, item.color, item.size, item.colorBase, item.colorCommercial, item.itemObs);
             }
         });
     </script>
