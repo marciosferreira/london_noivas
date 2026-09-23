@@ -637,14 +637,16 @@ def init_static_routes(
 
             fields_config = schemas.get_schema_fields("item")
             catalog_field_visibility = _load_catalog_field_visibility()
-            featured_items = _get_featured_items(limit=12)
+            featured_items_noiva = _get_featured_items(limit=10, bucket="noiva")
+            featured_items_festa = _get_featured_items(limit=10, bucket="festa")
 
             return render_template(
                 "index.html",
                 fields_config=fields_config,
                 occasion_tabs=occasion_tabs,
                 catalog_field_visibility=catalog_field_visibility,
-                featured_items=featured_items,
+                featured_items_noiva=featured_items_noiva,
+                featured_items_festa=featured_items_festa,
             )
 
         except Exception as e:
@@ -655,7 +657,8 @@ def init_static_routes(
                 fields_config=[],
                 occasion_tabs=[],
                 catalog_field_visibility=_load_catalog_field_visibility(),
-                featured_items=[],
+                featured_items_noiva=[],
+                featured_items_festa=[],
             )
 
     # Global cache for recent visits
@@ -719,11 +722,26 @@ def init_static_routes(
             print(f"Error fetching recent visits: {e}")
             return {}
 
-    def _get_featured_items(limit=12):
+    def _item_occasion_bucket(item):
+        """Agrupa um item em 'noiva' (Noiva + Civil) ou 'festa' (demais ocasiões),
+        para separar os dois carrosséis da home. Reaproveita _get_item_occasions,
+        que já cobre tanto as flags quanto o fallback de metadados de IA."""
+        occs = {_normalize_text(o) for o in _get_item_occasions(item)}
+        if "noiva" in occs or "civil" in occs:
+            return "noiva"
+        return "festa"
+
+    def _get_featured_items(limit=12, bucket=None):
         """Busca um conjunto limitado de itens disponíveis via GSI (sem scan completo
-        da tabela) para a vitrine da home, priorizando os mais visitados."""
+        da tabela) para a vitrine da home, priorizando os mais visitados.
+
+        bucket: None (qualquer ocasião), 'noiva' ou 'festa' — ver _item_occasion_bucket.
+        Quando um bucket é pedido, a busca lê um pouco mais de itens (ainda limitada,
+        não é um scan da tabela) para ter itens suficientes de cada grupo.
+        """
         items = []
         seen_ids = set()
+        query_limit = 150 if bucket else 60
         for acc_id in public_account_ids:
             try:
                 response = itens_table.query(
@@ -731,7 +749,7 @@ def init_static_routes(
                     KeyConditionExpression=Key("account_id").eq(acc_id),
                     FilterExpression=Attr("status").eq("available"),
                     ScanIndexForward=False,
-                    Limit=60,
+                    Limit=query_limit,
                 )
                 for item in response.get("Items", []):
                     iid = item.get("item_id")
@@ -740,6 +758,9 @@ def init_static_routes(
                         items.append(item)
             except Exception as e:
                 print(f"Error querying featured items for account {acc_id}: {e}")
+
+        if bucket:
+            items = [i for i in items if _item_occasion_bucket(i) == bucket]
 
         recent_map = _get_recent_visits_map()
 

@@ -422,16 +422,35 @@
             </div>
         </section>
 
-        <!-- ======================== FEATURED / VITRINE SECTION ======================== -->
-        {% if featured_items %}
-        <section id="vitrine" class="relative pt-10 pb-12 md:pt-16 md:pb-20 bg-[#FDF9F4]">
+        <!-- ======================== FEATURED / VITRINE SECTIONS ======================== -->
+        {% set carousels = [
+            {
+                'dresses': featured_items_noiva,
+                'anchor': 'vitrine-noiva',
+                'eyebrow': 'Coleção',
+                'title': 'Vestidos de Noiva',
+                'bg': 'bg-[#FDF9F4]',
+                'cta_occasion': 'noiva'
+            },
+            {
+                'dresses': featured_items_festa,
+                'anchor': 'vitrine-festa',
+                'eyebrow': 'Vitrine',
+                'title': 'Vestidos de Festa',
+                'bg': 'bg-white',
+                'cta_occasion': 'civil,madrinha,mae-dos-noivos,formatura,debutante,gala,convidada'
+            }
+        ] %}
+        {% for carousel in carousels %}
+        {% if carousel.dresses %}
+        <section id="{{ carousel.anchor }}" class="relative pt-10 pb-12 md:pt-16 md:pb-20 {{ carousel.bg }}">
             <div class="container mx-auto px-6">
                 <div class="flex items-end justify-between mb-6 md:mb-8">
                     <div>
-                        <span class="text-london-gold font-sans font-medium tracking-[0.3em] text-[10px] uppercase block mb-2">Vitrine</span>
-                        <h2 class="text-2xl md:text-4xl font-serif font-light text-charcoal-900">Mais Procurados</h2>
+                        <span class="text-london-gold font-sans font-medium tracking-[0.3em] text-[10px] uppercase block mb-2">{{ carousel.eyebrow }}</span>
+                        <h2 class="text-2xl md:text-4xl font-serif font-light text-charcoal-900">{{ carousel.title }}</h2>
                     </div>
-                    <a href="{{ url_for('catalogo', occasion='noiva') }}" class="hidden sm:flex items-center gap-2 text-xs font-sans font-medium tracking-[0.15em] uppercase text-charcoal-700 hover:text-london-gold transition-colors">
+                    <a href="{{ url_for('catalogo', occasion=carousel.cta_occasion) }}" class="hidden sm:flex items-center gap-2 text-xs font-sans font-medium tracking-[0.15em] uppercase text-charcoal-700 hover:text-london-gold transition-colors">
                         Ver catálogo completo
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
@@ -439,10 +458,10 @@
                     </a>
                 </div>
 
-                <div id="featured-carousel" class="flex gap-4 md:gap-5 overflow-x-auto pb-4 snap-x snap-mandatory -mx-6 px-6" style="scroll-padding-left:1.5rem;">
-                    {% for item in featured_items %}
+                <div id="{{ carousel.anchor }}-carousel" class="flex gap-4 md:gap-5 overflow-x-auto pb-4 snap-x snap-mandatory -mx-6 px-6" style="scroll-padding-left:1.5rem;">
+                    {% for item in carousel.dresses %}
                     <div class="group flex-shrink-0 w-[62vw] sm:w-[280px] snap-start bg-white rounded-sm border border-[#E8E0D6] shadow-sm hover:shadow-[0_4px_20px_rgba(184,150,110,0.15)] transition-all duration-300 cursor-pointer overflow-hidden"
-                         onclick="openCatalogModalById('{{ item.item_id }}', 'home_carousel')">
+                         onclick="openCatalogModalById('{{ item.item_id }}', '{{ carousel.anchor }}')">
                         <div class="aspect-[3/4] overflow-hidden bg-stone-200">
                             <img src="{{ item.item_image_url | cloudfront_url }}" alt="{{ item.title }}" loading="lazy" decoding="async"
                                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700">
@@ -456,7 +475,7 @@
                 </div>
 
                 <div class="text-center mt-2 sm:hidden">
-                    <a href="{{ url_for('catalogo', occasion='noiva') }}" class="inline-flex items-center gap-2 text-xs font-sans font-medium tracking-[0.15em] uppercase text-charcoal-700 hover:text-london-gold transition-colors">
+                    <a href="{{ url_for('catalogo', occasion=carousel.cta_occasion) }}" class="inline-flex items-center gap-2 text-xs font-sans font-medium tracking-[0.15em] uppercase text-charcoal-700 hover:text-london-gold transition-colors">
                         Ver catálogo completo
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
@@ -465,9 +484,11 @@
                 </div>
             </div>
         </section>
+        {% endif %}
+        {% endfor %}
 
         {% set featured_items_list = [] %}
-        {% for item in featured_items %}
+        {% for item in (featured_items_noiva or []) + (featured_items_festa or []) %}
             {% set occs = [] %}
             {% if item.occasion_noiva == '1' %}{% set _ = occs.append('Noiva') %}{% endif %}
             {% if item.occasion_civil == '1' %}{% set _ = occs.append('Civil') %}{% endif %}
@@ -509,7 +530,6 @@
                 }
             })();
         </script>
-        {% endif %}
 
         <!-- ======================== ABOUT / INTRO SECTION ======================== -->
         <section id="sobre" class="relative pt-16 pb-8 md:pt-28 md:pb-16 bg-white grain-overlay overflow-hidden">
