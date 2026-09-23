@@ -240,6 +240,11 @@
                 }
             }
 
+            // Popula window.catalogData com os itens já renderizados no carregamento inicial
+            // da página (sem isso, clicar num card só abria o modal depois do 1º filtro/AJAX,
+            // que é quando mergeCatalogDataFromDom era chamado).
+            mergeCatalogDataFromDom(document);
+
             let catalogFetchToken = 0;
 
             function fetchCatalog(url, opts) {
