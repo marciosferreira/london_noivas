@@ -192,7 +192,10 @@
             const floatingCta = document.getElementById('floating-whatsapp-cta');
             const pageCta = document.getElementById('como-funciona-whatsapp-link');
             const phoneNumber = '5592993531943';
-            const text = 'Olá, visitei o site da London Noivas e tenho a seguinte demanda:\n\n';
+            // A frase precisa fazer sentido sozinha: muitas pessoas tocam em enviar sem
+            // digitar nada, porque o campo já parece conter uma mensagem pronta. As duas
+            // quebras no fim deixam espaço para quem quiser detalhar.
+            const text = 'Olá! Vim pelo site da London Noivas e gostaria de mais informações.\n\n';
             const link = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(text)}`;
             if (floatingCta) floatingCta.href = link;
             if (pageCta) pageCta.href = link;
