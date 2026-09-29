@@ -33,14 +33,14 @@
     </script>
 </head>
 <body class="bg-[#FDF9F4] text-[#4A3C30] antialiased">
-    <header class="sticky top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md py-4 border-b border-[#E8E0D6] shadow-[0_1px_0_rgba(184,150,110,0.12)]">
+    <header class="sticky top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md py-2 sm:py-3 border-b border-[#E8E0D6] shadow-[0_1px_0_rgba(184,150,110,0.12)]">
         <div class="container mx-auto px-6 flex justify-between items-center">
             <a href="{{ url_for('index') }}" class="flex items-center gap-3">
-                <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-sm overflow-hidden bg-white/90 shadow-sm">
+                <div class="w-14 h-14 sm:w-20 sm:h-20 rounded-sm overflow-hidden bg-white/90 shadow-sm">
                     <img src="{{ url_for('static', filename='logo.jpeg') }}" alt="London Noivas Logo" class="w-full h-full object-contain">
                 </div>
                 <div>
-                    <h1 class="text-base sm:text-xl font-serif font-light tracking-[0.25em] text-[#2C2118] whitespace-nowrap">
+                    <h1 class="text-lg sm:text-4xl font-serif font-light tracking-[0.25em] text-[#2C2118] whitespace-nowrap">
                         LONDON NOIVAS
                     </h1>
                     <div class="hidden sm:block h-px w-full bg-gradient-to-r from-london-gold/60 to-transparent mt-0.5"></div>

@@ -12,24 +12,52 @@
 
 /* Estiliza a logo */
 .logo {
-  height: 80px; /* Mantém o tamanho grande */
+  height: 150px;
   width: auto;
-  border-radius: 8px; /* Bordas arredondadas */
+  border-radius: 12px;
   transition: transform 0.3s ease-in-out;
 }
 
 .logo:hover {
-  transform: scale(1.1); /* Efeito de aumento suave */
+  transform: scale(1.05); /* Efeito de aumento suave */
+}
+
+/* Header maior: mais respiro vertical e texto de marca/menu ampliados */
+.header .navbar .container {
+  padding-top: 0.75rem !important;
+  padding-bottom: 0.75rem !important;
+}
+
+.navbar-nav .nav-link {
+  font-size: 1.15rem;
+}
+
+@media (max-width: 767.98px) {
+  .logo {
+    height: 110px;
+  }
+
+  .header .navbar .container {
+    padding-top: 0.5rem !important;
+    padding-bottom: 0.5rem !important;
+  }
 }
 
 /* Nome ao lado da logo */
 .navbar-brand {
-  font-size: 1.4rem;
+  font-size: 2rem;
   font-weight: bold;
   color: #ffffff;
   display: flex;
   align-items: center;
   text-decoration: none;
+}
+
+@media (max-width: 767.98px) {
+  .navbar-brand {
+    font-size: 1.35rem;
+    margin-right: 0;
+  }
 }
 
 /* Links do menu */
@@ -126,13 +154,6 @@ body {
   border-top-right-radius: 12px;
 }
 
-/* Logo */
-.logo {
-  height: 80px;
-  width: auto;
-  border-radius: 8px;
-  transition: transform 0.3s ease-in-out;
-}
 
 /* Botão Login no header */
 .btn-header-login {
