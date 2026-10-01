@@ -30,14 +30,14 @@
         gtag('js', new Date());
         gtag('config', 'G-23RSZ1SMRX');
     </script>
-    
+
     <!-- Google Fonts - More refined pairing -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400&family=Outfit:wght@200;300;400;500;600&display=swap" rel="stylesheet">
     <link rel="preload" as="image" href="{{ url_for('static', filename='background-mobile.webp') }}" media="(max-width: 767px)" fetchpriority="high">
     <link rel="preload" as="image" href="{{ url_for('static', filename='background-desktop.webp') }}" media="(min-width: 768px)" fetchpriority="high">
-    
+
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -76,7 +76,7 @@
             }
         }
     </script>
-    
+
     <style>
         /* ===== REFINED ANIMATIONS ===== */
         @keyframes fadeUp {
@@ -364,7 +364,7 @@
                     <div class="font-serif font-bold text-3xl sm:text-5xl leading-none text-[#e11d74] whitespace-nowrap"><span class="text-base sm:text-2xl align-top">R$</span> 600</div>
                 </div>
             </div>
-            <a href="https://wa.me/5592993531943?text=Ol%C3%A1%21%20Vi%20a%20Promo%C3%A7%C3%A3o%20Rel%C3%A2mpago%20no%20site%20da%20London%20Noivas%20%28reservas%20at%C3%A9%2007/10%20e%20eventos%20em%202026%29%20e%20gostaria%20de%20mais%20informa%C3%A7%C3%B5es." target="_blank" rel="noopener" onclick="trackWhatsAppClick('promo_banner')" class="mt-3 sm:mt-6 block text-center rounded-full bg-amber-300 hover:bg-amber-200 text-[#7c2d12] font-sans font-semibold text-xs sm:text-base tracking-[0.2em] uppercase py-2.5 sm:py-4 transition">Aproveitar agora</a>
+            <a href="https://wa.me/5592993531943?text=Ol%C3%A1%21%20Vi%20a%20Promo%C3%A7%C3%A3o%20Rel%C3%A2mpago%20no%20site%20da%20London%20Noivas%20%28reservas%20at%C3%A9%2007/10%20e%20eventos%20em%202026%29%20e%20gostaria%20de%20mais%20informa%C3%A7%C3%B5es." target="_blank" rel="noopener" onclick="trackWhatsAppClick('promo_banner')" class="mt-3 sm:mt-6 block text-center rounded-full bg-amber-300 hover:bg-amber-200 text-[#7c2d12] font-sans font-semibold text-xs sm:text-base tracking-[0.2em] uppercase py-2.5 sm:py-4 transition">Mais Informações</a>
         </div>
     </aside>
     <button type="button" id="promo-pill" class="hidden fixed z-40 bottom-10 left-3 sm:left-8 items-center gap-2 rounded-full px-4 py-2.5 sm:px-6 sm:py-3.5 text-white font-sans font-semibold text-xs sm:text-sm tracking-[0.15em] uppercase ring-2 ring-amber-300/80 shadow-xl transition hover:scale-105" style="background: linear-gradient(135deg, #be185d 0%, #e11d74 35%, #f97316 100%);" aria-label="Abrir promoção relâmpago">
@@ -432,7 +432,7 @@
                 <a href="{{ url_for('public_booking_root') }}" class="btn-shimmer bg-london-gold text-white px-7 py-2.5 rounded-sm hover:bg-london-gold-dark transition-all shadow-lg shadow-london-gold/20 tracking-[0.15em]">
                     Agendar Prova
                 </a>
-                
+
                 {% if session.get('logged_in') %}
                 <a href="{{ url_for('agenda') }}" class="bg-[#F5EDE0] text-[#2C2118] px-3 py-1.5 rounded-sm hover:bg-[#E8E0D6] transition-all text-[10px] tracking-wider ml-2 border border-[#E8E0D6]">
                     PAINEL
@@ -442,7 +442,7 @@
                 </a>
                 {% endif %}
             </nav>
-            
+
             <button id="mobile-menu-btn" class="md:hidden text-london-gold focus:outline-none">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-7 h-7">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
@@ -458,7 +458,7 @@
                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
         </button>
-        
+
         <nav class="flex flex-col gap-6 text-center">
             <a href="/" class="text-2xl font-serif font-light text-ivory-100 hover:text-london-gold transition-colors tracking-widest" onclick="closeMobileMenu()">Home</a>
             <a href="{{ url_for('catalogo', occasion='noiva') }}" class="text-2xl font-serif font-light text-ivory-100 hover:text-london-gold transition-colors tracking-widest" onclick="closeMobileMenu()">Catálogo</a>
@@ -485,9 +485,9 @@
                 <picture>
                     <source media="(max-width: 767px)" srcset="{{ url_for('static', filename='background-mobile.webp') }}" type="image/webp">
                     <source media="(min-width: 768px)" srcset="{{ url_for('static', filename='background-desktop.webp') }}" type="image/webp">
-                    <img 
-                        src="{{ url_for('static', filename='background.jpg') }}" 
-                        alt="Luxury wedding dress" 
+                    <img
+                        src="{{ url_for('static', filename='background.jpg') }}"
+                        alt="Luxury wedding dress"
                         width="2000"
                         height="1514"
                         loading="eager"
@@ -505,16 +505,16 @@
             <div class="relative z-10 text-center px-6 max-w-4xl" style="text-shadow: 0 3px 16px rgba(0,0,0,0.65);">
                 <!-- Decorative line -->
                 <div class="w-px h-12 bg-london-gold/60 mx-auto mb-6 animate-fadeIn opacity-0 delay-100" style="animation-fill-mode:forwards"></div>
-                
+
                 <span class="animate-fadeIn opacity-0 delay-200 text-london-gold font-sans font-semibold tracking-[0.35em] text-xs md:text-sm mb-5 block uppercase" style="animation-fill-mode:forwards">
                     Elegância Britânica em Cada Detalhe
                 </span>
-                
+
                 <h2 class="animate-fadeUp opacity-0 delay-300 text-5xl md:text-7xl text-white font-serif font-light mb-5 leading-[1.1]" style="animation-fill-mode:forwards; text-shadow: 0 4px 20px rgba(0,0,0,0.75);">
                     O Vestido dos Seus<br/>
                     <span class="italic font-light">Sonhos</span> Está Aqui
                 </h2>
-                
+
                 <p class="animate-fadeIn opacity-0 delay-400 text-ivory-200/90 text-base md:text-lg mb-8 max-w-2xl mx-auto font-light leading-relaxed tracking-wide" style="animation-fill-mode:forwards; text-shadow: 0 3px 14px rgba(0,0,0,0.7);">
                     Noivas &amp; madrinhas, debutantes, formaturas e eventos sociais: viva uma experiência inesquecível com a curadoria London Noivas em Manaus.
                 </p>
@@ -523,7 +523,7 @@
                 <div class="animate-fadeUp opacity-0 delay-600 flex flex-wrap gap-3 justify-center max-w-3xl mx-auto" style="animation-fill-mode:forwards">
                     {% if occasion_tabs %}
                         {% for tab in occasion_tabs %}
-                        <a href="{{ url_for('catalogo', occasion=tab.slug) }}" 
+                        <a href="{{ url_for('catalogo', occasion=tab.slug) }}"
                            class="group bg-charcoal-950/35 backdrop-blur-lg border border-white/25 text-white px-7 py-3 rounded-sm font-sans font-medium tracking-[0.15em] hover:bg-white hover:text-charcoal-900 hover:border-white transition-all duration-300 text-xs uppercase shadow-[0_10px_30px_rgba(0,0,0,0.35)]">
                             {{ tab.label }}
                         </a>
@@ -534,11 +534,11 @@
                         </a>
                     {% endif %}
                 </div>
-                
+
                 <!-- Decorative bottom line -->
                 <div class="w-px h-8 bg-london-gold/40 mx-auto mt-10 animate-fadeIn opacity-0 delay-700" style="animation-fill-mode:forwards"></div>
             </div>
-            
+
             <!-- Scroll hint -->
             <div class="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 animate-fadeIn opacity-0 delay-700" style="animation-fill-mode:forwards; animation: floatSoft 3s ease-in-out infinite, fadeIn 1.2s ease-out 0.7s forwards;">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor" class="w-5 h-5 text-white/40">
@@ -762,7 +762,7 @@
         <section id="sobre" class="relative pt-8 pb-8 md:pt-14 md:pb-16 bg-white grain-overlay overflow-hidden">
             <!-- Subtle decorative background -->
             <div class="absolute top-0 right-0 w-1/3 h-full bg-gradient-to-l from-ivory-100/50 to-transparent pointer-events-none"></div>
-            
+
             <div class="container mx-auto px-6 flex flex-col md:flex-row items-center gap-12 md:gap-20 relative z-10">
                 <!-- Image Column -->
                 <div class="md:w-[45%] flex justify-center reveal-section">
@@ -770,13 +770,13 @@
                         <!-- Corner accents -->
                         <div class="absolute -top-3 -left-3 w-16 h-16 border-t border-l border-london-gold/50 z-10 pointer-events-none"></div>
                         <div class="absolute -bottom-3 -right-3 w-16 h-16 border-b border-r border-london-gold/50 z-10 pointer-events-none"></div>
-                        
-                        <img 
-                            src="{{ url_for('static', filename='london_noivas_image.png') }}" 
-                            alt="Showroom London Noivas" 
+
+                        <img
+                            src="{{ url_for('static', filename='london_noivas_image.png') }}"
+                            alt="Showroom London Noivas"
                             class="w-full shadow-[0_25px_60px_-15px_rgba(0,0,0,0.15)] relative z-0 rounded-sm object-contain aspect-[2/3] bg-ivory-100"
                         />
-                        
+
                         <!-- Quote card (desktop only) -->
                         <div class="absolute -bottom-6 -right-6 bg-[#2C2118] p-7 hidden md:block shadow-2xl max-w-[280px]">
                             <p class="text-ivory-200 font-serif text-lg italic leading-snug">"Elegância é a única beleza que nunca desaparece."</p>
@@ -785,7 +785,7 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Text Column -->
                 <div class="md:w-[55%] space-y-7 reveal-section">
                     <div class="space-y-3">
@@ -796,14 +796,14 @@
                             tomam forma
                         </h2>
                     </div>
-                    
+
                     <div class="w-10 h-px bg-london-gold/60"></div>
-                    
+
                     <p class="text-charcoal-500 leading-[1.8] text-base font-light max-w-lg">
-                        Inspirada no requinte das grandes boutiques de Londres, a London Noivas oferece uma experiência de aluguel de luxo sem precedentes. 
+                        Inspirada no requinte das grandes boutiques de Londres, a London Noivas oferece uma experiência de aluguel de luxo sem precedentes.
                         Nosso showroom foi projetado para ser o seu santuário, onde cada prova de vestido é um momento de celebração e descoberta da sua melhor versão.
                     </p>
-                    
+
                     <div class="pt-2 grid grid-cols-1 sm:grid-cols-2 gap-5">
                         <div class="flex items-center gap-4 group">
                             <div class="w-10 h-10 rounded-full bg-ivory-100 flex items-center justify-center text-london-gold border border-london-gold/20 group-hover:bg-london-gold group-hover:text-white group-hover:border-london-gold transition-all duration-300 flex-shrink-0">
@@ -822,10 +822,10 @@
                             <span class="text-charcoal-700 font-sans text-sm tracking-wide">Peças Exclusivas Nacionais e Importadas</span>
                         </div>
                     </div>
-                    
+
                     <div class="pt-4">
-                        <a href="https://www.google.com.br/search?sca_esv=b91b52423da4ab6e&cs=0&output=search&kgmid=/g/11ymffx4qh&q=London+Noivas+e+Madrinhas&shem=bdsle,shrtn&shndl=30&source=sh/x/kp/local/m1/1&kgs=74936c11b6f17298&utm_source=bdsle,shrtn,sh/x/kp/local/m1/1&kgs=74936c11b6f17298&utm_source=bdsle,shrtn,sh/x/kp/local/m1/1" 
-                           class="link-elegant inline-flex items-center gap-2 text-charcoal-800 font-sans font-semibold tracking-[0.2em] text-xs uppercase hover:text-london-gold transition-colors" 
+                        <a href="https://www.google.com.br/search?sca_esv=b91b52423da4ab6e&cs=0&output=search&kgmid=/g/11ymffx4qh&q=London+Noivas+e+Madrinhas&shem=bdsle,shrtn&shndl=30&source=sh/x/kp/local/m1/1&kgs=74936c11b6f17298&utm_source=bdsle,shrtn,sh/x/kp/local/m1/1&kgs=74936c11b6f17298&utm_source=bdsle,shrtn,sh/x/kp/local/m1/1"
+                           class="link-elegant inline-flex items-center gap-2 text-charcoal-800 font-sans font-semibold tracking-[0.2em] text-xs uppercase hover:text-london-gold transition-colors"
                            onclick="openMapInfoModal(event, this.href, 'visite_nossa_loja', 'visit_shop', 'engagement')">
                             Visite Nossa Loja
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
@@ -946,13 +946,13 @@
         <section class="py-20 md:py-28 bg-white relative overflow-hidden">
             <!-- Decorative -->
             <div class="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-london-gold/20 to-transparent"></div>
-            
+
             <div class="container mx-auto px-6 text-center mb-14 reveal-section">
                 <span class="text-london-gold font-sans font-medium tracking-[0.3em] text-[10px] uppercase block mb-3">Depoimentos</span>
                 <h2 class="text-3xl md:text-5xl font-serif font-light text-charcoal-900">Experiências London Noivas</h2>
                 <div class="w-10 h-px bg-london-gold mx-auto mt-4"></div>
             </div>
-            
+
             <div class="flex flex-wrap justify-center gap-6 md:gap-8 px-6">
                 <!-- Testimonial 1 -->
                 <div class="testimonial-card bg-white p-8 md:p-10 rounded-sm shadow-[0_4px_20px_rgba(184,150,110,0.15)] max-w-sm border border-[#E8E0D6] reveal-section">
@@ -1019,7 +1019,7 @@
         <div class="fixed inset-0 z-10 overflow-y-auto">
             <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
                 <div class="relative transform overflow-hidden rounded-sm bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-5xl animate-fadeIn">
-                    
+
 
                     <div class="flex flex-col md:flex-row h-full md:h-[80vh]">
                         <!-- Image Side -->
@@ -1042,7 +1042,7 @@
                             </button>
                             <div id="catalog-modal-image-counter" class="absolute bottom-3 left-1/2 -translate-x-1/2 bg-white/90 text-charcoal-700 text-xs tracking-widest font-bold px-3 py-1 rounded-full shadow-md hidden"></div>
                         </div>
-                        
+
                         <!-- Content Side -->
                         <div class="md:w-1/2 p-8 md:p-12 flex flex-col overflow-y-auto bg-white">
                             <div class="flex-1">
@@ -1054,15 +1054,15 @@
                                 {% if catalog_field_visibility.price %}<p id="catalog-modal-price" class="text-charcoal-500 font-serif mb-2 hidden">Valor do aluguel: <span id="catalog-modal-price-value"></span></p>{% endif %}
                                 <p id="catalog-modal-obs" class="text-charcoal-500 font-serif mb-2 hidden">Observações: <span id="catalog-modal-obs-value"></span></p>
                                 {% if catalog_field_visibility.id %}<p class="text-[10px] text-charcoal-400 mb-6 font-sans tracking-wider">ID: <span id="catalog-modal-id-value"></span></p>{% endif %}
-                                
+
                                 <div class="w-10 h-px bg-ivory-300 mb-8"></div>
-                                
+
                                 <div class="prose prose-stone max-w-none">
                                     <h4 class="font-serif text-lg text-charcoal-800 mb-2 font-normal">Descrição do Vestido</h4>
                                     <p id="catalog-modal-desc" class="text-charcoal-500 font-light leading-relaxed text-base mb-8"></p>
                                 </div>
                             </div>
-                            
+
                             <div class="mt-8 pt-8 border-t border-ivory-200">
                                 <p class="text-charcoal-400 text-sm mb-4 text-center italic font-serif">Gostou deste modelo? Fale conosco agora.</p>
                                 <a id="catalog-modal-whatsapp-link" href="#" target="_blank" class="btn-shimmer block w-full bg-[#25D366] hover:bg-[#1ebc57] text-white py-4 px-6 rounded-sm transition-all text-center shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 duration-200 flex items-center justify-center gap-3">
@@ -1278,7 +1278,7 @@
             const obsText = (itemObs || '').toString().trim();
             if (obsValue) obsValue.textContent = obsText;
             if (obsRow) { obsText ? obsRow.classList.remove('hidden') : obsRow.classList.add('hidden'); }
-            
+
             const phoneNumber = "5592993531943";
             let text = `Olá, gostaria de mais informações sobre o vestido: ${title}`;
             text += `\nCód: ${idToShow}`;
